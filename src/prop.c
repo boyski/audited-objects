@@ -186,7 +186,7 @@ static struct {
 	// Windows patterns are always case-insensitive.
 	_T("(cl|link|msbuild|vcbuild|devenv)\\.(exe|com)$"),
 #else	/*_WIN32*/
-	_T("(\\bcc|gcc|gcc-.*|g\\+\\+|ccache)$"),
+	_T("(\\bcc|\\bCC|gcc|gcc-.*|[cg][+]{2}|[cg][+]{2}-.*|ccache)$"),
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,

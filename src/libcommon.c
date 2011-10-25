@@ -571,7 +571,7 @@ _audit_start(CCS call)
 	} else if (!strcmp(ack_soa, ACK_OK)) {
 	    // Everything normal - carry on.
 	} else {
-	    // This means the command was successfully recycled so
+	    // We now know the command was successfully recycled so
 	    // we can quit and go home early.
 	    if ((p = strstr(ack_soa, FS1))) {
 		*p = '\0';
@@ -676,14 +676,19 @@ _audit_end(CCS call, int exiting, long status)
     // This fixes a subtle problem: on a successful recycling event,
     // the monitor will cause the audited command to exit early. If
     // that program has a child which is writing to it through a pipe,
-    // the effect of existing the parent will be a SIGPIPE in the
-    // child which will typically cause it to fail. If running under
-    // make this can cause the build to abort. Therefore, when we're
+    // the effect of exiting the parent will be a SIGPIPE in the
+    // child which will typically cause it to fail. Thus, when we're
     // about to finish up we surreptitiously force the audited
-    // process to ignore SIGPIPE. Highly unlikely to break anything
-    // since we're exiting anyway but yes it's a hack.
-    // The build of OpenSSL 1.0 triggered this problem, at least on
-    // Solaris X86.
+    // process to ignore SIGPIPE. Unlikely to break anything
+    // since we're exiting anyway but yes it's an intrusive hack.
+    // TODO - this placement seems overly aggressive because it will
+    // ignore SIGPIPE on all exits and execs, whereas in theory
+    // we should only need this when exiting early due to
+    // recycle. But I tried moving it once and it broke so I moved
+    // it back and added this note. Maybe I put it in the wrong
+    // place. Analyze someday.
+    // A downloading build of OpenSSL 1.0 triggers this problem, at
+    // least on Ubuntu and at one time on Solaris 10 X86.
     {
 	struct sigaction sigpipe;
 

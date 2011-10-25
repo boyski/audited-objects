@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -230,15 +230,18 @@ _http_print_time_stats(CURL *curl, CCS url)
     double sample_time, total_time, t1 = 0;
     double upload_size, download_size;
     double size = 0.0, speed = 0.0;
-    char servlet[PATH_MAX] = "???";
+    char *servlet;
     char *b, *e;
 
     if ((e = strchr(url, '?')) || (e = strchr(url, '&'))) {
+	servlet = putil_malloc(strlen(url) + 1);
 	for (b = e - 1; b > url && *b != '/'; b--);
 	strncpy(servlet, b + 1, e - b - 1);
 	servlet[e - b] = '\0';
     } else if ((e = strrchr(url, '/'))) {
-	strcpy(servlet, e + 1);
+	servlet = putil_strdup(e + 1);
+    } else {
+	servlet = "(unknown)";
     }
 
     if ((curl_easy_getinfo(curl,
@@ -291,6 +294,7 @@ _http_print_time_stats(CURL *curl, CCS url)
 
     vb_printfA(VB_TIME, "HTTP %s: time=%.2fs[%.2f] size=%.0f speed=%.0fbps",
 	       servlet, total_time, t1, size, speed);
+    putil_free(servlet);
 }
 
 /// Initializes all HTTP-related data structures.
@@ -1003,7 +1007,7 @@ static int
 _http_action_connect(char **uptr, CS const *argv, int statfiles)
 {
     CURL *curl;
-    char rwdbuf[PATH_MAX];
+    CCS rwd;
     CS projname = NULL;
     CCS ofile;
     int rc = 0;
@@ -1067,7 +1071,7 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
 		if (ps_stat(ps, 1)) {
 		    rc = 1;
 		} else {
-		    psbuf = ps_tostring(ps);
+		    psbuf = ps_toCSVString(ps);
 		    http_add_header(curl, X_PATHSTATE_HEADER, psbuf);
 		    putil_free(psbuf);
 		}
@@ -1091,7 +1095,8 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
 		       prop_get_str(P_PROJECT_NAME));
     }
 
-    http_add_param(uptr, HTTP_RWD_PARAM, util_get_rwd(rwdbuf, charlen(rwdbuf)));
+    http_add_param(uptr, HTTP_RWD_PARAM, rwd = util_get_rwd());
+    putil_free(rwd);
 
     // This will set the output file pointer to either stdout or 
     // the path specified by the property.

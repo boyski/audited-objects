@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -113,6 +113,7 @@ _usage(int rc)
     fprintf(fp, fmt, "-h", "Print this usage summary");
     fprintf(fp, fmt, "-H", "Print current properties");
     _usg_line(fp, fmt, "-a", P_ABSOLUTE_PATHS, NULL);
+    fprintf(fp, fmt, "-C dir", "Change to dir before doing anything");
     _usg_line(fp, fmt, "-d", P_DOWNLOAD_ONLY, NULL);
     _usg_line(fp, fmt, "-F file", P_MAKE_FILE, NULL);
 #if !defined(_WIN32)
@@ -125,7 +126,7 @@ _usage(int rc)
     _usg_line(fp, fmt, "-p name", P_PROJECT_NAME, NULL);
     fprintf(fp, fmt, "-q", "Quiet mode: suppress verbosity");
     _usg_line(fp, fmt, "-s host:port", P_SERVER, NULL);
-    _usg_line(fp, fmt, "-T", P_PRINT_ELAPSED, NULL);
+    _usg_line(fp, fmt, "-t", P_PRINT_ELAPSED, NULL);
     _usg_line(fp, fmt, "-u", P_UPLOAD_ONLY, NULL);
     fprintf(fp, fmt, "-vXX,YY,ZZ",
 	"Set verbosity flags (use -v? to see choices");
@@ -153,8 +154,7 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
 {
     struct __stat64 stbuf;
     ps_o ps;
-    char psbuf[PATH_MAX + 256];
-    char abspath[PATH_MAX];
+    CCS psbuf;
     int rc = 0;
 
     // If we can't resolve the file vs the cwd, try vs the rwd.
@@ -163,13 +163,16 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
 	    putil_syserr(0, path);
 	    return 2;
 	} else {
-	    snprintf(abspath, charlen(abspath), "%s/%s",
-		       prop_get_str(P_BASE_DIR), path);
+	    CS abspath;
+
+	    asprintf(&abspath, "%s/%s", prop_get_str(P_BASE_DIR), path);
 	    if (stat64(abspath, &stbuf)) {
 		putil_syserr(0, path);	// NOT abspath
+		putil_free(abspath);
 		return 2;
 	    } else {
 		ps = ps_newFromPath(abspath);
+		putil_free(abspath);
 	    }
 	}
     } else {
@@ -184,12 +187,15 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
 
     if (ps_stat(ps, 1)) {
 	putil_syserr(0, ps_get_abs(ps));
+	ps_destroy(ps);
 	return 2;
     }
 
-    ps_toCSVString(ps, psbuf, charlen(psbuf));
+    psbuf = ps_toCSVString(ps);
 
     rc = http_namestate(name, psbuf, argv);
+
+    putil_free(psbuf);
 
     ps_destroy(ps);
 
@@ -248,10 +254,11 @@ do_action(CCS action, int argc, CS const *argv)
 	int i;
 
 	for (i = 0; i < argc; i++) {
-	    char subsbuf[8192];
+	    CCS subs = NULL;
 
-	    util_substitute_params(argv[i], subsbuf, charlen(subsbuf));
-	    printf("%s\n", subsbuf);
+	    (void)util_substitute_params(argv[i], &subs);
+	    printf("%s\n", subs);
+	    putil_free(subs);
 	}
     } else if (streq(action, "hash-object")) {
 	int write_flag = 0;
@@ -353,7 +360,6 @@ do_action(CCS action, int argc, CS const *argv)
 	    struct __stat64 stbuf;
 	    int statrc;
 	    ps_o ps;
-	    char buf[PATH_MAX + 256];
 
 	    ps = ps_newFromPath(*argv);
 	    path = ps_get_abs(ps);
@@ -381,8 +387,14 @@ do_action(CCS action, int argc, CS const *argv)
 	    if (ps_stat(ps, 1)) {
 		rc = 1;
 	    } else {
-		ps_format_user(ps, long_flag, short_flag, buf, charlen(buf));
+		size_t len;
+		CS buf;
+		
+		len = putil_path_max() + 256 + 1;
+		buf = putil_malloc(len);
+		ps_format_user(ps, long_flag, short_flag, buf, len);
 		fputs(buf, stdout);
+		putil_free(buf);
 	    }
 
 	    ps_destroy(ps);
@@ -429,7 +441,7 @@ do_action(CCS action, int argc, CS const *argv)
 	    }
 	}
 	_print_version(0);
-    } else if (*argv && (streq(*argv, "-h") || streq(*argv, "--help"))) {
+    } else if (argv && *argv && (streq(*argv, "-h") || streq(*argv, "--help"))) {
 	// Always go to the server for help unless it's a pure client-side
 	// action. That's why this is midway down - pure client actions
 	// are above, anything requiring server interaction is below.
@@ -583,6 +595,7 @@ main(int argc, CS const *argv)
     CS dscript = NULL;
     int proplevel = -1;
     int no_server = 0;
+    int make_clean = 0;
     int rc = 0;
 
     // Figure out the full path to the current executable program.
@@ -624,6 +637,9 @@ main(int argc, CS const *argv)
     // Initialize the hash-code generation.
     code_init();
 
+    // Default this to on; make auditing is tough without it.
+    prop_override_true(P_MAKE_ONESHELL);
+
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse
     // only -flag1 and -flag2.
@@ -632,48 +648,50 @@ main(int argc, CS const *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    "+1adhl:mo:p:qrs:uv::wxACDEF:GH::I:LM:O:PQRSTUV:W:XY";
+	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:GH::I:LM:O:PQRSTUV:W:XY";
 	static struct option long_opts[] = {
-	    {"oneshell",		no_argument,	   NULL, '1'},
+	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
-	    {"agg-level",		required_argument, NULL, LF('A','G')},
-	    {"audit-only",		no_argument,	   NULL, 'A'},
-	    {"make-clean",		no_argument,	   NULL, 'C'},
+	    {"agg-level",	required_argument, NULL, LF('A','G')},
+	    {"audit-only",	no_argument,	   NULL, 'A'},
+	    {"make-clean",	no_argument,	   NULL, 'c'},
+	    {"directory",	required_argument, NULL, 'C'},
 	    {"download-only",	no_argument,	   NULL, 'd'},
 	    {"download-silent",	no_argument,	   NULL, 'D'},
 	    {"dtrace",		required_argument, NULL, LF('D','T')},
 	    {"client-platform",	required_argument, NULL, LF('C','P')},
 	    {"error-strict",	no_argument,	   NULL, 'E'},
-	    {"make-file",		required_argument, NULL, 'F'},
-	    {"git",			no_argument,	   NULL, 'G'},
+	    {"make-file",	required_argument, NULL, 'F'},
+	    {"git",		no_argument,	   NULL, 'G'},
 	    {"help",		no_argument,	   NULL, 'h'},
 	    {"Help",		optional_argument, NULL, 'H'},
-	    {"properties",		optional_argument, NULL, LF('P','*')},
+	    {"properties",	optional_argument, NULL, LF('P','*')},
 	    {"identity-hash",	required_argument, NULL, 'I'},
-	    {"log-file",		required_argument, NULL, 'l'},
+	    {"log-file",	required_argument, NULL, 'l'},
 	    {"log-file-temp",	no_argument,	   NULL, 'L'},
 	    {"make-depends",	optional_argument, NULL, 'M'},
-	    {"mem-debug",		optional_argument, NULL, LF('D','M')},
+	    {"mem-debug",	optional_argument, NULL, LF('D','M')},
 	    {"members-only",	no_argument,	   NULL, 'm'},
-	    {"output-file",		required_argument, NULL, 'o'},
-	    {"Output-file",		required_argument, NULL, 'O'},
+	    {"output-file",	required_argument, NULL, 'o'},
+	    {"Output-file",	required_argument, NULL, 'O'},
 	    {"project-name",	required_argument, NULL, 'p'},
 	    {"pager",		no_argument,	   NULL, 'P'},
 	    {"profile",		no_argument,	   NULL, LF('P','%')},
 	    {"quiet",		no_argument,	   NULL, 'q'},
-	    {"extra-quiet",		no_argument,	   NULL, 'Q'},
+	    {"extra-quiet",	no_argument,	   NULL, 'Q'},
 	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
 	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
 	    {"restart",		no_argument,	   NULL, LF('R','L')},
 	    {"server",		required_argument, NULL, 's'},
 	    {"strict",		no_argument,	   NULL, 'S'},
-	    {"print-elapsed",	no_argument,	   NULL, 'T'},
-	    {"upload-only",		no_argument,	   NULL, 'u'},
-	    {"uncompressed-transfers", no_argument,	   NULL, 'U'},
-	    {"verbosity",		optional_argument, NULL, 'v'},
+	    {"print-elapsed",	no_argument,	   NULL, 't'},
+	    {"print-elapsed-x",	no_argument,	   NULL, 'T'}, // TODO compatibility,remove
+	    {"upload-only",	no_argument,	   NULL, 'u'},
+	    {"uncompressed-transfers",no_argument, NULL, 'U'},
+	    {"verbosity",	optional_argument, NULL, 'v'},
 	    {"local-verbosity",	required_argument, NULL, 'V'},
 	    {"version",		optional_argument, NULL, LF('v','n')},
-	    {"why",			no_argument,	   NULL, 'w'},
+	    {"why",		no_argument,	   NULL, 'w'},
 	    {"WFlag",		required_argument, NULL, 'W'},
 	    {"exec-verbosity",	required_argument, NULL, 'x'},
 	    {"execute-only",	no_argument,	   NULL, 'X'},
@@ -690,7 +708,7 @@ main(int argc, CS const *argv)
 	switch (c) {
 
 	    case '1':
-		putil_putenv("MAKEFLAGS=--eval .ONESHELL:");
+		prop_unset(P_MAKE_ONESHELL, 0);
 		break;
 
 	    case 'a':
@@ -705,10 +723,19 @@ main(int argc, CS const *argv)
 		prop_override_true(P_AUDIT_ONLY);
 		break;
 
-	    // Development hack - allows an automatic "make clean" which
+	    // Undocumented hack - allows an automatic "make clean" which
 	    // is not audited or counted in elapsed time.
+	    case 'c':
+		make_clean = 1;
+		break;
+
 	    case 'C':
-		_make_clean();
+		if (!QuietMode) {
+		    fprintf(stderr, "+ cd %s\n", bsd_optarg);
+		}
+		if (chdir(bsd_optarg)) {
+		    putil_syserr(2, bsd_optarg);
+		}
 		break;
 
 	    case LF('C', 'P'):
@@ -750,7 +777,17 @@ main(int argc, CS const *argv)
 		break;
 
 	    case 'l':
-		prop_override_str(P_LOG_FILE, bsd_optarg);
+		{
+		    CS lbuf;
+
+		    if ((lbuf = putil_realpath(bsd_optarg, 1))) {
+			prop_override_str(P_LOG_FILE, lbuf);
+			putil_free(lbuf);
+		    } else {
+			putil_syserr(0, bsd_optarg);
+			prop_override_str(P_LOG_FILE, bsd_optarg);
+		    }
+		}
 		break;
 
 	    case 'F':
@@ -835,6 +872,7 @@ main(int argc, CS const *argv)
 		break;
 
 	    case 'T':
+	    case 't':
 		prop_unset(P_PRINT_ELAPSED, 1);
 		prop_put_str(P_PRINT_ELAPSED, "-1");
 		break;
@@ -949,12 +987,16 @@ main(int argc, CS const *argv)
     argc -= bsd_optind;
     argv += bsd_optind;
 
+    if (make_clean) {
+	_make_clean();
+    }
+
     // The command we've been asked to invoke.
     if ((action = argv[0])) {
 	// Hack for typing ease: "make" is a synonym for "run make".
 	// Similarly, "ant" is a synonym for "run ant".
-	// And any word containing a / must be a program to run.
-	if (strchr(action, '/') || strchr(action, '\\')
+	// And any word with non-alphanumeric chars must be a program to run.
+	if (strpbrk(action, "/\\=+-")
 	    || strstr(action, "make")
 	    || !util_pathcmp(action, "sh")
 	    || !util_pathcmp(action, "vcbuild")		// Windows only
@@ -1079,9 +1121,7 @@ main(int argc, CS const *argv)
     }
 
     if (streq(action, "run")) {
-	char cwd[PATH_MAX];
-	char logbuf[PATH_MAX];
-	CCS rmap, logfile;
+	CCS cwd, rmap, logprop, logfile = NULL;
 
 	if (!argv || !*argv) {
 	    _usage(1);
@@ -1095,10 +1135,11 @@ main(int argc, CS const *argv)
 	// out why it's behaving strangely. To help avoid this
 	// we disallow the auditor from running when the CWD is
 	// one we consider a repository for temp files.
-	if (util_get_cwd(cwd, charlen(cwd))) {
+	if ((cwd = util_get_cwd())) {
 	    if (util_is_tmp(cwd) && !prop_is_true(P_EXECUTE_ONLY)) {
 		putil_die("illegal tmp working directory: %s", cwd);
 	    }
+	    putil_free(cwd);
 	} else {
 	    putil_syserr(2, "util_get_cwd()");
 	}
@@ -1128,21 +1169,19 @@ main(int argc, CS const *argv)
 
 	// Determine whether the user requested a log file and
 	// apply the %u, %p, etc. formats to it if so.
-	if ((logfile = prop_get_str(P_LOG_FILE))) {
-	    if (util_substitute_params(logfile, logbuf, charlen(logbuf))) {
-		logfile = logbuf;
-	    }
+	if ((logprop = prop_get_str(P_LOG_FILE))) {
+	    (void)util_substitute_params(logprop, &logfile);
 	    // In case it's present but unwriteable.
-	    (void)unlink(logfile);
+	    if (logfile)
+		(void)unlink(logfile);
 	}
 
 	// Work out the name of the roadmap file and store the result.
 	if ((rmap = prop_get_str(P_ROADMAPFILE))) {
 	    if (!putil_is_absolute(rmap)) {
-		char rbuf[PATH_MAX];
-
-		if ((rmap = putil_realpath(rmap, rbuf, charlen(rbuf), 1))) {
-		    prop_override_str(P_ROADMAPFILE, rbuf);
+		if ((rmap = putil_realpath(rmap, 1))) {
+		    prop_override_str(P_ROADMAPFILE, rmap);
+		    putil_free(rmap);
 		} else {
 		    putil_syserr(2, prop_get_str(P_ROADMAPFILE));
 		}
@@ -1195,6 +1234,8 @@ main(int argc, CS const *argv)
 	// RUN AND AUDIT THE COMMAND.
 	rc = run_cmd(exe, (CS *)argv, logfile);
 
+	putil_free(logfile);
+
 	if (prop_is_true(P_GIT)) {
 	    git_fini();
 	}
@@ -1214,7 +1255,7 @@ main(int argc, CS const *argv)
 	int cflag = 0;
 	int gflag = 0;
 	ca_o ca;
-	char rwdbuf[PATH_MAX];
+	CCS rwd;
 
 	// This special action is useful for internal tests of shopping
 	// capabilities without changing server state, using a saved
@@ -1245,7 +1286,8 @@ main(int argc, CS const *argv)
 	ca_set_host(ca, "localhost");
 	ca_set_cmdid(ca, getpid());
 	ca_set_pcmdid(ca, prop_get_ulong(P_PCMDID));
-	ca_set_rwd(ca, util_get_rwd(rwdbuf, charlen(rwdbuf)));
+	ca_set_rwd(ca, rwd = util_get_rwd());
+	putil_free(rwd);
 	ca_set_started(ca, 1);
 
 	// We almost always want these while debugging...

@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -53,7 +53,7 @@ WRAP(FILE *, fdopen, (int fildes, const char *mode), fildes, mode)
 // 64-bit platforms as they come alone. This is hacky and should be
 // revisited.
 #if !defined(sun) || (!defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE))
-#if !defined(__CYGWIN__)
+#if !defined(__CYGWIN__) && !defined(__APPLE__)
 WRAP_OPEN(int, open64)
 WRAP(int, creat64, (const char *path, mode_t mode), path, mode)
 WRAP(FILE *, fopen64, (const char *path, const char *mode), path, mode)

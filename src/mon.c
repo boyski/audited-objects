@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -670,6 +670,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    putil_free(str);
 	    mon_dump();
 	    ck_destroy(ck);
+	    pa_destroy(pa);
 	    return MON_ERR;
 	}
 
@@ -745,7 +746,7 @@ mon_ptx_start(void)
 {
     char *url;
     struct utsname sysdata;
-    char rwdbuf[PATH_MAX];
+    CCS rwd;
     CURL *curl;
     int rc = 0;
 
@@ -763,7 +764,8 @@ mon_ptx_start(void)
     http_add_param(&url, HTTP_BASE_DIR_PARAM, prop_get_str(P_BASE_DIR));
     http_add_param(&url, HTTP_LOGIN_NAME_PARAM, util_get_logname());
     http_add_param(&url, HTTP_GROUP_NAME_PARAM, util_get_groupname());
-    http_add_param(&url, HTTP_RWD_PARAM, util_get_rwd(rwdbuf, charlen(rwdbuf)));
+    http_add_param(&url, HTTP_RWD_PARAM, rwd = util_get_rwd());
+    putil_free(rwd);
     if (putil_uname(&sysdata) != -1) {
 	http_add_param(&url, HTTP_SYSTEM_NAME_PARAM, sysdata.sysname);
 	http_add_param(&url, HTTP_HOST_NAME_PARAM, sysdata.nodename);

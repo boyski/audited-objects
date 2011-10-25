@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -209,27 +209,12 @@ typedef long		ssize_t;
 #define O_BINARY	_O_BINARY
 #define	S_ISDIR(mode)	(((mode)&0xF000) == 0x4000)
 #define	S_ISREG(mode)	(((mode)&0xF000) == 0x8000)
-#define access		_access
-#define close		_close
-#define fileno		_fileno
-#define getcwd		_getcwd
-#define getpid		_getpid
-#define lseek		_lseek
-#define mkdir		_mkdir
-#define open		_open
 #define open64		_open
 #define pclose		_pclose
 #define popen		_popen
-#define putenv		_putenv
-#define read		_read
 #define stat64		_stat64
 #define lstat64		_stat64
 #define fstat64		_fstat64
-#define stricmp		_stricmp
-#define strnicmp	_strnicmp
-#define tempnam		_tempnam
-#define unlink		_unlink
-#define write		_write
 #else	/*!_WIN32 || __GNUC__*/
 #ifndef O_BINARY
 #define O_BINARY	0
@@ -263,10 +248,9 @@ typedef long		ssize_t;
 
 #endif	/*_WIN32 && !__GNUC__*/
 
-// HOST_NAME_MAX is not universally available so we default it
-// to something that's certainly known and certainly large enough.
+// HOST_NAME_MAX is not universally available.
 #if !defined(HOST_NAME_MAX)
-#define HOST_NAME_MAX	PATH_MAX
+#define HOST_NAME_MAX	512
 #endif
 
 // Borrowed from VMAC implementation. May be useful someday.
@@ -384,15 +368,16 @@ PUTIL_API void putil_srcdbg_(CCS, int, CCS, ...)
     __attribute__((__format__(__printf__,3,4)));
 PUTIL_API void putil_syserr_(CCS, int, int, CCS);
 PUTIL_API void putil_lnkerr_(CCS, int, int, CCS, CCS);
+PUTIL_API size_t putil_path_max(void);
 PUTIL_API CS putil_basename(CCS);
-PUTIL_API CS putil_dirname(CCS, CS);
+PUTIL_API CS putil_dirname(CCS);
 PUTIL_API int putil_mkdir_p(CCS);
 PUTIL_API CCS putil_prog(void);
 PUTIL_API CS *putil_argv_from_environ(int *);
 PUTIL_API CCS putil_getexecpath(void);
 PUTIL_API CS putil_get_homedir(CS, size_t);
 PUTIL_API CS putil_get_systemdir(CS, size_t);
-PUTIL_API CS putil_realpath(CCS, CS, size_t, int);
+PUTIL_API CS putil_realpath(CCS, int);
 PUTIL_API CS *putil_prepend2argv(CS *, ...);
 PUTIL_API size_t putil_searchpath(CCS, CCS, CCS, unsigned long, CS, CS *);
 PUTIL_API CS putil_canon_path(CS, CS, size_t);
@@ -418,6 +403,7 @@ PUTIL_API CCS DIRSEP(void);
 #else	/*_WIN32*/
 #define DIRSEP()	"/"
 PUTIL_API CCS putil_tmpdir(CS, size_t);
+PUTIL_API CCS putil_readlink(CCS);
 #endif	/*_WIN32*/
 
 #if defined(_WIN32)
@@ -581,6 +567,24 @@ putil_exit_(CCS f, int l, int status)
 
 /////////////////////////////////////////////////////////////////////////////
 
+PUTIL_CLASS size_t
+putil_path_max(void)
+{
+    size_t path_max;
+
+#ifdef PATH_MAX
+    path_max = PATH_MAX;
+#else
+    path_max = pathconf(path, _PC_PATH_MAX);
+    if (path_max <= 0)
+	path_max = 256; /* should never happen but be safe if it does */
+#endif
+
+    return path_max;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 // This protoype is based on the Win32 SearchPath function for compatibility.
 PUTIL_CLASS size_t
 putil_searchpath(CCS srchpath, CCS prog, CCS ext,
@@ -600,7 +604,11 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext,
     buf[0] = '\0';
 
     if (strchr(prog, '/')) {
-	if (putil_realpath(prog, buf, buflen, 0)) {
+	CS rbuf;
+
+	if ((rbuf = putil_realpath(prog, 0))) {
+	    snprintf(buf, buflen, "%s", rbuf);
+	    putil_free(rbuf);
 	    return strlen(buf);
 	} else {
 	    return 0;
@@ -909,37 +917,65 @@ putil_get_systemdir(CS buf, size_t buflen)
 /////////////////////////////////////////////////////////////////////////////
 
 // Similar semantics to realpath() except that if the path does not
-// exist it may optionally return a best guess of what the absolute path
+// exist it may optionally return a best guess of what its absolute path
 // *should* look like instead of failing as realpath() does
 // on some systems.
 // Note that this will resolve symlinks, just as SUS says realpath() does.
+// Also note that this is just as insecure as the original.
 PUTIL_CLASS CS
-putil_realpath(CCS path, CS resolved, size_t len, int guess)
+putil_realpath(CCS path, int guess)
 {
+    CS resolved;
+    size_t len;
+
+    len = putil_path_max() + 1;
+    resolved = (CS)putil_malloc(len);
+
 #ifdef _WIN32
-    DWORD ret = GetFullPathName(path, len, resolved, NULL);
-    if (ret == 0 || ret > len)
-	return NULL;
-#else	/*_WIN32*/
-    if (!realpath(path, resolved)) {
-	if (!guess)
+    {
+	DWORD ret = GetFullPathName(path, len, resolved, NULL);
+	if (ret == 0 || ret > len) {
+	    putil_free(resolved);
 	    return NULL;
+	}
+    }
+#else	/*_WIN32*/
+    if (realpath(path, resolved)) {
+	// Feeble attempt at making realpath more secure ...
+	if (strlen(resolved) >= len)
+	    abort();
+    } else {
+	if (!guess) {
+	    putil_free(resolved);
+	    return NULL;
+	}
 
 	if (errno != ENOENT) {
+	    putil_free(resolved);
 	    return NULL;
 	} else if (*path == '/') {
-	    char pbuf[PATH_MAX], rbuf[PATH_MAX];
+	    char *parent;
 
 	    // This recursion should always break at "/" (the root).
-	    putil_dirname(path, pbuf);
-	    strcpy(resolved, putil_realpath(pbuf, rbuf, charlen(rbuf), guess));
-	    strcat(resolved, "/");
-	    strcat(resolved, basename((CS)path));
+	    if ((parent = putil_dirname(path))) {
+		CS rbuf;
+
+		if ((rbuf = putil_realpath(parent, guess))) {
+		    snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((CS)path));
+		    putil_free(parent);
+		    putil_free(rbuf);
+		} else {
+		    putil_free(parent);
+		    putil_free(resolved);
+		    return NULL;
+		}
+	    }
 	} else {
 	    if (getcwd(resolved, len - charlen(path) - sizeof(char))) {
 		strcat(resolved, "/");
 		strcat(resolved, path);
 	    } else {
+		putil_free(resolved);
 		return NULL;
 	    }
 	}
@@ -947,9 +983,12 @@ putil_realpath(CCS path, CS resolved, size_t len, int guess)
 
     // Some realpaths (Solaris) return NULL if path doesn't exist,
     // others (FreeBSD) don't care.
-    if (!guess && access(resolved, F_OK))
+    if (!guess && access(resolved, F_OK)) {
+	putil_free(resolved);
 	return NULL;
+    }
 #endif	/*_WIN32*/
+
     return resolved;
 }
 
@@ -975,10 +1014,53 @@ putil_basename(CCS path)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_dirname(CCS path, CS result)
+#ifndef _WIN32
+// Like readlink(2) but allocates and returns a null-terminated buffer.
+PUTIL_CLASS CCS
+putil_readlink(CCS path)
 {
+    ssize_t len, l1;
+    CS buf;
+
+    if (!path)
+	return NULL;
+
+    len = strlen(path) + 1;
+    buf = putil_malloc(len);
+
+    while(1) {
+	l1 = readlink(path, buf, len);
+	if (l1 == -1) {
+	    putil_free(buf);
+	    buf = NULL;
+	    break;
+	} else if (l1 == len) {
+	    len *= 2;
+	    buf = putil_realloc(buf, len);
+	} else {
+	    buf[l1] = '\0';
+	    break;
+	}
+    }
+
+    return buf;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+
+PUTIL_CLASS CS
+putil_dirname(CCS path)
+{
+    CS result;
+
+    if (!path)
+	return NULL;
+
+    result = (CS)putil_malloc(strlen(path) + 1);
+
 #ifdef _WIN32
+    {
 	char buf[PATH_MAX];
 	CS ep;
 	char drive[_MAX_DRIVE], dir[_MAX_DIR];
@@ -996,15 +1078,19 @@ putil_dirname(CCS path, CS result)
 	}
 	for (ep = endof(result) - 1; *ep == '\\' || *ep == '/'; ep--)
 		*ep = '\0';
+    }
 #else	/*_WIN32*/
     // We do this double copying because some dirname()
     // implementations (FreeBSD) return a ptr to static storage
     // while others (Solaris) modify the parameter string. The
     // following is safe in both cases, thread-safety aside.
-    char buf[PATH_MAX];
+    {
+	char *buf;
 
-    strcpy(buf, path);
-    strcpy(result, dirname(buf));
+	buf = putil_strdup(path);
+	strcpy(result, dirname(buf));
+	putil_free(buf);
+    }
 #endif	/*_WIN32*/
     return result;
 }
@@ -1014,11 +1100,13 @@ putil_dirname(CCS path, CS result)
 PUTIL_CLASS int
 putil_mkdir_p(CCS path)
 {
-    char parent[PATH_MAX];
+    char *parent;
 
-    putil_dirname(path, parent);
-    if (access(parent, F_OK))
-	(void)putil_mkdir_p(parent);
+    if ((parent = putil_dirname(path))) {
+	if (access(parent, F_OK))
+	    (void)putil_mkdir_p(parent);
+	putil_free(parent);
+    }
 #ifdef	_WIN32
     return mkdir(path);
 #else	/*_WIN32*/
@@ -1136,7 +1224,8 @@ putil_getexecpath(void)
 	GetModuleFileName(NULL, xname, charlen(xname));
     return xname;
 #else	/*_WIN32*/
-    char buf[PATH_MAX], pbuf[PATH_MAX];
+    char buf[PATH_MAX + 1], pbuf[PATH_MAX];
+    ssize_t llen;
 
     // This can't change once we derive it ...
     if (xname[0] != '\0')
@@ -1155,7 +1244,7 @@ putil_getexecpath(void)
 //    pathname that was given to execve()."
 // So we look for something past the environ block that looks like a path.
 #if defined(linux) || defined(__CYGWIN__)
-    if (readlink("/proc/self/exe", buf, charlen(buf)) == -1) {
+    if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
 	char **e;
 	CS p;
 
@@ -1164,16 +1253,19 @@ putil_getexecpath(void)
 	if (*p == '/') {
 	    (void)strcpy(buf, p);
 	} else {
+	    buf[0] = '\0';
 	    return NULL;
 	}
+    } else {
+	buf[llen] = '\0';
     }
 #elif defined(sun)
     {
 	// This /proc entry is only available as of Solaris 10, but
 	// if present it's the most reliable.
-	if ((readlink("/proc/self/path/a.out", buf, charlen(buf)) == -1)) {
-	    // One danger of getexecname() is that if you run
-	    // "foo" which is a symlink to "bar", it returns "bar".
+	if ((llen = readlink("/proc/self/path/a.out", buf, charlen(buf) - 1)) == -1) {
+	    // One danger of getexecname() is that if you run "foo"
+	    // which is a symlink to "bar", getexecname() returns "bar".
 	    // Otherwise it's pretty strong with the caveat mentioned
 	    // in the man page about relative paths and changing cwd.
 	    (void)strcpy(buf, getexecname());
@@ -1185,6 +1277,8 @@ putil_getexecpath(void)
 		strcat(cwd, buf);
 		strcpy(buf, cwd);
 	    }
+	} else {
+	    buf[llen] = '\0';
 	}
     }
 #else
@@ -1194,7 +1288,11 @@ putil_getexecpath(void)
 	// As of FreeBSD 5.x the /proc filesystem isn't mounted by
 	// default so we can't count on the following to work. If the
 	// file is present it should be reliable; if not we fall back.
-	readlink("/proc/curproc/file", buf, charlen(buf));
+	if ((llen = readlink("/proc/curproc/file", buf, charlen(buf) - 1)) == -1) {
+	    buf[0] = '\0';
+	} else {
+	    buf[llen] = '\0';
+	}
 #endif	/*BSD*/
 
 	if (! putil_is_absolute(buf)) {
@@ -1208,6 +1306,7 @@ putil_getexecpath(void)
 	    if (argv) {
 		(void)strcpy(buf, argv[0]);
 	    } else {
+		buf[0] = '\0';
 		return NULL;
 	    }
 	}
@@ -1232,6 +1331,7 @@ putil_getexecpath(void)
 	return strcat(xname, buf);
     }
 
+    buf[0] = '\0';
     return NULL;
 #endif /*_WIN32*/
 }
@@ -1507,7 +1607,7 @@ _putil_never_called(void)
     putil_lnkerr(0, PUTIL_NULLSTR, PUTIL_NULLSTR);
     putil_tmpdir(PUTIL_NULLSTR, 0);
     putil_basename(PUTIL_NULLSTR);
-    putil_dirname(PUTIL_NULLSTR, PUTIL_NULLSTR);
+    putil_dirname(PUTIL_NULLSTR);
     putil_prepend2argv(NULL);
     putil_get_homedir(PUTIL_NULLSTR, 0);
     putil_get_systemdir(PUTIL_NULLSTR, 0);
@@ -1533,6 +1633,7 @@ _putil_never_called(void)
     putil_win32errW_(PUTIL_NULLSTR, 0, 0, 0, PUTIL_NULLSTRW);
     putil_syserrW_(PUTIL_NULLSTR, 0, 0, PUTIL_NULLSTRW);
 #else	/*_WIN32*/
+    putil_readlink(NULL);
 #endif	/*_WIN32*/
 
     // Avoid warning via bogus recursive call.

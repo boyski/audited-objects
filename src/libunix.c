@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -946,15 +946,18 @@ openat_wrapper(const char *call,
 	if (fildes == (int)AT_FDCWD || putil_is_absolute(path)) {
 	    _pa_record(call, path, NULL, ret, op);
 	} else {
-	    char procbuf[PATH_MAX], linkbuf[PATH_MAX], atpath[PATH_MAX];
+	    char procbuf[512];
+	    CCS lbuf;
+	    CS atpath;
 
 	    snprintf(procbuf, sizeof(procbuf), "/proc/%ld/path/%d",
 		(long)getpid(), fildes);
 
-	    memset(linkbuf, '\0', sizeof(linkbuf));
-	    if (readlink(procbuf, linkbuf, sizeof(linkbuf)) > 0) {
-		snprintf(atpath, sizeof(atpath), "%s/%s", linkbuf, path);
+	    if ((lbuf = putil_readlink(procbuf))) {
+		asprintf(&atpath, "%s/%s", lbuf, path);
 		_pa_record(call, atpath, NULL, ret, op);
+		putil_free(atpath);
+		putil_free(lbuf);
 	    } else {
 		putil_warn("can't resolve %s relative to fd=%d", path, fildes);
 	    }

@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -79,6 +79,22 @@ _libinterposer_die(const char *string)
 	fprintf(stderr, "INTERPOSER: Error: %s\n", strerror(errno));
     }
     exit(2);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+// Sometimes useful for debugging purposes but has no "production" value.
+static void
+libinterposer_preload_dbg(const char *location)
+{
+    char *pld;
+
+    if ((pld = getenv(PRELOAD_EV_32)))
+	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV_32, pld);
+    if ((pld = getenv(PRELOAD_EV_64)))
+	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV_64, pld);
+    if ((pld = getenv(PRELOAD_EV)))
+	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV, pld);
 }
 
 static char *
@@ -194,7 +210,6 @@ libinterposer_preload_on(const char *so, const char *base)
     if (putenv("DYLD_FORCE_FLAT_NAMESPACE=1"))
 	_libinterposer_die("putenv");
 #endif	/*__APPLE__*/
-
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -279,22 +294,6 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 	    free(ldpname);
 	}
     }
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-// Sometimes useful for debugging purposes but has no "production" value.
-static void
-libinterposer_preload_dbg(const char *location)
-{
-    char *pld;
-
-    if ((pld = getenv(PRELOAD_EV_32)))
-	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV_32, pld);
-    if ((pld = getenv(PRELOAD_EV_64)))
-	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV_64, pld);
-    if ((pld = getenv(PRELOAD_EV)))
-	fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV, pld);
 }
 
 /////////////////////////////////////////////////////////////////////////////

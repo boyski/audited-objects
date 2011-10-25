@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -86,8 +86,8 @@ down_load(ps_o ps)
 {
     CCS relpath, abspath;
     char *url;
-    char tgtdir[PATH_MAX];
-    char psbuf[PATH_MAX + 256];
+    char *tgtdir;
+    CCS psbuf;
     down_path_state_s dps;
     CURL *curl;
     FILE *fp;
@@ -99,12 +99,14 @@ down_load(ps_o ps)
     abspath = ps_get_abs(ps);
 
     // In case the parent dir of the target doesn't exist, try to create it.
-    putil_dirname(abspath, tgtdir);
-    if (access(tgtdir, F_OK)) {
-	if (putil_mkdir_p(tgtdir)) {
-	    putil_syserr(0, tgtdir);
-	    return 1;
+    if ((tgtdir = putil_dirname(abspath))) {
+	if (access(tgtdir, F_OK)) {
+	    if (putil_mkdir_p(tgtdir)) {
+		putil_syserr(0, tgtdir);
+		return 1;
+	    }
 	}
+	putil_free(tgtdir);
     }
 
     memset(&dps, 0, sizeof(dps));
@@ -117,8 +119,9 @@ down_load(ps_o ps)
     }
 
     // The vital statistics of the PS we're requesting.
-    (void)ps_toCSVString(ps, psbuf, charlen(psbuf));
+    psbuf = ps_toCSVString(ps);
     http_add_param(&url, HTTP_PS_CSV_PARAM, psbuf);
+    putil_free(psbuf);
 
     curl = http_get_curl_handle(1);
 

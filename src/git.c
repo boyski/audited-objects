@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -26,42 +26,56 @@
 
 #include "zlib.h"
 
-static char GitCmd[PATH_MAX * 4 + 256];
+static CS GitCmd;
 static FILE *GitFP;
 
 /// Initializes git-related data structures.
 void
 git_init(CCS exe)
 {
+    CCS perl;
     CCS str;
-    const char *perl;
+    CS p;
+    CCS t;
 
     UNUSED(exe);
 
     if (!(perl = prop_get_str(P_PERL_CMD)) && !(perl = putil_getenv("PERL"))) {
 	perl = "perl";
     }
-    snprintf(GitCmd, charlen(GitCmd), "%s -S ao2git", perl);
+    asprintf(&GitCmd, "%s -S ao2git", perl);
 
     if ((str = prop_get_str(P_WFLAG))) {
-	CS s2, p, t;
+	CS s2;
 
-	s2 = (CS)str;
+	s2 = putil_strdup(str);
 	while ((t = util_strsep(&s2, "\n"))) {
 	    if (*t == 'g') {
-		snprintf((p = endof(GitCmd)), leftlen(GitCmd), " %s", t + 2);
-		if ((p = strchr(p, ','))) {
-		    *p++ = ' ';
+		t += 2;
+		if ((p = strchr(t, ','))) {
+		    *p = ' ';
 		}
+		p = GitCmd;
+		asprintf(&GitCmd, "%s %s", p, t);
+		putil_free(p);
 	    }
 	}
+	putil_free(s2);
     }
 
-    snprintf(endof(GitCmd), leftlen(GitCmd),
-	" -branch=%s_", util_get_logname());
-    moment_format_id(NULL, endof(GitCmd), leftlen(GitCmd));
+    p = GitCmd;
+    asprintf(&GitCmd, "%s -branch=%s_", p, util_get_logname());
+    putil_free(p);
 
-    snprintf(endof(GitCmd), leftlen(GitCmd), " -");
+    t = moment_format_id(NULL);
+    p = GitCmd;
+    asprintf(&GitCmd, "%s %s", p, t);
+    putil_free(p);
+    putil_free(t);
+
+    p = GitCmd;
+    asprintf(&GitCmd, "%s -", p);
+    putil_free(p);
 
     if (vb_bitmatch(VB_STD)) {
 	fprintf(stderr, "+ %s\n", GitCmd);
@@ -151,11 +165,11 @@ git_store_blob(ps_o ps)
     if (!access(blob, F_OK)) {
 	return;
     }
-    blob_dir = putil_malloc(strlen(blob) + 1);
-    putil_dirname(blob, blob_dir);
-
-    if (access(blob_dir, F_OK) && putil_mkdir_p(blob_dir)) {
-	putil_syserr(2, blob_dir);
+    if ((blob_dir = putil_dirname(blob))) {
+	if (access(blob_dir, F_OK) && putil_mkdir_p(blob_dir)) {
+	    putil_syserr(2, blob_dir);
+	}
+	putil_free(blob_dir);
     }
 
     if ((fd = open64(blob, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0444)) == -1) {
@@ -189,7 +203,6 @@ git_store_blob(ps_o ps)
     close(fd);
     util_unmap_file(fdata, fsize);
     putil_free(blob);
-    putil_free(blob_dir);
 }
 
 void
@@ -301,6 +314,7 @@ git_fini(void)
     if (GitFP && pclose(GitFP)) {
 	putil_syserr(2, GitCmd);
     }
+    putil_free(GitCmd);
 
     return;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -454,8 +454,7 @@ ca_write(ca_o ca, int fd)
     dict_t *dict;
     dnode_t *dnp, *next;
     pa_o pa;
-    char line[(PATH_MAX * 2) + 256];
-    int len;
+    CCS pabuf;
 
     dict = ca->ca_raw_pa_dict;
 
@@ -482,11 +481,11 @@ ca_write(ca_o ca, int fd)
 	    (void)pa_stat(pa, 0);
 	}
 
-	len = pa_toCSVString(pa, line, charlen(line));
-	if (len > 0) {
-	    if (write(fd, line, len) == -1) {
+	if ((pabuf = pa_toCSVString(pa))) {
+	    if (write(fd, pabuf, strlen(pabuf)) == -1) {
 		putil_syserr(0, "write()");
 	    }
+	    putil_free(pabuf);
 	}
 
 	// Dictionary bookkeeping.
@@ -1008,8 +1007,7 @@ _ca_format_palist_callback(pa_o pa, void *data)
 {
     format_palist_s *fps;
     long dcode_all;
-    char line[(PATH_MAX * 2) + 256];
-    int len;
+    CCS pabuf;
 
     fps = (format_palist_s *) data;
 
@@ -1058,16 +1056,19 @@ _ca_format_palist_callback(pa_o pa, void *data)
 	return 0;
     }
 
-    len = pa_toCSVString(pa, line, charlen(line));
-
     // Stretch the buffer to fit the new data and append it.
-    if (len > 0) {
+    if ((pabuf = pa_toCSVString(pa))) {
+	int len;
+
+	len = strlen(pabuf);
 	while ((fps->fp_bufsize - fps->fp_bufnext) <= len) {
 	    fps->fp_bufsize *= 2;
 	    fps->fp_buf = (CS)putil_realloc(fps->fp_buf, fps->fp_bufsize);
 	}
-	strcpy(fps->fp_buf + fps->fp_bufnext, line);
+	strcpy(fps->fp_buf + fps->fp_bufnext, pabuf);
 	fps->fp_bufnext += len;
+
+	putil_free(pabuf);
     }
 
     return 0;

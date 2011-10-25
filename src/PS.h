@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -46,9 +46,8 @@ extern void ps_dcode_cache_fini(void);
 extern int ps_stat(ps_o, int);
 extern ps_o ps_copy(ps_o);
 extern CCS ps_diff(ps_o, ps_o);
-extern int ps_toCSVString(ps_o, CS, int);
+extern CCS ps_toCSVString(ps_o);
 extern int ps_format_user(ps_o, int, int, CS, int);
-extern CCS ps_tostring(ps_o);
 extern int ps_set_moment_str(ps_o, CCS);
 extern void ps_set_size_str(ps_o, CCS);
 extern void ps_set_unlinked(ps_o);

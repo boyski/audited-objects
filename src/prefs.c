@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,11 @@
 #include "PREFS.h"
 
 #include "PROP.h"
+#include "RE.h"
+
+#if !defined(_WIN32)
+#include <wordexp.h>
+#endif	/*_WIN32*/
 
 /// @cond prefs
 #define PROJ_EXT			".project"
@@ -36,29 +41,83 @@
 // filesystem root looking for the named file. Returns the path
 // to said file in buf if found, or NULL if not found.
 static CS
-_find_file_up(CCS name, CS buf, size_t len)
+_find_file_up(CCS name)
 {
-    char dir[PATH_MAX];
+    CS dir;
+    CCS project_base_glob;
+    CS result;
 
-    if (util_get_cwd(dir, charlen(dir)) == NULL) {
+    if (!(dir = (CS)util_get_cwd())) {
 	putil_syserr(2, "util_get_cwd");
     }
 
-    while (strcmp(dir, "/")) {
-	char dbuf[PATH_MAX];
+    project_base_glob = prop_get_str(P_PROJECT_BASE_GLOB);
 
-	snprintf(buf, len, "%s%s%s", dir, DIRSEP(), name);
-	if (!access(buf, F_OK)) {
-	    return buf;
+    while (strcmp(dir, "/")) {
+	char *glob;
+	char *pdir;
+
+	// Optionally, break when the specified glob is matched.
+	if (project_base_glob) {
+#if defined(_WIN32)
+	    WIN32_FIND_DATA FindFileData;
+	    HANDLE hFind;
+
+	    asprintf(&glob, "%s/%s", dir, project_base_glob);
+	    if ((hFind = FindFirstFile(glob, &FindFileData)) != INVALID_HANDLE_VALUE) {
+		asprintf(&result, "%s\\%s", dir, FindFileData.cFileName);
+		FindClose(hFind);
+		putil_free(glob);
+		putil_free(dir);
+		return result;
+	    }
+	    putil_free(glob);
+#else	/*_WIN32*/
+	    wordexp_t wexp;
+
+	    asprintf(&glob, "%s/%s", dir, project_base_glob);
+	    switch (wordexp(glob, &wexp, WRDE_NOCMD)) {
+		case 0:
+		    if (wexp.we_wordc > 1 ||
+			    (wexp.we_wordc == 1 && strcmp(glob, wexp.we_wordv[0]))) {
+			asprintf(&result, "%s", wexp.we_wordv[0]);
+			wordfree(&wexp);
+			putil_free(glob);
+			putil_free(dir);
+			return result;
+		    } else {
+			wordfree(&wexp);
+		    }
+		    break;
+		case WRDE_NOSPACE:
+		    wordfree(&wexp);
+		    break;
+		default:
+		    break;
+	    }
+	    putil_free(glob);
+#endif	/*_WIN32*/
+	}
+
+	asprintf(&result, "%s%s%s", dir, DIRSEP(), name);
+	if (!access(result, F_OK)) {
+	    putil_free(dir);
+	    return result;
+	} else {
+	    putil_free(result);
 	}
 
 	// Quit when we reach the root even if the root is not
 	// called '/' (like on Windows).
-	putil_dirname(dir, dbuf);
-	if (strlen(dbuf) >= strlen(dir)) {
-	    break;
+	if ((pdir = putil_dirname(dir))) {
+	    if (strlen(pdir) >= strlen(dir)) {
+		putil_free(pdir);
+		break;
+	    } else {
+		putil_free(dir);
+		dir = pdir;
+	    }
 	}
-	strcpy(dir, dbuf);
 
 #if defined(_WIN32)
 	if (!strcmp(dir, "\\")) {
@@ -67,7 +126,7 @@ _find_file_up(CCS name, CS buf, size_t len)
 #endif	/*_WIN32*/
     }
 
-    buf[0] = '\0';
+    putil_free(dir);
     return NULL;
 }
 
@@ -78,20 +137,20 @@ _find_file_up(CCS name, CS buf, size_t len)
 void
 prefs_init(CCS exe, CCS ext, CCS verbose)
 {
-    char cfgpath[PATH_MAX], cfgpath2[PATH_MAX], cfgname[PATH_MAX];
-    char home[PATH_MAX], sysdir[PATH_MAX];
-    char progname[PATH_MAX], exedir[PATH_MAX], appdir[PATH_MAX];
+    CS cfgpath;
+    CS progname;
+    char *exedir;
     CCS p;
 
     // Store the short program name for error msgs etc.
     if ((p = strrchr(exe, '/'))) {
-	strcpy(progname, p + 1);
+	progname = putil_strdup(p + 1);
 #if defined(_WIN32)
     } else if ((p = strrchr(exe, '\\'))) {
-	strcpy(progname, p + 1);
+	progname = putil_strdup(p + 1);
 #endif	/*_WIN32*/
     } else {
-	strcpy(progname, exe);
+	progname = putil_strdup(exe);
     }
 
 #if defined(_WIN32)
@@ -105,78 +164,105 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 #endif	/*_WIN32*/
 
     prop_put_str(P_PROGNAME, progname);
+    putil_free(progname);
 
     // Load initial properties from environment
-    prop_load(NULL, verbose);
+    prop_load(NULL, verbose, 0);
 
     if (ext) {
 	CCS app;
+	CS cfgname;
+	CS home;
+	CS sysdir;
+	size_t len;
 
 	app = prop_get_app();
-
-	// Find the directory which establishes the P_BASE_DIR property.
-	snprintf(cfgname, charlen(cfgname), ".%s", app);
-	if (_find_file_up(cfgname, cfgpath, charlen(cfgpath))) {
-	    char pbuf[PATH_MAX];
-
-	    // Look for a properties file in this dir and try loading it.
-	    snprintf(cfgpath2, charlen(cfgpath2), "%s%s%s%s",
-		cfgpath, DIRSEP(), app, PROP_EXT);
-
-	    prop_load(cfgpath2, verbose);
-
-	    // The location of this file establishes the default
-	    // project base.
-	    prop_put_str(P_BASE_DIR,
-		 putil_canon_path(putil_dirname(cfgpath, pbuf), NULL, 0));
-	} else {
-	    char cwdbuf[PATH_MAX];
-
-	    // If no project config file exists, use cwd for project base.
-	    if (!util_get_cwd(cwdbuf, charlen(cwdbuf))) {
-		putil_syserr(2, "util_get_cwd()");
-	    }
-	    prop_put_str(P_BASE_DIR, putil_canon_path(cwdbuf, NULL, 0));
-	}
+	len = putil_path_max() + 1;
 
 	// Check for a personal ~/.<app>.properties file. Since
 	// Windows makes it hard to create a file with a leading dot
 	// (you can do it at the command line but not in the GUI)
 	// we also allow the ~/<app>.properties version. And we do that
 	// for both U and W to allow for a consistent site standard.
-	if (putil_get_homedir(home, charlen(home))) {
-	    snprintf(cfgpath, charlen(cfgpath), "%s%s.%s%s",
-		       home, DIRSEP(), app, ext);
+	home = (CS)putil_malloc(len);
+	if (putil_get_homedir(home, len)) {
+	    asprintf(&cfgpath, "%s%s.%s%s", home, DIRSEP(), app, ext);
 	    if (!access(cfgpath, F_OK)) {
-		prop_load(cfgpath, verbose);
+		prop_load(cfgpath, verbose, 0);
 	    } else {
-		snprintf(cfgpath, charlen(cfgpath), "%s%s%s%s",
-			   home, DIRSEP(), app, ext);
-		prop_load(cfgpath, verbose);
+		putil_free(cfgpath);
+		asprintf(&cfgpath, "%s%s%s%s", home, DIRSEP(), app, ext);
+		prop_load(cfgpath, verbose, 0);
 	    }
+	    putil_free(cfgpath);
 	}
+	putil_free(home);
 
 	// Then fall back to system-wide properties from /etc/<app>.properties
-	if (putil_get_systemdir(sysdir, charlen(sysdir))) {
-	    snprintf(cfgpath, charlen(cfgpath), "%s%s%s%s",
-		       sysdir, DIRSEP(), app, ext);
-	    prop_load(cfgpath, verbose);
+	sysdir = (CS)putil_malloc(len);
+	if (putil_get_systemdir(sysdir, len)) {
+	    asprintf(&cfgpath, "%s%s%s%s", sysdir, DIRSEP(), app, ext);
+	    prop_load(cfgpath, verbose, 0);
+	    putil_free(cfgpath);
+	}
+	putil_free(sysdir);
+
+	// Try a truly global properties file from the dir
+	// the executable is in (Windows) or ../etc from there (Unix).
+	if ((exedir = putil_dirname(exe))) {
+#if defined(_WIN32)
+	    CS globalcfg;
+
+	    asprintf(&globalcfg, "%s%s%s%s", exedir, DIRSEP(), app, ext);
+#else	/*!_WIN32*/
+	    CS globalcfg;
+	    CS appdir;
+
+	    if ((appdir = putil_dirname(exedir))) {
+		asprintf(&globalcfg, "%s/etc/%s%s", appdir, app, ext);
+		putil_free(appdir);
+	    }
+#endif	/*_WIN32*/
+
+	    putil_free(exedir);
+
+	    prop_load(globalcfg, verbose, 0);
+
+	    putil_free(globalcfg);
 	}
 
-	// Finally, try a truly global properties file from the dir
-	// the executable is in (Windows) or ../etc from there (Unix).
-	putil_dirname(exe, exedir);
-	putil_dirname(exedir, appdir);
-#if defined(_WIN32)
-	snprintf(cfgpath2, charlen(cfgpath2), "%s%s%s%s",
-		   exedir, DIRSEP(), app, ext);
-#else	/*_WIN32*/
-	snprintf(cfgpath2, charlen(cfgpath2), "%s/etc/%s%s",
-		   appdir, app, ext);
-#endif	/*_WIN32*/
-	if (strcmp(cfgpath2, cfgpath)) {
-	    prop_load(cfgpath2, verbose);
+	// Finally, find a directory to establish the P_BASE_DIR property.
+	// This one wins over all previous settings.
+	asprintf(&cfgname, ".%s", app);
+	if ((cfgpath = _find_file_up(cfgname))) {
+	    char *pdir;
+	    CS bdcfg;
+
+	    // Look for a properties file in the base dir and try loading it.
+	    asprintf(&bdcfg, "%s%s%s%s", cfgpath, DIRSEP(), app, PROP_EXT);
+	    prop_load(bdcfg, verbose, 1);
+	    putil_free(bdcfg);
+
+	    // The location of this file establishes the default
+	    // project base.
+	    if ((pdir = putil_dirname(cfgpath))) {
+		prop_put_str(P_BASE_DIR,
+		    putil_canon_path(pdir, NULL, 0));
+		putil_free(pdir);
+	    }
+	    putil_free(cfgpath);
+	} else {
+	    CCS cwd;
+
+	    // If no project config file exists, use cwd for project base.
+	    if ((cwd = util_get_cwd())) {
+		prop_put_str(P_BASE_DIR, putil_canon_path((CS)cwd, NULL, 0));
+		putil_free(cwd);
+	    } else {
+		putil_syserr(2, "util_get_cwd()");
+	    }
 	}
+	putil_free(cfgname);
     }
 
     // We need to determine what type of platform this is if not Unix.
@@ -204,4 +290,6 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     if (prop_has_value(P_STRICT_ERROR)) {
 	putil_strict_error(prop_get_long(P_STRICT_ERROR));
     }
+
+    return;
 }

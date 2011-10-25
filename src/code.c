@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -461,7 +461,9 @@ code_from_buffer(const unsigned char *data, off_t size,
 CCS
 code_from_path(CCS path, CS buf, size_t len)
 {
-    unsigned char *fdata;
+    unsigned char *mdata = NULL;
+    unsigned char *fdata = NULL;
+    unsigned char *data = NULL;
     size_t size;
     unsigned long map_cutoff;
     int no_map;
@@ -515,13 +517,14 @@ code_from_path(CCS path, CS buf, size_t len)
 
 	// Don't waste time mapping a file of length 0.
 	if (size == 0) {
-	    fdata = NULL;
+	    data = fdata = NULL;
 	} else if (size <= map_cutoff || no_map) {
 	    DWORD actual;
 
-	    fdata = (unsigned char *)putil_malloc(size);
-	    if (!ReadFile(fh, fdata, size, &actual, NULL) || actual <= 0) {
+	    data = mdata = (unsigned char *)putil_malloc(size);
+	    if (!ReadFile(fh, mdata, size, &actual, NULL) || actual <= 0) {
 		putil_win32err(0, GetLastError(), path);
+		putil_free(mdata);
 		CloseHandle(fh);
 		return NULL;
 	    }
@@ -532,7 +535,7 @@ code_from_path(CCS path, CS buf, size_t len)
 		return NULL;
 	    }
 
-	    if (!(fdata = (unsigned char *)MapViewOfFile(hMap,
+	    if (!(data = fdata = (unsigned char *)MapViewOfFile(hMap,
 							 FILE_MAP_COPY, 0, 0,
 							 size))) {
 		putil_win32err(0, GetLastError(), path);
@@ -546,7 +549,9 @@ code_from_path(CCS path, CS buf, size_t len)
 		putil_win32err(2, GetLastError(), path);
 	    }
 
-	    vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
+	    if (fdata) {
+		vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
+	    }
 	}
 
 	if (!CloseHandle(fh)) {
@@ -573,11 +578,12 @@ code_from_path(CCS path, CS buf, size_t len)
 
 	// Don't waste time mapping a file of length 0.
 	if (size == 0) {
-	    fdata = NULL;
+	    data = fdata = NULL;
 	} else if (size <= map_cutoff || no_map) {
-	    fdata = putil_malloc(size);
-	    if (util_read_all(fd, fdata, size) != (ssize_t)size) {
+	    data = mdata = putil_malloc(size);
+	    if (util_read_all(fd, mdata, size) != (ssize_t)size) {
 		putil_syserr(0, path);
+		putil_free(mdata);
 		close(fd);
 		return NULL;
 	    }
@@ -587,7 +593,7 @@ code_from_path(CCS path, CS buf, size_t len)
 
 	    // The mapping may need to be writeable so we can null out datestamps.
 	    // Examine the first few bytes before mapping to see if write is needed.
-	    fdata = putil_malloc(size);
+	    fdata = putil_malloc(lookahead);
 	    if ((util_read_all(fd, fdata, lookahead) != (ssize_t)lookahead) ||
 			_code_needs_patching(fdata, lookahead)) {
 		prot |= PROT_WRITE;
@@ -595,8 +601,8 @@ code_from_path(CCS path, CS buf, size_t len)
 	    putil_free(fdata);
 
 	    // Mapping could fail if the file is too big for available swap.
-	    fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
-	    if (fdata == MAP_FAILED) {
+	    data = fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
+	    if (fdata == MAP_FAILED || fdata == NULL) {
 		putil_syserr(0, path);
 		close(fd);
 		return NULL;
@@ -609,7 +615,9 @@ code_from_path(CCS path, CS buf, size_t len)
 	    }
 #endif	/*MADV_SEQUENTIAL*/
 
-	    vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
+	    if (fdata) {
+		vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
+	    }
 	}
 
 	// Once the mapping exists we can and should close the descriptor.
@@ -617,15 +625,14 @@ code_from_path(CCS path, CS buf, size_t len)
     }
 #endif				/*!_WIN32 */
 
-    // Hash the entire mapped region in one pass.
-    code_from_buffer(fdata, size, path, buf, len);
+    // Hash the entire region in one pass.
+    code_from_buffer(data, size, path, buf, len);
 
     // Release the buffer whether things went well or not.
-    if (size == 0) {
-	// Nothing to do.
-    } else if (size <= map_cutoff || no_map) {
-	putil_free(fdata);
-    } else {
+    if (mdata) {
+	putil_free(mdata);
+    }
+    if (fdata) {
 #if defined(_WIN32)
 	if (UnmapViewOfFile(fdata) == 0) {
 	    putil_win32err(0, GetLastError(), path);

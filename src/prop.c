@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -55,9 +55,9 @@ extern char **environ;		// Win32 declares this in stdlib.h
 #endif	/*_WIN32*/
 
 #if  defined(_WIN32)
-static WCHAR PropEnvPrefixW[PATH_MAX];
+static WCHAR PropEnvPrefixW[128];
 #endif	/*_WIN32*/
-static char PropEnvPrefix[PATH_MAX];
+static char PropEnvPrefix[128];
 static size_t PropEnvPrefixLen;
 
 static void _prop_export(prop_e);
@@ -65,8 +65,8 @@ static void _prop_export(prop_e);
 /// @cond static
 #define DEFAULT_LIST_SEP	","
 
-#define PROP_NAME_MAX		256
-#define PROP_VAL_MAX		(PATH_MAX*2)
+#define PROP_NAME_MAX		128
+#define PROP_VAL_MAX		768
 #define PROP_STR_MAX		(PROP_NAME_MAX + PROP_VAL_MAX + 2)
 
 #define PROP_NULL		"<NULL>"
@@ -224,6 +224,15 @@ static struct {
 	PROP_FLAG_PRIVATE,
 	0,
 	P_AGGRESSIVE_SERVER,
+    },
+    {
+	"Allowed.Write.Path.RE",
+	NULL,
+	"Regular expression specifying legal paths for write ops",
+	NULL,
+	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
+	0,
+	P_ALLOWED_WRITE_PATH_RE,
     },
     {
 	"Audit.Ignore.Path.RE",
@@ -440,7 +449,7 @@ static struct {
 	"Make.OneShell",
 	NULL,
 	"Ask make to use a single shell for each recipe",
-	PROP_TRUE,
+	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_MAKE_ONESHELL,
@@ -534,6 +543,15 @@ static struct {
 	PROP_FLAG_INTERNAL,
 	0,
 	P_PROGNAME,
+    },
+    {
+	"Project.Base.GLOB",
+	NULL,
+	"Pattern matching base dir of project",
+	NULL,
+	PROP_FLAG_PRIVATE,
+	0,
+	P_PROJECT_BASE_GLOB,
     },
     {
 	"Project.Name",
@@ -789,9 +807,9 @@ _prop_get_value(prop_e prop)
 // Parses out a line from a *.properties file. Handles leading and
 // trailing whitespace and delimiters as per the J2SE 1.4 Properties spec.
 static int
-_prop_process_line(CS line)
+_prop_process_line(CS line, int win)
 {
-    char buf[4096];
+    char buf[1024];
     CS bp, ep;
     prop_e prop;
 
@@ -849,6 +867,9 @@ _prop_process_line(CS line)
     if (prop == P_BADPROP) {
 	putil_warn("unrecognized property: %s", bp);
     } else {
+	if (win) {
+	    prop_unset(prop, 0);
+	}
 	prop_put_str(prop, ep);
     }
 
@@ -1221,33 +1242,24 @@ _prop_load_from_ev(CS buf)
 
 /// Given a properties file, load it into the properties object.
 /// @param[in] fname    the name of a properties file
-/// @param[in] verbose  boolean verbosity flag
+/// @param[in] verbose  verbosity string, or NULL
+/// @param[in] win      boolean - should this setting win over previous?
 void
-prop_load(CCS fname, CCS verbose)
+prop_load(CCS fname, CCS verbose, int win)
 {
     char buf[PROP_STR_MAX];
 
-    if (!fname) {
-	if (verbose) {
-	    printf("%s[Environment]\n", verbose);
-	}
-    } else if (!access(fname, F_OK)) {
-	if (verbose) {
-	    printf("%s%s\n", verbose, fname);
-	}
-    } else {
-	if (verbose) {
-	    printf("%s%s (not present)\n", verbose, fname);
-	}
-	return;
-    }
-
     if (fname) {
 	FILE *fp;
-	int ln;
-	char pstr[PROP_STR_MAX], *tp, *bp;
 
 	if ((fp = fopen(fname, "r"))) {
+	    int ln;
+	    char pstr[PROP_STR_MAX], *tp, *bp;
+
+	    if (verbose) {
+		printf("%s%s\n", verbose, fname);
+	    }
+
 	    for (ln = 1; fgets(buf, charlen(buf), fp); ln++) {
 		// In case a line-continuation (\) character is found.
 		while ((bp = strchr(buf, '\n')) &&
@@ -1260,14 +1272,16 @@ prop_load(CCS fname, CCS verbose)
 		    for (tp = pstr; ISSPACE(*tp); tp++);
 		    strcpy(bp, tp);
 		}
-		if (_prop_process_line(buf)) {
+		if (_prop_process_line(buf, win)) {
 		    putil_warn("malformed line (%d) in %s: '%s'", ln, fname,
 			       buf);
 		}
 	    }
 	    fclose(fp);
 	} else {
-	    putil_syserr(0, fname);
+	    if (verbose) {
+		printf("%s%s (not present)\n", verbose, fname);
+	    }
 	}
     } else {
 	int offset;
@@ -1298,6 +1312,10 @@ prop_load(CCS fname, CCS verbose)
 	    }
 	}
 #endif	/*_WIN32*/
+
+	if (verbose) {
+	    printf("%s[Environment]\n", verbose);
+	}
     }
 }
 
@@ -1451,7 +1469,7 @@ prop_help(int all, int verbose, CCS exe)
     }
 
     if (verbose && exe) {
-	printf("\nLOADED FROM:\n");
+	printf("LOADED FROM:\n");
 	prefs_init(exe, PROP_EXT, "\t");
     }
 }

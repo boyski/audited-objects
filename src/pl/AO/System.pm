@@ -2,13 +2,15 @@ package main;
 
 $VERSION = '1.00';
 @ISA = qw(Exporter);
-@EXPORT = qw(run syserr);
+@EXPORT = qw(MSWIN run syserr);
 
 use strict;
 require Exporter;
 use File::Basename;
 
 use vars qw($keepgoing $prog $verbosity);
+
+use constant MSWIN => $^O =~ /MSWin32|Windows_NT/i ? 1 : 0;
 
 ($prog) = fileparse($0, '\.\w*$');
 $keepgoing = 0;

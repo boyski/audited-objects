@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -46,7 +46,7 @@ extern int pa_set_moment_str(pa_o, CCS);
 extern int pa_set_timestamp_str(pa_o, CCS);
 extern int pa_has_timestamp(pa_o);
 extern void pa_set_size_str(pa_o, CCS);
-extern int pa_toCSVString(pa_o, CS, int);
+extern CCS pa_toCSVString(pa_o);
 extern CCS pa_tostring(pa_o);
 extern int pa_stat(pa_o, int);
 extern CCS pa_diff(pa_o, pa_o);

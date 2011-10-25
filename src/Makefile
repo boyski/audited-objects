@@ -7,36 +7,54 @@
 ############################################################################
 
 .PHONY: all debug release install i clean cleantargets realclean \
-	roundtrip rt fi relink manpages htmlpages tags
+	roundtrip rt fi relink manpages htmlpages tags pkg
 
 .SUFFIXES:
 
 # On Windows, defer to msbuild/vcbuild in order to keep the solution current.
 ifdef VSINSTALLDIR
 
-CFG		:= Debug
-MSBLDCMD	:= msbuild AO.sln /nologo /p:Configuration=$(CFG)
-install all: ;	$(MSBLDCMD) /v:n /t:build
-clean: ;	$(MSBLDCMD) /v:m /t:clean
+MSBLDCMD	:= msbuild AO.sln /nologo
+install all: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Debug
+install-pkg: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Release
+clean: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Debug
+clean-pkg: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Release
+
+CPUARCH	:= Windows_i386
+TGTARCH	:= $(CPUARCH)
+
+PKG	 := ao-$(TGTARCH).zip
+
+PKGFILES := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
+
+pkg: clean-pkg install-pkg
+	$(RM) ..\rel\$(PKG)
+	$(RM) -r .$(TGTARCH)\Release\AO
+	cp ../ao.properties-windows .$(TGTARCH)/Release/ao.properties-sample
+	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\Release\AO
+	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\Release
+	cd .$(TGTARCH)/Release && zip -rD ../../../rel/$(PKG) $(PKGFILES)
 
 else
 
 .POSIX:
 
-TAR		:= gtar --owner=0 --group=0 --mode=u+rw --dereference
-
+# Derive the $CPU env var which drives all OS/arch divisions.
 ifndef CPU
 uname_s		:= $(shell uname -s)
-ifneq (,$(findstring Linux,$(uname_s)))
-export CPU	:= $(uname_s)_i386
-else
-ifneq (,$(findstring CYGWIN%,$(uname_s)))
-else
+ifneq (,$(findstring CYGWIN,$(uname_s)))
 export CPU	:= Cygwin_i386
+else ifneq (,$(findstring Linux,$(uname_s)))
+ifneq (,$(findstring 64,$(shell uname -m)))
+export CPU	:= $(uname_s)_x86_64
+else
+export CPU	:= $(uname_s)_i386
+endif
+else
+export CPU	:= $(uname_s)_$(shell uname -p)
 endif
 endif
-$(info + export CPU=$(CPU))
-endif
+$(info CPU=$(CPU))
 
 CPUARCH		:= $(CPU)
 TGTARCH		?= $(CPUARCH)
@@ -222,9 +240,9 @@ PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lc # -lumem
 else
 PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lrt -lc
 endif	#SOLARIS_SPARC
-SYSINCS			:= -I/opt/csw/include
-SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
-$(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
+#SYSINCS			:= -I/opt/csw/include
+#SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
+#$(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
 all: $(TGTDIR64)
 SHLIBS		+= $(LIBAO64)
 $(LIBAO64):     OPSLIBDIR := $(OPSLIBDIR)/64
@@ -258,16 +276,18 @@ SHLIBFLAGS	+= -static-libgcc
 PLDLIBS		:=
 endif
 
-ifdef DARWIN
-CFLAGS		+= -fPIC -fno-common # Q: add -dynamic too?
-UFLAGS		:= -gstabs+
-SHLIBFLAGS	:= -dynamiclib -flat_namespace -multiply_defined suppress
-PLDLIBS		:=
-endif
-
 ifdef HPUX
 CFLAGS		+= -D_LARGEFILE64_SOURCE
 PLDLIBS		:= -lm
+endif
+
+ifdef DARWIN
+CFLAGS		+= -fPIC -fno-common # Q: add -dynamic too?
+CFLAGS		+= -arch i386 -arch x86_64
+UFLAGS		:= -gstabs+
+SHLIBFLAGS	:= -dynamiclib -flat_namespace -multiply_defined suppress
+SHLIBFLAGS	+= -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
+PLDLIBS		:=
 endif
 
 ifdef DARWIN
@@ -276,6 +296,12 @@ else
 ifndef HPUX
 DLL_LIBS	:= -Wl,-Bstatic $(DLL_LIBS) -Wl,-Bdynamic
 endif
+endif
+
+ifndef DARWIN
+$(AOTOOL):	CFLAGS += -m$(BITS)
+$(LIBAO32):	CFLAGS += -m32
+$(LIBAO64):	CFLAGS += -m64
 endif
 
 EXE_LIBS	:= -lcurl -lcdb $(DLL_LIBS)
@@ -304,7 +330,7 @@ COMMINCS	:= libcommon.c ca.c code.c moment.c \
 INTERPOSERS	:= $(wildcard Interposer/*.h)
 
 INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
-INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make)
+INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make aoquery)
 
 #############################################################################
 
@@ -328,30 +354,31 @@ $(TGTDIR)/putil.o: Putil/putil.h
 $(TGTDIR)/aotool.o: About/about.c
 
 $(TGTDIR)/%.o: %.c AO.h App.properties
-	$(CC) -m$(BITS) -c $(UFLAGS) $(CFLAGS) -o $@ $<
+	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
 
 #############################################################################
 
 $(AOTOOL): $(addprefix $(TGTDIR)/, $(OBJS))
-	$(CC) -m$(BITS) -o $@ $(UFLAGS) $(addprefix $(TGTDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
 
 $(LIBAO32): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -m32 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 $(LIBAO64): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 cleantargets:
 	-rm -f $(TARGETS)
 
 clean: cleantargets
-	-rm -rf $(TGTDIR)/*.o core *.1 *.html HTML tags
+	-$(RM) $(TGTDIR)/*.o core *.1 *.html HTML tags
+	-$(RM) -r HTML
 
 tags:
-	rm -f tags && ectags *.h *.H *.c *.cpp
+	$(RM) tags && ectags *.h *.H *.c *.cpp
 
 realclean: clean
-	-rm -rf *.user .*/*.o .Windows_i386 CPCI 2>/dev/null
+	-$(RM) *.user .*/*.o .*/*.obj 2>/dev/null
 
 ifdef SOLARIS
 ifndef SOLARIS_SPARC
@@ -362,6 +389,9 @@ endif
 relink: cleantargets install
 
 install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)
+
+pkg:
+	$(MAKE) --no-print-directory CPU=$(CPU) -f Makefile.pkg pkg
 
 endif
 

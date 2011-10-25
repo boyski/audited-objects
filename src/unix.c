@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -153,6 +153,9 @@ _read_available(int fd)
     return buf;
 }
 
+// Making this static instead of automatic makes Coverity happy.
+static FILE *logfp = NULL;
+
 /// The Unix version of the function which actually runs and audits the
 /// child command. The child command is run via fork/exec/wait while
 /// this process sticks around to become the "monitor".
@@ -174,7 +177,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int sockmin = 3, sockmax;
     fd_set master_read_fds;
     int sret;
-    char parent[PATH_MAX], grandparent[PATH_MAX];
+    char *pdir;
+    char *shlibdir = NULL;
     int sync_pipe[2];
     int wstat = 0;
 
@@ -188,9 +192,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // is more compatible with Windows and potentially more
     // informative. Kind of mind-bending though.
     if (logfile) {
-	FILE *logfp;
 	const char *loglevel;
-	char tcmd[PATH_MAX * 2];
 
 	loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
 	if (loglevel && !strcmp(loglevel, "OFF")) {
@@ -198,18 +200,24 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		putil_syserr(2, logfile);
 	    }
 	} else {
-	    snprintf(tcmd, sizeof(tcmd), "tee %s", logfile);
-	    if (!(logfp = popen(tcmd, "w"))) {
-		putil_syserr(2, logfile);
+	    char *tcmd;
+
+	    if (asprintf(&tcmd, "tee %s", logfile) >= 0) {
+		if (!(logfp = popen(tcmd, "w"))) {
+		    putil_syserr(2, logfile);
+		}
+		putil_free(tcmd);
 	    }
 	}
 
-	if ((dup2(fileno(logfp), fileno(stdout)) == -1)) {
-	    putil_syserr(2, logfile);
-	}
+	if (logfp) {
+	    if ((dup2(fileno(logfp), fileno(stdout)) == -1)) {
+		putil_syserr(2, logfile);
+	    }
 
-	if ((dup2(fileno(logfp), fileno(stderr)) == -1)) {
-	    putil_syserr(2, logfile);
+	    if ((dup2(fileno(logfp), fileno(stderr)) == -1)) {
+		putil_syserr(2, logfile);
+	    }
 	}
 
 	// Show the initial command and start time iff output is to a logfile.
@@ -270,19 +278,21 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     // The grandparent dir of this exe becomes the base where
     // we look for the preloaded library.
-    putil_dirname(exe, parent);
-    putil_dirname(parent, grandparent);
+    if (!(pdir = putil_dirname(exe)) || !(shlibdir = putil_dirname(pdir))) {
+	putil_syserr(2, "dirname(exe)");
+    }
+    putil_free(pdir);
 
     // Special case for truly "raw" output. There's no need
     // for a monitor process here; just inject and exec.
-    if (prop_is_true(P_NO_MONITOR)) {
-	libinterposer_preload_on(AUDITOR, grandparent);
+    if (shlibdir && prop_is_true(P_NO_MONITOR)) {
+	libinterposer_preload_on(AUDITOR, shlibdir);
 	execvp(path, argv);
 	putil_syserr(2, path);
     }
 
     // This pipe will be used to ensure that the child doesn't get rolling
-    // before the parent is ready for its audits.
+    // before the parent process is ready for its audits.
     if (pipe(sync_pipe) == -1) {
 	putil_syserr(2, "pipe(sync_pipe)");
     }
@@ -347,7 +357,11 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	read(sync_pipe[0], sync_buf, 1);
 	close(sync_pipe[0]);
 
-	libinterposer_preload_on(AUDITOR, grandparent);
+	// Turn on the auditor.
+	if (shlibdir) {
+	    libinterposer_preload_on(AUDITOR, shlibdir);
+	    putil_free(shlibdir);
+	}
 
 	// Run the command under control of the audit lib.
 	execvp(path, argv);
@@ -379,6 +393,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 	_exit(2);
     }
+
+    putil_free(shlibdir);
 
     /*********************************************************************
      * PARENT

@@ -4,7 +4,7 @@
 // do not mention it.
 
 static char self_license[] = "\
-Copyright (c) 2002-2010 David Boyce.  All rights reserved.\n\
+Copyright (c) 2002-2011 David Boyce.  All rights reserved.\n\
 Warning: this computer software is protected by copyright law and\n\
 international treaties. Unauthorized reproduction or distribution of\n\
 this software, or any portion of it, may result in severe civil and\n\

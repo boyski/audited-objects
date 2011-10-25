@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -89,22 +89,27 @@ _pn_make_project_relative(CCS path)
 pn_o
 pn_new(CCS path, int use_cwd)
 {
-    CCS abspath;
-    char apath[PATH_MAX], canonpath[PATH_MAX];
     pn_o pn;
 
     assert(path);
 
     if (use_cwd) {
+	CCS abspath;
+	CS canonpath;
+
 	// Start by making sure we have an absolute path.
 	if (putil_is_absolute(path)) {
-	    abspath = path;
+	    abspath = putil_strdup(path);
 	} else {
-	    char cwdbuf[PATH_MAX];
+	    CCS cwd;
 
-	    if (util_get_cwd(cwdbuf, charlen(cwdbuf))) {
-		snprintf(apath, charlen(apath), "%s/%s", cwdbuf, path);
-		abspath = apath;
+	    if ((cwd = util_get_cwd())) {
+		if (asprintf((CS *)&abspath, "%s/%s", cwd, path) < 0) {
+		    putil_free(cwd);
+		    return NULL;
+		} else {
+		    putil_free(cwd);
+		}
 	    } else {
 		return NULL;
 	    }
@@ -113,16 +118,20 @@ pn_new(CCS path, int use_cwd)
 	// Then canonicalize the path (meaning that all "../"
 	// sequences and redundant slashes are removed).
 	// Also, backslashes are changed to forward slashes.
+	canonpath = (CS)putil_malloc(strlen(abspath) + 1);
 	if (_pn_path_canon(abspath, strchr(abspath, '\0') + CHARSIZE,
-			canonpath, canonpath + charlen(canonpath),
+			canonpath, canonpath + strlen(abspath) + 1,
 			"\\/", '/') < 0) {
 	    putil_warn("unable to canonicalize '%s'", abspath);
+	    putil_free(abspath);
+	    putil_free(canonpath);
 	    return NULL;
 	}
+	putil_free(abspath);
 	// Finally, set up the object with its canonicalized absolute path
 	// plus the PRP offset if any.
 	pn = (pn_o)putil_malloc(sizeof(*pn));
-	pn->pn_abs = putil_strdup(canonpath);
+	pn->pn_abs = canonpath;
     } else {
 	pn = (pn_o)putil_malloc(sizeof(*pn));
 	pn->pn_abs = _pn_make_project_relative(path);

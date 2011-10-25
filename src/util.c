@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -357,31 +357,56 @@ util_requote(CS const *argv)
 }
 #endif	/*!_WIN32*/
 
+/// A wrapper over getcwd(3) which returns a malloc-ed buffer.
+/// @return an allocated buffer
+CCS
+util_get_cwd(void)
+{
+    ssize_t len;
+    CS cwd;
+
+    len = putil_path_max() + 1;
+    cwd = (CS)putil_malloc(len);
+
+    if (!getcwd(cwd, len)) {
+	putil_free(cwd);
+	cwd = NULL;
+    }
+
+    return cwd;
+
+}
+
 /// Calculates the "relative working directory". This is defined
 /// to be 'the cwd as measured from the project base dir'.
-/// @param[out] rwd     buffer for result dir path
-/// @param[in] len      size of buffer
-/// @return the passed-in buffer
+/// @return an allocated buffer
 CCS
-util_get_rwd(CS rwd, size_t len)
+util_get_rwd(void)
 {
-    CCS pbase = prop_get_str(P_BASE_DIR);
-    size_t plen = strlen(pbase);
+    CCS cwd;
+    CCS rwd = NULL;
+    
+    if ((cwd = util_get_cwd())) {
+	CCS pbase;
+	size_t plen;
 
-    if (!util_get_cwd(rwd, (int)len)) {
-	putil_syserr(0, "util_get_cwd()");
-	*rwd = '\0';
-    } else if (!pathncmp(rwd, pbase, plen)) {
-	rwd += plen;
-	while (*rwd == '/' || *rwd == '\\') {
-	    rwd++;
+	if ((pbase = prop_get_str(P_BASE_DIR)))
+	    plen = strlen(pbase);
+
+	if (pbase && !pathncmp(cwd, pbase, plen)) {
+	    CCS p;
+
+	    for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
+	    rwd = putil_strdup(p);
+	} else {
+	    rwd = putil_strdup(".");
 	}
+	putil_free(cwd);
     } else {
-	rwd[0] = '.';
-	rwd[1] = '\0';
+	putil_syserr(0, "util_get_cwd()");
     }
-    return (CCS)rwd;
 
+    return rwd;
 }
 
 /// Determines current umask and formats it in string form.
@@ -571,7 +596,7 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
 /// @param[out] buf     a buffer for the filesystem name
 /// @param[in] len      size of buffer
 /// @return the passed-in buffer
-// Note: possibly we should be using getmntent() on Solaris and Linux
+// TODO: possibly we should be using getmntent() on Solaris and Linux
 // or getmntinfo() on BSD, but I wrote this before I found them.
 CCS
 util_find_fsname(CCS path, CS buf, size_t len)
@@ -591,10 +616,14 @@ util_find_fsname(CCS path, CS buf, size_t len)
 #else	/*_WIN32*/
     // If path doesn't exist, return the fs name of its parent (recursively).
     if (access(path, F_OK)) {
-	char pbuf[PATH_MAX + 1];
+	CS pdir;
+	CCS result;
 
-	putil_dirname(path, pbuf);
-	return util_find_fsname(pbuf, buf, len);
+	if ((pdir = putil_dirname(path))) {
+	    result = util_find_fsname(pdir, buf, len);
+	    putil_free(pdir);
+	    return result;
+	}
     }
 
     (void)strcpy(buf, "??fs");
@@ -632,17 +661,21 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	}
 
 	if ((mtab = fopen("/proc/mounts", "r"))) {
-	    char lnbuf[PATH_MAX + 1], mntbuf[PATH_MAX + 1], fsbuf[PATH_MAX + 1];
 	    fstypes fsnode;
+	    char *lnbuf, *mtbuf, *fsbuf;
 
-	    while (fgets(lnbuf, sizeof(lnbuf), mtab) && !feof(mtab)) {
-		if (sscanf(lnbuf, "%*s %s %s", mntbuf, fsbuf) == 2) {
+	    lnbuf = putil_malloc(putil_path_max() + 1);
+	    mtbuf = putil_malloc(putil_path_max() + 1);
+	    fsbuf = putil_malloc(putil_path_max() + 1);
+
+	    while (fgets(lnbuf, putil_path_max() + 1, mtab) && !feof(mtab)) {
+		if (sscanf(lnbuf, "%*s %s %s", mtbuf, fsbuf) == 2) {
 		    if (!strcmp(fsbuf, "rootfs")) {
 			continue;
 		    }
-		    if (statfs(mntbuf, &sfs) == -1) {
+		    if (statfs(mtbuf, &sfs) == -1) {
 			fprintf(stderr, "statfs(%s): %s\n",
-				mntbuf, strerror(errno));
+				mtbuf, strerror(errno));
 			continue;
 		    }
 		    memset(&fsnode, 0, sizeof(fsnode));
@@ -653,6 +686,9 @@ util_find_fsname(CCS path, CS buf, size_t len)
 		}
 	    }
 	    fclose(mtab);
+	    putil_free(lnbuf);
+	    putil_free(mtbuf);
+	    putil_free(fsbuf);
 	}
 
 	if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
@@ -713,6 +749,9 @@ util_read_all(int fd, void *vptr, size_t n)
     size_t nleft;
     ssize_t nread;
     char *ptr;
+
+    if (fd < 0)
+	return -1;
 
     ptr = (char *)vptr;
     nleft = n;
@@ -782,47 +821,50 @@ util_write_all(int fd, const void *vptr, size_t n)
 /// respectively. If the corresponding property is not set, the token is
 /// left in place without change.
 /// @param[in] input    the original string
-/// @param[out] buf     buffer for the potentially modified string
-/// @param[in] len      size of buffer
+/// @param[out] buf     pointer to potentially modified string
 /// @return nonzero iff any changes were made
 int
-util_substitute_params(CCS input, CS buf, size_t len)
+util_substitute_params(CCS input, CCS *replaced)
 {
     struct utsname sysdata;
     unsigned i;
+    CS buf;
     CS l;
     CCS replacement;
     int changed = 0;
+    size_t len;
 
-    memset(buf, 0, len);
-    for (i = 0, l = buf; input[i] && i < len; i++) {
+    len = strlen(input) + 1;
+    buf = (CS)putil_calloc(len, 1);
+
+    for (i = 0, l = buf; input[i]; i++) {
 	if (input[i] == '%') {
 	    switch (input[i + 1]) {
 		case '%':
 		    replacement = "%";
 		    break;
-		case 'b':
+		case 'b': case 'B':
 		    replacement = prop_get_str(P_BASE_DIR);
 		    break;
-		case 'm':
+		case 'm': case 'M':
 		    (void)putil_uname(&sysdata);
 		    replacement = sysdata.machine;
 		    break;
-		case 'n':
+		case 'n': case 'N':
 		    (void)putil_uname(&sysdata);
 		    replacement = sysdata.nodename;
 		    break;
-		case 'p':
+		case 'p': case 'P':
 		    replacement = prop_get_str(P_PROJECT_NAME);
 		    break;
-		case 'u':
+		case 'u': case 'U':
 		    replacement = util_get_logname();
 		    break;
-		case 'r':
+		case 'r': case 'R':
 		    (void)putil_uname(&sysdata);
 		    replacement = sysdata.release;
 		    break;
-		case 's':
+		case 's': case 'S':
 		    (void)putil_uname(&sysdata);
 		    replacement = sysdata.sysname;
 		    break;
@@ -832,9 +874,19 @@ util_substitute_params(CCS input, CS buf, size_t len)
 	    }
 
 	    if (replacement) {
+		size_t offset;
+
+		offset = l - buf;
+		len += strlen(replacement);
+		buf = (CS)putil_realloc(buf, len);
+		l = buf + offset;
+		(void)memset(l, 0, len - offset);
 		strcpy(l, replacement);
 		if (strcmp(replacement, "%")) {
 		    changed = 1;
+		    if (ISALPHA(input[i + 1]) && ISUPPER(input[i + 1])) {
+			util_strup(l);
+		    }
 		}
 	    } else {
 		*l++ = '%';
@@ -846,13 +898,9 @@ util_substitute_params(CCS input, CS buf, size_t len)
 	} else {
 	    *l++ = input[i];
 	}
-
-	if (l >= buf + len) {
-	    buf[len] = '\0';
-	    return -1;
-	}
     }
 
+    *replaced = buf;
     return changed;
 }
 
@@ -943,13 +991,14 @@ static void
 _util_finalize_output_file(void)
 {
     if (OutputStream && !fclose(OutputStream) && OutputFile[0]) {
-	char obuf[PATH_MAX];
+	CS obuf;
 
-	snprintf(obuf, charlen(obuf), "%s.%ld.tmp",
-	    OutputFile, (long)getpid());
-	unlink(OutputFile);	// needed on Windows
-	if (rename(obuf, OutputFile)) {
-	    putil_syserr(0, OutputFile);
+	if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
+	    unlink(OutputFile);	// needed on Windows
+	    if (rename(obuf, OutputFile)) {
+		putil_syserr(0, OutputFile);
+	    }
+	    putil_free(obuf);
 	}
     }
 }
@@ -975,25 +1024,29 @@ util_open_output_file(CCS ofile)
 		putil_syserr(2, ofile);
 	    }
 	} else {
-	    char abuf[PATH_MAX], obuf[PATH_MAX], *p;
+	    CS abuf;
+	    CS tbuf;
+	    CCS obuf = NULL;
 
-	    util_substitute_params(ofile, obuf, charlen(obuf));
+	    (void)util_substitute_params(ofile, &obuf);
 
-	    if (!putil_realpath(obuf, abuf, charlen(abuf), 1)) {
+	    if (!(abuf = putil_realpath(obuf, 1))) {
 		putil_syserr(2, obuf);
 	    }
+	    putil_free(obuf);
 
 	    prop_override_str(P_OUTPUT_FILE, abuf);
 
 	    snprintf(OutputFile, charlen(OutputFile), "%s", abuf);
 
-	    if ((p = endof(abuf))) {
-		snprintf(p, leftlen(abuf), ".%ld.tmp", (long)getpid());
+	    asprintf(&tbuf, "%s.%ld.tmp", abuf, (long)getpid());
+
+	    if (!(OutputStream = fopen(tbuf, "a"))) {
+		putil_syserr(2, tbuf);
 	    }
 
-	    if (!(OutputStream = fopen(abuf, "a"))) {
-		putil_syserr(2, abuf);
-	    }
+	    putil_free(abuf);
+	    putil_free(tbuf);
 
 	    atexit(_util_finalize_output_file);
 	}
@@ -1036,9 +1089,9 @@ util_debug_from_here(void)
 #if defined(_WIN32)
 	DebugBreak();
 #else				/*!_WIN32 */
-	char buf[PATH_MAX + 1024];
+	char *buf;
 
-	snprintf(buf, sizeof(buf),
+	asprintf(&buf,
 		 "set -x; %s_32= %s_64= %s= xterm -e gdb --quiet %s %lu &",
 		 PRELOAD_EV, PRELOAD_EV, PRELOAD_EV,
 		 putil_getexecpath(), (unsigned long)getpid());
@@ -1048,6 +1101,7 @@ util_debug_from_here(void)
 	} else {
 	    (void)sleep(2);
 	}
+	putil_free(buf);
 #endif				/*!_WIN32 */
     }
 }
@@ -1073,9 +1127,8 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
 /// @endcond static
 
     assert(radix < sizeof(CHRS));
-    memset(buf, '0', len);
-    p = buf + len;
-    *--p = '\0';
+    memset(buf, 0, len);
+    p = (buf + len) - 1;
     do {
 	assert(p >= buf);
 	d = val % radix;
@@ -1276,121 +1329,6 @@ util_gzip_buffer(CCS name, unsigned const char *source, uint64_t slen, uint64_t 
 
     return dest;
 }
-
-// The following is a way of caching getcwd() requests because they
-// burn a lot of system calls. However, it turns out to not improve
-// performance measurably so I've turned it off. The code is left
-// around for the time being as an example of how to make and cache
-// file ids in case we need to do that elsewhere.
-#if 0
-
-#include "dict.h"
-
-static dict_t *CwdDict;
-
-static CCS
-_util_make_fileid(CCS path, CS idbuf, size_t len)
-{
-#if defined(_WIN32)
-    HANDLE hFile;
-    BY_HANDLE_FILE_INFORMATION fileinfo;
-
-    hFile = CreateFile(path, GENERIC_READ,
-		       FILE_SHARE_READ, NULL, OPEN_EXISTING,
-		       FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-	putil_win32err(2, GetLastError(), path);
-	return NULL;
-    }
-
-    if (GetFileInformationByHandle(hFile, &fileinfo)) {
-	if (!CloseHandle(hFile)) {
-	    putil_win32err(0, GetLastError(), path);
-	}
-    } else {
-	putil_win32err(2, GetLastError(), path);
-	CloseHandle(hFile);
-	return NULL;
-    }
-
-    snprintf(idbuf, len, "%lu.%lu@%" PRIu64,
-	       fileinfo.nFileIndexHigh, fileinfo.nFileIndexLow,
-	       fileinfo.dwVolumeSerialNumber);
-#else				/*!_WIN32 */
-    struct stat64 stbuf;
-
-    if (lstat64(path, &stbuf)) {
-	putil_syserr(2, path);
-	return NULL;
-    }
-
-    snprintf(idbuf, len, "%" PRIu64 "@%" PRIu64,
-	       (uint64_t)stbuf.st_ino, (uint64_t)stbuf.st_dev);
-#endif				/*!_WIN32 */
-
-    return idbuf;
-}
-
-/// A fancy caching version of getcwd(). Truss shows that a regular
-/// getcwd() invokes many system calls, perhaps 5-6 per directory level.
-/// If we called it once per relative pathname (to make it absolute)
-/// the total cost could be many thousands of context switches. This
-/// version maintains a little table mapping inode/device numbers
-/// to their corresponding directory paths. Thus getcwd() will only
-/// be called, and context switches only required, when the CWD changes.
-/// If a directory is removed during the build and a new directory of
-/// the same name is made and cd-ed to, this algorithm will correctly
-/// treat it as a cache miss and simply call getcwd to get the new inode.
-/// IDEA Arguably, a better solution would be to interpose on chdir() and
-/// getcwd() and keep the corect current value in an env var. That way
-/// we would incur no context switch penalty even for the first getcwd().
-/// @param[out] buf     buffer for result dir path
-/// @param[in] size     size of buffer
-/// @return buf on success or NULL on error.
-CCS
-util_get_cwd(CS buf, size_t size)
-{
-    char dir_id[256];
-    dnode_t *dnp;
-
-    // We do not implement the optional NULL-means-malloc semantics
-    // because we don't need it and it would take some additional
-    // coding to get the alloc counting right.
-    assert(buf);
-
-    // Potential thread-safety issue here but in practice this will
-    // always be called during the init stage before any additional
-    // threads could be spawned.
-    if (!CwdDict) {
-	if (!(CwdDict = dict_create(DICTCOUNT_T_MAX, util_pathcmp))) {
-	    putil_syserr(2, "dict_create(CwdDict)");
-	}
-    }
-
-    // Make a guaranteed-unique file id for the CWD.
-    if (!(_util_make_fileid(".", dir_id, charlen(dir_id)))) {
-	return NULL;
-    }
-
-    // If it's in cache, use the saved value. Otherwise derive the
-    // CWD and save it for next time.
-    if (CwdDict && (dnp = dict_lookup(CwdDict, dir_id))) {
-	snprintf(buf, size, "%s", (CCS)dnode_get(dnp));
-    } else {
-	if (_tgetcwd(buf, size)) {
-	    if (CwdDict) {
-		dict_alloc_insert(CwdDict,
-				  putil_strdup(dir_id), putil_strdup(buf));
-	    }
-	} else {
-	    putil_syserr(0, ".");
-	    return NULL;
-	}
-    }
-
-    return buf;
-}
-#endif	/*0*/
 
 /*
  * Taken from libcurl.

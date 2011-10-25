@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -314,7 +314,7 @@ _shop_process_target(pa_o spa, void *data)
 
     if (ssp->getfiles) {
 	ps_o sps;
-
+	char *linkdir = NULL;
 
 	sps = pa_get_ps(spa);
 
@@ -325,39 +325,34 @@ _shop_process_target(pa_o spa, void *data)
 	    }
 #if !defined(_WIN32)
 	} else if (pa_is_link(spa)) {
-	    char linkdir[PATH_MAX];
-
 	    CCS path2;
 
 	    path2 = pa_get_abs2(spa);
 
-	    putil_dirname(path, linkdir);
-	    if (access(linkdir, F_OK)) {
+	    if ((linkdir = putil_dirname(path)) && access(linkdir, F_OK)) {
 		// If the parent dir of the link doesn't exist, make it.
 		if (putil_mkdir_p(linkdir)) {
 		    putil_syserr(0, linkdir);
 		}
-	    } else if (!access(path, F_OK)) {
+	    } else if (!unlink(path)) {
 		// If the link already exists: it would be way too much work
 		// to try and figure out whether it's linked to the right
 		// file(s), so instead we just unlink and relink. Which
 		// has the unfortunate side effect of changing the
 		// timestamp on the directory but that dir is most likely
 		// being written to anyway by other build artifacts.
-		if (unlink(path)) {
+		if (errno != ENOENT) {
 		    putil_syserr(0, path);
 		}
 	    }
+	    putil_free(linkdir);
 	    if (link(path2, path)) {
 		putil_lnkerr(0, path2, path);
 		rc = -1;
 	    }
 	} else if (pa_is_symlink(spa)) {
-	    char buf[PATH_MAX], linkdir[PATH_MAX];
-
+	    CCS lbuf;
 	    CCS target;
-
-	    int len;
 
 	    target = pa_get_target(spa);
 
@@ -366,26 +361,9 @@ _shop_process_target(pa_o spa, void *data)
 	    // since that would affect its timestamp and ownership.
 	    // These may be only cosmetic for symlinks in most cases but
 	    // looks matter too.
-	    if ((len = readlink(path, buf, sizeof(buf))) == -1) {
-		if (errno != ENOENT) {
-		    if (unlink(path)) {
-			putil_syserr(0, path);
-		    }
-		}
-		// In case the parent dir of the symlink doesn't exist, make it.
-		putil_dirname(path, linkdir);
-		if (access(linkdir, F_OK)) {
-		    if (putil_mkdir_p(linkdir)) {
-			putil_syserr(0, linkdir);
-		    }
-		}
-		if (symlink(target, path)) {
-		    putil_lnkerr(0, target, path);
-		    rc = -1;
-		}
-	    } else {
-		buf[len] = '\0';
-		if (strcmp(target, buf)) {
+	    if ((lbuf = putil_readlink(path))) {
+		if (strcmp(target, lbuf)) {
+		    // TODO: COVERITY TOCTOU
 		    if (!access(path, F_OK) && unlink(path)) {
 			putil_syserr(0, path);
 			rc = -1;
@@ -396,9 +374,30 @@ _shop_process_target(pa_o spa, void *data)
 			}
 		    }
 		}
+		putil_free(lbuf);
+	    } else {
+		if (errno != ENOENT) {
+		    if (unlink(path)) {
+			putil_syserr(0, path);
+		    }
+		}
+		// In case the parent dir of the symlink doesn't exist, make it.
+		if ((linkdir = putil_dirname(path))) {
+		    if (access(linkdir, F_OK)) {
+			if (putil_mkdir_p(linkdir)) {
+			    putil_syserr(0, linkdir);
+			}
+		    }
+		    putil_free(linkdir);
+		}
+		if (symlink(target, path)) {
+		    putil_lnkerr(0, target, path);
+		    rc = -1;
+		}
 	    }
 #endif				/*!_WIN32 */
 	} else if (pa_is_dir(spa)) {
+	    // TODO: COVERITY TOCTOU
 	    if (access(path, F_OK)) {
 		if (putil_mkdir_p(path)) {
 		    putil_syserr(0, path);

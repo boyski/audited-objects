@@ -10,33 +10,25 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
 use FindBin;
-use lib $FindBin::RealBin;
-use lib $FindBin::Bin;
+use lib "$FindBin::RealBin/../lib/perl5";
+use lib "$FindBin::Bin/../lib/perl5";
 use AO::PathAction;
 use AO::CommandAction;
+use AO::System qw($prog $verbosity);
 
-use constant MSWIN => $^O =~ /MSWin32|Windows_NT/i ? 1 : 0;
-
-my($prog) = fileparse($0, '\.\w*$');
-
-# Report a system error, potentially fatal.
-sub syserr {
-    my $fatal = shift;
-    if ($fatal) {
-	die "$prog: Error: @_: $!\n";
-    } else {
-	warn "$prog: Warning: @_: $!\n";
-    }
-}
+pod2usage(1) if !@ARGV;
 
 my %opt;
-GetOptions(\%opt, qw(base=s BaseVar=s dbg existing-only full NOGNU help
-    ext=s members-only MF|output-file=s pdump|PDUMP Parallel vars=s));
+GetOptions(\%opt, qw(base=s BaseVar=s dbg existing-only full
+    NOGNU help ext=s members-only MF|output-file=s pdump|PDUMP
+    prqre=s Parallel vars=s));
 
 pod2usage(1) if $opt{help};
 
 $opt{full} = 1 if $opt{pdump} || $opt{vars};
 my $iext = $opt{full} ? undef : ($opt{'ext'} || 'd');
+
+my $prqre = qr/$opt{prqre}/ if $opt{prqre};
 
 # The dash shell does not implement -n or -v correctly.
 my $broken_sh = 0;
@@ -83,6 +75,7 @@ while (<>) {
 		}
 	    }
 	} else {
+	    next if $prqre && $path !~ m%$prqre%;
 	    $ca->add_prereq($pa) unless $pa->is_unlink;
 	}
     } else {
@@ -94,7 +87,7 @@ while (<>) {
 # To this point we've been reading in data and parsing it into an internal
 # representation, while from here on we're engaged in deriving a makefile
 # from that data. Therefore, modifying this script to produce another
-# format should require only changes below this point (leaving aside
+# format _should_ require only changes below this point (leaving aside
 # flags etc).
 ###########################################################################
 
@@ -185,7 +178,7 @@ while (<>) {
     }
 }
 
-my $BaseVar = $opt{BaseVar} || 'BASE_DIR';
+my $BaseVar = $opt{BaseVar} || 'SRCBASE';
 my $BaseMacro = expand($BaseVar);
 my $Indent = '  ';
 my $Colon = ':';
@@ -219,7 +212,7 @@ sub parameterize {
 # string form which can be opened or tested with -f.
 sub deparameterize {
     ## TODO - figure out how to eval $BaseVar into the RE.
-    (my $path = shift) =~ s%\${BASE_DIR}%$BaseDir%;
+    (my $path = shift) =~ s%\${SRCBASE}%$BaseDir%;
     $path =~ s%"$%% if $path =~ s%^"%%;
     return $path;
 }
@@ -254,8 +247,8 @@ sub renew {
 # shell in verbose (-v) and no-execute (-n) mode and capture the
 # output. BTW it turns out that due to subtle variations and bugs
 # in different Unix shells (bash, ksh, zsh, etc) it's better to
-# always use /bin/sh for this purpose. Usually faster too. However,
-# there's an exception (boo): many newer Linux distros use 'dash'
+# always use /bin/sh for this purpose. Usually faster too. But
+# there's an exception (boo): some newer Linux distros use 'dash'
 # as their /bin/sh, and dash doesn't seem to implement -n or -v
 # correctly, so we have to work around that. The current hack is
 # that if /bin/sh == dash, use bash instead with some special flags.
@@ -379,7 +372,7 @@ if (my $vars = $opt{vars}) {
 }
 
 # This is a special variable which must always be available.
-my $basevar = MakeVar->new->assign($BaseVar, '?=', $BaseDir);
+my $basevar = MakeVar->new->assign($BaseVar, ':=', $BaseDir);
 unshift(@{$Makefile->{VARLIST}}, $basevar);
 
 # Derive the set of required "rules" (target: prereq sequences
@@ -463,16 +456,12 @@ for my $ca (@Actions) {
 	$Makefile->{RULES}->{$recipe_key}->{PREREQS}->{$pprq}++;
     }
 
-    # Print the command line (aka recipe) if requested.
+    # Derive the command line (aka recipe) if it's going to be printed.
     # Note: there used to be some code here to swap in $@ for the
     # actual target path but that turns out to be harder than expected
     # so for now at least it's out.
     if ($opt{full}) {
-	my $rwd = $ca->get_rwd;
-	my $dir = $BaseMacro;
-	$dir = File::Spec->join($dir, $rwd) if $rwd && $rwd ne '.';
-	$dir = File::Spec->canonpath($dir);
-	$dir = quote($dir);
+	$Makefile->{RULES}->{$recipe_key}->{RWD} = $ca->get_rwd;
 	my $line = $ca->get_line;
 	$line = renew($line);
 	$line =~ s%^\s+%%;
@@ -480,8 +469,7 @@ for my $ca (@Actions) {
 	$line =~ s%[ ]{2,}% %g unless $line =~ m%["'\\]%;
 	$line = desh($line) unless MSWIN;
 	$line = varify($line);
-	my $recipe = sprintf "\tcd %s && %s\n", $dir, $line;
-	$Makefile->{RULES}->{$recipe_key}->{RECIPE} = $recipe;
+	$Makefile->{RULES}->{$recipe_key}->{RECIPE} = $line;
     }
 }
 
@@ -558,7 +546,12 @@ for my $tkey (sort keys %{$Makefile->{RULES}}) {
     }
 
     if (my $recipe = $Makefile->{RULES}->{$tkey}->{RECIPE}) {
-	print $recipe;
+	my $rwd = $Makefile->{RULES}->{$tkey}->{RWD};
+	my $dir = $BaseMacro;
+	$dir = File::Spec->join($dir, $rwd) if $rwd && $rwd ne '.';
+	$dir = File::Spec->canonpath($dir);
+	$dir = quote($dir);
+	printf "\tcd %s && %s\n", $dir, $recipe;
     }
 
     if ($iext) {
@@ -633,11 +626,12 @@ if ($ofile && $opt{full}) {
     $tgtvars = '';
     $tgtvars .= ' ' . expand('DIR_LINK_TARGETS') if %DirLinkTargets;
     $tgtvars .= ' ' . expand('FILE_TARGETS') if %FileTargets;
+    $tgtvars =~ s%^\s+%%;
     if ($tgtvars) {
-	printf "\t\@rm -f %s\n", $tgtvars;
+	printf "\t\$(RM) %s\n", $tgtvars;
     }
     if (%DirTargets) {
-	printf "\t\@rm -rf %s\n", expand('DIR_TARGETS');
+	printf "\t\$(RM) -r %s\n", expand('DIR_TARGETS');
     }
 
     printf "\nrt: clean all\n";
@@ -722,7 +716,7 @@ limited only by your Perl skills.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

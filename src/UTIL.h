@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -35,9 +35,6 @@
 
 /// @cond UTIL
 
-// See note in util.c ...
-#define util_get_cwd			getcwd
-
 /// The number of 100-nanosecond intervals (Windows time unit) in a second.
 #define WIN_CLUNKS_PER_SEC		10000000L
 
@@ -53,7 +50,8 @@ extern void util_socket_lib_fini(void);
 unsigned char * util_map_file(CCS, int, off_t, uint64_t);
 extern void util_unmap_file(unsigned char *, uint64_t);
 extern CS util_requote(CS const *);
-extern CCS util_get_rwd(CS, size_t);
+extern CCS util_get_cwd(void);
+extern CCS util_get_rwd(void);
 extern CCS util_get_logname(void);
 extern CCS util_get_groupname(void);
 extern CCS util_get_umask(CS, size_t);
@@ -64,7 +62,7 @@ extern CCS util_find_fsname(CCS, CS, size_t);
 extern ssize_t util_send_all(SOCKET, const void *, ssize_t, int);
 extern ssize_t util_read_all(int, void *, size_t);
 extern ssize_t util_write_all(int, const void *, size_t);
-extern int util_substitute_params(CCS, CS, size_t);
+extern int util_substitute_params(CCS, CCS *);
 extern unsigned long util_hash_fun_default(const void *);
 extern int util_is_tmp(CCS);
 extern FILE *util_open_output_file(CCS);

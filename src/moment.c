@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -295,15 +295,15 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
 }
 
 /// Formats a Moment into a standard id-style string
+/// If the parameter is NULL, the moment is 'now'.
 /// @param[in] moment   pointer to a struct to be formatted
-/// @param[out] buf     a buffer to hold the formatted string
-/// @param[in] bufmax   the size of the passed-in buffer
-/// @return the formatted string
+/// @return the allocated, formatted string
 CCS
-moment_format_id(moment_s *mp, CS buf, size_t bufmax)
+moment_format_id(moment_s *mp)
 {
     time_t seconds;
     struct tm *ptm;
+    char buf[256];
 
     if (mp) {
 	seconds = (time_t)mp->ntv_sec;
@@ -317,9 +317,9 @@ moment_format_id(moment_s *mp, CS buf, size_t bufmax)
 	putil_syserr(2, "gmtime()");
     }
 
-    if (!strftime(buf, bufmax, "%Y%m%d%H%M%S", ptm)) {
+    if (!strftime(buf, charlen(buf), "%Y%m%d%H%M%S", ptm)) {
 	putil_syserr(2, "strftime()");
     }
 
-    return buf;
+    return putil_strdup(buf);
 }

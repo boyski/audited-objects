@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -64,6 +64,7 @@ static ca_o CurrentCA;
 static int AuditFD = -1;
 static void *IgnorePathRE;
 static void *IgnoreProgRE;
+static void *AllowedWritePathRE;
 
 /// The socket through which all communication to the monitor takes place.
 SOCKET ReportSocket = INVALID_SOCKET;
@@ -235,12 +236,18 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 	    ps_set_linked(ps);
 	}
 
-	// Read ops don't need to be time-stamped.
 	if (!pa_is_read(pa)) {
 	    moment_s tstamp;
 
+	    // Read ops don't need to be time-stamped.
 	    moment_get_systime(&tstamp);
 	    pa_set_timestamp(pa, tstamp);
+
+	    // User may choose to limit legal pathnames for writes.
+	    if (AllowedWritePathRE && !re_match__(AllowedWritePathRE, path)) {
+		putil_die("disallowed write to '%s' per /%s/", path, 
+		    prop_get_str(P_ALLOWED_WRITE_PATH_RE));
+	    }
 	}
 
 	// Finish by recording this path action.
@@ -382,14 +389,14 @@ _audit_open(void)
 		// If not, make a new file with the pid appended.
 		fd = open_real(ofile, O_WRONLY | O_APPEND, 0);
 		if (fd == -1) {
-		    char obuf[PATH_MAX];
+		    char *obuf;
 
-		    snprintf(obuf, charlen(obuf), "%s.%ld",
-			       ofile, (unsigned long)getpid());
+		    asprintf(&obuf, "%s.%ld", ofile, (unsigned long)getpid());
 		    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
 		    if (fd == -1) {
 			putil_syserr(2, obuf);
 		    }
+		    putil_free(obuf);
 		}
 		fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
 #endif	/*_WIN32*/
@@ -507,7 +514,6 @@ _audit_start(CCS call)
 
     // Acquire the descriptor we'll be using for audit reporting.
     AuditFD = _audit_open();
-    assert(AuditFD != -1);
 
     // Write the SOA record into the file descriptor or socket.
     // Writes and sends need to be separated because you can't write()
@@ -648,7 +654,6 @@ static void
 _audit_end(CCS call, int exiting, long status)
 {
     int n;
-    char buf[4096];
     char ack_eoa[ACK_BUFFER_SIZE];
 
     if (!_auditor_isActive()) {
@@ -699,6 +704,8 @@ _audit_end(CCS call, int exiting, long status)
 
     if (!prop_is_true(P_NO_MONITOR)) {
 	if (AuditFD != -1 && CurrentCA && !ca_get_recycled(CurrentCA)) {
+	    char buf[1024];
+
 	    _socket_open(&ReportSocket, call);
 
 	    // Rewind the temp file and send its contents to the monitor.
@@ -794,7 +801,7 @@ static unsigned long
 _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 {
     unsigned long pid;
-    char rwdbuf[PATH_MAX];
+    CCS rwd;
     CCS pccode;
 
     // Initialize verbosity asap.
@@ -894,7 +901,8 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     ca_set_depth(CurrentCA, Depth);
     ca_set_pcmdid(CurrentCA, prop_get_ulong(P_PCMDID));
     ca_set_prog(CurrentCA, exe);
-    ca_set_rwd(CurrentCA, util_get_rwd(rwdbuf, charlen(rwdbuf)));
+    ca_set_rwd(CurrentCA, rwd = util_get_rwd());
+    putil_free(rwd);
 
     // This boolean means we've started a new cmd which will need
     // an SOA sent. Child processes should have this turned off,
@@ -947,11 +955,14 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // (because it is and we did).
     _pa_record(call, putil_getexecpath(), NULL, -1, OP_EXEC);
 
-    // Potential instructions from the user to ignore certain files.
+    // Potential instruction from the user to ignore certain files.
     IgnorePathRE = re_init__(P_AUDIT_IGNORE_PATH_RE);
 
-    // Potential instructions from the user to ignore certain programs.
+    // Potential instruction from the user to ignore certain programs.
     IgnoreProgRE = re_init__(P_AUDIT_IGNORE_PROG_RE);
+
+    // Potential instruction from the user to limit legal write ops.
+    AllowedWritePathRE = re_init__(P_ALLOWED_WRITE_PATH_RE);
 
     return pid;
 }

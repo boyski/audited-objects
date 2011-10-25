@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -317,25 +317,28 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
 static CCS
 _ps_get_cached_dcode(ps_o ps, CCS path)
 {
-    char keybuf[PATH_MAX * 2];
     hnode_t *hnp;
-    CCS dcode;
+    CCS dcode = NULL;
 
     if (Dcode_Hash_Table) {
 	char mtime[MOMENT_BUFMAX];
-
+	char *keybuf;
+	
 	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	snprintf(keybuf, charlen(keybuf), "%" PRIu64 "%s%s%s%s",
-		   ps->ps_size, FS1, mtime, FS1, path);
-	if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
-	    dcode = (CCS)hnode_get(hnp);
-	    vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
-	    return dcode;
+	if (asprintf(&keybuf, "%" PRIu64 "%s%s%s%s",
+		   ps->ps_size, FS1, mtime, FS1, path) < 0) {
+	    putil_syserr(2, NULL);
+	} else {
+	    if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
+		dcode = (CCS)hnode_get(hnp);
+		vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
+	    }
+	    putil_free(keybuf);
 	}
     }
 
-    return NULL;
+    return dcode;
 }
 
 /*
@@ -444,15 +447,17 @@ ps_stat(ps_o ps, int want_dcode)
     // be that bad after all, so if ever needed we should start by just
     // enabling it and measuring the effect.
     if (0 && !ps_get_fsname(ps)) {
-	char fs[PATH_MAX + 1];
-
+	size_t len;
+	CS fs;
 	ino_t midway;
 
 	// Stat the file system containing this file to get its name.
 	// We don't abort even on failure; it will always give us a string.
 	// We can derive this datum even for files which don't exist
 	// by falling back to the parent directory, recursively.
-	(void)util_find_fsname(path, fs, charlen(fs));
+	len = putil_path_max() + 1;
+	fs = (CS)putil_malloc(len);
+	(void)util_find_fsname(path, fs, len);
 
 	// Special case for ClearCase MVFS - view-private files
 	// have a negative inode, versioned elements are positive.
@@ -465,6 +470,7 @@ ps_stat(ps_o ps, int want_dcode)
 	} else {
 	    ps_set_fsname(ps, fs);
 	}
+	putil_free(fs);
     }
 
     if (statrc) {
@@ -486,16 +492,14 @@ ps_stat(ps_o ps, int want_dcode)
     if (S_ISLNK(stbuf.st_mode)) {
 	ps_set_symlinked(ps);
 	if (!ps_get_target(ps)) {
-	    int len;
+	    CCS lbuf;
 
-	    char buf[PATH_MAX];
-
-	    if ((len = readlink(path, buf, sizeof(buf))) == -1) {
+	    if ((lbuf = putil_readlink(path))) {
+		ps_set_target(ps, lbuf);
+		putil_free(lbuf);
+	    } else {
 		putil_syserr(0, path);
 		return -1;
-	    } else {
-		buf[len] = '\0';
-		ps_set_target(ps, buf);
 	    }
 	}
     }
@@ -597,16 +601,14 @@ ps_copy(ps_o cps)
 
 /// Format a PS for server consumption.
 /// @param[in] ps       the object pointer
-/// @param[out] buf     a buffer to hold the formatted string
-/// @param[in] bufmax   the size of the passed-in buffer
-/// @return the length of the formatted string
-int
-ps_toCSVString(ps_o ps, CS buf, int bufmax)
+/// @return an allocated, formatted string
+CCS
+ps_toCSVString(ps_o ps)
 {
     CCS fsname, target;
     char modebuf[32];
     char mtime[MOMENT_BUFMAX];
-
+    CCS buf;
     int len;
 
     fsname = ps_get_fsname(ps);
@@ -623,7 +625,7 @@ ps_toCSVString(ps_o ps, CS buf, int bufmax)
     }
 
     // *INDENT-OFF*
-    len = snprintf(buf, bufmax,
+    len = asprintf((CS *)&buf,
 		    "%c%s"			// 1 - DATATYPE
 		    "%s%s"			// 2 - FSNAME
 		    "%s%s"			// 2 - MTIME
@@ -642,15 +644,14 @@ ps_toCSVString(ps_o ps, CS buf, int bufmax)
 	    ps_get_rel(ps));
     // *INDENT-ON*
 
-    putil_free(target);
-
-    if (len < 0 || len > bufmax) {
-	buf[bufmax - 1] = '\0';
+    if (len < 0) {
+	buf = NULL;
 	putil_syserr(0, buf);
-	len = strlen(buf);
     }
 
-    return len;
+    putil_free(target);
+
+    return buf;
 }
 
 /// Format a PS for human consumption.
@@ -699,21 +700,6 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, int bufmax)
     }
 
     return len;
-}
-
-/// Format a PathState for user consumption (typically debugging).
-/// @param[in] ps       the object pointer
-/// @return an allocated string which must be freed by the caller
-CCS
-ps_tostring(ps_o ps)
-{
-    char line[(PATH_MAX * 2) + 256];
-
-    line[0] = '\0';
-
-    (void)ps_toCSVString(ps, line, charlen(line));
-
-    return putil_strdup(line);
 }
 
 /// Sets the moment field by parsing a stringified form.

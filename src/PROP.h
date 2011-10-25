@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -46,6 +46,7 @@ typedef enum {
     P_AGGREGATION_PROG_WEAK_RE,
     P_AGGREGATION_STYLE,
     P_AGGRESSIVE_SERVER,
+    P_ALLOWED_WRITE_PATH_RE,
     P_AUDIT_IGNORE_PATH_RE,
     P_AUDIT_IGNORE_PROG_RE,
     P_AUDIT_ONLY,
@@ -79,6 +80,7 @@ typedef enum {
     P_PERL_CMD,
     P_PRINT_ELAPSED,
     P_PROGNAME,
+    P_PROJECT_BASE_GLOB,
     P_PROJECT_NAME,
     P_PTX_STRATEGY,
     P_REUSE_ROADMAP,
@@ -121,7 +123,7 @@ extern const char *prop_get_str(prop_e);
 extern unsigned long prop_get_ulong(prop_e);
 extern long prop_get_long(prop_e);
 extern void prop_unset(prop_e, int);
-extern void prop_load(CCS, CCS);
+extern void prop_load(CCS, CCS, int);
 extern prop_e prop_from_name(CCS);
 extern CCS prop_value_from_name(CCS);
 extern CCS prop_to_name(prop_e);

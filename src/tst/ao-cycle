@@ -143,7 +143,7 @@ for my $dir (@dirs) {
 
     print "========== $dir ==========\n";
 
-    chomp(my $projbase = qx(ao property Base.Dir));
+    chomp(my $projbase = qx(ao -q property Base.Dir));
     my $projfile = "$projbase/.$app/$app.properties";
     if (! -f $projfile) {
 	mkdir "$projbase/.$app" unless -d "$projbase/.$app";
@@ -160,7 +160,7 @@ for my $dir (@dirs) {
     }
     exit(2) if system("cat $projfile");
 
-    chomp($projname = qx(ao property Project.Name));
+    chomp($projname = qx(ao -q property Project.Name));
 
     if ($opt{FreshDB}) {
 	if (system("set -x; $app ADMIN delete PROJECT $projname 2>/dev/null")) {
@@ -169,13 +169,13 @@ for my $dir (@dirs) {
     }
 
     my $t0 = Benchmark->new;
-    my $wcmd = "$app $q -C -X -l make-w.log $Make";
+    my $wcmd = "$app $q -c -X -l make-w.log $Make";
     if ($opt{warmup} && run($wcmd)) {
 	$rc++;
     } else {
 	my $t1 = Benchmark->new;
 	my $disp = $opt{download} ? "-O %p.$app" : "-o %p.$app";
-	my $acmd = "$app $q -C -u $disp -m -l make-a.log $Make";
+	my $acmd = "$app $q -c -u $disp -m -l make-a.log $Make";
 	if ($opt{audited} && run($acmd)) {
 	    $rc++;
 	} else {
@@ -190,7 +190,7 @@ for my $dir (@dirs) {
 		    $rc++;
 		    $status++;
 		}
-		$rcmd = qq($app $q -C -X -l make-r.log $Make -f $mf);
+		$rcmd = qq($app $q -c -X -l make-r.log $Make -f $mf);
 		$rcmd .= ' -j ' . $opt{Jobs} if $opt{Jobs};
 	    }
 	    my $t2b = Benchmark->new;
@@ -211,7 +211,7 @@ for my $dir (@dirs) {
 			    $status++;
 			}
 			$pcmd = qq(MAKEFILES=$md);
-			$pcmd .= qq( $app $q -C -X -l make-p.log $Make);
+			$pcmd .= qq( $app $q -c -X -l make-p.log $Make);
 			$pcmd .= ' -j ' . ($opt{Jobs} ? $opt{Jobs} : 4);
 		    }
 		}
@@ -220,12 +220,12 @@ for my $dir (@dirs) {
 		    $rc++;
 		} else {
 		    my $t4 = Benchmark->new;
-		    my $ccmd = "$app $q -C -X -l make-c.log $Make";
+		    my $ccmd = "$app $q -c -X -l make-c.log $Make";
 		    if ($opt{compare} && run($ccmd)) {
 			$rc++;
 		    } else {
 			my $t5 = Benchmark->new;
-			my $dcmd = "$app $q -C -r -w -l make-d.log $Make";
+			my $dcmd = "$app $q -c -r -w -l make-d.log $Make";
 			if ($opt{download} && run($dcmd)) {
 			    $rc++;
 			} else {

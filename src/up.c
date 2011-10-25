@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -75,7 +75,7 @@ up_load_audit(CCS cabuf)
     }
 
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, cip->ci_malloced);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, bufsize);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)bufsize);
 
     // Always set the URL last since adding parameters to it might
     // lead to a realloc/move.
@@ -120,7 +120,7 @@ up_load_file(ps_o ps, int logfile)
 
     cip->ci_url = http_make_url(UPLOAD_SERVLET_NICKNAME);
 
-    psbuf = ps_tostring(ps);
+    psbuf = ps_toCSVString(ps);
     http_add_header(curl, X_PATHSTATE_HEADER, psbuf);
     putil_free(psbuf);
 

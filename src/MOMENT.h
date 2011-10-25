@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -46,6 +46,6 @@ extern unsigned long moment_duration(moment_s, moment_s);
 extern int moment_parse(moment_s *, CCS);
 extern CCS moment_format(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
-extern CCS moment_format_id(moment_s *, CS, size_t);
+extern CCS moment_format_id(moment_s *);
 
 #endif				/*MOMENT_H */

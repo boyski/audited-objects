@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -228,19 +228,19 @@ pa_newFromCSVString(CCS csv)
 
 /// Format a PA for server consumption.
 /// @param[in] pa       the object pointer
-/// @param[out] buf     a buffer to hold the formatted string
-/// @param[in] bufmax   the size of the passed-in buffer
-/// @return the length of the formatted string
-int
-pa_toCSVString(pa_o pa, CS buf, int bufmax)
+/// @return an allocated, formatted string
+CCS
+pa_toCSVString(pa_o pa)
 {
     int len;
     char timestamp[MOMENT_BUFMAX];
+    CS pabuf;
+    CCS buf = NULL;
 
     (void)moment_format(pa->pa_timestamp, timestamp, charlen(timestamp));
 
     // *INDENT-OFF*
-    len = snprintf(buf, bufmax,
+    len = asprintf(&pabuf,
 		"%c%s"		// 1  - OP
 		"%s%s"		// 2  - CALL
 		"%s%s"		// 3  - TIMESTAMP
@@ -261,22 +261,22 @@ pa_toCSVString(pa_o pa, CS buf, int bufmax)
 	pa_get_ccode(pa), FS1);
     // *INDENT-ON*
 
-    if (len < 0 || len > bufmax) {
-	buf[bufmax - 1] = '\0';
-	putil_syserr(0, buf);
+    if (len < 0) {
+	putil_syserr(0, "pa_toCSVString");
     } else {
-	int pslen;
+	CCS psbuf;
 
-	pslen = ps_toCSVString(pa->pa_ps, buf + len, bufmax - len);
-	if (pslen < 0 || pslen >= bufmax) {
-	    buf[bufmax - 1] = '\0';
-	    putil_syserr(0, buf);
+	if ((psbuf = ps_toCSVString(pa->pa_ps))) {
+	    if (asprintf((char **)&buf, "%s%s\n", pabuf, psbuf) < 0) {
+		putil_syserr(0, "ps_toCSVString");
+	    }
+	    putil_free(psbuf);
 	} else {
-	    strcpy(buf + len + pslen, "\n");
+	    putil_syserr(0, "ps_toCSVString");
 	}
     }
 
-    return strlen(buf);
+    return buf;
 }
 
 /// Format a PathAction for user consumption (typically debugging)
@@ -285,17 +285,19 @@ pa_toCSVString(pa_o pa, CS buf, int bufmax)
 CCS
 pa_tostring(pa_o pa)
 {
-    char line[(PATH_MAX * 2) + 256];
+    CCS str = NULL;
 
     if (pa_exists(pa)) {
-	line[0] = '\0';
+	str = pa_toCSVString(pa);
     } else {
-	strcpy(line, "(GONE) ");
+	CCS str1;
+
+	str1 = pa_toCSVString(pa);
+	asprintf((char **)&str, "(GONE) %s", str1);
+	putil_free(str1);
     }
 
-    (void)pa_toCSVString(pa, endof(line), leftlen(line));
-
-    return putil_strdup(line);
+    return str;
 }
 
 /// Boolean - returns true iff the path is a member of the project.

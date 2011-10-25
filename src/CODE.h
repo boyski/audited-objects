@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2010 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 /// @file
 /// @brief Declarations for code.c
 
-/// The size of a buffer guaranteed big enough for any identity hash.
-#define CODE_IDENTITY_HASH_MAX_LEN	2048
+/// The size of a buffer guaranteed big enough for any identity hash string.
+#define CODE_IDENTITY_HASH_MAX_LEN	256
 
 extern void code_init(void);
 extern CCS code_from_str(CCS, CS, size_t);

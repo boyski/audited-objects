@@ -7,14 +7,22 @@ use File::Basename;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
+my $SpecialCase;
+$SpecialCase->{gdb}->{PROPERTIES}->{'Audit.Ignore.Path.RE'} =
+    '/tmp\\d+\\b|\\b(\\.bak|\\.BAK)$|/conf[^i][^g]';
+$SpecialCase->{openssl}->{PROPERTIES}->{'Aggregation.Prog.Strong.RE'} =
+    '(\\bcc|gcc|gcc-.*|g[+]{2}|ccache|perl)$';
+$SpecialCase->{zsh}->{PROPERTIES}->{'Aggregation.Prog.Break.RE'} =
+    '<NULL>';
+
 my($prog) = fileparse($0, '\.\w*$');
 
 my %opt;
 GetOptions(\%opt, qw(help AllModes FreshDB IdentityHash=s Jobs=i
-    Keep-Going Logger=s Make=s MF=s OutputToScreen ReConfigure Verbose
+    KeepGoing Logbase=s Make=s MF=s OutputToScreen PackageDir=s Verbose
     audited compare download remake warmup));
 
-my $logfile = ($opt{Logger} || $prog) . '.log';
+my $logfile = ($opt{Logbase} || $prog) . '.log';
 
 if ($opt{help}) {
     pod2usage(-exitval => 'NOEXIT');
@@ -27,7 +35,7 @@ $opt{AllModes} = 1
     unless $opt{warmup} || $opt{download} || $opt{remake} || $opt{compare};
 $opt{warmup} = $opt{download} = $opt{remake} = $opt{compare} = 1
     if $opt{AllModes};
-$opt{audited} = 1;
+$opt{audited} = 1 if $opt{download} || $opt{remake};
 
 if (! $opt{OutputToScreen}) {
     open(ORIG_STDERR, ">&STDERR") || die "$prog: Error: can't dup stderr\n";
@@ -59,10 +67,10 @@ my $projname = 'unknown';
 sub run {
     my $cmd = "@_";
     print STDERR "+ $cmd\n";
-    my $status = system($cmd);
-    if ($status) {
-	warn "$prog: Error: BUILD OF '$projname' FAILED ($status)\n";
-	if (($status == 512 || $status & 127) && !$opt{'Keep-Going'}) {
+    my $rc = system($cmd);
+    if ($rc) {
+	warn "$prog: Error: BUILD OF '$projname' FAILED ($rc)\n";
+	if (($rc == 512 || $rc & 127) && !$opt{'KeepGoing'}) {
 	    exit(2);
 	} else {
 	    return 1;
@@ -88,11 +96,32 @@ sub findbase {
 
 my($total_w, $total_a, $total_r, $total_c, $total_d) = ($zero, $zero, $zero, $zero, $zero);
 
-# Default to the list of known good test cases in the DATA section.
+# Default to the set of known good test cases listed in the DATA section.
 if (! @ARGV) {
     for (<DATA>) {
 	chomp;
 	my @results = glob($_);
+	if (!@results && (my $dir = $opt{PackageDir})) {
+	    if (my $pkg = (glob("$dir/$_"))[0]) {
+		if ($pkg =~ m%\.tar\.gz$%) {
+		    run(qq(gunzip -c "$pkg" | tar -xf -));
+		} elsif ($pkg =~ m%\.tar\.bz2$%) {
+		    run(qq(bunzip2 -c "$pkg" | tar -xf -));
+		} elsif ($pkg =~ m%\.zip$%) {
+		    run(qq(unzip "$pkg"));
+		}
+		@results = glob($_);
+		for my $dir (@results) {
+		    if (-f "$dir/configure") {
+			run(qq(cd "$dir" && sh configure));
+		    } elsif (-f "$dir/CMakeLists.txt") {
+			run(qq(cd "$dir" && cmake .));
+		    } elsif (-f "$dir/config") {
+			run(qq(cd "$dir" && ./config));
+		    }
+		}
+	    }
+	}
 	if (@results) {
 	    push(@ARGV, @results);
 	} else {
@@ -126,27 +155,22 @@ for my $dir (@dirs) {
 	open(PROJFILE, '>', $projfile) || die "$prog: Error: $projfile: $!";
 	($projname = basename($dir)) =~ s%^(\w*).*%$1%;
 	print PROJFILE "Project.Name = $projname\n";
+	if (exists($SpecialCase->{$projname}->{PROPERTIES})) {
+	    for my $prop (keys %{$SpecialCase->{$projname}->{PROPERTIES}}) {
+		print PROJFILE $prop, ": ",
+		    $SpecialCase->{$projname}->{PROPERTIES}->{$prop}, "\n";
+	    }
+	}
 	close(PROJFILE);
     }
     exit(2) if system("cat $projfile");
 
     chomp($projname = qx(ao property Project.Name));
 
-    if ($opt{ReConfigure}) {
-	if (-f 'Makefile') {
-	    run("$Make clean distclean > /dev/null 2>&1");
-	}
-
-	if (-f 'configure') {
-	    if (run("sh configure")) {
-		$rc++;
-		next;
-	    }
-	}
-    }
-
     if ($opt{FreshDB}) {
-	system("set -x; $app ADMIN delete PROJECT $projname 2>/dev/null");
+	if (system("set -x; $app ADMIN delete PROJECT $projname 2>/dev/null")) {
+	    $status++;
+	}
     }
 
     my $t0 = Benchmark->new;
@@ -157,21 +181,25 @@ for my $dir (@dirs) {
 	my $t1 = Benchmark->new;
 	my $disp = $opt{download} ? "-O %p.$app" : "-o %p.$app";
 	my $acmd = "$app $q -C -u $disp -m -l make-a.log $Make";
-	if (run($acmd)) {
+	if ($opt{audited} && run($acmd)) {
 	    $rc++;
 	} else {
 	    my $t2a = Benchmark->new;
-	    my($basedir, $audit) = qx($app substitute %b %p.$app);
-	    chomp($basedir, $audit);
-	    my $mf = $opt{MF} || 'MF';
-	    my $mflags = qq(-out=$mf -full -members -pdump -base="$basedir");
-	    if (system qq(set -x; $^X -wS ao2make $mflags $audit)) {
-		$rc++;
+	    my $rcmd;
+	    if ($opt{remake} && !$rc) {
+		my($basedir, $audit) = qx($app substitute %b %p.$app);
+		chomp($basedir, $audit);
+		my $mf = $opt{MF} || 'MF';
+		my $flags = qq(-out=$mf -full -members -pdump -base="$basedir");
+		if (system qq(set -x; $^X -wS ao2make $flags $audit)) {
+		    $rc++;
+		    $status++;
+		}
+		$rcmd = "$app $q -C -X -l make-r.log $Make -f $mf";
+		$rcmd .= ' -j ' . $opt{Jobs} if $opt{Jobs};
 	    }
 	    my $t2b = Benchmark->new;
-	    my $rcmd = "$app $q -C -X -l make-r.log $Make -f $mf";
-	    $rcmd .= ' -j ' . $opt{Jobs} if $opt{Jobs};
-	    if ($opt{remake} && !$rc && run($rcmd)) {
+	    if ($rcmd && run($rcmd)) {
 		$rc++;
 	    } else {
 		my $t3 = Benchmark->new;
@@ -218,7 +246,7 @@ for my $dir (@dirs) {
 			    $total_d = timesum($total_d, $delta);
 			    system qq(set -x; $app lsbuilds -l);
 			}
-			push(@timings, sprintf "%-12s   %s\n", 'Combined:',
+			push(@timings, sprintf "%-12s   %s\n", 'Total:',
 			    timing(timediff($t5, $t0)));
 			unlink $logfile;
 			open(MARKER, '>', $logfile)
@@ -232,8 +260,6 @@ for my $dir (@dirs) {
 	    }
 	}
     }
-
-    $status += $rc;
 }
 
 my $end = Benchmark->new;
@@ -260,7 +286,7 @@ push(@summary,
 print STDERR @summary;
 print ORIG_STDERR @summary unless $opt{OutputToScreen};
 
-exit($status != 0);
+exit($status ? 2 : 0);
 
 =pod
 
@@ -281,6 +307,7 @@ ao-cycle - A test harness for AO.
    -Jobs=n		Test "remake" parallelism by using 'n' jobs
    -Keep-Going		Do not exit if a test buiuld fails
    -OutputToScreen	Send output to stdout/stderr instead of a file
+   -PackageDir=d	Expand and configure tarballs from named directory
    -Verbose		Do not suppress AO verbosity
 
 =head2 NOTES
@@ -298,6 +325,9 @@ ao-cycle - A test harness for AO.
     % ao-cycle -w -d -r
 	(builds all known-and-present packages in the specified modes)
 
+    % ao-cycle -P /path/to/packages
+	(builds all known packages findable in specified dir, in all modes)
+
     % ao-cycle
 	(builds all known-and-present packages in all modes)
 
@@ -312,7 +342,8 @@ on the command line.
 
 By default, all testing modes are used. Therefore, when run with no
 arguments it will build all known packages (if present) in all
-modes, and save output to the file noted above.
+modes, and save output to the file noted above. See the EXAMPLES
+section for sample usage.
 
 =cut
 
@@ -322,7 +353,6 @@ bash-*
 coreutils-*
 curl-*
 diffutils-*
-exim-*
 gdb-*
 httpd-*
 indent-*

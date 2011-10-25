@@ -709,7 +709,6 @@ mon_begin_session(void)
 
     url = http_make_url(SESSION_SERVLET_NICKNAME);
 
-    http_add_param(&url, HTTP_CLIENT_VERSION_PARAM, _T(APPLICATION_VERSION));
     http_add_param(&url, HTTP_PROJECT_NAME_PARAM, prop_get_str(P_PROJECT_NAME));
     http_add_param(&url, HTTP_SESSION_TIMEOUT_SECS_PARAM,
 		   prop_get_str(P_SESSION_TIMEOUT_SECS));

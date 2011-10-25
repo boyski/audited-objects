@@ -640,6 +640,9 @@ http_connect(CURL *curl, char *url, int loud)
     // Make sure there's no leftover stuff in the error buffer.
     cip->ci_errbuf[0] = '\0';
 
+    // Always provide the client version.
+    http_add_param(&url, HTTP_CLIENT_VERSION_PARAM, _T(APPLICATION_VERSION));
+
     // Always set the URL last since adding parameters to it might
     // lead to a realloc/move.
     curl_easy_setopt(curl, CURLOPT_URL, cip->ci_url = url);

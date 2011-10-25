@@ -41,6 +41,8 @@
 /// @cond static
 #define PTX_PREFIX		_T("X")
 
+#define RMAP_RADIX		36
+
 #define IS_TRUE(expr)		(!_tcsicmp((expr), _T("true")))
 
 typedef int (*tgt_process_f) (pa_o, void *);
@@ -434,13 +436,113 @@ _shop_process_target(pa_o spa, void *data)
     return rc;
 }
 
+// We may compare any number of path *states* against
+// the same path *name*. The current state will not change.
+// Therefore, in order to prevent redundant checksumming,
+// we try to save the current state until we've moved on
+// to a new pathname. The current implementation relies on
+// two assumptions: first that CDB returns keys in
+// the same order they were inserted (which appears to be
+// the case but is nowhere promised), and second that the
+// server sends all states associated with a given path name
+// together, which it currently does. If either of these breaks
+// down the code will still work but sub-optimally.
+static ps_o CurrentPS;
+
+static void
+_shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
+{
+    unsigned vlen;
+    int ignored;
+    pa_o dummy_pa;
+    ps_o shopped_ps;
+    CCS path, reason;
+    CS csv, ptxbuf, explanation = NULL;
+
+    if (cdb_find(ssp->cdbp, pskey, _tcslen(pskey)) <= 0) {
+	putil_int(_T("bad PS key in roadmap: %s"), pskey);
+	return;
+    }
+
+    vlen = cdb_datalen(ssp->cdbp);
+    csv = (CS)alloca(vlen + 1);
+    cdb_read(ssp->cdbp, csv, vlen, cdb_datapos(ssp->cdbp));
+    csv[vlen] = '\0';
+    shopped_ps = ps_newFromCSVString(csv);
+
+    path = ps_get_abs(shopped_ps);
+
+    // Figure out if this path is to be ignored per user request.
+    // We may still want to do the comparison for ignored paths
+    // in order to issue warnings (the user might wish to know
+    // what didn't match without failing the build).
+    ignored = re_match__(ssp->ignore_path_re, path) != NULL;
+
+    if (!CurrentPS || _tcscmp(ps_get_abs(CurrentPS), path)) {
+	ps_destroy(CurrentPS);
+	CurrentPS = ps_newFromPath(path);
+	if (ps_stat(CurrentPS, ps_has_dcode(shopped_ps))) {
+	    asprintf(&explanation, "%s: %s", path, strerror(errno));
+	}
+    }
+
+    // Do the actual comparison.
+    // IDEA - choose a model here: Either we can ignore paths
+    // before comparison (thus saving time) or after (allowing
+    // a useful warning to be issued). Or we could add a new
+    // preference allowing user choice.
+    if (explanation || (reason = ps_diff(shopped_ps, CurrentPS))) {
+	CS ixstr;
+
+	// If this iteration produced a mismatch, invalidate all the
+	// PTXes associated with that PS.
+	if (!explanation) {
+	    if (asprintf(&explanation, "%s mismatch on %s",
+		    reason, path) < 0) {
+		putil_syserr(2, NULL);
+	    }
+	}
+
+	ptxbuf = (CS)alloca(_tcslen(ptxes1) + CHARSIZE);
+	_tcscpy(ptxbuf, ptxes1);
+	for (ixstr = util_strsep(&ptxbuf, FS2);
+		 ixstr && _shop_ptx_count(ssp);
+		 ixstr = util_strsep(&ptxbuf, FS2)) {
+	    _shop_ptx_invalidate(ssp, ixstr, explanation, ignored);
+	}
+
+	// If the failing path is not ignored for shopping, this
+	// loop iteration is finished.
+	if (!ignored) {
+	    ps_destroy(shopped_ps);
+	    return;
+	}
+    }
+
+    putil_free(explanation);
+
+    // The current PS matched, so hold onto it. Unfortunately a
+    // CA object doesn't hold PS objects, it holds PAs, so we
+    // must wrap the PS in a dummy PA.
+    // The only reason prereqs are saved at all is to let a
+    // recycled CA generate the same signature as if it had
+    // actually run.
+    dummy_pa = pa_new();
+    pa_set_ps(dummy_pa, ps_copy(CurrentPS));
+    pa_set_op(dummy_pa, OP_READ);
+    pa_set_call(dummy_pa, _T("dummy"));
+    ca_record_pa(ssp->ca, dummy_pa);
+
+    ps_destroy(shopped_ps);
+    return;
+}
+
 static void
 _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 {
     TCHAR key[64];
     struct cdb_find cdbf_prq;
     unsigned vlen;
-    ps_o shopped_ps = NULL, current_ps = NULL;
 
     _sntprintf(key, charlen(key), _T("<%s"), cmdix);
     if (cdb_findinit(&cdbf_prq, ssp->cdbp, key, _tcslen(key)) < 0) {
@@ -448,10 +550,9 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
     }
 
     while (cdb_findnext(&cdbf_prq) > 0 && _shop_ptx_count(ssp)) {
-	CCS path, pskey, reason;
-	CS pskeys, csv;
-	CS prqline, ptxes1, ptxes2, ixstr;
-	int ptxesleft, ignored;
+	CCS pskey;
+	CS pskeys, prqline, ptxes1, ptxbuf, ixstr;
+	int ptxesleft;
 
 	// Read a prereq line from the roadmap.
 	vlen = cdb_datalen(ssp->cdbp);
@@ -475,11 +576,11 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 	// be a winner you must not only survive the war but also
 	// show evidence of having fought. No one gets a medal for
 	// hiding in a foxhole, so to speak.
-	ptxes2 = (CS)alloca(_tcslen(ptxes1) + CHARSIZE);
-	_tcscpy(ptxes2, ptxes1);
-	for (ptxesleft = 0, ixstr = util_strsep(&ptxes2, FS2);
+	ptxbuf = (CS)alloca(_tcslen(ptxes1) + CHARSIZE);
+	_tcscpy(ptxbuf, ptxes1);
+	for (ptxesleft = 0, ixstr = util_strsep(&ptxbuf, FS2);
 		 ixstr;
-		 ixstr = util_strsep(&ptxes2, FS2)) {
+		 ixstr = util_strsep(&ptxbuf, FS2)) {
 	    if (_shop_ptx_contains(ssp, ixstr)) {
 		ptxesleft = 1;
 		_shop_ptx_mark_as_seen(ssp, ixstr);
@@ -489,98 +590,40 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 	    continue;
 	}
 
+	/*
+	 * Evaluate individual path states. The format allows for
+	 * pathstate keys to be enumerated, like S1+S2+S3+S4, or
+	 * for ranges in the form "S1-4".
+	 */
 	for (pskey = util_strsep(&pskeys, FS2);
-	     pskey && _shop_ptx_count(ssp);
-	     pskey = util_strsep(&pskeys, FS2)) {
-	    pa_o dummy_pa;
-	    CS explanation = NULL;
+		pskey && _shop_ptx_count(ssp);
+		pskey = util_strsep(&pskeys, FS2)) {
+	    CS end;
 
-	    if (cdb_find(ssp->cdbp, pskey, _tcslen(pskey)) <= 0) {
-		putil_int(_T("bad PS key in roadmap: %s"), pskey);
-		continue;
+	    if ((end = _tcschr(pskey, '-'))) {
+		uint64_t i, first, last;
+		TCHAR nkey[64], *p;
+
+		// The following relies on the fact that Integer.toString
+		// is guaranteed to use lower-case characters.
+		*end++ = '\0';
+		for (p = nkey; ISALPHA(*pskey) && ISUPPER(*pskey); ) {
+		    *p++ = *pskey++;
+		}
+		first = _tcstol(pskey, NULL, RMAP_RADIX);
+		last  = _tcstol(end, NULL, RMAP_RADIX);
+		for (i = first; i <= last; i++) {
+		    util_format_to_radix(RMAP_RADIX, p, charlen(nkey), i);
+		    _shop_cmp_pathstate(ssp, nkey, ptxes1);
+		}
+	    } else {
+		_shop_cmp_pathstate(ssp, pskey, ptxes1);
 	    }
-
-	    vlen = cdb_datalen(ssp->cdbp);
-	    csv = (CS)alloca(vlen + 1);
-	    cdb_read(ssp->cdbp, csv, vlen, cdb_datapos(ssp->cdbp));
-	    csv[vlen] = '\0';
-	    ps_destroy(shopped_ps);
-	    shopped_ps = ps_newFromCSVString(csv);
-
-	    path = ps_get_abs(shopped_ps);
-
-	    // Figure out if this path is to be ignored per user request.
-	    // We may still want to do the comparison for ignored paths
-	    // in order to issue warnings (the user might wish to know
-	    // what didn't match without failing the build).
-	    ignored = re_match__(ssp->ignore_path_re, path) != NULL;
-
-	    // We may compare any number of path *states* against
-	    // the same path *name*. The current state will not change.
-	    // Therefore, in order to prevent redundant checksumming,
-	    // we try to save the current state until we've moved on
-	    // to a new pathname. The current implementation relies on
-	    // two assumptions: first that CDB returns keys in
-	    // the same order they were inserted (which appears to be
-	    // the case but is nowhere promised), and second that the
-	    // server sends all states associated with a given path name
-	    // together, which it currently does. If either of these breaks
-	    // down the code will still work but non-optimally.
-	    if (!current_ps || _tcscmp(ps_get_abs(current_ps), path)) {
-		ps_destroy(current_ps);
-		current_ps = ps_newFromPath(path);
-		if (ps_stat(current_ps, ps_has_dcode(shopped_ps))) {
-		    asprintf(&explanation, "%s: %s", path, strerror(errno));
-		}
-	    }
-
-	    // Do the actual comparison.
-	    // IDEA - choose a model here: Either we can ignore paths
-	    // before comparison (thus saving time) or after (allowing
-	    // a useful warning to be issued). Or we could add a new
-	    // preference allowing user choice.
-	    if (explanation || (reason = ps_diff(shopped_ps, current_ps))) {
-
-		// If this iteration produced a mismatch, invalidate all the
-		// PTXes associated with that PS.
-		if (!explanation) {
-		    if (asprintf(&explanation, "%s mismatch on %s",
-			    reason, path) < 0) {
-			putil_syserr(2, NULL);
-		    }
-		}
-
-		for (ixstr = util_strsep(&ptxes1, FS2);
-			 ixstr && _shop_ptx_count(ssp);
-			 ixstr = util_strsep(&ptxes1, FS2)) {
-		    _shop_ptx_invalidate(ssp, ixstr, explanation, ignored);
-		}
-
-		// If the failing path is not ignored for shopping, this
-		// loop iteration is finished.
-		if (!ignored) {
-		    continue;
-		}
-	    }
-
-	    putil_free(explanation);
-
-	    // The current PS matched, so hold onto it. Unfortunately a
-	    // CA object doesn't hold PS objects, it holds PAs, so we
-	    // must wrap the PS in a dummy PA.
-	    // The only reason prereqs are saved at all is to let a
-	    // recycled CA generate the same signature as if it had
-	    // actually run.
-	    dummy_pa = pa_new();
-	    pa_set_ps(dummy_pa, ps_copy(current_ps));
-	    pa_set_op(dummy_pa, OP_READ);
-	    pa_set_call(dummy_pa, _T("dummy"));
-	    ca_record_pa(ssp->ca, dummy_pa);
 	}
     }
 
-    ps_destroy(shopped_ps);
-    ps_destroy(current_ps);
+    ps_destroy(CurrentPS);
+    CurrentPS = NULL;
 }
 
 static shop_e
@@ -804,6 +847,11 @@ shop_init(void)
 {
     CCS rmap;
     int fd;
+
+    // Convenience.
+    if (vb_bitmatch(VB_SHOP)) {
+	vb_addbit(VB_WHY);
+    }
 
     // Open the roadmap file, and initialize the CDB infrastructure.
     if ((rmap = prop_get_str(P_ROADMAPFILE))) {

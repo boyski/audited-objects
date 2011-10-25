@@ -77,7 +77,6 @@ static void permute_args(int, int, int, TCHAR * const *);
 static TCHAR *place = EMSG; /* option letter processing */
 
 /* XXX: set optreset to 1 rather than these two */
-static int optreset = 0;
 static int nonopt_start = -1; /* first non option argument (for permute) */
 static int nonopt_end = -1;   /* first option after non options (for permute) */
 
@@ -90,7 +89,7 @@ static const TCHAR illoptchar[] = _T("unknown option -- %c");
 static const TCHAR illoptstring[] = _T("unknown option -- %s");
 
 /*
- * DSB: Hack to override the same names in libc.
+ * DSB: Hacks to override the same names in libc.
  */
 TCHAR *bsd_optarg;
 #define optarg bsd_optarg
@@ -100,6 +99,8 @@ int bsd_optind = 1;
 #define optind bsd_optind
 int bsd_opterr = 1;
 #define opterr bsd_opterr
+static int bsd_optreset = 0;
+#define optreset bsd_optreset
 
 /*
  * DSB: Had to ANSIfy the function prototypes below in order to compile

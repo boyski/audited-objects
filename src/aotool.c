@@ -887,11 +887,6 @@ main(int argc, CS const *argv)
     argc -= bsd_optind;
     argv += bsd_optind;
 
-    // Convenience.
-    if (vb_bitmatch(VB_SHOP)) {
-	vb_addbit(VB_WHY);
-    }
-
     // The command we've been asked to invoke.
     if ((action = argv[0])) {
 	// Hack for typing ease: "make" is a synonym for "run make".

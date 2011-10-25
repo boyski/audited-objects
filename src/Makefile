@@ -133,7 +133,7 @@ $(INST_PREFIX)/bin/%: $(CPUDIR)/%
 	@test -L $@ || (set -x; cp $< $@)
 
 # Compile in the version number if accessible.
-include Application.properties
+include App.properties
 ifdef APPLICATION_VERSION
 CFLAGS		+= -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
 else
@@ -283,7 +283,7 @@ $(CPUDIR)/putil.o: Putil/putil.h
 
 $(CPUDIR)/aotool.o: About/about.c
 
-$(CPUDIR)/%.o: %.c AO.h Application.properties
+$(CPUDIR)/%.o: %.c AO.h App.properties
 	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
 
 #############################################################################

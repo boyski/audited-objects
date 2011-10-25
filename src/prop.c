@@ -342,10 +342,10 @@ static struct {
 	P_DOC_PAGER,
     },
     // Documented as a boolean but there's an additional undocumented "2"
-    // value which means to run without changing server state at all.
-    // In other words "2" means we can query the server for the roadmap
+    // value which means to run without changing any server state at all.
+    // In other words 2 allows us to query the server for the roadmap
     // and to grab some recycling from it, but it will have no record
-    // of any of this.
+    // of any of this. Intended for debugging use.
     {
 	_T("Download.Only"),
 	NULL,

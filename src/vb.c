@@ -197,12 +197,12 @@ vb_addstr(CCS vbstr)
     if (!vbstr || !*vbstr || (*vbstr == '?') || all) {
 	int i;
 
-	CCS fmt = _T("%-8s %s\n");
+	CCS fmt = "%-8s %s\n";
 
-	_ftprintf(stdout, fmt, _T("OFF"), _T("No verbosity messages"));
+	fprintf(stdout, fmt, "OFF", "No verbosity messages");
 	for (i = 0; vbtab[i].vb_name; i++) {
 	    if (all || (vbtab[i].vb_flags & VBFLAG_PUBLIC)) {
-		_ftprintf(stdout, fmt, vbtab[i].vb_name, vbtab[i].vb_desc);
+		fprintf(stdout, fmt, vbtab[i].vb_name, vbtab[i].vb_desc);
 	    }
 	}
 	exit(0);
@@ -213,7 +213,7 @@ vb_addstr(CCS vbstr)
 	if (*currval) {
 	    CS newval = NULL;
 
-	    if (asprintf(&newval, _T("%s,%s"), currval, vbstr) < 0) {
+	    if (asprintf(&newval, "%s,%s", currval, vbstr) < 0) {
 		putil_syserr(2, NULL);
 	    }
 	    prop_override_str(P_VERBOSITY, newval);
@@ -245,16 +245,16 @@ _vb_name2mask(CCS list)
 
     CS t;
 
-    TCHAR buf[1024];
+    char buf[1024];
 
     // Default to 'standard' verbosity.
     mask = 1 << VB_STD;
 
-    _sntprintf(buf, charlen(buf), _T("%s"), list);
-    for (t = _tcstok(buf, _T(",")); t; t = _tcstok(NULL, _T(","))) {
-	if (!_tcsicmp(t, _T("OFF")) || *t == '-') {
+    snprintf(buf, charlen(buf), "%s", list);
+    for (t = strtok(buf, ","); t; t = strtok(NULL, ",")) {
+	if (!stricmp(t, "OFF") || *t == '-') {
 	    mask = 0;
-	} else if (!_tcsicmp(t, _T("ON"))) {
+	} else if (!stricmp(t, "ON")) {
 	    mask |= (1 << VB_STD);
 	} else if (*t == '*') {
 	    mask = -1;
@@ -262,13 +262,13 @@ _vb_name2mask(CCS list)
 	    int i;
 
 	    for (i = 0; vbtab[i].vb_name; i++) {
-		if (!_tcsnicmp(t, vbtab[i].vb_name, _tcslen(t))) {
+		if (!strnicmp(t, vbtab[i].vb_name, strlen(t))) {
 		    mask |= (1 << i);
 		    break;
 		}
 	    }
 	    if (!vbtab[i].vb_name) {
-		putil_warn(_T("unknown verbosity mask bit name '%s'"), t);
+		putil_warn("unknown verbosity mask bit name '%s'", t);
 	    }
 	}
     }
@@ -311,36 +311,36 @@ vb_printfA(long bit, const char *fmt, ...)
     // have a clue that the event being reported took place.
     if (vb_bitmatch(bit) && fmt) {
 	vbstrm = vb_get_stream();
-	if (_ftprintf(vbstrm, _T("%s: "), prop_get_app()) < 0) {
-	    write(2, prop_get_app(), _tcslen(prop_get_app()));
-	    write(2, _T(": "), 2);
+	if (fprintf(vbstrm, "%s: ", prop_get_app()) < 0) {
+	    write(2, prop_get_app(), strlen(prop_get_app()));
+	    write(2, ": ", 2);
 	}
 
 #if 0
 	if (bit != VB_STD && bit != VB_ON) {
 	    moment_s now;
-	    TCHAR nowbuf[MOMENT_BUFMAX];
+	    char nowbuf[MOMENT_BUFMAX];
 
 	    moment_get_systime(&now);
 	    (void)moment_format_vb(now, nowbuf, charlen(nowbuf));
-	    write(2, nowbuf, _tcslen(nowbuf));
-	    write(2, _T(": "), 2);
+	    write(2, nowbuf, strlen(nowbuf));
+	    write(2, ": ", 2);
 
 	    // Makes it easier to see extra verbosity or grep it from a log.
 	    if (fputc('=', vbstrm) == EOF) {
-		write(2, _T("="), 1);
+		write(2, "=", 1);
 	    }
 	}
 #endif
 
 	va_start(ap, fmt);
 	if (vfprintf(vbstrm, fmt, ap) < 0) {
-	    write(2, fmt, _tcslen(fmt));
+	    write(2, fmt, strlen(fmt));
 	}
 	va_end(ap);
 
 	if (fputc('\n', vbstrm) == EOF) {
-	    write(2, _T("\n"), 1);
+	    write(2, "\n", 1);
 	}
     }
 }
@@ -359,14 +359,14 @@ vb_printfW(long bit, const wchar_t *fmt, ...)
     // have a clue that the event being reported took place.
     if (vb_bitmatch(bit) && fmt) {
 	vbstrm = vb_get_stream();
-	if (_ftprintf(vbstrm, _T("%s: "), prop_get_app()) < 0) {
-	    write(2, prop_get_app(), _tcslen(prop_get_app()));
-	    write(2, _T(": "), 2);
+	if (fprintf(vbstrm, "%s: ", prop_get_app()) < 0) {
+	    write(2, prop_get_app(), strlen(prop_get_app()));
+	    write(2, ": ", 2);
 	}
 	// Makes it easier to see extra verbosity or grep it from a log.
 	if (bit != VB_STD && bit != VB_ON) {
 	    if (fputc('=', vbstrm) == EOF) {
-		write(2, _T("="), 1);
+		write(2, "=", 1);
 	    }
 	}
 	va_start(ap, fmt);
@@ -375,7 +375,7 @@ vb_printfW(long bit, const wchar_t *fmt, ...)
 	}
 	va_end(ap);
 	if (fputc('\n', vbstrm) == EOF) {
-	    write(2, _T("\n"), 1);
+	    write(2, "\n", 1);
 	}
     }
 }

@@ -30,10 +30,10 @@ WRAP_VOID(pid_t, fork)
 WRAP_VOID(pid_t, fork1)
 #endif	/*sun*/
 
-#if defined(linux)
+#if defined(linux) || defined(__CYGWIN__)
 #include <sched.h>
 // In newer Linux versions this becomes variadic so we may someday
-// need a special-case macro.
+// need a special-case macro. If we need this wrapper at all, that is.
 // WRAP(int, clone, (int (*fn)(void *), void *child_stack, int flags, void *arg),
 //      fn, child_stack, flags, arg)
 #endif	/*linux*/

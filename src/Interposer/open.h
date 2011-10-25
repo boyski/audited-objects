@@ -53,10 +53,12 @@ WRAP(FILE *, fdopen, (int fildes, const char *mode), fildes, mode)
 // 64-bit platforms as they come alone. This is hacky and should be
 // revisited.
 #if !defined(sun) || (!defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE))
+#if !defined(__CYGWIN__)
 WRAP_OPEN(int, open64)
 WRAP(int, creat64, (const char *path, mode_t mode), path, mode)
 WRAP(FILE *, fopen64, (const char *path, const char *mode), path, mode)
 WRAP(FILE *, freopen64, (const char *path, const char *mode, FILE *stream), path, mode, stream)
+#endif
 #endif
 
 // This is an additional suite introduced on Solaris.

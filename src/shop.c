@@ -39,11 +39,11 @@
 #endif	/*_WIN32*/
 
 /// @cond static
-#define PTX_PREFIX		_T("X")
+#define PTX_PREFIX		"X"
 
 #define RMAP_RADIX		36
 
-#define IS_TRUE(expr)		(!_tcsicmp((expr), _T("true")))
+#define IS_TRUE(expr)		(!stricmp((expr), "true"))
 
 typedef int (*tgt_process_f) (pa_o, void *);
 
@@ -56,9 +56,9 @@ typedef struct {
     int getfiles;		///< Boolean - really get files?
     dict_t *ptx_dict;		///< Holds PTX table
     void *ignore_path_re;	///< RE describing paths to skip
-    TCHAR winner[32];		///< Will hold the winning PTX id
-    TCHAR wix[32];		///< Will hold the winning PTX index
-    TCHAR wincmd[32];		///< Will hold the winning cmd index
+    char winner[32];		///< Will hold the winning PTX id
+    char wix[32];		///< Will hold the winning PTX index
+    char wincmd[32];		///< Will hold the winning cmd index
 } shopping_state_s;
 
 static int RecycledCount;
@@ -73,8 +73,8 @@ _shop_ptx_init(void)
 
     // Note that we look up keys in a case-insensitive manner
     // because we play games with the case.
-    if (!(dict = dict_create(DICTCOUNT_T_MAX, (dict_comp_t)_tcsicmp))) {
-	putil_syserr(2, _T("dict_create(ptx_dict)"));
+    if (!(dict = dict_create(DICTCOUNT_T_MAX, (dict_comp_t)stricmp))) {
+	putil_syserr(2, "dict_create(ptx_dict)");
     }
     return dict;
 }
@@ -97,7 +97,7 @@ _shop_ptx_mark_as_seen(shopping_state_s *ssp, CCS key) {
     if ((dnp = dict_lookup(ssp->ptx_dict, key))) {
 	realkey = (CS)dnode_getkey(dnp);
 	if (isupper((int)realkey[0])) {
-	    realkey[0] = tolower(realkey[0]);
+	    realkey[0] = tolower((int)realkey[0]);
 	}
     }
 }
@@ -109,7 +109,7 @@ _shop_ptx_insert(shopping_state_s *ssp, CCS key, CCS id)
     if (!dict_lookup(ssp->ptx_dict, key)) {
 	if (!dict_alloc_insert(ssp->ptx_dict,
 			       putil_strdup(key), putil_strdup(id))) {
-	    putil_syserr(2, _T("dict_alloc_insert(ptx_dict)"));
+	    putil_syserr(2, "dict_alloc_insert(ptx_dict)");
 	}
     }
 }
@@ -140,7 +140,7 @@ _shop_ptx_invalidate(shopping_state_s *ssp, CCS key, CCS msg, int ignored)
 	putil_free(key);
 	return 0;
     } else {
-	putil_warn(_T("invalidated PTX %s twice"), key);
+	putil_warn("invalidated PTX %s twice", key);
 	return 1;
     }
 }
@@ -186,9 +186,9 @@ _shop_ptx_winner(shopping_state_s *ssp)
 	    // These are marked with a lower-case index, but
 	    // convert it back to upper case before returning.
 	    if (islower((int)key[0])) {
-		_sntprintf(ssp->wix, charlen(ssp->wix), _T("%c%s"),
-		    toupper(key[0]), key + 1);
-		_sntprintf(ssp->winner, charlen(ssp->winner), _T("%s"), id);
+		snprintf(ssp->wix, charlen(ssp->wix), "%c%s",
+		    toupper((int)key[0]), key + 1);
+		snprintf(ssp->winner, charlen(ssp->winner), "%s", id);
 		return ssp->winner;
 	    }
 
@@ -242,7 +242,7 @@ _shop_find_cmdline(shopping_state_s *ssp, CCS cmdix)
 	cdb_read(ssp->cdbp, cmdstate, len, cdb_datapos(ssp->cdbp));
 	cmdstate[len] = '\0';
 
-	if ((ix = util_strsep(&cmdstate, FS1)) && !_tcscmp(cmdix, ix)) {
+	if ((ix = util_strsep(&cmdstate, FS1)) && !strcmp(cmdix, ix)) {
 	    CS line;
 
 	    len = cdb_keylen(ssp->cdbp);
@@ -274,13 +274,13 @@ _shop_process_target(pa_o spa, void *data)
 	return 0;
     } else if (pa_is_unlink(spa)) {
 	if (pa_exists(spa)) {
-	    vb_printf(VB_STD, _T("UNLINKING %s"), pa_get_rel(spa));
+	    vb_printf(VB_STD, "UNLINKING %s", pa_get_rel(spa));
 	}
     } else if (pa_is_link(spa)) {
-	vb_printf(VB_STD, _T("LINKING %s -> %s"),
+	vb_printf(VB_STD, "LINKING %s -> %s",
 		  pa_get_rel(spa), pa_get_rel2(spa));
     } else if (pa_is_symlink(spa)) {
-	vb_printf(VB_STD, _T("SYMLINKING %s -> %s"),
+	vb_printf(VB_STD, "SYMLINKING %s -> %s",
 		  pa_get_rel(spa), pa_get_target(spa));
     } else {
 	// If the file exists locally, make a client-side PS object
@@ -298,7 +298,7 @@ _shop_process_target(pa_o spa, void *data)
 	    ps_destroy(cps);
 	    if (avoidable) {
 		pn_verbosity(ps_get_pn(pa_get_ps(spa)),
-		    _T("REUSING"), ssp->winner);
+		    "REUSING", ssp->winner);
 		if (ssp->getfiles) {
 		    RecycledCount++;
 		    if (!prop_is_true(P_ORIGINAL_DATESTAMP)) {
@@ -332,12 +332,12 @@ _shop_process_target(pa_o spa, void *data)
 	    path2 = pa_get_abs2(spa);
 
 	    putil_dirname(path, linkdir);
-	    if (_taccess(linkdir, F_OK)) {
+	    if (access(linkdir, F_OK)) {
 		// If the parent dir of the link doesn't exist, make it.
 		if (putil_mkdir_p(linkdir)) {
 		    putil_syserr(0, linkdir);
 		}
-	    } else if (!_taccess(path, F_OK)) {
+	    } else if (!access(path, F_OK)) {
 		// If the link already exists: it would be way too much work
 		// to try and figure out whether it's linked to the right
 		// file(s), so instead we just unlink and relink. Which
@@ -374,7 +374,7 @@ _shop_process_target(pa_o spa, void *data)
 		}
 		// In case the parent dir of the symlink doesn't exist, make it.
 		putil_dirname(path, linkdir);
-		if (_taccess(linkdir, F_OK)) {
+		if (access(linkdir, F_OK)) {
 		    if (putil_mkdir_p(linkdir)) {
 			putil_syserr(0, linkdir);
 		    }
@@ -385,8 +385,8 @@ _shop_process_target(pa_o spa, void *data)
 		}
 	    } else {
 		buf[len] = '\0';
-		if (_tcscmp(target, buf)) {
-		    if (!_taccess(path, F_OK) && unlink(path)) {
+		if (strcmp(target, buf)) {
+		    if (!access(path, F_OK) && unlink(path)) {
 			putil_syserr(0, path);
 			rc = -1;
 		    } else {
@@ -399,7 +399,7 @@ _shop_process_target(pa_o spa, void *data)
 	    }
 #endif				/*!_WIN32 */
 	} else if (pa_is_dir(spa)) {
-	    if (_taccess(path, F_OK)) {
+	    if (access(path, F_OK)) {
 		if (putil_mkdir_p(path)) {
 		    putil_syserr(0, path);
 		} else {
@@ -415,7 +415,7 @@ _shop_process_target(pa_o spa, void *data)
 	    // report the download of zero-length files even though they
 	    // may require a servlet invocation to get mode and datestamp.
 	    if (ps_get_size(sps) > 0) {
-		pn_verbosity(ps_get_pn(sps), _T("DOWNLOADING"), ssp->winner);
+		pn_verbosity(ps_get_pn(sps), "DOWNLOADING", ssp->winner);
 	    }
 	    rc = down_load(sps);
 	    if (rc == 0 && ps_get_size(sps) > 0) {
@@ -459,8 +459,8 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
     CCS path, reason = NULL;
     CS csv, ptxbuf, explanation = NULL;
 
-    if (cdb_find(ssp->cdbp, pskey, _tcslen(pskey)) <= 0) {
-	putil_int(_T("bad PS key in roadmap: %s"), pskey);
+    if (cdb_find(ssp->cdbp, pskey, strlen(pskey)) <= 0) {
+	putil_int("bad PS key in roadmap: %s", pskey);
 	return;
     }
 
@@ -478,7 +478,7 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
     // what didn't match without failing the build).
     ignored = re_match__(ssp->ignore_path_re, path) != NULL;
 
-    if (!CurrentPS || _tcscmp(ps_get_abs(CurrentPS), path)) {
+    if (!CurrentPS || strcmp(ps_get_abs(CurrentPS), path)) {
 	ps_destroy(CurrentPS);
 	CurrentPS = ps_newFromPath(path);
 	if (ps_stat(CurrentPS, ps_has_dcode(shopped_ps))) {
@@ -503,8 +503,8 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
 	    }
 	}
 
-	ptxbuf = (CS)alloca(_tcslen(ptxes1) + CHARSIZE);
-	_tcscpy(ptxbuf, ptxes1);
+	ptxbuf = (CS)alloca(strlen(ptxes1) + CHARSIZE);
+	strcpy(ptxbuf, ptxes1);
 	for (ixstr = util_strsep(&ptxbuf, FS2);
 		 ixstr && _shop_ptx_count(ssp);
 		 ixstr = util_strsep(&ptxbuf, FS2)) {
@@ -530,7 +530,7 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
     dummy_pa = pa_new();
     pa_set_ps(dummy_pa, ps_copy(CurrentPS));
     pa_set_op(dummy_pa, OP_READ);
-    pa_set_call(dummy_pa, _T("dummy"));
+    pa_set_call(dummy_pa, "dummy");
     ca_record_pa(ssp->ca, dummy_pa);
 
     ps_destroy(shopped_ps);
@@ -540,13 +540,13 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
 static void
 _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 {
-    TCHAR key[64];
+    char key[64];
     struct cdb_find cdbf_prq;
     unsigned vlen;
 
-    _sntprintf(key, charlen(key), _T("<%s"), cmdix);
-    if (cdb_findinit(&cdbf_prq, ssp->cdbp, key, _tcslen(key)) < 0) {
-	putil_die(_T("cdb_findinit: %s (%s)"), key, ca_get_line(ssp->ca));
+    snprintf(key, charlen(key), "<%s", cmdix);
+    if (cdb_findinit(&cdbf_prq, ssp->cdbp, key, strlen(key)) < 0) {
+	putil_die("cdb_findinit: %s (%s)", key, ca_get_line(ssp->ca));
     }
 
     while (cdb_findnext(&cdbf_prq) > 0 && _shop_ptx_count(ssp)) {
@@ -561,8 +561,8 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 	prqline[vlen] = '\0';
 
 	// Split the line into a list of path states and a list of ptxes.
-	if (!(ptxes1 = _tcsstr(prqline, FS1))) {
-	    putil_int(_T("bad format in roadmap: %s"), prqline);
+	if (!(ptxes1 = strstr(prqline, FS1))) {
+	    putil_int("bad format in roadmap: %s", prqline);
 	    break;
 	}
 	*ptxes1++ = '\0';
@@ -576,8 +576,8 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 	// be a winner you must not only survive the war but also
 	// show evidence of having fought. No one gets a medal for
 	// hiding in a foxhole, so to speak.
-	ptxbuf = (CS)alloca(_tcslen(ptxes1) + CHARSIZE);
-	_tcscpy(ptxbuf, ptxes1);
+	ptxbuf = (CS)alloca(strlen(ptxes1) + CHARSIZE);
+	strcpy(ptxbuf, ptxes1);
 	for (ptxesleft = 0, ixstr = util_strsep(&ptxbuf, FS2);
 		 ixstr;
 		 ixstr = util_strsep(&ptxbuf, FS2)) {
@@ -600,9 +600,9 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 		pskey = util_strsep(&pskeys, FS2)) {
 	    CS end;
 
-	    if ((end = _tcschr(pskey, '-'))) {
+	    if ((end = strchr(pskey, '-'))) {
 		uint64_t i, first, last;
-		TCHAR nkey[64], *p;
+		char nkey[64], *p;
 
 		// The following relies on the fact that Integer.toString
 		// is guaranteed to use lower-case characters.
@@ -610,8 +610,8 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 		for (p = nkey; ISALPHA(*pskey) && ISUPPER(*pskey); ) {
 		    *p++ = *pskey++;
 		}
-		first = _tcstol(pskey, NULL, RMAP_RADIX);
-		last  = _tcstol(end, NULL, RMAP_RADIX);
+		first = strtol(pskey, NULL, RMAP_RADIX);
+		last  = strtol(end, NULL, RMAP_RADIX);
 		for (i = first; i <= last; i++) {
 		    util_format_to_radix(RMAP_RADIX, p, charlen(nkey), i);
 		    _shop_cmp_pathstate(ssp, nkey, ptxes1);
@@ -629,21 +629,21 @@ _shop_compare_prereqs(shopping_state_s *ssp, CCS cmdix)
 static shop_e
 _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 {
-    TCHAR key[64];
+    char key[64];
     struct cdb_find cdbf_tgt;
     unsigned vlen;
     shop_e rc;
     
     rc = SHOP_RECYCLED;
 
-    vb_printf(VB_SHOP, _T("COLLECTING: [%s]"), cmdix);
+    vb_printf(VB_SHOP, "COLLECTING: [%s]", cmdix);
 
     // First we collect all targets of the winning command in the
     // "real" CA object ....
 
-    _sntprintf(key, charlen(key), _T(">%s"), cmdix);
-    if (cdb_findinit(&cdbf_tgt, ssp->cdbp, key, _tcslen(key)) < 0) {
-	putil_die(_T("cdb_findinit: %s (%s)"), key, ca_get_line(ssp->ca));
+    snprintf(key, charlen(key), ">%s", cmdix);
+    if (cdb_findinit(&cdbf_tgt, ssp->cdbp, key, strlen(key)) < 0) {
+	putil_die("cdb_findinit: %s (%s)", key, ca_get_line(ssp->ca));
     }
 
     while (cdb_findnext(&cdbf_tgt) > 0) {
@@ -656,8 +656,8 @@ _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 	cdb_read(ssp->cdbp, buf, vlen, cdb_datapos(ssp->cdbp));
 	buf[vlen] = '\0';
 
-	if (!(ptxes = _tcsstr(buf, FS1))) {
-	    putil_int(_T("bad format in roadmap: %s"), buf);
+	if (!(ptxes = strstr(buf, FS1))) {
+	    putil_int("bad format in roadmap: %s", buf);
 	    rc = SHOP_ERR;
 	    continue;
 	}
@@ -668,7 +668,7 @@ _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 	// Make sure to skip all targets not associated with the winning PTX.
 	for (ixstr = util_strsep(&ptxes, FS2);
 	     ixstr; ixstr = util_strsep(&ptxes, FS2)) {
-	    if (!_tcscmp(ixstr, ssp->wix)) {
+	    if (!strcmp(ixstr, ssp->wix)) {
 		ps_o tgt_ps;
 
 		pa_o dummy_pa;
@@ -677,8 +677,8 @@ _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 		     pskey && rc == SHOP_RECYCLED;
 		     pskey = util_strsep(&pskeys, FS2)) {
 
-		    if (cdb_find(ssp->cdbp, pskey, _tcslen(pskey)) <= 0) {
-			putil_int(_T("bad key in roadmap: %s"), pskey);
+		    if (cdb_find(ssp->cdbp, pskey, strlen(pskey)) <= 0) {
+			putil_int("bad key in roadmap: %s", pskey);
 			continue;
 		    }
 
@@ -686,7 +686,7 @@ _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 		    csv = (CS)alloca(vlen + 1);
 		    cdb_read(ssp->cdbp, csv, vlen, cdb_datapos(ssp->cdbp));
 		    csv[vlen] = '\0';
-		    vb_printf(VB_SHOP, _T("COLLECTED [%s] %s"), pskey, csv);
+		    vb_printf(VB_SHOP, "COLLECTED [%s] %s", pskey, csv);
 		    tgt_ps = ps_newFromCSVString(csv);
 
 		    // Unfortunately, as noted elsewhere, a CA object
@@ -703,7 +703,7 @@ _shop_collect_targets(shopping_state_s *ssp, CCS cmdix)
 		    } else {
 			pa_set_op(dummy_pa, OP_CREAT);
 		    }
-		    pa_set_call(dummy_pa, _T("dummy"));
+		    pa_set_call(dummy_pa, "dummy");
 		    pa_set_uploadable(dummy_pa, 1);
 		    ca_record_pa(ssp->ca, dummy_pa);
 		}
@@ -743,8 +743,8 @@ _shop_for_cmd(shopping_state_s *ssp, CCS cmdix)
 
     line = ca_get_line(ssp->ca);
 
-    if (cdb_find(ssp->cdbp, cmdix, _tcslen(cmdix)) <= 0) {
-	putil_int(_T("missing cmd at index=%s"), cmdix);
+    if (cdb_find(ssp->cdbp, cmdix, strlen(cmdix)) <= 0) {
+	putil_int("missing cmd at index=%s", cmdix);
 	return SHOP_ERR;
     }
 
@@ -764,15 +764,15 @@ _shop_for_cmd(shopping_state_s *ssp, CCS cmdix)
 	    !(rwd = util_strsep(&cmdstate, FS1))) {
 	cdb_read(ssp->cdbp, cmdstate, len, cdb_datapos(ssp->cdbp));
 	cmdstate[len] = '\0';
-	putil_int(_T("bad format: '%s'"), cmdstate);
+	putil_int("bad format: '%s'", cmdstate);
 	return SHOP_ERR;
     }
     // *INDENT-ON*
 
     aggregated = IS_TRUE(agg);
 
-    vb_printf(VB_SHOP, _T("%sCMD MATCH: [%s] (%s) %s"),
-	      aggregated ? "AGGREGATED " : "", cmdix, rwd ? rwd : _T(""), line);
+    vb_printf(VB_SHOP, "%sCMD MATCH: [%s] (%s) %s",
+	      aggregated ? "AGGREGATED " : "", cmdix, rwd ? rwd : "", line);
 
     // If a command has no targets it is ineligible for
     // shopping and must run. Typically this would be
@@ -810,7 +810,7 @@ _shop_for_cmd(shopping_state_s *ssp, CCS cmdix)
     // Removed pccode chck here - could't see its value.
 
     // There is no current use for this ...
-    //ca_set_duration_str(ssp->ca, _tcstoul(duration, NULL, 10));
+    //ca_set_duration_str(ssp->ca, strtoul(duration, NULL, 10));
 
     // No current use for pathcode ...
 
@@ -830,7 +830,7 @@ _shop_for_cmd(shopping_state_s *ssp, CCS cmdix)
     _shop_compare_prereqs(ssp, cmdix);
 
     if (_shop_ptx_count(ssp) && _shop_ptx_winner(ssp)) {
-	_sntprintf(ssp->wincmd, charlen(ssp->wincmd), _T("%s"), cmdix);
+	snprintf(ssp->wincmd, charlen(ssp->wincmd), "%s", cmdix);
 	return SHOP_RECYCLED;
     } else {
 	if (aggregated) {
@@ -872,7 +872,7 @@ shop_init(void)
 		close(fd);
 	    } else {
 		close(fd);
-		vb_printf(VB_SHOP, _T("NO ROADMAP, NO SHOPPING"), rmap);
+		vb_printf(VB_SHOP, "NO ROADMAP, NO SHOPPING", rmap);
 		shop_fini();
 	    }
 	}
@@ -891,7 +891,7 @@ shop_fini(void)
 	    if (unlink(rmap)) {
 		putil_syserr(0, rmap);
 	    } else {
-		vb_printf(VB_SHOP, _T("REMOVED ROADMAP FILE %s"), rmap);
+		vb_printf(VB_SHOP, "REMOVED ROADMAP FILE %s", rmap);
 	    }
 	}
 	prop_unset(P_ROADMAPFILE, 0);
@@ -927,7 +927,7 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
     shopping_state_s shop_state, *ssp = &shop_state;
     struct cdb_find cdbf;
     CCS line;
-    TCHAR cmdix[64];
+    char cmdix[64];
 
     if (!ShopCDB) {
 	return SHOP_OFF;
@@ -944,26 +944,26 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
     ssp->ignore_path_re = re_init__(P_SHOP_IGNORE_PATH_RE);
 
     // First, grab the set of PTXes and store them away.
-    if (cdb_findinit(&cdbf, ssp->cdbp, PTX_PREFIX, _tcslen(PTX_PREFIX)) >= 0) {
+    if (cdb_findinit(&cdbf, ssp->cdbp, PTX_PREFIX, strlen(PTX_PREFIX)) >= 0) {
 	while (cdb_findnext(&cdbf) > 0) {
 	    unsigned len;
 
-	    TCHAR xn[64];
+	    char xn[64];
 
 	    CS id;
 
 	    len = cdb_datalen(ssp->cdbp);
 	    cdb_read(ssp->cdbp, xn, len, cdb_datapos(ssp->cdbp));
 	    xn[len] = '\0';
-	    if ((id = _tcschr(xn, '='))) {
+	    if ((id = strchr(xn, '='))) {
 		*id++ = '\0';
 		_shop_ptx_insert(ssp, xn, id);
 	    } else {
-		putil_int(_T("bad PTX line in roadmap: %s"), xn);
+		putil_int("bad PTX line in roadmap: %s", xn);
 	    }
 	}
     } else {
-	putil_die(_T("cdb_findinit (%s)"), PTX_PREFIX);
+	putil_die("cdb_findinit (%s)", PTX_PREFIX);
     }
 
     // This is basically a debugging mode where the cmd key is
@@ -974,7 +974,7 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
 	    ca_set_line(ssp->ca, line);
 	    putil_free(line);
 	} else {
-	    putil_int(_T("no line found for cmd key '%s'"), cmdkey);
+	    putil_int("no line found for cmd key '%s'", cmdkey);
 	    rc = SHOP_ERR;
 	}
     }
@@ -982,8 +982,8 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
     line = ca_get_line(ssp->ca);
 
     // Tell CDB what command line we're looking for.
-    if (cdb_findinit(&cdbf, ssp->cdbp, line, _tcslen(line)) < 0) {
-	putil_die(_T("cdb_findinit (%s)"), line);
+    if (cdb_findinit(&cdbf, ssp->cdbp, line, strlen(line)) < 0) {
+	putil_die("cdb_findinit (%s)", line);
     }
 
     // It's possible there would be more than one instance of a given
@@ -1003,7 +1003,7 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
     // All we need to do is determine all the target files which
     // go with it and process them.
     if (rc == SHOP_RECYCLED) {
-	vb_printf(VB_SHOP, _T("WINNER is %s (%s)"), ssp->winner, ssp->wix);
+	vb_printf(VB_SHOP, "WINNER is %s (%s)", ssp->winner, ssp->wix);
 	if (_shop_collect_targets(ssp, ssp->wincmd) == SHOP_RECYCLED) {
 	    if (_shop_process_targets(ssp)) {
 		rc = SHOP_ERR;

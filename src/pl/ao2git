@@ -1,0 +1,205 @@
+#!/usr/bin/perl
+
+use strict;
+
+use Cwd qw(getcwd realpath);
+use File::Basename;
+use File::Path;
+use File::Spec;
+use File::Temp qw(tempfile);
+use Getopt::Long qw(:config no_ignore_case);
+use IPC::Open2;
+use Pod::Usage;
+
+use FindBin;
+use lib $FindBin::RealBin;
+use lib $FindBin::Bin;
+use AO::PathAction;
+use AO::CommandAction;
+use AO::System qw($prog $verbosity);
+
+use constant MSWIN => $^O =~ /MSWin32|Windows_NT/i ? 1 : 0;
+
+my %opt;
+GetOptions(\%opt, qw(help branch=s Fresh members-only verbosity+));
+$verbosity ||= $opt{verbosity};
+my $q = ($verbosity <= 1) ? '-q' : '';
+
+pod2usage(1) if $opt{help};
+
+my $branch = $opt{branch} || uc(getpwuid $>);
+
+chomp(my($App, $ProjName, $BaseDir, $GitDir) =
+    qx(ao -q property App Project.Name Base.Dir Git.Dir));
+
+my $CfgDir = "$BaseDir/.App";
+my $AuditDir = "CfgDir/.AUDITS";
+
+if (!$GitDir) {
+    $ENV{AO_GIT_DIR} = $GitDir = "$BaseDir/.$App.git";
+}
+rmtree($GitDir) if $opt{Fresh};
+
+$ENV{GIT_DIR} = $GitDir;
+$ENV{GIT_WORK_TREE} = $BaseDir;
+$ENV{GIT_INDEX_FILE} = File::Spec->join($GitDir, "index-$App.$$");
+$ENV{GIT_TRACE} = 'true' if $verbosity > 2;
+
+if (! -d $GitDir) {
+    run(qw(git init));
+    # We like to avoid compressing blobs by default. It's
+    # quicker and allows us to mmap data files directly.
+    # Files will end up compressed when packed anyway.
+    run(qw(git config core.loosecompression 0));
+
+    my $h1 = run("echo '*' | git hash-object -w --stdin .gitignore
+
+    # In a new git repo it's necessary to make one commit on 'master'
+    # before you can create a branch, so we kill two birds with one
+    # stone by committing this .gitignore file which causes files
+    # to be ignored unless explicitly added.
+    my $gitignore = "$BaseDir/README.$App-git";
+    open(GITIGNORE, '>', $gitignore) || syserr(2, $gitignore);
+    print GITIGNORE "*\n";
+    close(GITIGNORE);
+    my $readme = "$BaseDir/README.$App-git";
+    open(README, '>', $readme) || syserr(2, $readme);
+    print README "This is a repository for AO objects, NOT source code\n";
+    close(README);
+    run(qw(git add -f), $readme);
+    run(qw(git commit -m INIT), $q);
+}
+
+#run(qw(git checkout -B), $q, $branch);
+
+my $copy;
+
+if (!@ARGV || $ARGV[0] eq '-') {
+    if (-t STDIN) {
+	@ARGV = ("$ProjName.$App");
+    } else {
+	$copy = "$branch.$App";
+	open(COPY, '>', $copy) || syserr(2, $copy);
+    }
+}
+
+my($ca, @audit);
+while (<>) {
+    print COPY if $copy;
+    chomp;
+    if (m%^\d%) {
+	push(@audit, $_);
+	next if $ca;
+	$ca = CommandAction->new($_);
+    } elsif (m%^[A-Z]%) {
+	my $pa = PathAction->new($_, $BaseDir);
+	my $path = $pa->get_path;
+	if ($opt{'members-only'} && !$pa->is_member) {
+	    # Optionally ignore nonmember files.
+	} elsif ($pa->is_target) {
+	    if (! $pa->is_dir) {
+		push(@audit, $_);
+		$ca->add_target($pa);
+	    }
+	} elsif (! $pa->is_unlink) {
+	    push(@audit, $_);
+	    $ca->add_prereq($pa);
+	}
+    } elsif ($ca) {
+	process_ca($ca, \@audit);
+	@audit = ();
+	$ca = undef;
+    }
+}
+
+if ($copy) {
+    close(COPY);
+    run(qw(git add -f), $copy);
+    run(qw(git commit -m FINI), $q);
+    unlink($copy) || syserr(0, $copy);
+} else {
+    run(qw(git commit -m FINI), $q);
+}
+
+exit(0);
+
+sub process_ca {
+    my($ca, $r_audit) = @_;
+    my $pid;
+
+    my @targets = $ca->get_targets;
+    return unless @targets;
+
+    my $cmdline = $ca->get_line;
+
+    $pid = open2(\*HASH_OUT, \*HASH_IN, qw(git hash-object --stdin));
+    for ($cmdline, $ca->get_rwd) {
+	syserr(2, "git") unless defined syswrite(HASH_IN, $_, length($_));
+    }
+    close(HASH_IN);
+    chomp(my $cmdhash = <HASH_OUT>);
+    waitpid($pid, 0);
+    exit($? >> 8) if $?;
+    close(HASH_OUT);
+
+    my $cmdfile = "$AuditDir/$cmdhash";
+    my $acmd = "git hash-object -w --stdin --path $cmdfile";
+    showcmd($acmd);
+    open(AUDIT, "| $acmd") || die;
+    print AUDIT $_, "\n" for @$r_audit;
+    print AUDIT "\n";
+    my @previous = qx(git cat-file -p $cmdfile 2>/dev/null);
+    if ($? == 0) {
+	print AUDIT $_ for @previous;
+	print AUDIT "\n";
+    }
+    close(AUDIT) || die;
+
+    for my $target (@targets) {
+	my $tpath = $target->get_path;
+	my $sha1 = $target->get_dcode;
+	run(qw($App hash-object -w -s), $sha1, $tpath);
+    }
+}
+
+__END__
+
+=head1 NAME
+
+ao2git - Publish AO audit data via Git
+
+=head1 OPTIONS
+
+   -help		Print this message and exit
+   -members-only	Ignore files which are not project members
+
+=head2 NOTES
+
+    All flags may be abbreviated to their shortest unique name.
+    Input may be read from standard input or a named audit-file
+
+=head2 EXAMPLES
+
+    ao2git audit-file
+    ao2git < audit-file
+
+=head1 DESCRIPTION
+
+TODO
+
+=head1 COPYRIGHT
+
+Copyright (c) 2010 David Boyce.  All rights reserved.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.

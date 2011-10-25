@@ -45,7 +45,8 @@ up_load_audit(CCS cabuf)
     int synchronous;
     CURL *curl;
     conn_info_s *cip;
-    unsigned long bufsize, zsize = 0;
+    uint64_t bufsize;
+    uint64_t zsize = 0;
     void *zdata;
 
     synchronous = prop_is_true(P_SYNCHRONOUS_TRANSFERS);
@@ -62,7 +63,7 @@ up_load_audit(CCS cabuf)
 
     cip->ci_url = http_make_url(AUDIT_SERVLET_NICKNAME);
 
-    bufsize = _tcslen(cabuf);
+    bufsize = strlen(cabuf);
     if (!prop_is_true(P_UNCOMPRESSED_TRANSFERS) &&
 	    (zdata = util_gzip_buffer("AUDIT",
 	    (unsigned const char *)cabuf, bufsize, &zsize))) {
@@ -100,9 +101,9 @@ up_load_file(ps_o ps, int logfile)
     CCS path;
     int fd;
     struct stat64 stbuf;
-    unsigned long fsize;
+    uint64_t fsize;
     unsigned char *fdata;
-    unsigned long zsize = 0;
+    uint64_t zsize = 0;
     void *zdata;
 
     synchronous = logfile || prop_is_true(P_SYNCHRONOUS_TRANSFERS);
@@ -177,7 +178,7 @@ up_load_file(ps_o ps, int logfile)
     curl_easy_setopt(curl, CURLOPT_URL, cip->ci_url);
 
     // Upload verbosity.
-    pn_verbosity(ps_get_pn(ps), _T("UPLOADING"), NULL);
+    pn_verbosity(ps_get_pn(ps), "UPLOADING", NULL);
 
     if (synchronous) {
 	http_connect(curl, cip->ci_url, 0);

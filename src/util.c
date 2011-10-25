@@ -50,7 +50,7 @@
 static WSADATA wsaData;
 #endif	/*_WIN32*/
 
-static TCHAR OutputFile[PATH_MAX];
+static char OutputFile[PATH_MAX];
 static FILE *OutputStream;
 
 /// Compares two pathnames for equality. Basically this is an alias
@@ -69,7 +69,7 @@ util_pathcmp(const void *left, const void *right)
 
     if (left != right) {
 #if defined(_WIN32)
-	rc = _tcsicmp((CCS)left, (CCS)right);
+	rc = stricmp((CCS)left, (CCS)right);
 #elif defined(__APPLE__)
 	rc = strcasecmp((CCS)left, (CCS)right);
 #else
@@ -90,7 +90,7 @@ util_socket_lib_init(void) {
 
 	vb_printf(VB_OFF, "WSAStartup in %ld", getpid());
 	if ((wsarc = WSAStartup(MAKEWORD(1, 1), &wsaData))) {
-	    putil_win32err(2, wsarc, _T("WSAStartup()"));
+	    putil_win32err(2, wsarc, "WSAStartup()");
 	}
     }
 #endif	/*_WIN32*/
@@ -106,7 +106,7 @@ util_socket_lib_fini(void) {
     if (wsaData.wVersion) {
 	vb_printf(VB_OFF, "WSACleanup in %ld", getpid());
 	if (WSACleanup()) {
-	    putil_win32err(0, WSAGetLastError(), _T("WSACleanup"));
+	    putil_win32err(0, WSAGetLastError(), "WSACleanup");
 	}
     }
 #endif	/*_WIN32*/
@@ -119,7 +119,7 @@ util_socket_lib_fini(void) {
 /// @param[in] extent   The amount of the file to map
 /// @return a pointer to the address at which the file is mapped
 unsigned char *
-util_map_file(CCS path, int fd, off_t offset, unsigned long extent)
+util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
 {
     unsigned char *fdata;
 
@@ -137,7 +137,7 @@ util_map_file(CCS path, int fd, off_t offset, unsigned long extent)
 
     if (!(fdata = (unsigned char *)MapViewOfFile(hMap,
 						 FILE_MAP_COPY, 0, offset,
-						 extent))) {
+						 (SIZE_T)extent))) {
 	putil_win32err(2, GetLastError(), path);
     }
 
@@ -159,9 +159,11 @@ util_map_file(CCS path, int fd, off_t offset, unsigned long extent)
 	putil_syserr(2, path);
     }
 
+#if defined(MADV_SEQUENTIAL)
     // Everything we do is sequential so might as well handle this
     // in one place.
     madvise((char *)fdata, extent, MADV_SEQUENTIAL);
+#endif	/*MADV_SEQUENTIAL*/
 #endif	/*_WIN32*/
 
     vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
@@ -173,7 +175,7 @@ util_map_file(CCS path, int fd, off_t offset, unsigned long extent)
 /// @param[in] fdata    A pointer to the mapped region
 /// @param[in] extent   The size of the mapped region
 void
-util_unmap_file(unsigned char *fdata, unsigned long extent)
+util_unmap_file(unsigned char *fdata, uint64_t extent)
 {
     if (fdata) {
 #if defined(_WIN32)
@@ -203,7 +205,7 @@ util_requote(CS const *argv)
     // will need and allocate that much. This worst case is when each
     // char needs an escape, plus quotes, plus the trailing space or null.
     for (cmdlen =  0, i = 0; argv[i]; i++) {
-	cmdlen += (_tcslen(argv[i]) * 2) + 3;
+	cmdlen += (strlen(argv[i]) * 2) + 3;
     }
     cmdline = (CS)putil_malloc(cmdlen);
 
@@ -216,7 +218,7 @@ util_requote(CS const *argv)
 	    char *p;
 
 	    for (quote = 0, p = word; *p; p++) {
-		if (!isalnum((int)*p) && !_tcschr(_T("!%+,-./=:@_"), *p)) {
+		if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
 		    quote = '"';
 		    break;
 		}
@@ -364,10 +366,10 @@ CCS
 util_get_rwd(CS rwd, size_t len)
 {
     CCS pbase = prop_get_str(P_BASE_DIR);
-    size_t plen = _tcslen(pbase);
+    size_t plen = strlen(pbase);
 
     if (!util_get_cwd(rwd, (int)len)) {
-	putil_syserr(0, _T("util_get_cwd()"));
+	putil_syserr(0, "util_get_cwd()");
 	*rwd = '\0';
     } else if (!pathncmp(rwd, pbase, plen)) {
 	rwd += plen;
@@ -390,12 +392,12 @@ CCS
 util_get_umask(CS curr_umask, size_t len)
 {
 #if defined(_WIN32)
-    _sntprintf(curr_umask, len, _T("0%lo"), 02);
+    snprintf(curr_umask, len, "0%lo", 02);
 #else	/*_WIN32*/
     mode_t tmask = umask(0);
 
     umask(tmask);
-    _sntprintf(curr_umask, len, _T("0%lo"), (unsigned long)tmask & 07777);
+    snprintf(curr_umask, len, "0%lo", (unsigned long)tmask & 07777);
 #endif	/*_WIN32*/
     return (CCS)curr_umask;
 }
@@ -411,7 +413,7 @@ util_get_logname(void)
     if (username) {
 	return username;
     } else {
-	TCHAR buf[UNLEN + 1];
+	char buf[UNLEN + 1];
 	DWORD len = charlen(buf);
 
 	if (GetUserName(buf, &len)) {
@@ -430,7 +432,7 @@ util_get_logname(void)
 	}
     }
 #endif				/*!_WIN32 */
-    return _T("NOBODY");
+    return "NOBODY";
 }
 
 /// Returns the group name of the current user.
@@ -439,7 +441,7 @@ CCS
 util_get_groupname(void)
 {
 #if defined(_WIN32)
-    static TCHAR groupname[SMALLBUF];
+    static char groupname[SMALLBUF];
 
     if (groupname[0]) {
 	return groupname;
@@ -447,7 +449,7 @@ util_get_groupname(void)
 	HANDLE TokenHandle;
 	DWORD tpg_len = 0;
 	PTOKEN_PRIMARY_GROUP tpg;
-	TCHAR pgroup[SMALLBUF], domain[SMALLBUF];
+	char pgroup[SMALLBUF], domain[SMALLBUF];
 	DWORD pgroup_len = charlen(pgroup);
 	DWORD domain_len = charlen(domain);
 	SID_NAME_USE snu;
@@ -462,8 +464,8 @@ util_get_groupname(void)
 		    if (LookupAccountSid(NULL, tpg->PrimaryGroup,
 					 pgroup, &pgroup_len, domain,
 					 &domain_len, &snu)) {
-			_sntprintf(groupname, charlen(groupname),
-				   _T("%s/%s"), domain, pgroup);
+			snprintf(groupname, charlen(groupname),
+				   "%s/%s", domain, pgroup);
 			return groupname;
 		    }
 		}
@@ -479,7 +481,7 @@ util_get_groupname(void)
 	}
     }
 #endif				/*!_WIN32 */
-    return _T("NOGROUP");
+    return "NOGROUP";
 }
 
 /// Modifies the passed-in string in place to be all lower case.
@@ -493,7 +495,7 @@ util_strdown(CS str)
     for (t = str; *t; t++) {
 	// Windows requires this test though Unix does not.
 	if (ISUPPER(*t)) {
-	    *t = tolower(*t);
+	    *t = tolower((int)*t);
 	}
     }
     return str;
@@ -510,7 +512,7 @@ util_strup(CS str)
     for (t = str; *t; t++) {
 	// Windows requires this test though Unix does not.
 	if (ISLOWER(*t)) {
-	    *t = toupper(*t);
+	    *t = toupper((int)*t);
 	}
     }
     return str;
@@ -543,7 +545,8 @@ util_strtrim(CS str)
 #include <sys/vfs.h>
 #endif	/*_WIN32*/
 #endif /*BSD*/
-#if defined(linux)
+
+#if defined(linux) || defined(__CYGWIN__)
 #include <search.h>
 #include <sys/vfs.h>
     typedef struct {
@@ -560,7 +563,7 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
     return (((fstypes *) node1)->f_type != ((fstypes *) node2)->f_type);
 }
 
-#endif				/*linux */
+#endif				/*linux||__CYGWIN__*/
 
 /// Determines the textual name of the filesystem containing the
 /// specified path.
@@ -574,12 +577,12 @@ CCS
 util_find_fsname(CCS path, CS buf, size_t len)
 {
 #if defined(_WIN32)
-    TCHAR vol[32768];
+    char vol[32768];
 
-    _tcscpy(buf, _T("??fs"));
+    strcpy(buf, "??fs");
     if (GetVolumePathName(path, vol, charlen(vol))) {
 	// MSDN says we need a trailing \ here ...
-	_tcscat(vol, _T("\\"));
+	strcat(vol, "\\");
 	if (GetVolumeInformation(vol, NULL, 0, NULL, NULL, NULL, buf, len)) {
 	    return buf;
 	}
@@ -611,7 +614,7 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    (void)strcpy(buf, fsbuf.f_fstypename);
 	}
     }
-#elif defined(linux)
+#elif defined(linux) || defined(__CYGWIN__)
     {
 	struct statfs sfs;
 	FILE *mtab;
@@ -628,7 +631,7 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    return buf;
 	}
 
-	if ((mtab = _tfopen("/proc/mounts", "r"))) {
+	if ((mtab = fopen("/proc/mounts", "r"))) {
 	    char lnbuf[PATH_MAX + 1], mntbuf[PATH_MAX + 1], fsbuf[PATH_MAX + 1];
 	    fstypes fsnode;
 
@@ -657,10 +660,10 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    strcpy(buf, fnd->f_name);
 	}
     }
-#else	/*linux*/
+#else	/*linux||__CYGWIN__*/
     // Don't know how to get fs name on other platforms ...
     UNUSED(path);
-#endif	/*linux*/
+#endif	/*linux||__CYGWIN__*/
     return buf;
 #endif	/*_WIN32*/
 }
@@ -796,7 +799,7 @@ util_substitute_params(CCS input, CS buf, size_t len)
 	if (input[i] == '%') {
 	    switch (input[i + 1]) {
 		case '%':
-		    replacement = _T("%");
+		    replacement = "%";
 		    break;
 		case 'b':
 		    replacement = prop_get_str(P_BASE_DIR);
@@ -830,7 +833,7 @@ util_substitute_params(CCS input, CS buf, size_t len)
 
 	    if (replacement) {
 		strcpy(l, replacement);
-		if (_tcscmp(replacement, _T("%"))) {
+		if (strcmp(replacement, "%")) {
 		    changed = 1;
 		}
 	    } else {
@@ -902,28 +905,28 @@ util_is_tmp(CCS path)
 	// so for safety's sake we convert it to both short and long
 	// versions and check both (*&@# Windows!)
 	if (GetTempPathA(charlen(szTempPathShort), szTempPathShort) == 0) {
-	    putil_win32err(0, GetLastError(), _T("GetTempPath"));
+	    putil_win32err(0, GetLastError(), "GetTempPath");
 	}
 
 	if (GetShortPathNameA(szTempPathShort,
 			      szTempPathShort, charlen(szTempPathShort)) == 0) {
-	    putil_win32err(0, GetLastError(), _T("GetShortPathName"));
+	    putil_win32err(0, GetLastError(), "GetShortPathName");
 	}
 	putil_canon_path(szTempPathShort, NULL, 0);
 
 	if (GetLongPathNameA(szTempPathShort,
 			     szTempPathLong, charlen(szTempPathLong)) == 0) {
-	    putil_win32err(0, GetLastError(), _T("GetLongPathName"));
-	    _tcscpy(szTempPathLong, szTempPathShort);
+	    putil_win32err(0, GetLastError(), "GetLongPathName");
+	    strcpy(szTempPathLong, szTempPathShort);
 	}
 	putil_canon_path(szTempPathLong, NULL, 0);
     }
 
-    if (!_strnicmp(path, szTempPathLong, strlen(szTempPathLong))) {
+    if (!strnicmp(path, szTempPathLong, strlen(szTempPathLong))) {
 	return 1;
-    } else if (!_strnicmp(path, szTempPathShort, strlen(szTempPathShort))) {
+    } else if (!strnicmp(path, szTempPathShort, strlen(szTempPathShort))) {
 	return 1;
-    } else if (!_stricmp(endof(path) - 4, ".tmp")) {
+    } else if (!stricmp(endof(path) - 4, ".tmp")) {
 	return 1;
     } else {
 	return 0;
@@ -940,9 +943,9 @@ static void
 _util_finalize_output_file(void)
 {
     if (OutputStream && !fclose(OutputStream) && OutputFile[0]) {
-	TCHAR obuf[PATH_MAX];
+	char obuf[PATH_MAX];
 
-	_sntprintf(obuf, charlen(obuf), _T("%s.%ld.tmp"),
+	snprintf(obuf, charlen(obuf), "%s.%ld.tmp",
 	    OutputFile, (long)getpid());
 	unlink(OutputFile);	// needed on Windows
 	if (rename(obuf, OutputFile)) {
@@ -963,16 +966,16 @@ FILE *
 util_open_output_file(CCS ofile)
 {
     if (!OutputStream) {
-	if (!_tcscmp(ofile, _T("-"))) {
+	if (!strcmp(ofile, "-")) {
 	    OutputStream = stdout;
-	} else if (!_tcscmp(ofile, _T("="))) {
+	} else if (!strcmp(ofile, "=")) {
 	    OutputStream = stderr;
-	} else if (!_tcscmp(ofile, DEVNULL)) {
-	    if (!(OutputStream = _tfopen(ofile, _T("a")))) {
+	} else if (!strcmp(ofile, DEVNULL)) {
+	    if (!(OutputStream = fopen(ofile, "a"))) {
 		putil_syserr(2, ofile);
 	    }
 	} else {
-	    TCHAR abuf[PATH_MAX], obuf[PATH_MAX], *p;
+	    char abuf[PATH_MAX], obuf[PATH_MAX], *p;
 
 	    util_substitute_params(ofile, obuf, charlen(obuf));
 
@@ -982,13 +985,13 @@ util_open_output_file(CCS ofile)
 
 	    prop_override_str(P_OUTPUT_FILE, abuf);
 
-	    _sntprintf(OutputFile, charlen(OutputFile), _T("%s"), abuf);
+	    snprintf(OutputFile, charlen(OutputFile), "%s", abuf);
 
 	    if ((p = endof(abuf))) {
-		_sntprintf(p, leftlen(abuf), _T(".%ld.tmp"), (long)getpid());
+		snprintf(p, leftlen(abuf), ".%ld.tmp", (long)getpid());
 	    }
 
-	    if (!(OutputStream = _tfopen(abuf, _T("a")))) {
+	    if (!(OutputStream = fopen(abuf, "a"))) {
 		putil_syserr(2, abuf);
 	    }
 
@@ -1036,7 +1039,7 @@ util_debug_from_here(void)
 	char buf[PATH_MAX + 1024];
 
 	snprintf(buf, sizeof(buf),
-		 "%s_32= %s_64= %s= xterm -e gdb --quiet %s %lu &",
+		 "set -x; %s_32= %s_64= %s= xterm -e gdb --quiet %s %lu &",
 		 PRELOAD_EV, PRELOAD_EV, PRELOAD_EV,
 		 putil_getexecpath(), (unsigned long)getpid());
 
@@ -1174,14 +1177,14 @@ util_encode_minimal(CCS instring)
     size_t inlen, outlen, i, j;
     CS outstring;
 
-    inlen = outlen = _tcslen(instring) + CHARSIZE;
+    inlen = outlen = strlen(instring) + CHARSIZE;
     outstring = (CS)putil_malloc(inlen);
 
     for (i = j = 0; i < inlen; i++) {
 	if (instring[i] == '%' || instring[i] == ',') {
 	    outlen += 2 * CHARSIZE;
 	    outstring = (CS)putil_realloc(outstring, outlen);
-	    _sntprintf(&outstring[j], 4, _T("%%%02X"), instring[i]);
+	    snprintf(&outstring[j], 4, "%%%02X", instring[i]);
 	    j += 3;
 	} else {
 	    outstring[j++] = instring[i];
@@ -1202,7 +1205,7 @@ util_encode_minimal(CCS instring)
 /// @param dlen        ptr to ulong which receives final compressed length
 /// @return the compressed buffer, which must be freed after use
 unsigned char *
-util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsigned long *dlen)
+util_gzip_buffer(CCS name, unsigned const char *source, uint64_t slen, uint64_t *dlen)
 {
     z_stream stream;
     unsigned char *dest;
@@ -1212,13 +1215,13 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
 
     stream.next_in = (Bytef *) source;
     stream.avail_in = (uInt) slen;
-    stream.avail_out = (uInt) slen + (slen/1000 + 1) + 12;
+    stream.avail_out = (uInt) (slen + (slen/1000 + 1) + 12);
 
     // We deliberately use the native allocator here because we may
     // attempt to survive a failure.
     stream.next_out = dest = (unsigned char *)malloc(stream.avail_out);
     if (!dest) {
-	putil_syserr(0, _T("malloc()"));
+	putil_syserr(0, "malloc()");
 	return NULL;
     }
 
@@ -1226,7 +1229,7 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
     rc = deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
 			       MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY);
     if (rc != Z_OK) {
-	putil_warn(_T("unable to compress %s: %s"),
+	putil_warn("unable to compress %s: %s",
 	    name, stream.msg ? stream.msg : "unknown error");
 	putil_free(dest);
 	return NULL;
@@ -1247,12 +1250,12 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
 	    stream.next_out = dest =
 		(unsigned char *)realloc(dest, stream.avail_out);
 	    if (!dest) {
-		putil_warn(_T("unable to compress %s: %s"),
+		putil_warn("unable to compress %s: %s",
 		    name, stream.msg ? stream.msg : "unknown error");
 		return NULL;
 	    }
 	} else {
-	    putil_warn(_T("unable to compress %s: %s"),
+	    putil_warn("unable to compress %s: %s",
 		name, stream.msg ? stream.msg : "unknown error");
 	}
     }
@@ -1260,7 +1263,7 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
     *dlen = stream.total_out;
 
     if (deflateEnd(&stream) != Z_OK) {
-	putil_warn(_T("unable to compress %s: %s"),
+	putil_warn("unable to compress %s: %s",
 	    name, stream.msg ? stream.msg : "unknown error");
 	putil_free(dest);
 	return NULL;
@@ -1268,7 +1271,7 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
 
     // Shrink to fit.
     if (!(dest = (unsigned char *)putil_realloc(dest, stream.total_out))) {
-	putil_syserr(0, _T("realloc()"));
+	putil_syserr(0, "realloc()");
     }
 
     return dest;
@@ -1310,18 +1313,18 @@ _util_make_fileid(CCS path, CS idbuf, size_t len)
 	return NULL;
     }
 
-    _sntprintf(idbuf, len, _T("%lu.%lu@%") _T(PRIu64),
+    snprintf(idbuf, len, "%lu.%lu@%" PRIu64,
 	       fileinfo.nFileIndexHigh, fileinfo.nFileIndexLow,
 	       fileinfo.dwVolumeSerialNumber);
 #else				/*!_WIN32 */
     struct stat64 stbuf;
 
-    if (_tlstat64(path, &stbuf)) {
+    if (lstat64(path, &stbuf)) {
 	putil_syserr(2, path);
 	return NULL;
     }
 
-    _sntprintf(idbuf, len, _T("%") _T(PRIu64) _T("@%") _T(PRIu64),
+    snprintf(idbuf, len, "%" PRIu64 "@%" PRIu64,
 	       (uint64_t)stbuf.st_ino, (uint64_t)stbuf.st_dev);
 #endif				/*!_WIN32 */
 
@@ -1347,7 +1350,7 @@ _util_make_fileid(CCS path, CS idbuf, size_t len)
 CCS
 util_get_cwd(CS buf, size_t size)
 {
-    TCHAR dir_id[256];
+    char dir_id[256];
     dnode_t *dnp;
 
     // We do not implement the optional NULL-means-malloc semantics
@@ -1360,19 +1363,19 @@ util_get_cwd(CS buf, size_t size)
     // threads could be spawned.
     if (!CwdDict) {
 	if (!(CwdDict = dict_create(DICTCOUNT_T_MAX, util_pathcmp))) {
-	    putil_syserr(2, _T("dict_create(CwdDict)"));
+	    putil_syserr(2, "dict_create(CwdDict)");
 	}
     }
 
     // Make a guaranteed-unique file id for the CWD.
-    if (!(_util_make_fileid(_T("."), dir_id, charlen(dir_id)))) {
+    if (!(_util_make_fileid(".", dir_id, charlen(dir_id)))) {
 	return NULL;
     }
 
     // If it's in cache, use the saved value. Otherwise derive the
     // CWD and save it for next time.
     if (CwdDict && (dnp = dict_lookup(CwdDict, dir_id))) {
-	_sntprintf(buf, size, _T("%s"), (CCS)dnode_get(dnp));
+	snprintf(buf, size, "%s", (CCS)dnode_get(dnp));
     } else {
 	if (_tgetcwd(buf, size)) {
 	    if (CwdDict) {
@@ -1380,7 +1383,7 @@ util_get_cwd(CS buf, size_t size)
 				  putil_strdup(dir_id), putil_strdup(buf));
 	    }
 	} else {
-	    putil_syserr(0, _T("."));
+	    putil_syserr(0, ".");
 	    return NULL;
 	}
     }

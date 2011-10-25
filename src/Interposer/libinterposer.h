@@ -29,9 +29,9 @@ extern "C" {
  * library on and off (duh). They help with portability between Unices but
  * are of no use on Windows.
  *   They work by adding to or removing from the LD_PRELOAD EV, but the
- * strategy is complicated by the 32/64 bit model used on Solaris.
- * Basically, on Solaris we can't rely directly on LD_PRELOAD because
- * there's a danger of a "wrong ELF class" error. Instead we always use
+ * strategy is complicated by the 32/64 bit models used on various Unices.
+ * Basically, on multilib platforms we can't rely directly on LD_PRELOAD of
+ * the danger of a "wrong ELF class" error. Instead , on Solaris we use
  * LD_PRELOAD_32 and LD_PRELOAD_64. However, we must *tolerate* an
  * inherited LD_PRELOAD. Thus the technique is that whatever comes in
  * on LD_PRELOAD goes out on *both* LD_PRELOAD_32 and LD_PRELOAD_64.
@@ -40,19 +40,26 @@ extern "C" {
  * use LD_PRELOAD_{32,64}, we must continue to publish a vanilla
  * LD_PRELOAD which is just a copy of LD_PRELOAD_32; it will be a
  * no-op on Solaris and the only useful LD_* EV elsewhere.
- *   Another complication: the 32-bit auditing library is always
+ *   Another Solaris complication: the 32-bit auditing library is always
  * found directly in a lib dir, e.g. ".../lib" while the 64-bit
- * version is in a subdir of that: ".../lib/64". Note that this
+ * version is in a subdir of that called ".../lib/64". Note that this
  * convention is not parallel to the names of the EV's: on Solaris,
  * while LD_PRELOAD_64 points into ".../lib/64", LD_PRELOAD_32
  * does *not* point into ".../lib/32". Instead it points into the
  * base dir ".../lib".
  *   Net result: LD_PRELOAD always ends up as a copy of LD_PRELOAD_32.
- * On Solaris LD_PRELOAD will be ignored in favor of LD_PRELOAD_32
+ * The Solaris ld.so.1 will ignore LD_PRELOAD in favor of LD_PRELOAD_32
  * while on other Unix platforms only LD_PRELOAD will end up getting
  * exported. In other words we always *calculate* all three LD_PRELOAD*
  * values; on Solaris we export the _32 and _64 versions and elsewhere
  * we export just the unadorned LD_PRELOAD.
+ *   The situation on LInux is quite similar but they have a different
+ * solution. The Linux ld.so uses a "dynamic string token" or DST called
+ * $LIB. When LD_PRELOAD contains the string $LIB, ld.so will replace
+ * it with "lib" or "lib64" depending on the type of the executable.
+ * Linux does NOT implement LD_PRELOAD_32 and LD_PRELOAD_64.
+ * Note the slight difference in convention: Linux uses "lib" and "lib64"
+ * for shared libraries while Solaris uses "lib" and "lib/64".
  *   Meanwhile, on Mac OSX the equivalent var is DYLD_INSERT_LIBRARIES
  * and it only works in the presence of DYLD_FORCE_FLAT_NAMESPACE.
  *   On HP-UX 11* the following may be needed for LD_PRELOAD to work:
@@ -118,10 +125,19 @@ libinterposer_preload_on(const char *so, const char *base)
 	return;
     }
 
-    // If the required EVS weren't previously present, add them now.
+    /*
+     * If the required EVS weren't previously present, add them now.
+     * Note that Linux uses the "dynamic string token" $LIB - see
+     * http://www.akkadia.org/drepper/dsohowto.pdf for details.
+     */
 
+#if defined(linux) 
+    snprintf(lib64, sizeof(lib64), "%s/$LIB/%s", base, so);
+    snprintf(lib32, sizeof(lib32), "%s/$LIB/%s", base, so);
+#else
     snprintf(lib64, sizeof(lib64), "%s/lib/64/%s", base, so);
     snprintf(lib32, sizeof(lib32), "%s/lib/%s", base, so);
+#endif
 
     ldp64 = getenv(PRELOAD_EV_64);
     ldp32 = getenv(PRELOAD_EV_32);

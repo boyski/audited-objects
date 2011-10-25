@@ -108,11 +108,9 @@
       When first written, AO was coded to be buildable with wide
       (aka Unicode) characters. This has never actually been done,
       and the need to do so is no longer anticipated, but we
-      continue to observe the "Windows tchar.h" conventions which
-      enable wide characters:
-      -# Literal strings are enclosed with the _T() macro
-      -# String functions are accessed via _t* macros,
-      e.g. _tcscmp() rather than strcmp().
+      continued to observe the "Windows tchar.h" conventions which
+      enable wide characters for a long time. However, I removed
+      support for tchar in 2011 since it made the code harder to read.
 
     - Commenting conventions
       -# C++ style (//) style is allowed for short comments.
@@ -235,24 +233,24 @@
 
 /// The field separator within the audit files. This is also understood
 /// on the server side - changes must be made in both places.
-#define FS1				_T(",")
+#define FS1				","
 
 /// If there are fields-within-fields, this would separate them.
-#define FS2				_T("+")
+#define FS2				"+"
 
 /// Start-of-audit-group marker for auditor->monitor communication.
-#define SOA				_T("<SOA>")
+#define SOA				"<SOA>"
 /// End-of-audit-group marker for auditor->monitor communication.
-#define EOA				_T("<EOA>")
+#define EOA				"<EOA>"
 
 /// Extended naming symbol - allows overload of PTX id on pathname.
-#define XNS				_T("@@")
+#define XNS				"@@"
 
 /// The conventional string which means "null value" in a CSV line.
-#define	CSV_NULL_FIELD			_T("-")
+#define	CSV_NULL_FIELD			"-"
 
 /// A test for CSV_NULL_FIELD.
-#define	CSV_FIELD_IS_NULL(s)		(!*(s) || !_tcscmp(s, CSV_NULL_FIELD))
+#define	CSV_FIELD_IS_NULL(s)		(!*(s) || !strcmp(s, CSV_NULL_FIELD))
 
 /// The conventional radix (base) for stringifying integral values.
 /// We prefer a high-numbered base for compactness.
@@ -279,7 +277,7 @@ typedef enum {
 } op_e;
 
 #if defined(_WIN32)
-#define pathncmp			_tcsnicmp
+#define pathncmp			strnicmp
 #elif defined(__APPLE__)
 #define pathncmp			strncasecmp
 #else				/*!_WIN32 */
@@ -288,7 +286,7 @@ typedef enum {
 #endif	/*_WIN32*/
 
 /// Macro representing the size of one char regardless of charset.
-#define CHARSIZE			sizeof(TCHAR)
+#define CHARSIZE			sizeof(char)
 
 /// Generates the declaration of a setter.
 #define GEN_SETTER_DECL(class, attr, type)				\

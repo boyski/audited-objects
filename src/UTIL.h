@@ -36,7 +36,7 @@
 /// @cond UTIL
 
 // See note in util.c ...
-#define util_get_cwd			_tgetcwd
+#define util_get_cwd			getcwd
 
 /// The number of 100-nanosecond intervals (Windows time unit) in a second.
 #define WIN_CLUNKS_PER_SEC		10000000L
@@ -50,8 +50,8 @@
 extern int util_pathcmp(const void *, const void *);
 extern void util_socket_lib_init(void);
 extern void util_socket_lib_fini(void);
-unsigned char * util_map_file(CCS, int, off_t, unsigned long);
-extern void util_unmap_file(unsigned char *, unsigned long);
+unsigned char * util_map_file(CCS, int, off_t, uint64_t);
+extern void util_unmap_file(unsigned char *, uint64_t);
 extern CS util_requote(CS const *);
 extern CCS util_get_rwd(CS, size_t);
 extern CCS util_get_logname(void);
@@ -73,7 +73,7 @@ extern void util_debug_from_here(void);
 extern CCS util_format_to_radix(unsigned, CS, size_t, uint64_t);
 extern char *util_strsep(char **, const char *);
 extern CS util_encode_minimal(CCS);
-extern unsigned char *util_gzip_buffer(CCS name, unsigned const char *, unsigned long, unsigned long *);
+extern unsigned char *util_gzip_buffer(CCS name, unsigned const char *, uint64_t, uint64_t *);
 extern char *util_unescape(const char *, int, int *);
 
 #endif				/*UTIL_H */

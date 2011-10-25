@@ -125,10 +125,10 @@
 /// timestamp based on its name.
 /// Files with timestamps require special handling.
 #if defined(_WIN32)
-#define HAS_TIMESTAMP(path)	((!_tcsicmp(strchr(path, '\0') - 4, ".lib") ||\
-				 !_tcsicmp(strchr(path, '\0') - 4, ".obj")  ||\
-				 !_tcsicmp(strchr(path, '\0') - 4, ".exe")) &&\
-				 !_taccess(path, F_OK))
+#define HAS_TIMESTAMP(path)	((!stricmp(strchr(path, '\0') - 4, ".lib") ||\
+				 !stricmp(strchr(path, '\0') - 4, ".obj")  ||\
+				 !stricmp(strchr(path, '\0') - 4, ".exe")) &&\
+				 !access(path, F_OK))
 #else				/*!_WIN32 */
 #define HAS_TIMESTAMP(path)	(!strcmp(strchr(path, '\0') - 2, ".a")\
 				    && !access(path, F_OK))
@@ -220,22 +220,22 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     algorithm = prop_get_str(P_IDENTITY_HASH);
 
-    if (algorithm && *algorithm && (!_tcsicmp(algorithm, _T("sha1")) ||
-	    !_tcsicmp(algorithm, _T("git")))) {
+    if (algorithm && *algorithm && (!stricmp(algorithm, "sha1") ||
+	    !stricmp(algorithm, "git"))) {
 	SHA_CTX ctx;
-	TCHAR prefix[64];
+	char prefix[64];
 	unsigned char sha1[SHA_DIGEST_LENGTH];
 
 	SHA1_Init(&ctx);
 
-	if (!_tcsicmp(algorithm, _T("git"))) {
+	if (!stricmp(algorithm, "git")) {
 	    // It may be convenient for SHA-1 hashes to match up with
 	    // those of Git. Therefore we gratuitously, but harmlessly,
 	    // prepend the same header Git does for blobs. However,
 	    // note that this will not work for some file types because
 	    // AO elides timestamps while Git does not.
-	    _sntprintf(prefix, charlen(prefix), _T("blob %lu"), size);
-	    SHA1_Update(&ctx, prefix, _tcslen(prefix) + CHARSIZE);
+	    snprintf(prefix, charlen(prefix), "blob %lu", size);
+	    SHA1_Update(&ctx, prefix, strlen(prefix) + CHARSIZE);
 	}
 
 	SHA1_Update(&ctx, data, size);
@@ -251,7 +251,7 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
 	hash1 = crc32(crc32(0L, Z_NULL, 0), data, size);
 	(void)util_format_to_radix(CSV_RADIX, buf, buflen, hash1);
-	if (algorithm && *algorithm && _tcsnicmp(algorithm, _T("crc"), 3)) {
+	if (algorithm && *algorithm && strnicmp(algorithm, "crc", 3)) {
 	    putil_die("unrecognized digest name: %s", algorithm);
 	}
     }
@@ -444,10 +444,10 @@ code_from_buffer(const unsigned char *data, off_t size,
 	    putil_warn("corrupt PE/COFF file: %s", path);
 	}
     } else if (HAS_TIMESTAMP(path) && _code_is_PE_file(data + 6)) {
-	putil_warn(_T("dcode on Windows .obj built with /GL: %s"), path);
+	putil_warn("dcode on Windows .obj built with /GL: %s", path);
 #endif	/*_WIN32*/
     } else if (HAS_TIMESTAMP(path)) {
-	putil_warn(_T("possible dcode on file with timestamp: %s"), path);
+	putil_warn("possible dcode on file with timestamp: %s", path);
     }
 
     return _code_hash2str(data, size, buf, buflen);
@@ -602,10 +602,12 @@ code_from_path(CCS path, CS buf, size_t len)
 		return NULL;
 	    }
 
+#if defined(MADV_SEQUENTIAL)
 	    // A potential optimization.
 	    if (madvise((char *)fdata, size, MADV_SEQUENTIAL)) {
 		putil_syserr(0, path);
 	    }
+#endif	/*MADV_SEQUENTIAL*/
 
 	    vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
 	}

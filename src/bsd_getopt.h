@@ -46,7 +46,7 @@
 
 struct option {
 	/* name of long option */
-	const TCHAR *name;
+	const char *name;
 	/*
 	 * one of no_argument, required_argument, and optional_argument:
 	 * whether option takes an argument
@@ -58,10 +58,10 @@ struct option {
 	int val;
 };
 
-extern TCHAR *bsd_optarg;
+extern char *bsd_optarg;
 extern int bsd_optind, bsd_optopt, bsd_opterr;
 
-extern int bsd_getopt(int, TCHAR * const *, const TCHAR *,
+extern int bsd_getopt(int, char * const *, const char *,
 	    const struct option *, int *);
 
 extern void bsd_getopt_reset(void);

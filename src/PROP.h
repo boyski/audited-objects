@@ -22,8 +22,7 @@
 /// @brief Declarations for prop.c
 
 /// @cond PROP
-#define PROP_EXT			_T(".properties")
-#define	prop_get_str			prop_get_strA
+#define PROP_EXT			".properties"
 /// @endcond PROP
 
 #include <sys/types.h>
@@ -118,7 +117,7 @@ extern void prop_override_str(prop_e, CCS);
 extern void prop_override_ulong(prop_e, unsigned long);
 extern void prop_mod_str(prop_e, CCS, char *const *);
 extern void prop_mod_ulong(prop_e, unsigned long, char *const *);
-extern const char *prop_get_strA(prop_e);
+extern const char *prop_get_str(prop_e);
 extern unsigned long prop_get_ulong(prop_e);
 extern long prop_get_long(prop_e);
 extern void prop_unset(prop_e, int);

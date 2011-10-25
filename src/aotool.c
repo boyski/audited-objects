@@ -84,13 +84,13 @@ _usg_line(FILE *fp, CCS fmt, CCS flag, prop_e prop, CCS desc)
     }
 
     if (desc) {
-	_ftprintf(fp, fmt, flag, desc);
+	fprintf(fp, fmt, flag, desc);
     } else {
-	TCHAR buf[1024];
+	char buf[1024];
 
-	_sntprintf(buf, charlen(buf), _T("%s [=%s]"),
+	snprintf(buf, charlen(buf), "%s [=%s]",
 	    prop_desc(prop), prop_to_name(prop));
-	_ftprintf(fp, fmt, flag, buf);
+	fprintf(fp, fmt, flag, buf);
     }
 }
 
@@ -99,49 +99,49 @@ static void
 _usage(int rc)
 {
     FILE *fp;
-    CCS fmt = _T("   %-15s %s\n");
+    CCS fmt = "   %-15s %s\n";
     CCS prog;
 
     prog = prop_get_str(P_PROGNAME);
 
     fp = rc ? stderr : stdout;
 
-    _ftprintf(fp, _T("USAGE: %s [<options>]"), prog);
-    _ftprintf(fp, _T(" { make | run <prog> | <action> } [args...]\n"));
-    _ftprintf(fp, _T("FLAGS:\n"));
+    fprintf(fp, "USAGE: %s [<options>]", prog);
+    fprintf(fp, " { make | run <prog> | <action> } [args...]\n");
+    fprintf(fp, "FLAGS:\n");
 
-    _ftprintf(fp, fmt, _T("-h"), _T("Print this usage summary"));
-    _ftprintf(fp, fmt, _T("-H"), _T("Print current properties"));
-    _usg_line(fp, fmt, _T("-a"), P_ABSOLUTE_PATHS, NULL);
-    _usg_line(fp, fmt, _T("-d"), P_DOWNLOAD_ONLY, NULL);
-    _usg_line(fp, fmt, _T("-F file"), P_MAKE_FILE, NULL);
+    fprintf(fp, fmt, "-h", "Print this usage summary");
+    fprintf(fp, fmt, "-H", "Print current properties");
+    _usg_line(fp, fmt, "-a", P_ABSOLUTE_PATHS, NULL);
+    _usg_line(fp, fmt, "-d", P_DOWNLOAD_ONLY, NULL);
+    _usg_line(fp, fmt, "-F file", P_MAKE_FILE, NULL);
 #if !defined(_WIN32)
-    _usg_line(fp, fmt, _T("-l file"), P_LOG_FILE, NULL);
-    _usg_line(fp, fmt, _T("-L"), P_LOG_FILE_TEMP, NULL);
+    _usg_line(fp, fmt, "-l file", P_LOG_FILE, NULL);
+    _usg_line(fp, fmt, "-L", P_LOG_FILE_TEMP, NULL);
 #endif	/*_WIN32*/
-    _usg_line(fp, fmt, _T("-MD"), P_MAKE_DEPENDS, NULL);
-    _usg_line(fp, fmt, _T("-m"), P_MEMBERS_ONLY, NULL);
-    _usg_line(fp, fmt, _T("-o file"), P_OUTPUT_FILE, NULL);
-    _usg_line(fp, fmt, _T("-p name"), P_PROJECT_NAME, NULL);
-    _ftprintf(fp, fmt, _T("-q"), _T("Quiet mode: suppress verbosity"));
-    _usg_line(fp, fmt, _T("-s host:port"), P_SERVER, NULL);
-    _usg_line(fp, fmt, _T("-T"), P_PRINT_ELAPSED, NULL);
-    _usg_line(fp, fmt, _T("-u"), P_UPLOAD_ONLY, NULL);
-    _ftprintf(fp, fmt, _T("-vXX,YY,ZZ"),
-	_T("Set verbosity flags (use -v? to see choices)"));
-    _ftprintf(fp, fmt, _T("--version"), _T("Print version and exit"));
-    _ftprintf(fp, fmt, _T("-w"), _T("Explain why commands cannot be recycled"));
-    _ftprintf(fp, fmt, _T("-Wm,flag,value"),
-	_T("Pass -flag=value to makefile generator"));
-    _ftprintf(fp, fmt, _T("-x"), _T("Print each command line as executed"));
-    _usg_line(fp, fmt, _T("-X"), P_EXECUTE_ONLY, NULL);
+    _usg_line(fp, fmt, "-MD", P_MAKE_DEPENDS, NULL);
+    _usg_line(fp, fmt, "-m", P_MEMBERS_ONLY, NULL);
+    _usg_line(fp, fmt, "-o file", P_OUTPUT_FILE, NULL);
+    _usg_line(fp, fmt, "-p name", P_PROJECT_NAME, NULL);
+    fprintf(fp, fmt, "-q", "Quiet mode: suppress verbosity");
+    _usg_line(fp, fmt, "-s host:port", P_SERVER, NULL);
+    _usg_line(fp, fmt, "-T", P_PRINT_ELAPSED, NULL);
+    _usg_line(fp, fmt, "-u", P_UPLOAD_ONLY, NULL);
+    fprintf(fp, fmt, "-vXX,YY,ZZ",
+	"Set verbosity flags (use -v? to see choices");
+    fprintf(fp, fmt, "--version", "Print version and exit");
+    fprintf(fp, fmt, "-w", "Explain why commands cannot be recycled");
+    fprintf(fp, fmt, "-Wm,flag,value",
+	"Pass -flag=value to makefile generator");
+    fprintf(fp, fmt, "-x", "Print each command line as executed");
+    _usg_line(fp, fmt, "-X", P_EXECUTE_ONLY, NULL);
 
-    _ftprintf(fp, _T("EXAMPLES:\n"));
-    _ftprintf(fp, _T("   %s help\n"), prog);
-    _ftprintf(fp, _T("   %s ping\n"), prog);
-    _ftprintf(fp, _T("   %s -o@ -F Makefile.new make -s clean all\n"), prog);
-    _ftprintf(fp, _T("   %s make clean all\n"), prog);
-    _ftprintf(fp, _T("   %s lsbuilds -s\n"), prog);
+    fprintf(fp, "EXAMPLES:\n");
+    fprintf(fp, "   %s help\n", prog);
+    fprintf(fp, "   %s ping\n", prog);
+    fprintf(fp, "   %s -o@ -F Makefile.new make -s clean all\n", prog);
+    fprintf(fp, "   %s make clean all\n", prog);
+    fprintf(fp, "   %s lsbuilds -s\n", prog);
 
     putil_exit(rc);
 }
@@ -153,19 +153,19 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
 {
     struct __stat64 stbuf;
     ps_o ps;
-    TCHAR psbuf[PATH_MAX + 256];
-    TCHAR abspath[PATH_MAX];
+    char psbuf[PATH_MAX + 256];
+    char abspath[PATH_MAX];
     int rc = 0;
 
     // If we can't resolve the file vs the cwd, try vs the rwd.
-    if (_tstat64(path, &stbuf)) {
+    if (stat64(path, &stbuf)) {
 	if (putil_is_absolute(path)) {
 	    putil_syserr(0, path);
 	    return 2;
 	} else {
-	    _sntprintf(abspath, charlen(abspath), _T("%s/%s"),
+	    snprintf(abspath, charlen(abspath), "%s/%s",
 		       prop_get_str(P_BASE_DIR), path);
-	    if (_tstat64(abspath, &stbuf)) {
+	    if (stat64(abspath, &stbuf)) {
 		putil_syserr(0, path);	// NOT abspath
 		return 2;
 	    } else {
@@ -201,15 +201,15 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
 static void
 _print_version(int full)
 {
-    _tprintf(_T("%s=%s\n"),
-	     _T(APPLICATION_NAME), _T(APPLICATION_VERSION));
+    printf("%s=%s\n",
+	     APPLICATION_NAME, APPLICATION_VERSION);
 
     if (full) {
-	_fputts(putil_builton(), stdout);
+	fputs(putil_builton(), stdout);
 #if defined(_WIN32) && defined(_DEBUG)
-	_fputts(" (DEBUG)", stdout);
+	fputs(" (DEBUG)", stdout);
 #endif	/*_DEBUG*/
-	_fputts("\n", stdout);
+	fputs("\n", stdout);
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", pcre_version());
 	printf("zlib=%s\n", (const char *)zlibVersion());
@@ -226,34 +226,34 @@ do_action(CCS action, int argc, CS const *argv)
 {
     int rc = 0;
 
-    if (streq(action, _T("Property")) ||
-	    streq(action, _T("property"))) {
+    if (streq(action, "Property") ||
+	    streq(action, "property")) {
 	// Print the current value of the named property.
 	int i;
 	CCS str;
 
 	for (i = 0; i < argc; i++) {
 	    if (vb_bitmatch(VB_STD)) {
-		printf(_T("%s="), argv[i]);
+		printf("%s=", argv[i]);
 	    }
 	    if ((str = prop_value_from_name(argv[i]))) {
-		printf(_T("%s\n"), str);
+		printf("%s\n", str);
 	    } else {
-		printf(_T("\n"));
+		printf("\n");
 	    }
 	}
-    } else if (streq(action, _T("Substitute")) ||
-	    streq(action, _T("substitute"))) {
+    } else if (streq(action, "Substitute") ||
+	    streq(action, "substitute")) {
 	// Apply standard %-substitutions to the input string.
 	int i;
 
 	for (i = 0; i < argc; i++) {
-	    TCHAR subsbuf[8192];
+	    char subsbuf[8192];
 
 	    util_substitute_params(argv[i], subsbuf, charlen(subsbuf));
-	    printf(_T("%s\n"), subsbuf);
+	    printf("%s\n", subsbuf);
 	}
-    } else if (streq(action, _T("hash-object"))) {
+    } else if (streq(action, "hash-object")) {
 	int write_flag = 0;
 	CCS dcode = NULL;
 	ps_o ps;
@@ -262,10 +262,10 @@ do_action(CCS action, int argc, CS const *argv)
 	    int c;
 
 	    // *INDENT-OFF*
-	    static CS short_opts = _T("+s:w");
+	    static CS short_opts = "+s:w";
 	    static struct option long_opts[] = {
-		{_T("sha1"),		required_argument, NULL, 's'},
-		{_T("write"),		no_argument,	   NULL, 'w'},
+		{"sha1",		required_argument, NULL, 's'},
+		{"write",		no_argument,	   NULL, 'w'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -304,7 +304,7 @@ do_action(CCS action, int argc, CS const *argv)
 
 	ps_destroy(ps);
 	putil_free(dcode);
-    } else if (streq(action, _T("Stat")) || streq(action, _T("stat"))) {
+    } else if (streq(action, "Stat") || streq(action, "stat")) {
 	// print vital statistics for specified files.
 	int long_flag = 0, short_flag = 0, deref_flag = 0;
 	CCS path;
@@ -313,12 +313,12 @@ do_action(CCS action, int argc, CS const *argv)
 	    int c;
 
 	    // *INDENT-OFF*
-	    static CS short_opts = _T("+alsL");
+	    static CS short_opts = "+alsL";
 	    static struct option long_opts[] = {
-		{_T("absolute-paths"),	no_argument,	   NULL, 'a'},
-		{_T("long"),		no_argument,	   NULL, 'l'},
-		{_T("short"),		no_argument,	   NULL, 's'},
-		{_T("dereference"),	no_argument,	   NULL, 'L'},
+		{"absolute-paths",	no_argument,	   NULL, 'a'},
+		{"long",		no_argument,	   NULL, 'l'},
+		{"short",		no_argument,	   NULL, 's'},
+		{"dereference",	no_argument,	   NULL, 'L'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -353,15 +353,15 @@ do_action(CCS action, int argc, CS const *argv)
 	    struct __stat64 stbuf;
 	    int statrc;
 	    ps_o ps;
-	    TCHAR buf[PATH_MAX + 256];
+	    char buf[PATH_MAX + 256];
 
 	    ps = ps_newFromPath(*argv);
 	    path = ps_get_abs(ps);
 
 	    if (deref_flag) {
-		statrc = _tstat64(path, &stbuf);
+		statrc = stat64(path, &stbuf);
 	    } else {
-		statrc = _tlstat64(path, &stbuf);
+		statrc = lstat64(path, &stbuf);
 	    }
 
 	    if (statrc) {
@@ -373,7 +373,7 @@ do_action(CCS action, int argc, CS const *argv)
 		       && !S_ISLNK(stbuf.st_mode)
 #endif	/*_WIN32*/
 		) {
-		putil_warn(_T("%s: not a regular file"), path);
+		putil_warn("%s: not a regular file", path);
 		ps_destroy(ps);
 		continue;
 	    }
@@ -382,21 +382,21 @@ do_action(CCS action, int argc, CS const *argv)
 		rc = 1;
 	    } else {
 		ps_format_user(ps, long_flag, short_flag, buf, charlen(buf));
-		_fputts(buf, stdout);
+		fputs(buf, stdout);
 	    }
 
 	    ps_destroy(ps);
 	}
-    } else if (streq(action, _T("about"))) {
+    } else if (streq(action, "about")) {
 	int short_flag = 0;
 
 	for (bsd_getopt_reset(); argv && *argv; ) {
 	    int c;
 
 	    // *INDENT-OFF*
-	    static CS short_opts = _T("+s");
+	    static CS short_opts = "+s";
 	    static struct option long_opts[] = {
-		{_T("short"),		no_argument,	   NULL, 's'},
+		{"short",		no_argument,	   NULL, 's'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -434,19 +434,19 @@ do_action(CCS action, int argc, CS const *argv)
 	// action. That's why this is midway down - pure client actions
 	// are above, anything requiring server interaction is below.
 	rc = http_action(action, argv, 0);
-    } else if (streq(action, _T("label"))) {
+    } else if (streq(action, "label")) {
 	CS const *targv;
 
 	for (bsd_getopt_reset(); argv && *argv; ) {
 	    int c;
 
 	    // *INDENT-OFF*
-	    static CS short_opts = _T("+sli:p:");
+	    static CS short_opts = "+sli:p:";
 	    static struct option long_opts[] = {
-		{_T("long"),		no_argument,	   NULL, 'l'},
-		{_T("short"),		no_argument,	   NULL, 's'},
-		{_T("id"),		required_argument, NULL, 'i'},
-		{_T("project-name"),	required_argument, NULL, 'p'},
+		{"long",		no_argument,	   NULL, 'l'},
+		{"short",		no_argument,	   NULL, 's'},
+		{"id",		required_argument, NULL, 'i'},
+		{"project-name",	required_argument, NULL, 'p'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -472,7 +472,7 @@ do_action(CCS action, int argc, CS const *argv)
 		rc = 2;
 	    }
 	}
-    } else if (!_tcsncmp(action, _T("namestate"), 4)) {
+    } else if (!strncmp(action, "namestate", 4)) {
 	CS const *targv;
 	CCS name;
 
@@ -495,14 +495,14 @@ do_action(CCS action, int argc, CS const *argv)
 		rc = 2;
 	    }
 	}
-    } else if (!_tcscmp(action, _T("Admin"))) {
-	if (argv[0] && streq(argv[0], _T("restart"))) {
+    } else if (!strcmp(action, "Admin")) {
+	if (argv[0] && streq(argv[0], "restart")) {
 	    rc = http_restart();
 	} else {
 	    rc = http_action(action, argv, 0);
 	}
     } else {
-	if (streq(action, _T("help")) && !argv[0]) {
+	if (streq(action, "help") && !argv[0]) {
 	    const char *fmt = "%-12s - %s\n";
 
 	    // Here we document only actions which are PURELY client-side,
@@ -518,7 +518,7 @@ do_action(CCS action, int argc, CS const *argv)
 	    printf("\n");
 	}
 
-	if (!_tcsncmp(action, _T("lsb"), 3)) {
+	if (!strncmp(action, "lsb", 3)) {
 	    rc = http_action(action, argv, 1);
 	} else {
 	    rc = http_action(action, argv, 0);
@@ -537,22 +537,22 @@ do_action(CCS action, int argc, CS const *argv)
 static void
 _make_clean(void)
 {
-    TCHAR clean[1024];
+    char clean[1024];
 
 #if defined(_WIN32)
-    if (!_taccess("NMakefile", R_OK)) {
+    if (!access("NMakefile", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1,
 	    "nmake /nologo /s /f NMakefile clean >%s", DEVNULL);
-    } else if (!_taccess("build.xml", R_OK)) {
+    } else if (!access("build.xml", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1, "ant -q clean >%s", DEVNULL);
     } else {
 	snprintf(clean, sizeof(clean) - 1, "nmake /nologo /s clean >%s",
 	    DEVNULL);
     }
 #else	/*_WIN32*/
-    if (!_taccess("Makefile", R_OK) || !_taccess("makefile", R_OK)) {
+    if (!access("Makefile", R_OK) || !access("makefile", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1, "make -s clean >%s", DEVNULL);
-    } else if (!_taccess("build.xml", R_OK)) {
+    } else if (!access("build.xml", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1, "ant -q clean >%s", DEVNULL);
     } else {
 	snprintf(clean, sizeof(clean) - 1, "make -s clean >%s", DEVNULL);
@@ -588,7 +588,7 @@ main(int argc, CS const *argv)
     // Figure out the full path to the current executable program.
     // Should be done asap, before anything happens to argv.
     if (!(exe = putil_getexecpath())) {
-	putil_die(_T("unable to determine path to argv[0]\n"));
+	putil_die("unable to determine path to argv[0]\n");
     }
 
 #if defined(_WIN32)
@@ -610,7 +610,7 @@ main(int argc, CS const *argv)
     // to explicitly free data right before exit like this is
     // to avoid spurious warnings from memory leak detectors like
     // valgrind and make real problems more obvious.
-    prop_init(_T(APPLICATION_NAME));
+    prop_init(APPLICATION_NAME);
     atexit(prop_fini);
     // This has been known to cause core dumps on Linux. I think the
     // problem is since fixed but since it does no real good, as noted,
@@ -632,52 +632,52 @@ main(int argc, CS const *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    _T("+1adhl:mo:p:qrs:uv::wxACDEF:GH::I:LM:O:PQRSTUV:W:XY");
+	    "+1adhl:mo:p:qrs:uv::wxACDEF:GH::I:LM:O:PQRSTUV:W:XY";
 	static struct option long_opts[] = {
-	    {_T("oneshell"),		no_argument,	   NULL, '1'},
-	    {_T("absolute-paths"),	no_argument,	   NULL, 'a'},
-	    {_T("agg-level"),		required_argument, NULL, LF('A','G')},
-	    {_T("audit-only"),		no_argument,	   NULL, 'A'},
-	    {_T("make-clean"),		no_argument,	   NULL, 'C'},
-	    {_T("download-only"),	no_argument,	   NULL, 'd'},
-	    {_T("download-silent"),	no_argument,	   NULL, 'D'},
-	    {_T("dtrace"),		required_argument, NULL, LF('D','T')},
-	    {_T("client-platform"),	required_argument, NULL, LF('C','P')},
-	    {_T("error-strict"),	no_argument,	   NULL, 'E'},
-	    {_T("make-file"),		required_argument, NULL, 'F'},
-	    {_T("git"),			no_argument,	   NULL, 'G'},
-	    {_T("help"),		no_argument,	   NULL, 'h'},
-	    {_T("Help"),		optional_argument, NULL, 'H'},
-	    {_T("properties"),		optional_argument, NULL, LF('P','*')},
-	    {_T("identity-hash"),	required_argument, NULL, 'I'},
-	    {_T("log-file"),		required_argument, NULL, 'l'},
-	    {_T("log-file-temp"),	no_argument,	   NULL, 'L'},
-	    {_T("make-depends"),	optional_argument, NULL, 'M'},
-	    {_T("mem-debug"),		optional_argument, NULL, LF('D','M')},
-	    {_T("members-only"),	no_argument,	   NULL, 'm'},
-	    {_T("output-file"),		required_argument, NULL, 'o'},
-	    {_T("Output-file"),		required_argument, NULL, 'O'},
-	    {_T("project-name"),	required_argument, NULL, 'p'},
-	    {_T("pager"),		no_argument,	   NULL, 'P'},
-	    {_T("profile"),		no_argument,	   NULL, LF('P','%')},
-	    {_T("quiet"),		no_argument,	   NULL, 'q'},
-	    {_T("extra-quiet"),		no_argument,	   NULL, 'Q'},
-	    {_T("leave-roadmap"),	no_argument,	   NULL, 'r'},
-	    {_T("reuse-roadmap"),	no_argument,       NULL, 'R'},
-	    {_T("restart"),		no_argument,	   NULL, LF('R','L')},
-	    {_T("server"),		required_argument, NULL, 's'},
-	    {_T("strict"),		no_argument,	   NULL, 'S'},
-	    {_T("print-elapsed"),	no_argument,	   NULL, 'T'},
-	    {_T("upload-only"),		no_argument,	   NULL, 'u'},
-	    {_T("uncompressed-transfers"), no_argument,	   NULL, 'U'},
-	    {_T("verbosity"),		optional_argument, NULL, 'v'},
-	    {_T("local-verbosity"),	required_argument, NULL, 'V'},
-	    {_T("version"),		optional_argument, NULL, LF('v','n')},
-	    {_T("why"),			no_argument,	   NULL, 'w'},
-	    {_T("WFlag"),		required_argument, NULL, 'W'},
-	    {_T("exec-verbosity"),	required_argument, NULL, 'x'},
-	    {_T("execute-only"),	no_argument,	   NULL, 'X'},
-	    {_T("synchronous-transfers"), no_argument,	   NULL, 'Y'},
+	    {"oneshell",		no_argument,	   NULL, '1'},
+	    {"absolute-paths",	no_argument,	   NULL, 'a'},
+	    {"agg-level",		required_argument, NULL, LF('A','G')},
+	    {"audit-only",		no_argument,	   NULL, 'A'},
+	    {"make-clean",		no_argument,	   NULL, 'C'},
+	    {"download-only",	no_argument,	   NULL, 'd'},
+	    {"download-silent",	no_argument,	   NULL, 'D'},
+	    {"dtrace",		required_argument, NULL, LF('D','T')},
+	    {"client-platform",	required_argument, NULL, LF('C','P')},
+	    {"error-strict",	no_argument,	   NULL, 'E'},
+	    {"make-file",		required_argument, NULL, 'F'},
+	    {"git",			no_argument,	   NULL, 'G'},
+	    {"help",		no_argument,	   NULL, 'h'},
+	    {"Help",		optional_argument, NULL, 'H'},
+	    {"properties",		optional_argument, NULL, LF('P','*')},
+	    {"identity-hash",	required_argument, NULL, 'I'},
+	    {"log-file",		required_argument, NULL, 'l'},
+	    {"log-file-temp",	no_argument,	   NULL, 'L'},
+	    {"make-depends",	optional_argument, NULL, 'M'},
+	    {"mem-debug",		optional_argument, NULL, LF('D','M')},
+	    {"members-only",	no_argument,	   NULL, 'm'},
+	    {"output-file",		required_argument, NULL, 'o'},
+	    {"Output-file",		required_argument, NULL, 'O'},
+	    {"project-name",	required_argument, NULL, 'p'},
+	    {"pager",		no_argument,	   NULL, 'P'},
+	    {"profile",		no_argument,	   NULL, LF('P','%')},
+	    {"quiet",		no_argument,	   NULL, 'q'},
+	    {"extra-quiet",		no_argument,	   NULL, 'Q'},
+	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
+	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
+	    {"restart",		no_argument,	   NULL, LF('R','L')},
+	    {"server",		required_argument, NULL, 's'},
+	    {"strict",		no_argument,	   NULL, 'S'},
+	    {"print-elapsed",	no_argument,	   NULL, 'T'},
+	    {"upload-only",		no_argument,	   NULL, 'u'},
+	    {"uncompressed-transfers", no_argument,	   NULL, 'U'},
+	    {"verbosity",		optional_argument, NULL, 'v'},
+	    {"local-verbosity",	required_argument, NULL, 'V'},
+	    {"version",		optional_argument, NULL, LF('v','n')},
+	    {"why",			no_argument,	   NULL, 'w'},
+	    {"WFlag",		required_argument, NULL, 'W'},
+	    {"exec-verbosity",	required_argument, NULL, 'x'},
+	    {"execute-only",	no_argument,	   NULL, 'X'},
+	    {"synchronous-transfers", no_argument,	   NULL, 'Y'},
 	    {0,				0,		   NULL,  0 },
 	};
 	// *INDENT-ON*
@@ -690,7 +690,7 @@ main(int argc, CS const *argv)
 	switch (c) {
 
 	    case '1':
-		putil_putenv(_T("MAKEFLAGS=--eval .ONESHELL:"));
+		putil_putenv("MAKEFLAGS=--eval .ONESHELL:");
 		break;
 
 	    case 'a':
@@ -740,9 +740,9 @@ main(int argc, CS const *argv)
 
 	    case 'L':
 		{
-		    TCHAR buf[1024];
+		    char buf[1024];
 
-		    _sntprintf(buf, 1024, "%s.%lu.log",
+		    snprintf(buf, 1024, "%s.%lu.log",
 			       prop_get_str(P_APP), (unsigned long)getpid());
 		    prop_override_str(P_LOG_FILE, buf);
 		    prop_override_ulong(P_LOG_FILE_TEMP, 1);
@@ -763,8 +763,8 @@ main(int argc, CS const *argv)
 		break;
 
 	    case 'M':
-		if (!bsd_optarg || !_tcscmp(bsd_optarg, _T("D"))) {
-		    prop_override_str(P_MAKE_DEPENDS, _T("d"));
+		if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
+		    prop_override_str(P_MAKE_DEPENDS, "d");
 		} else {
 		    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
 		}
@@ -777,7 +777,7 @@ main(int argc, CS const *argv)
 	    case 'o':
 		no_server = 1;
 	    case 'O':
-		if (!bsd_optarg || !_tcscmp(bsd_optarg, _T("@"))) {
+		if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
 		    prop_override_str(P_OUTPUT_FILE, DEVNULL);
 		} else {
 		    prop_override_str(P_OUTPUT_FILE, bsd_optarg);
@@ -789,8 +789,8 @@ main(int argc, CS const *argv)
 		break;
 
 	    case 'P':
-		if (!(pager = _tgetenv(_T("PAGER")))) {
-		    pager = _T("less");
+		if (!(pager = getenv("PAGER"))) {
+		    pager = "less";
 		}
 		break;
 
@@ -798,7 +798,7 @@ main(int argc, CS const *argv)
 		// Solaris and Linux at least.
 	    case LF('P', '%'):
 #if !defined(_WIN32)
-		putil_putenv(_T("LD_PROFILE=") _T(AUDITOR));
+		putil_putenv("LD_PROFILE=" AUDITOR);
 #endif	/*_WIN32*/
 		break;
 
@@ -836,7 +836,7 @@ main(int argc, CS const *argv)
 
 	    case 'T':
 		prop_unset(P_PRINT_ELAPSED, 1);
-		prop_put_str(P_PRINT_ELAPSED, _T("-1"));
+		prop_put_str(P_PRINT_ELAPSED, "-1");
 		break;
 
 	    case 'u':
@@ -883,7 +883,7 @@ main(int argc, CS const *argv)
 		//putil_putenv("MallocCheckHeapSleep=-200");
 		//(void)system("env | grep '^Malloc'");
 #else	/*__APPLE__*/
-		putil_die(_T("no malloc debugger implemented"));
+		putil_die("no malloc debugger implemented");
 #endif	/*__APPLE__*/
 		break;
 
@@ -955,19 +955,19 @@ main(int argc, CS const *argv)
 	// Similarly, "ant" is a synonym for "run ant".
 	// And any word containing a / must be a program to run.
 	if (strchr(action, '/') || strchr(action, '\\')
-	    || _tcsstr(action, _T("make"))
-	    || !_tcscmp(action, _T("sh"))
-	    || !_tcsicmp(action, _T("vcbuild"))		// Windows only
-	    || !_tcsicmp(action, _T("msbuild"))		// Windows only
-	    || !_tcscmp(action, _T("ant"))) {
-	    action = _T("run");
+	    || strstr(action, "make")
+	    || !util_pathcmp(action, "sh")
+	    || !util_pathcmp(action, "vcbuild")		// Windows only
+	    || !util_pathcmp(action, "msbuild")		// Windows only
+	    || !util_pathcmp(action, "ant")) {
+	    action = "run";
 	} else {
 	    argv++;
 	    argc--;
 	}
     } else {
 	// The default command ...
-	action = _T("help");
+	action = "help";
     }
 
     // Default project name is the name of the dir containing the project
@@ -979,7 +979,7 @@ main(int argc, CS const *argv)
 	pbase = prop_get_str(P_BASE_DIR);
 	if (pbase && (pjname = putil_basename(pbase)) && *pjname) {
 	    ptr = putil_strdup(pjname);
-	    if ((dash = _tcschr(ptr, '-')) && ISDIGIT(dash[1])) {
+	    if ((dash = strchr(ptr, '-')) && ISDIGIT(dash[1])) {
 		*dash = '\0';
 	    }
 	    prop_put_str(P_PROJECT_NAME, ptr);
@@ -1001,7 +1001,7 @@ main(int argc, CS const *argv)
     // Optionally run help output through a pager.
 #if !defined(_WIN32)
     if (pager ||
-	(streq(action, _T("man")) && (pager = prop_get_str(P_DOC_PAGER)))) {
+	(streq(action, "man") && (pager = prop_get_str(P_DOC_PAGER)))) {
 	int pfd[2];
 	pid_t pid;
 
@@ -1015,7 +1015,7 @@ main(int argc, CS const *argv)
 	fflush(NULL);
 
 	if (pipe(pfd) < 0) {
-	    putil_syserr(2, _T("pipe"));
+	    putil_syserr(2, "pipe");
 	}
 
 	// Note that the *parent* process becomes the pager.
@@ -1038,7 +1038,7 @@ main(int argc, CS const *argv)
 	    putil_syserr(0, pager);
 	    _exit(2);
 	} else {
-	    putil_syserr(2, _T("fork"));
+	    putil_syserr(2, "fork");
 	}
     }
 #endif	/*_WIN32*/
@@ -1048,7 +1048,7 @@ main(int argc, CS const *argv)
     if (prop_has_value(P_SERVER)) {
 	const char *svr;
 
-	svr = prop_get_strA(P_SERVER);
+	svr = prop_get_str(P_SERVER);
 	if (!strchr(svr, ':')) {
 	    char buf[256];
 
@@ -1078,9 +1078,9 @@ main(int argc, CS const *argv)
 	atexit(_print_elapsed_time);
     }
 
-    if (streq(action, _T("run"))) {
-	TCHAR cwd[PATH_MAX];
-	TCHAR logbuf[PATH_MAX];
+    if (streq(action, "run")) {
+	char cwd[PATH_MAX];
+	char logbuf[PATH_MAX];
 	CCS rmap, logfile;
 
 	if (!argv || !*argv) {
@@ -1097,10 +1097,10 @@ main(int argc, CS const *argv)
 	// one we consider a repository for temp files.
 	if (util_get_cwd(cwd, charlen(cwd))) {
 	    if (util_is_tmp(cwd) && !prop_is_true(P_EXECUTE_ONLY)) {
-		putil_die(_T("illegal tmp working directory: %s"), cwd);
+		putil_die("illegal tmp working directory: %s", cwd);
 	    }
 	} else {
-	    putil_syserr(2, _T("util_get_cwd()"));
+	    putil_syserr(2, "util_get_cwd()");
 	}
 
 	// These values are pre-exported to reserve env-block space.
@@ -1122,7 +1122,7 @@ main(int argc, CS const *argv)
 	prop_put_ulong(P_AGGREGATED_SUBCMD, 0);
 
 	// Allow the cmd to be preceded by EV's in the manner of the shell.
-	while (_tcschr(*argv, '=')) {
+	while (strchr(*argv, '=')) {
 	    putil_putenv(*argv++);
 	}
 
@@ -1139,7 +1139,7 @@ main(int argc, CS const *argv)
 	// Work out the name of the roadmap file and store the result.
 	if ((rmap = prop_get_str(P_ROADMAPFILE))) {
 	    if (!putil_is_absolute(rmap)) {
-		TCHAR rbuf[PATH_MAX];
+		char rbuf[PATH_MAX];
 
 		if ((rmap = putil_realpath(rmap, rbuf, charlen(rbuf), 1))) {
 		    prop_override_str(P_ROADMAPFILE, rbuf);
@@ -1165,7 +1165,7 @@ main(int argc, CS const *argv)
 	    // That would only be a risk for a very slow roadmap or a
 	    // very fast session expiration but it could happen.
 	    if ((rc = mon_begin_session())) {
-		putil_die(_T("can't get a session at %s"),
+		putil_die("can't get a session at %s",
 			  prop_get_str(P_SERVER));
 	    }
 	}
@@ -1176,10 +1176,10 @@ main(int argc, CS const *argv)
 	    CS *dargv;
 	    
 	    dargv = putil_malloc(sizeof(*dargv) * 6);
-	    dargv[0] = _T("dtrace");
-	    dargv[1] = _T("-s");
+	    dargv[0] = "dtrace";
+	    dargv[1] = "-s";
 	    dargv[2] = dscript;
-	    dargv[3] = _T("-c");
+	    dargv[3] = "-c";
 	    dargv[4] = util_requote(argv);
 	    dargv[5] = NULL;
 	    argv = dargv;
@@ -1205,26 +1205,26 @@ main(int argc, CS const *argv)
 	if (prop_is_true(P_LOG_FILE_TEMP)) {
 	    unlink(prop_get_str(P_LOG_FILE));
 	}
-    } else if (streq(action, _T("roadmap"))) {
+    } else if (streq(action, "roadmap")) {
 	// Useful while testing roadmaps. May be dispensed with later.
 	prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
 	prop_override_true(P_LEAVE_ROADMAP);
 	mon_get_roadmap();
-    } else if (streq(action, _T("shop"))) {
+    } else if (streq(action, "shop")) {
 	int cflag = 0;
 	int gflag = 0;
 	ca_o ca;
-	TCHAR rwdbuf[PATH_MAX];
+	char rwdbuf[PATH_MAX];
 
 	// This special action is useful for internal tests of shopping
 	// capabilities without changing server state, using a saved
 	// roadmap file.
 
 	while (*argv && **argv == '-') {
-	    if (!_tcscmp(*argv, _T("-C"))) {
+	    if (!strcmp(*argv, "-C")) {
 		// Work with a predetermined cmd index rather than a cmd line.
 		cflag = 1;
-	    } else if (!_tcscmp(*argv, _T("-G"))) {
+	    } else if (!strcmp(*argv, "-G")) {
 		// Actually get files (default is to not change local state).
 		gflag = 1;
 	    }

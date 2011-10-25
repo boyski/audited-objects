@@ -29,7 +29,7 @@
 #include "PROP.h"
 
 /// @cond prefs
-#define PROJ_EXT			_T(".project")
+#define PROJ_EXT			".project"
 /// @endcond prefs
 
 // Searches upward from the current working directory toward the
@@ -38,30 +38,30 @@
 static CS
 _find_file_up(CCS name, CS buf, size_t len)
 {
-    TCHAR dir[PATH_MAX];
+    char dir[PATH_MAX];
 
     if (util_get_cwd(dir, charlen(dir)) == NULL) {
-	putil_syserr(2, _T("util_get_cwd"));
+	putil_syserr(2, "util_get_cwd");
     }
 
-    while (_tcscmp(dir, _T("/"))) {
-	TCHAR dbuf[PATH_MAX];
+    while (strcmp(dir, "/")) {
+	char dbuf[PATH_MAX];
 
-	_sntprintf(buf, len, _T("%s%s%s"), dir, DIRSEP(), name);
-	if (!_taccess(buf, F_OK)) {
+	snprintf(buf, len, "%s%s%s", dir, DIRSEP(), name);
+	if (!access(buf, F_OK)) {
 	    return buf;
 	}
 
 	// Quit when we reach the root even if the root is not
 	// called '/' (like on Windows).
 	putil_dirname(dir, dbuf);
-	if (_tcslen(dbuf) >= _tcslen(dir)) {
+	if (strlen(dbuf) >= strlen(dir)) {
 	    break;
 	}
-	_tcscpy(dir, dbuf);
+	strcpy(dir, dbuf);
 
 #if defined(_WIN32)
-	if (!_tcscmp(dir, _T("\\"))) {
+	if (!strcmp(dir, "\\")) {
 	    break;
 	}
 #endif	/*_WIN32*/
@@ -78,27 +78,27 @@ _find_file_up(CCS name, CS buf, size_t len)
 void
 prefs_init(CCS exe, CCS ext, CCS verbose)
 {
-    TCHAR cfgpath[PATH_MAX], cfgpath2[PATH_MAX], cfgname[PATH_MAX];
-    TCHAR home[PATH_MAX], sysdir[PATH_MAX];
-    TCHAR progname[PATH_MAX], exedir[PATH_MAX], appdir[PATH_MAX];
+    char cfgpath[PATH_MAX], cfgpath2[PATH_MAX], cfgname[PATH_MAX];
+    char home[PATH_MAX], sysdir[PATH_MAX];
+    char progname[PATH_MAX], exedir[PATH_MAX], appdir[PATH_MAX];
     CCS p;
 
     // Store the short program name for error msgs etc.
-    if ((p = _tcsrchr(exe, '/'))) {
-	_tcscpy(progname, p + 1);
+    if ((p = strrchr(exe, '/'))) {
+	strcpy(progname, p + 1);
 #if defined(_WIN32)
-    } else if ((p = _tcsrchr(exe, '\\'))) {
-	_tcscpy(progname, p + 1);
+    } else if ((p = strrchr(exe, '\\'))) {
+	strcpy(progname, p + 1);
 #endif	/*_WIN32*/
     } else {
-	_tcscpy(progname, exe);
+	strcpy(progname, exe);
     }
 
 #if defined(_WIN32)
     {
 	CS ext;
 
-	if ((ext = _tcsrchr(progname, '.'))) {
+	if ((ext = strrchr(progname, '.'))) {
 	    *ext = '\0';
 	}
     }
@@ -115,12 +115,12 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	app = prop_get_app();
 
 	// Find the directory which establishes the P_BASE_DIR property.
-	_sntprintf(cfgname, charlen(cfgname), _T(".%s"), app);
+	snprintf(cfgname, charlen(cfgname), ".%s", app);
 	if (_find_file_up(cfgname, cfgpath, charlen(cfgpath))) {
-	    TCHAR pbuf[PATH_MAX];
+	    char pbuf[PATH_MAX];
 
 	    // Look for a properties file in this dir and try loading it.
-	    _sntprintf(cfgpath2, charlen(cfgpath2), _T("%s%s%s%s"),
+	    snprintf(cfgpath2, charlen(cfgpath2), "%s%s%s%s",
 		cfgpath, DIRSEP(), app, PROP_EXT);
 
 	    prop_load(cfgpath2, verbose);
@@ -130,11 +130,11 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	    prop_put_str(P_BASE_DIR,
 		 putil_canon_path(putil_dirname(cfgpath, pbuf), NULL, 0));
 	} else {
-	    TCHAR cwdbuf[PATH_MAX];
+	    char cwdbuf[PATH_MAX];
 
 	    // If no project config file exists, use cwd for project base.
 	    if (!util_get_cwd(cwdbuf, charlen(cwdbuf))) {
-		putil_syserr(2, _T("util_get_cwd()"));
+		putil_syserr(2, "util_get_cwd()");
 	    }
 	    prop_put_str(P_BASE_DIR, putil_canon_path(cwdbuf, NULL, 0));
 	}
@@ -145,12 +145,12 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	// we also allow the ~/<app>.properties version. And we do that
 	// for both U and W to allow for a consistent site standard.
 	if (putil_get_homedir(home, charlen(home))) {
-	    _sntprintf(cfgpath, charlen(cfgpath), _T("%s%s.%s%s"),
+	    snprintf(cfgpath, charlen(cfgpath), "%s%s.%s%s",
 		       home, DIRSEP(), app, ext);
-	    if (!_taccess(cfgpath, F_OK)) {
+	    if (!access(cfgpath, F_OK)) {
 		prop_load(cfgpath, verbose);
 	    } else {
-		_sntprintf(cfgpath, charlen(cfgpath), _T("%s%s%s%s"),
+		snprintf(cfgpath, charlen(cfgpath), "%s%s%s%s",
 			   home, DIRSEP(), app, ext);
 		prop_load(cfgpath, verbose);
 	    }
@@ -158,7 +158,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 
 	// Then fall back to system-wide properties from /etc/<app>.properties
 	if (putil_get_systemdir(sysdir, charlen(sysdir))) {
-	    _sntprintf(cfgpath, charlen(cfgpath), _T("%s%s%s%s"),
+	    snprintf(cfgpath, charlen(cfgpath), "%s%s%s%s",
 		       sysdir, DIRSEP(), app, ext);
 	    prop_load(cfgpath, verbose);
 	}
@@ -168,13 +168,13 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	putil_dirname(exe, exedir);
 	putil_dirname(exedir, appdir);
 #if defined(_WIN32)
-	_sntprintf(cfgpath2, charlen(cfgpath2), _T("%s%s%s%s"),
+	snprintf(cfgpath2, charlen(cfgpath2), "%s%s%s%s",
 		   exedir, DIRSEP(), app, ext);
 #else	/*_WIN32*/
-	_sntprintf(cfgpath2, charlen(cfgpath2), _T("%s/etc/%s%s"),
+	snprintf(cfgpath2, charlen(cfgpath2), "%s/etc/%s%s",
 		   appdir, app, ext);
 #endif	/*_WIN32*/
-	if (_tcscmp(cfgpath2, cfgpath)) {
+	if (strcmp(cfgpath2, cfgpath)) {
 	    prop_load(cfgpath2, verbose);
 	}
     }
@@ -184,9 +184,9 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     {
 	char *term;
 	if ((term = putil_getenv("TERM")) && strstr(term, "cygwin")) {
-	    prop_put_str(P_CLIENT_PLATFORM, _T("c"));
+	    prop_put_str(P_CLIENT_PLATFORM, "c");
 	} else {
-	    prop_put_str(P_CLIENT_PLATFORM, _T("w"));
+	    prop_put_str(P_CLIENT_PLATFORM, "w");
 	}
     }
 #endif	/*!_WIN32 */

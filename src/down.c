@@ -52,7 +52,7 @@ _down_hdrs_to_path_state(void *vptr, size_t size, size_t nitems, void *userp)
 
     dpsp = (down_path_state_s *) userp;
 
-    if (!_strnicmp(hdr, DISPOSITION, strlen(DISPOSITION))) {
+    if (!strnicmp(hdr, DISPOSITION, strlen(DISPOSITION))) {
 	if ((words = strchr(hdr, ';') + 1)) {
 	    while (isspace((int)*words)) {
 		words++;
@@ -62,14 +62,14 @@ _down_hdrs_to_path_state(void *vptr, size_t size, size_t nitems, void *userp)
 		val = strchr(word, '"') + 1;
 		end = strchr(val, '"');
 		*end = '\0';
-		if (!_strnicmp(word, "moment", 6)) {
+		if (!strnicmp(word, "moment", 6)) {
 		    moment_parse(&(dpsp->dps_moment), val);
-		} else if (!_strnicmp(word, "mode", 4)) {
-		    dpsp->dps_mode = _tcstol(val, NULL, CSV_RADIX);
+		} else if (!strnicmp(word, "mode", 4)) {
+		    dpsp->dps_mode = strtol(val, NULL, CSV_RADIX);
 		}
 	    }
 	}
-    } else if (!_strnicmp(hdr, X_SERVER_STATUS_HEADER,
+    } else if (!strnicmp(hdr, X_SERVER_STATUS_HEADER,
 	    strlen(X_SERVER_STATUS_HEADER))) {
 	dpsp->dps_status = http_parse_error_from_server(hdr);
     }
@@ -86,8 +86,8 @@ down_load(ps_o ps)
 {
     CCS relpath, abspath;
     char *url;
-    TCHAR tgtdir[PATH_MAX];
-    TCHAR psbuf[PATH_MAX + 256];
+    char tgtdir[PATH_MAX];
+    char psbuf[PATH_MAX + 256];
     down_path_state_s dps;
     CURL *curl;
     FILE *fp;
@@ -100,7 +100,7 @@ down_load(ps_o ps)
 
     // In case the parent dir of the target doesn't exist, try to create it.
     putil_dirname(abspath, tgtdir);
-    if (_taccess(tgtdir, F_OK)) {
+    if (access(tgtdir, F_OK)) {
 	if (putil_mkdir_p(tgtdir)) {
 	    putil_syserr(0, tgtdir);
 	    return 1;
@@ -125,9 +125,9 @@ down_load(ps_o ps)
     // Open a stream to the target and point the HTTP transaction at it.
     // We try to open it without unlinking first, in order to
     // preserve any additional hard links it may have.
-    if (!(fp = fopen(abspath, _T("wb")))) {
-	_tunlink(abspath);
-	if (!(fp = fopen(abspath, _T("wb")))) {
+    if (!(fp = fopen(abspath, "wb"))) {
+	unlink(abspath);
+	if (!(fp = fopen(abspath, "wb"))) {
 	    putil_syserr(2, abspath);
 	    return 1;
 	}
@@ -173,7 +173,7 @@ down_load(ps_o ps)
 	// to not confuse a timestamp-based tool like make.
 	// This could potentially break a hard link but not removing it
 	// would be worse IMHO.
-	_tunlink(abspath);
+	unlink(abspath);
     }
 
     return rc;

@@ -63,7 +63,7 @@ mon_init(void)
 	if (!(AuditHash =
 	      hash_create(HASHCOUNT_T_MAX,
 	      ca_o_hash_cmp, ca_o_hash_func))) {
-	    putil_syserr(2, _T("hash_create()"));
+	    putil_syserr(2, "hash_create()");
 	}
     }
 
@@ -88,7 +88,7 @@ mon_init(void)
 static void
 _mon_verbosity(ca_o ca, CCS action)
 {
-    vb_printf(VB_CA, _T("%s: %s"), action, ca_get_line(ca));
+    vb_printf(VB_CA, "%s: %s", action, ca_get_line(ca));
 }
 
 // This supports debugging/verbosity. It does not delete anything and
@@ -100,24 +100,24 @@ _mon_tostring(void)
     CCS str, result;
     hnode_t *hnp;
     hscan_t hscan;
-    CCS sep = _T("----\n");
+    CCS sep = "----\n";
 
     if (AuditHash) {
-	result = putil_strdup(_T(""));
+	result = putil_strdup("");
 	hash_scan_begin(&hscan, AuditHash);
 	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
 	    size_t num;
 
 	    ca = (ca_o)hnode_get(hnp);
 	    str = ca_toCSVString(ca);
-	    num = _tcslen(result) + _tcslen(str) + _tcslen(sep) + 1;
+	    num = strlen(result) + strlen(str) + strlen(sep) + 1;
 	    result = (CCS)putil_realloc((void *)result, num * CHARSIZE);
-	    _tcscat((CS)result, str);
-	    _tcscat((CS)result, sep);
+	    strcat((CS)result, str);
+	    strcat((CS)result, sep);
 	    putil_free(str);
 	}
     } else {
-	result = putil_strdup(_T("(UNINITIALIZED)"));
+	result = putil_strdup("(UNINITIALIZED)");
     }
 
     return result;
@@ -130,12 +130,12 @@ _mon_tostring(void)
 mon_dump(void)
 {
     CCS str;
-    CCS bars = _T("========================================================\n");
+    CCS bars = "========================================================\n";
 
-    _fputts(bars, stderr);
+    fputs(bars, stderr);
     str = _mon_tostring();
-    _fputts(str, stderr);
-    _fputts(bars, stderr);
+    fputs(str, stderr);
+    fputs(bars, stderr);
     putil_free(str);
 }
 
@@ -185,7 +185,7 @@ _mon_process_ca(ca_o ca)
 
 	    fp = util_open_output_file(ofile);
 
-	    if (_fputts(cabuf, fp) == EOF || _fputts("\n", fp) == EOF) {
+	    if (fputs(cabuf, fp) == EOF || fputs("\n", fp) == EOF) {
 		putil_syserr(0, "fputs(cabuf)");
 	    }
 
@@ -254,7 +254,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
     ck_o ck;
     ca_o ca;
 
-    vb_printf(VB_MON, _T("=%s"), buf);
+    vb_printf(VB_MON, "=%s", buf);
 
     if (buf[0] == '<') {
 	if (buf[1] == 'S' || buf[1] == 's') {		// SOA
@@ -276,7 +276,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		prop_is_true(P_UPLOAD_ONLY) ||
 		prop_is_true(P_AUDIT_ONLY);
 
-	    ca = ca_newFromCSVString(buf + _tcslen(SOA));
+	    ca = ca_newFromCSVString(buf + strlen(SOA));
 	    assert(ca);
 
 	    ck = ck_new_from_ca(ca);
@@ -290,7 +290,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    ca_set_started(ca, 1);
 
 	    if (hash_lookup(AuditHash, ck)) {
-		putil_int(_T("double delivery: '%s'"), ca_toCSVString(ca));
+		putil_int("double delivery: '%s'", ca_toCSVString(ca));
 	    }
 
 	    // Find the immediate ancestor CA, if any. This should have
@@ -334,7 +334,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    if ((hnp = hnode_create(ca))) {
 		hash_insert(AuditHash, hnp, ck);
 	    } else {
-		putil_syserr(2, _T("hnode_create()"));
+		putil_syserr(2, "hnode_create()");
 	    }
 
 	    aggprop = prop_get_str(P_AGGREGATION_STYLE);
@@ -362,28 +362,28 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		    ((cap = re_match__(prog_break_re, prog)) ||
 		     (cap = re_match__(line_break_re, line)))) {
 		    agglevel = AGG_BREAK;
-		    vb_printf(VB_CA, _T("BREAK: [%s] %s"), cap, line);
+		    vb_printf(VB_CA, "BREAK: [%s] %s", cap, line);
 		} else if (pred && ca_has_leader(pred) &&
 			   ca_get_strong(ca_get_leader(pred))) {
 		    // No sense wasting time with REs here - continue strong.
 		    agglevel = AGG_STRONG;
 		} else if ((cap = re_match__(prog_strong_re, prog))) {
 		    agglevel = AGG_STRONG;
-		    vb_printf(VB_CA, _T("MATCH PROG STRONG: [%s] %s"),
+		    vb_printf(VB_CA, "MATCH PROG STRONG: [%s] %s",
 			      cap, line);
 		} else if ((cap = re_match__(line_strong_re, line))) {
 		    agglevel = AGG_STRONG;
-		    vb_printf(VB_CA, _T("MATCH LINE STRONG: [%s] %s"),
+		    vb_printf(VB_CA, "MATCH LINE STRONG: [%s] %s",
 			      cap, line);
 		} else if ((cap = re_match__(prog_weak_re, prog))) {
 		    agglevel = AGG_WEAK;
-		    vb_printf(VB_CA, _T("MATCH PROG WEAK: [%s] %s"), cap, line);
+		    vb_printf(VB_CA, "MATCH PROG WEAK: [%s] %s", cap, line);
 		} else if ((cap = re_match__(line_weak_re, line))) {
 		    agglevel = AGG_WEAK;
-		    vb_printf(VB_CA, _T("MATCH LINE WEAK: [%s] %s"), cap, line);
+		    vb_printf(VB_CA, "MATCH LINE WEAK: [%s] %s", cap, line);
 		} else {
 		    agglevel = AGG_NEUTRAL;
-		    vb_printf(VB_CA, _T("NO MATCH: %s"), line);
+		    vb_printf(VB_CA, "NO MATCH: %s", line);
 		}
 	    }
 
@@ -391,7 +391,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    if (pred && ca_has_leader(pred)) {
 		if (agglevel != AGG_BREAK && ca_get_strong(ca_get_leader(pred))) {
 		    // If the current group is strong, it always wins.
-		    _mon_verbosity(ca, _T("PUSH STRONG"));
+		    _mon_verbosity(ca, "PUSH STRONG");
 		    ca_aggregate(ca_get_leader(pred), ca);
 		} else if (agglevel == AGG_BREAK ||
 			   agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
@@ -409,21 +409,21 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		    // remove references to them from the main table.
 		    _mon_clean_up_ca_table();
 		} else if (agglevel == AGG_NEUTRAL) {
-		    _mon_verbosity(ca, _T("PUSH WEAK"));
+		    _mon_verbosity(ca, "PUSH WEAK");
 		    ca_aggregate(ca_get_leader(pred), ca);
 		} else {
-		    putil_int(_T("impossible agglevel: '%s'"),
+		    putil_int("impossible agglevel: '%s'",
 			      ca_toCSVString(ca));
 		}
 	    } else if (agglevel == AGG_NONE ||
 		       agglevel == AGG_NEUTRAL || agglevel == AGG_BREAK) {
-		_mon_verbosity(ca, _T("SINGULAR"));
+		_mon_verbosity(ca, "SINGULAR");
 	    } else if (agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
 		// Start a new group with ourself as the leader.
-		_mon_verbosity(ca, _T("PUSH NEW"));
+		_mon_verbosity(ca, "PUSH NEW");
 		ca_start_group(ca, agglevel == AGG_STRONG);
 	    } else {
-		putil_int(_T("impossible agg state: '%s'"), ca_toCSVString(ca));
+		putil_int("impossible agg state: '%s'", ca_toCSVString(ca));
 	    }
 
 	    if (ca_is_top(ca)) {
@@ -472,7 +472,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 			rc |= MON_AGG;
 		    }
 		} else {
-		    putil_int(_T("unknown shopping result: %d"), (int)shoprc);
+		    putil_int("unknown shopping result: %d", (int)shoprc);
 		}
 	    }
 	} else if (buf[1] == 'E') {			// EOA
@@ -490,13 +490,13 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    moment_get_systime(&ca_end_time);
 
 	    // Skip past the EOA marker.
-	    csv = buf + _tcslen(EOA);
+	    csv = buf + strlen(EOA);
 
 	    // If a return code is encoded, report and move past it.
 	    if (*csv == '[') {
 		csv++;
 		cmdrc = atoi(csv);
-		csv = _tcschr(csv, ']');
+		csv = strchr(csv, ']');
 		csv++;
 	    } else {
 		cmdrc = 0;
@@ -518,7 +518,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 
 		// Whoops.
 		str = ca_toCSVString(eoa);
-		putil_warn(_T("EOA skew: %s"), str);
+		putil_warn("EOA skew: %s", str);
 		putil_free(str);
 		mon_dump();
 		ca_destroy(eoa);
@@ -597,7 +597,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 
 		// Now we can close the current CA.
 		if (ca_has_leader(curr)) {
-		    _mon_verbosity(curr, _T("CLOSE"));
+		    _mon_verbosity(curr, "CLOSE");
 		    ca_set_closed(curr, 1);
 		} else {
 		    // If not in a group, finish it off directly.
@@ -611,7 +611,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    // group is ready to go, send it.
 	    if (ldr && ca_get_closed(ldr)) {
 		if (ca_get_pending(ldr)) {
-		    putil_warn(_T("audit group closed with %d pending audits"),
+		    putil_warn("audit group closed with %d pending audits",
 			       ca_get_pending(ldr));
 		}
 
@@ -635,7 +635,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		}
 	    }
 	} else {
-	    putil_warn(_T("unrecognized line: %s"), buf);
+	    putil_warn("unrecognized line: %s", buf);
 	    rc = MON_ERR;
 	}
     } else if (ISALPHA(buf[0])) {
@@ -666,7 +666,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    CCS str;
 
 	    str = pa_tostring(pa);
-	    putil_warn(_T("PA skew [%s]"), str);
+	    putil_warn("PA skew [%s]", str);
 	    putil_free(str);
 	    mon_dump();
 	    ck_destroy(ck);
@@ -692,7 +692,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	// This is used when the top-level process can't run at all.
 	rc = MON_CANTRUN;
     } else {
-	putil_warn(_T("unrecognized line: %s"), buf);
+	putil_warn("unrecognized line: %s", buf);
 	rc = MON_ERR;
     }
 
@@ -745,7 +745,7 @@ mon_ptx_start(void)
 {
     char *url;
     struct utsname sysdata;
-    TCHAR rwdbuf[PATH_MAX];
+    char rwdbuf[PATH_MAX];
     CURL *curl;
     int rc = 0;
 
@@ -770,7 +770,7 @@ mon_ptx_start(void)
 	http_add_param(&url, HTTP_OS_RELEASE_PARAM, sysdata.release);
 	http_add_param(&url, HTTP_MACHINE_TYPE_PARAM, sysdata.machine);
     } else {
-	putil_syserr(2, _T("uname"));
+	putil_syserr(2, "uname");
     }
 
     // Provide the starting time from the client's POV. The server
@@ -778,7 +778,7 @@ mon_ptx_start(void)
     // between client and server.
     {
 	moment_s ptx_start_time;
-	TCHAR startbuf[MOMENT_BUFMAX];
+	char startbuf[MOMENT_BUFMAX];
 
 	moment_get_systime(&ptx_start_time);
 	(void)moment_format(ptx_start_time, startbuf, charlen(startbuf));
@@ -815,7 +815,7 @@ mon_ptx_start(void)
     }
 
     if (rc) {
-	putil_die(_T("can't find a server at %s"), prop_get_str(P_SERVER));
+	putil_die("can't find a server at %s", prop_get_str(P_SERVER));
     }
 
     // Initialize the uploader module.
@@ -860,7 +860,7 @@ mon_get_roadmap(void)
 
     prop_assert(P_ROADMAPFILE);
     rmap = prop_get_str(P_ROADMAPFILE);
-    vb_printf(VB_SHOP, _T("GETTING ROADMAP FILE %s"), rmap);
+    vb_printf(VB_SHOP, "GETTING ROADMAP FILE %s", rmap);
 
     if ((fp = fopen(rmap, "wb"))) {
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
@@ -887,7 +887,7 @@ mon_ptx_end(int rc, CCS logfile)
 {
     char *url;
     CURL *curl;
-    TCHAR numbuf[32];
+    char numbuf[32];
 
     if (!prop_has_value(P_SESSIONID)) {
 	return;
@@ -921,10 +921,10 @@ mon_ptx_end(int rc, CCS logfile)
     curl = http_get_curl_handle(1);
 
     // Indicate whether the PTX provided a successful return code.
-    _sntprintf(numbuf, charlen(numbuf), _T("%d"), rc);
+    snprintf(numbuf, charlen(numbuf), "%d", rc);
     http_add_header(curl, X_CLIENT_STATUS_HEADER, numbuf);
 
-    _sntprintf(numbuf, charlen(numbuf), _T("%d"), shop_get_count());
+    snprintf(numbuf, charlen(numbuf), "%d", shop_get_count());
     http_add_header(curl, X_RECYCLED_COUNT_HEADER, numbuf);
 
     (void)http_connect(curl, url, 0);
@@ -952,7 +952,7 @@ mon_fini(void)
 
     if (AuditHash) {
 	if (hash_count(AuditHash)) {
-	    putil_warn(_T("%d audits left over:"),
+	    putil_warn("%d audits left over:",
 		(int)hash_count(AuditHash));
 	    mon_dump();
 	}

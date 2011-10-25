@@ -49,7 +49,7 @@
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
 #define PRINT_ERROR	((opterr) && ((*options != ':') \
 				      || (IGNORE_FIRST && options[1] != ':')))
-#define IS_POSIXLY_CORRECT (_tgetenv(_T("POSIXLY_CORRECT")) != NULL)
+#define IS_POSIXLY_CORRECT (getenv("POSIXLY_CORRECT") != NULL)
 #define PERMUTE         (!IS_POSIXLY_CORRECT && !IGNORE_FIRST)
 /* XXX: GNU ignores PC if *options == '-' */
 #define IN_ORDER        (!IS_POSIXLY_CORRECT && *options == '-')
@@ -60,7 +60,7 @@
 			 || (*options == ':') ? (int)':' : (int)'?')
 #define INORDER (int)1
 
-#define	EMSG	_T("")
+#define	EMSG	""
 
 #define _DIAGASSERT(predicate)	assert(predicate)
 
@@ -70,28 +70,28 @@
  * Gnu like getopt_long() and BSD4.4 getsubopt()/optreset extensions
  */
 
-static int getopt_internal(int, TCHAR * const *, TCHAR *);
+static int getopt_internal(int, char * const *, char *);
 static int gcd(int, int);
-static void permute_args(int, int, int, TCHAR * const *);
+static void permute_args(int, int, int, char * const *);
 
-static TCHAR *place = EMSG; /* option letter processing */
+static char *place = EMSG; /* option letter processing */
 
 /* XXX: set optreset to 1 rather than these two */
 static int nonopt_start = -1; /* first non option argument (for permute) */
 static int nonopt_end = -1;   /* first option after non options (for permute) */
 
 /* Error messages */
-static const TCHAR recargchar[] = _T("option requires an argument -- %c");
-static const TCHAR recargstring[] = _T("option requires an argument -- %s");
-static const TCHAR ambig[] = _T("ambiguous option -- %.*s");
-static const TCHAR noarg[] = _T("option doesn't take an argument -- %.*s");
-static const TCHAR illoptchar[] = _T("unknown option -- %c");
-static const TCHAR illoptstring[] = _T("unknown option -- %s");
+static const char recargchar[] = "option requires an argument -- %c";
+static const char recargstring[] = "option requires an argument -- %s";
+static const char ambig[] = "ambiguous option -- %.*s";
+static const char noarg[] = "option doesn't take an argument -- %.*s";
+static const char illoptchar[] = "unknown option -- %c";
+static const char illoptstring[] = "unknown option -- %s";
 
 /*
  * DSB: Hacks to override the same names in libc.
  */
-TCHAR *bsd_optarg;
+char *bsd_optarg;
 #define optarg bsd_optarg
 int bsd_optopt;
 #define optopt bsd_optopt
@@ -132,10 +132,10 @@ gcd(int a, int b)
  */
 static void
 permute_args(int panonopt_start, int panonopt_end, int opt_end,
-	     TCHAR * const *nargv)
+	     char * const *nargv)
 {
 	int cstart, cyclelen, i, j, ncycle, nnonopts, nopts, pos;
-	TCHAR *swap;
+	char *swap;
 
 	_DIAGASSERT(nargv != NULL);
 
@@ -157,9 +157,9 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
 				pos += nopts;
 			swap = nargv[pos];
 			/* LINTED const cast */
-			((TCHAR **) nargv)[pos] = nargv[cstart];
+			((char **) nargv)[pos] = nargv[cstart];
 			/* LINTED const cast */
-			((TCHAR **)nargv)[cstart] = swap;
+			((char **)nargv)[cstart] = swap;
 		}
 	}
 }
@@ -170,9 +170,9 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
  *  Returns -2 if -- is found (can be long option or end of options marker).
  */
 static int
-getopt_internal(int nargc, TCHAR * const *nargv, TCHAR *options)
+getopt_internal(int nargc, char * const *nargv, char *options)
 {
-	TCHAR *oli;				/* option letter list index */
+	char *oli;				/* option letter list index */
 	int optchar;
 
 	_DIAGASSERT(nargv != NULL);
@@ -251,7 +251,7 @@ start:
 		}
 	}
 	if ((optchar = (int)*place++) == (int)':' ||
-	    (oli = _tcschr(options + (IGNORE_FIRST ? 1 : 0), optchar)) == NULL) {
+	    (oli = strchr(options + (IGNORE_FIRST ? 1 : 0), optchar)) == NULL) {
 		/* option letter unknown or ':' */
 		if (!*place)
 			++optind;
@@ -309,7 +309,7 @@ start:
  *	Parse argc/argv argument vector.
  */
 int
-bsd_getopt(int nargc, TCHAR * const *nargv, const TCHAR *options,
+bsd_getopt(int nargc, char * const *nargv, const char *options,
 	    const struct option *long_options, int *idx)
 {
 	int retval;
@@ -319,8 +319,8 @@ bsd_getopt(int nargc, TCHAR * const *nargv, const TCHAR *options,
 	_DIAGASSERT(long_options != NULL);
 	/* idx may be NULL */
 
-	if ((retval = getopt_internal(nargc, nargv, (TCHAR *)options)) == -2) {
-		TCHAR *current_argv, *has_equal;
+	if ((retval = getopt_internal(nargc, nargv, (char *)options)) == -2) {
+		char *current_argv, *has_equal;
 		size_t current_argv_len;
 		int i, match;
 
@@ -343,20 +343,20 @@ bsd_getopt(int nargc, TCHAR * const *nargv, const TCHAR *options,
 			nonopt_start = nonopt_end = -1;
 			return -1;
 		}
-		if ((has_equal = _tcschr(current_argv, '=')) != NULL) {
+		if ((has_equal = strchr(current_argv, '=')) != NULL) {
 			/* argument found (--option=arg) */
 			current_argv_len = has_equal - current_argv;
 			has_equal++;
 		} else
-			current_argv_len = _tcslen(current_argv);
+			current_argv_len = strlen(current_argv);
 	    
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
-			if (_tcsncmp(current_argv, long_options[i].name,
+			if (strncmp(current_argv, long_options[i].name,
 			    current_argv_len))
 				continue;
 
-			if (_tcslen(long_options[i].name) ==
+			if (strlen(long_options[i].name) ==
 			    (unsigned)current_argv_len) {
 				/* exact match */
 				match = i;

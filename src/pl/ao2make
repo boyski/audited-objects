@@ -30,7 +30,7 @@ sub syserr {
 }
 
 my %opt;
-GetOptions(\%opt, qw(base=s dbg existing-only full NOGNU help
+GetOptions(\%opt, qw(base=s BaseVar=s dbg existing-only full NOGNU help
     ext=s members-only MF|output-file=s pdump|PDUMP Parallel vars=s));
 
 pod2usage(1) if $opt{help};
@@ -185,7 +185,7 @@ while (<>) {
     }
 }
 
-my $BaseVar = 'BASE_DIR';
+my $BaseVar = $opt{BaseVar} || 'BASE_DIR';
 my $BaseMacro = expand($BaseVar);
 my $Indent = '  ';
 my $Colon = ':';
@@ -218,6 +218,7 @@ sub parameterize {
 # Takes a parameterized, possibly quoted path and returns the original
 # string form which can be opened or tested with -f.
 sub deparameterize {
+    ## TODO - figure out how to eval $BaseVar into the RE.
     (my $path = shift) =~ s%\${BASE_DIR}%$BaseDir%;
     $path =~ s%"$%% if $path =~ s%^"%%;
     return $path;
@@ -652,8 +653,8 @@ ao2make - Generate a Makefile from AO audit data
 
    -help		Print this message and exit
    -base dir		Specify the root dir (default: cwd)
-   -ext string		The extension for prereq fragment files
-   -full		Generate a useable makefile
+   -ext string		The extension for prereq fragment files (default: .d)
+   -full		Generate a useable makefile (default: dependencies only)
    -members-only	Ignore files which are not project members
    -MF file		Create a Makefile in the specified file
    -pdump 		(with -full) Use variables extracted from GNU "make -p"

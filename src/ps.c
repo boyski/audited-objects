@@ -40,7 +40,7 @@
 #include "curl/curl.h"
 
 /// @cond static
-#define	PS_NO_DCODE			_T("")
+#define	PS_NO_DCODE			""
 /// @endcond static
 
 /// Related to but subtly different from PA ops. These describe a
@@ -125,7 +125,7 @@ ps_newFromCSVString(CCS csv)
 	    !(mode = util_strsep(&linebuf, FS1)) ||
 	    !(dcode = util_strsep(&linebuf, FS1)) ||
 	    !(target = util_strsep(&linebuf, FS1))) {
-	putil_int(_T("bad format: '%s'"), csv);
+	putil_int("bad format: '%s'", csv);
 	putil_free(original);
 	return NULL;
     }
@@ -136,8 +136,8 @@ ps_newFromCSVString(CCS csv)
     ps_set_datatype(ps, *datatype);
     ps_set_fsname(ps, fsname && *fsname != '?' ? fsname : NULL);
     ps_set_moment_str(ps, moment);
-    ps_set_size(ps, _tcstoul(size, NULL, 10));
-    ps_set_mode(ps, _tcstoul(mode, NULL, CSV_RADIX));
+    ps_set_size(ps, strtoul(size, NULL, 10));
+    ps_set_mode(ps, strtoul(mode, NULL, CSV_RADIX));
     ps_set_dcode(ps, dcode);
 
     // The link target is URL-encoded in CSV format.
@@ -264,7 +264,7 @@ ps_dcode_cache_init(void)
 	moment_get_systime(&Ref_Time);
 	if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX,
 					     util_pathcmp, NULL))) {
-	    putil_syserr(2, _T("hash_create(Dcode_Hash_Table)"));
+	    putil_syserr(2, "hash_create(Dcode_Hash_Table)");
 	}
     }
 }
@@ -301,11 +301,11 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
     if (Dcode_Hash_Table && (Dcode_Offset == 0 ||
 			     (ps->ps_moment.ntv_sec <
 			      (Ref_Time.ntv_sec - Dcode_Offset)))) {
-	TCHAR mtime[MOMENT_BUFMAX];
+	char mtime[MOMENT_BUFMAX];
 
 	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	if (asprintf(&key, _T("%") _T(PRIu64) _T("%s%s%s%s"),
+	if (asprintf(&key, "%" PRIu64 "%s%s%s%s",
 			   ps->ps_size, FS1, mtime, FS1, path) < 0) {
 	    putil_syserr(2, NULL);
 	}
@@ -317,16 +317,16 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
 static CCS
 _ps_get_cached_dcode(ps_o ps, CCS path)
 {
-    TCHAR keybuf[PATH_MAX * 2];
+    char keybuf[PATH_MAX * 2];
     hnode_t *hnp;
     CCS dcode;
 
     if (Dcode_Hash_Table) {
-	TCHAR mtime[MOMENT_BUFMAX];
+	char mtime[MOMENT_BUFMAX];
 
 	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	_sntprintf(keybuf, charlen(keybuf), _T("%") _T(PRIu64) _T("%s%s%s%s"),
+	snprintf(keybuf, charlen(keybuf), "%" PRIu64 "%s%s%s%s",
 		   ps->ps_size, FS1, mtime, FS1, path);
 	if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
 	    dcode = (CCS)hnode_get(hnp);
@@ -432,7 +432,7 @@ ps_stat(ps_o ps, int want_dcode)
     path = ps_get_abs(ps);	// convenience
 
     // Delay return on a failure here till the fsname is determined.
-    statrc = _tlstat64(path, &stbuf);
+    statrc = lstat64(path, &stbuf);
 
     // No need to derive the fs name twice. File contents and metadata
     // can change, but we assume the name of the filesystem within which
@@ -444,7 +444,7 @@ ps_stat(ps_o ps, int want_dcode)
     // be that bad after all, so if ever needed we should start by just
     // enabling it and measuring the effect.
     if (0 && !ps_get_fsname(ps)) {
-	TCHAR fs[PATH_MAX + 1];
+	char fs[PATH_MAX + 1];
 
 	ino_t midway;
 
@@ -460,8 +460,8 @@ ps_stat(ps_o ps, int want_dcode)
 	// show up as large positive numbers.
 	// Record the distinction because it may be useful.
 	midway = ((ino_t) - 1) / 2;
-	if (!statrc && stbuf.st_ino > midway && !_tcscmp(fs, _T("mvfs"))) {
-	    ps_set_fsname(ps, _T("mvfs-vp"));
+	if (!statrc && stbuf.st_ino > midway && !strcmp(fs, "mvfs")) {
+	    ps_set_fsname(ps, "mvfs-vp");
 	} else {
 	    ps_set_fsname(ps, fs);
 	}
@@ -504,7 +504,7 @@ ps_stat(ps_o ps, int want_dcode)
     if (want_dcode) {
 	CCS dcode;
 
-	TCHAR dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
+	char dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
 	if (ps_is_file(ps)) {
 	    if ((dcode = _ps_get_cached_dcode(ps, path))) {
@@ -522,7 +522,7 @@ ps_stat(ps_o ps, int want_dcode)
 	    // For symlinks, we use the target as the "file contents".
 	    tgt = ps_get_target(ps);
 	    if ((dcode = code_from_buffer((const unsigned char *)tgt,
-					  _tcslen(tgt), path, dcbuf,
+					  strlen(tgt), path, dcbuf,
 					  sizeof(dcbuf)))) {
 		ps_set_dcode(ps, dcode);
 		_ps_set_cached_dcode(ps, path);
@@ -557,17 +557,17 @@ ps_diff(ps_o ps1, ps_o ps2)
     CCS reason = NULL;
 
     if (ps1->ps_datatype != ps2->ps_datatype) {
-	reason = _T("type");
+	reason = "type";
     } else if (ps1->ps_size != ps2->ps_size) {
-	reason = _T("size");
-    } else if (_tcscmp(ps_get_abs(ps1), ps_get_abs(ps2))) {
-	reason = _T("path");
+	reason = "size";
+    } else if (strcmp(ps_get_abs(ps1), ps_get_abs(ps2))) {
+	reason = "path";
     } else if (ps_has_dcode(ps1) && ps_has_dcode(ps2)) {
-	if (_tcscmp(ps1->ps_dcode, ps2->ps_dcode)) {
-	    reason = _T("dcode");
+	if (strcmp(ps1->ps_dcode, ps2->ps_dcode)) {
+	    reason = "dcode";
 	}
     } else if (moment_cmp(ps1->ps_moment, ps2->ps_moment, NULL)) {
-	reason = _T("moment");
+	reason = "moment";
     }
 
     return reason;
@@ -604,8 +604,8 @@ int
 ps_toCSVString(ps_o ps, CS buf, int bufmax)
 {
     CCS fsname, target;
-    TCHAR modebuf[32];
-    TCHAR mtime[MOMENT_BUFMAX];
+    char modebuf[32];
+    char mtime[MOMENT_BUFMAX];
 
     int len;
 
@@ -623,22 +623,22 @@ ps_toCSVString(ps_o ps, CS buf, int bufmax)
     }
 
     // *INDENT-OFF*
-    len = _sntprintf(buf, bufmax,
-		    _T("%c%s")			// 1 - DATATYPE
-		    _T("%s%s")			// 2 - FSNAME
-		    _T("%s%s")			// 2 - MTIME
-		    _T("%") _T(PRIu64) _T("%s")	// 4 - SIZE
-		    _T("%s%s")			// 5 - MODE
-		    _T("%s%s")			// 6 - DCODE
-		    _T("%s%s")			// 7 - LINK TARGET
-		    _T("%s"),			// 8 - PNAME
+    len = snprintf(buf, bufmax,
+		    "%c%s"			// 1 - DATATYPE
+		    "%s%s"			// 2 - FSNAME
+		    "%s%s"			// 2 - MTIME
+		    "%" PRIu64 "%s"		// 4 - SIZE
+		    "%s%s"			// 5 - MODE
+		    "%s%s"			// 6 - DCODE
+		    "%s%s"			// 7 - LINK TARGET
+		    "%s",			// 8 - PNAME
 	    ps->ps_datatype, FS1,
-	    (fsname && *fsname) ? fsname : _T("?"), FS1,
+	    (fsname && *fsname) ? fsname : "?", FS1,
 	    mtime, FS1,
 	    ps_get_size(ps), FS1,
 	    modebuf, FS1,
 	    ps_get_dcode(ps), FS1,
-	    target ? target : _T(""), FS1,
+	    target ? target : "", FS1,
 	    ps_get_rel(ps));
     // *INDENT-ON*
 
@@ -647,7 +647,7 @@ ps_toCSVString(ps_o ps, CS buf, int bufmax)
     if (len < 0 || len > bufmax) {
 	buf[bufmax - 1] = '\0';
 	putil_syserr(0, buf);
-	len = _tcslen(buf);
+	len = strlen(buf);
     }
 
     return len;
@@ -673,20 +673,20 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, int bufmax)
     buf[0] = '\0';
 
     if (sflag) {
-	len = _sntprintf(buf, bufmax, _T("%-7s %s\n"), ps_get_dcode(ps), path);
+	len = snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
     } else if (lflag) {
-	TCHAR mtime[MOMENT_BUFMAX];
+	char mtime[MOMENT_BUFMAX];
 
 	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	len = _sntprintf(buf, bufmax, _T("dcode=%-7s size=%-10") _T(PRIu64)
-			 _T(" moment=%s %s\n"),
+	len = snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
+			 " moment=%s %s\n",
 			 ps_get_dcode(ps),
 			 ps_get_size(ps),
 			 mtime,
 			 path);
     } else {
-	len = _sntprintf(buf, bufmax, _T("%-7s %-10") _T(PRIu64) _T(" %s\n"),
+	len = snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
 			 ps_get_dcode(ps),
 			 ps_get_size(ps),
 			 path);
@@ -695,7 +695,7 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, int bufmax)
     if (len < 0 || len > bufmax) {
 	buf[bufmax - 1] = '\0';
 	putil_syserr(0, buf);
-	len = _tcslen(buf);
+	len = strlen(buf);
     }
 
     return len;
@@ -707,7 +707,7 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, int bufmax)
 CCS
 ps_tostring(ps_o ps)
 {
-    TCHAR line[(PATH_MAX * 2) + 256];
+    char line[(PATH_MAX * 2) + 256];
 
     line[0] = '\0';
 

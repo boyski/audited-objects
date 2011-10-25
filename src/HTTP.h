@@ -133,7 +133,7 @@ typedef struct {
     struct curl_slist *ci_extra_headers; ///< a list of added HTTP headers
     void *ci_malloced;			 ///< pointer to be freed at cleanup
     void *ci_mapaddr;			 ///< address to be unmapped at cleanup
-    unsigned long ci_mapsize;		 ///< size of mapped region if set
+    uint64_t ci_mapsize;		 ///< size of mapped region if set
     char ci_errbuf[CURL_ERROR_SIZE];	 ///< buffer for error messages
     char *ci_verbosity;			 ///< optional verbosity message
 } conn_info_s;

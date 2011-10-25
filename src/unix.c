@@ -108,7 +108,7 @@ _sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_RESETHAND;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-	putil_syserr(2, _T("sigaction(SIGCHLD)"));
+	putil_syserr(2, "sigaction(SIGCHLD)");
     }
 
     // Debug feature: dump the current audit DB upon catching a signal.
@@ -117,7 +117,7 @@ _sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-	putil_syserr(2, _T("sigaction(SIGUSR1)"));
+	putil_syserr(2, "sigaction(SIGUSR1)");
     }
 }
 
@@ -174,7 +174,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int sockmin = 3, sockmax;
     fd_set master_read_fds;
     int sret;
-    TCHAR parent[PATH_MAX], grandparent[PATH_MAX];
+    char parent[PATH_MAX], grandparent[PATH_MAX];
     int sync_pipe[2];
     int wstat = 0;
 
@@ -229,7 +229,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // we simply run the specified command, wait for it, and return.
     if (prop_is_true(P_EXECUTE_ONLY)) {
 	if ((childpid = fork()) < 0) {
-	    putil_syserr(2, _T("fork"));
+	    putil_syserr(2, "fork");
 	} else if (childpid == 0) {
 	    execvp(path, argv);
 	    putil_syserr(2, path);
@@ -289,14 +289,14 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     listener = socket(PF_INET, SOCK_STREAM, 0);
     if (listener == INVALID_SOCKET) {
-	putil_syserr(2, _T("socket"));
+	putil_syserr(2, "socket");
     }
 
     // Apparently this will not cause TIME_WAIT to go away but it
     // does keep it from hurting us.
     if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR,
 		   &reuseaddr, sizeof(reuseaddr)) == SOCKET_ERROR) {
-	putil_syserr(2, _T("SO_REUSEADDR"));
+	putil_syserr(2, "SO_REUSEADDR");
     }
 
     // Starting with the default base port, search upwards till we find
@@ -322,12 +322,12 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	if (errno == EADDRINUSE) {
 	    prop_override_ulong(P_CLIENT_PORT, pport + 1);
 	} else {
-	    putil_syserr(2, _T("bind"));
+	    putil_syserr(2, "bind");
 	}
     }
 
     if ((childpid = fork()) < 0) {
-	putil_syserr(2, _T("fork"));
+	putil_syserr(2, "fork");
     } else if (childpid == 0) {
 	char sync_buf[2];
 	struct sockaddr_in dest_addr;
@@ -353,13 +353,13 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	execvp(path, argv);
 
 	// Give an error if we were unable to exec at all.
-	putil_die(_T("%s: %s"), path, strerror(errno));
+	putil_die("%s: %s", path, strerror(errno));
 
 	// The parent will be blocking on the listening socket and needs
 	// to hear from us on exec error. Send a special code telling
 	// it to shut down gracefully.
 	if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
-	    putil_syserr(2, _T("socket()"));
+	    putil_syserr(2, "socket()");
 	}
 
 	memset(&dest_addr, 0, sizeof(dest_addr));
@@ -369,7 +369,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 	if ((connect(nfd, (struct sockaddr *)&dest_addr,
 		     sizeof(struct sockaddr))) == -1) {
-	    putil_syserr(2, _T("connect()"));
+	    putil_syserr(2, "connect()");
 	}
 
 	// Tell the parent to abort the mission.
@@ -396,7 +396,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     _maximize_fds();
 
     if (listen(listener, 10) == SOCKET_ERROR) {
-	putil_syserr(2, _T("listen"));
+	putil_syserr(2, "listen");
     }
 
     // Perform any one-time initializations related to the monitor.
@@ -448,7 +448,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		continue;
 	    }
 #endif	/*!EINTR*/
-	    putil_syserr(2, _T("select"));
+	    putil_syserr(2, "select");
 	} else {
 	    // We like to ping the server once in a while, partly
 	    // to make sure it's still there but primarily to keep
@@ -474,7 +474,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 	    // Accept a new connection.
 	    if ((newfd = accept(listener, NULL, NULL)) == INVALID_SOCKET) {
-		putil_syserr(2, _T("accept"));
+		putil_syserr(2, "accept");
 	    }
 
 	    // Add it to the master set
@@ -559,7 +559,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		    } else if (monrc & MON_EOA) {
 			// Nothing more to do - end processing handled elsewhere
 		    } else {
-			putil_warn(_T("unrecognized line '%s'"), line);
+			putil_warn("unrecognized line '%s'", line);
 		    }
 		}
 	    }

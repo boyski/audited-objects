@@ -24,7 +24,7 @@
 #include "MAKE.h"
 #include "PA.h"
 
-static TCHAR MakeCmd[PATH_MAX * 4 + 256];
+static char MakeCmd[PATH_MAX * 4 + 256];
 static CS MakeFragment;
 static FILE *MakeFP;
 
@@ -40,7 +40,7 @@ make_init(CCS exe)
     // .ONESHELL, no harm done, but we almost always want make
     // to use .ONESHELL if available.
     if (prop_is_true(P_MAKE_ONESHELL)) {
-	TCHAR exedir[PATH_MAX], appdir[PATH_MAX];
+	char exedir[PATH_MAX], appdir[PATH_MAX];
 	CS ev;
 
 	putil_dirname(exe, exedir);
@@ -52,7 +52,7 @@ make_init(CCS exe)
 	asprintf(&MakeFragment, "%s/etc/%s.mk", appdir, prop_get_app());
 #endif	/*_WIN32*/
 
-	if (!_taccess(MakeFragment, F_OK)) {
+	if (!access(MakeFragment, F_OK)) {
 	    CS mf;
 
 	    if ((mf = putil_getenv("MAKEFILES"))) {
@@ -69,13 +69,13 @@ make_init(CCS exe)
 	    MakeFragment = NULL;
 	}
     } else {
-	putil_warn(_T("not requesting .ONESHELL mode"));
+	putil_warn("not requesting .ONESHELL mode");
     }
 #endif	/*_WIN32*/
 
     if ((str = prop_get_str(P_MAKE_FILE))
 	    || prop_has_value(P_MAKE_DEPENDS)) {
-	TCHAR buf[PATH_MAX];
+	char buf[PATH_MAX];
 	const char *perl;
 
 	if (!(perl = prop_get_str(P_PERL_CMD)) &&
@@ -109,7 +109,7 @@ make_init(CCS exe)
 	while ((t = util_strsep(&s2, "\n"))) {
 	    if (*t == 'm') {
 		snprintf((p = endof(MakeCmd)), leftlen(MakeCmd), " %s", t + 2);
-		if ((p = _tcschr(p, ','))) {
+		if ((p = strchr(p, ','))) {
 		    *p++ = ' ';
 		}
 	    }
@@ -125,7 +125,7 @@ make_init(CCS exe)
 	fprintf(stderr, "+ %s\n", MakeCmd);
     }
 
-    if (!(MakeFP = _tpopen(MakeCmd, _T("w")))) {
+    if (!(MakeFP = popen(MakeCmd, "w"))) {
 	exit(2);
     }
 }
@@ -138,7 +138,7 @@ make_file(ca_o ca)
     CCS cmdbuf;
     
     if (MakeFP && (cmdbuf = ca_toCSVString(ca))) {
-	if (_fputts(cmdbuf, MakeFP) == EOF || _fputts("\n", MakeFP) == EOF) {
+	if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
 	    putil_syserr(0, "fputs(cmdbuf)");
 	}
 	putil_free(cmdbuf);

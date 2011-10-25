@@ -195,7 +195,7 @@ pa_newFromCSVString(CCS csv)
 	    !(tid        = util_strsep(&linebuf, FS1)) ||
 	    !(pccode     = util_strsep(&linebuf, FS1)) ||
 	    !(ccode      = util_strsep(&linebuf, FS1))) {
-	putil_int(_T("bad format: '%s'"), csv);
+	putil_int("bad format: '%s'", csv);
 	putil_free(original);
 	return NULL;
     }
@@ -205,14 +205,14 @@ pa_newFromCSVString(CCS csv)
     pa_set_op(pa, (op_e)op[0]);	// op is just one char
     pa_set_call(pa, call);
     if (pa_set_timestamp_str(pa, timestamp)) {
-	putil_int(_T("bad format: %s"), timestamp);
+	putil_int("bad format: %s", timestamp);
 	putil_free(original);
 	return NULL;
     }
-    pa_set_pid(pa, _tcstoul(pid, NULL, 10));
-    pa_set_depth(pa, _tcstoul(depth, NULL, 10));
-    pa_set_ppid(pa, _tcstoul(ppid, NULL, 10));
-    pa_set_tid(pa, _tcstoul(tid, NULL, 10));
+    pa_set_pid(pa, strtoul(pid, NULL, 10));
+    pa_set_depth(pa, strtoul(depth, NULL, 10));
+    pa_set_ppid(pa, strtoul(ppid, NULL, 10));
+    pa_set_tid(pa, strtoul(tid, NULL, 10));
     pa_set_pccode(pa, pccode);
     pa_set_ccode(pa, ccode);
 
@@ -235,21 +235,21 @@ int
 pa_toCSVString(pa_o pa, CS buf, int bufmax)
 {
     int len;
-    TCHAR timestamp[MOMENT_BUFMAX];
+    char timestamp[MOMENT_BUFMAX];
 
     (void)moment_format(pa->pa_timestamp, timestamp, charlen(timestamp));
 
     // *INDENT-OFF*
-    len = _sntprintf(buf, bufmax,
-		_T("%c%s")		// 1  - OP
-		_T("%s%s")		// 2  - CALL
-		_T("%s%s")		// 3  - TIMESTAMP
-		_T("%lu%s")		// 4  - PID
-		_T("%lu%s")		// 5  - DEPTH
-		_T("%lu%s")		// 6  - PPID
-		_T("%lu%s")		// 7  - TID
-		_T("%s%s")		// 8  - PCCODE
-		_T("%s%s"),		// 9  - CCODE
+    len = snprintf(buf, bufmax,
+		"%c%s"		// 1  - OP
+		"%s%s"		// 2  - CALL
+		"%s%s"		// 3  - TIMESTAMP
+		"%lu%s"		// 4  - PID
+		"%lu%s"		// 5  - DEPTH
+		"%lu%s"		// 6  - PPID
+		"%lu%s"		// 7  - TID
+		"%s%s"		// 8  - PCCODE
+		"%s%s",		// 9  - CCODE
 	pa->pa_op, FS1,
 	pa->pa_call, FS1,
 	timestamp, FS1,
@@ -272,11 +272,11 @@ pa_toCSVString(pa_o pa, CS buf, int bufmax)
 	    buf[bufmax - 1] = '\0';
 	    putil_syserr(0, buf);
 	} else {
-	    _tcscpy(buf + len + pslen, _T("\n"));
+	    strcpy(buf + len + pslen, "\n");
 	}
     }
 
-    return _tcslen(buf);
+    return strlen(buf);
 }
 
 /// Format a PathAction for user consumption (typically debugging)
@@ -285,12 +285,12 @@ pa_toCSVString(pa_o pa, CS buf, int bufmax)
 CCS
 pa_tostring(pa_o pa)
 {
-    TCHAR line[(PATH_MAX * 2) + 256];
+    char line[(PATH_MAX * 2) + 256];
 
     if (pa_exists(pa)) {
 	line[0] = '\0';
     } else {
-	_tcscpy(line, "(GONE) ");
+	strcpy(line, "(GONE) ");
     }
 
     (void)pa_toCSVString(pa, endof(line), leftlen(line));

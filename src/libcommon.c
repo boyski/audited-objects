@@ -104,7 +104,7 @@ static enum {
 
 /// Convenience macro - send entire buffer, abort if unable to.
 #define SEND(sock,buf,len)						\
-    if (util_send_all(sock, buf, len, 0) < 0) { putil_syserr(2, _T("send")); }
+    if (util_send_all(sock, buf, len, 0) < 0) { putil_syserr(2, "send"); }
 
 static void _audit_end(CCS, int, long);
 
@@ -163,7 +163,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
     pa_o pa;
 
     if (!_auditor_isActive()) {
-	vb_printf(VB_REC, _T("not active: %c,%s,%s"), op, call, path);
+	vb_printf(VB_REC, "not active: %c,%s,%s", op, call, path);
 	return;
     }
 
@@ -172,17 +172,17 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 
     if (_ignore_path(path)) {
 	// We needed to derive a fully qualified path before doing this check.
-	vb_printf(VB_REC, _T("ignoring: %c,%s,%s"), op, call, path);
+	vb_printf(VB_REC, "ignoring: %c,%s,%s", op, call, path);
 	pn_destroy(pn);
     } else if (!CurrentCA) {
 	// This was moved down to after _ignore_path() to avoid
 	// certain funky loops, such as when ao is run under the OS X
 	// malloc debugger which writes a malloc_history file into /tmp
 	// during exit processing.
-	putil_int(_T("PA after EOA: call=%s pid=%lu path=%s"),
+	putil_int("PA after EOA: call=%s pid=%lu path=%s",
 		  call, (unsigned long)getpid(), path);
     } else {
-	vb_printf(VB_REC, _T("recording: %c,%s,%s"), op, call, path);
+	vb_printf(VB_REC, "recording: %c,%s,%s", op, call, path);
 
 	pa = pa_new();
 	pa_set_op(pa, op);
@@ -284,13 +284,13 @@ _socket_open(SOCKET *sockp, CCS call)
 
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = PF_INET;
-    dest_addr.sin_addr.s_addr = inet_addr(prop_get_strA(P_CLIENT_HOST));
+    dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_CLIENT_HOST));
     dest_addr.sin_port = htons((u_short)prop_get_ulong(P_CLIENT_PORT));
 
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-	TCHAR host_port[256];
+	char host_port[256];
 
-	_sntprintf(host_port, charlen(host_port), _T("socket(%s:%lu) [%s]"),
+	snprintf(host_port, charlen(host_port), "socket(%s:%lu) [%s]",
 		   prop_get_str(P_CLIENT_HOST), prop_get_ulong(P_CLIENT_PORT),
 		   call);
 	putil_syserr(2, host_port);
@@ -312,9 +312,9 @@ _socket_open(SOCKET *sockp, CCS call)
 	}
 #endif	/*_WIN32*/
 
-	TCHAR host_port[256];
+	char host_port[256];
 
-	_sntprintf(host_port, charlen(host_port), _T("connect(%s:%lu)"),
+	snprintf(host_port, charlen(host_port), "connect(%s:%lu)",
 		   prop_get_str(P_CLIENT_HOST), prop_get_ulong(P_CLIENT_PORT));
 	putil_syserr(2, host_port);
     }
@@ -369,9 +369,9 @@ _audit_open(void)
 	CCS ofile;
 
 	if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
-	    if (!_tcscmp(ofile, _T("-"))) {
+	    if (!strcmp(ofile, "-")) {
 		fd = STDOUT_FILENO;
-	    } else if (!_tcscmp(ofile, _T("="))) {
+	    } else if (!strcmp(ofile, "=")) {
 		fd = STDERR_FILENO;
 	    } else {
 #if defined(_WIN32)
@@ -382,9 +382,9 @@ _audit_open(void)
 		// If not, make a new file with the pid appended.
 		fd = open_real(ofile, O_WRONLY | O_APPEND, 0);
 		if (fd == -1) {
-		    TCHAR obuf[PATH_MAX];
+		    char obuf[PATH_MAX];
 
-		    _sntprintf(obuf, charlen(obuf), _T("%s.%ld"),
+		    snprintf(obuf, charlen(obuf), "%s.%ld",
 			       ofile, (unsigned long)getpid());
 		    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
 		    if (fd == -1) {
@@ -411,8 +411,8 @@ _audit_open(void)
 	// other situations too. We step carefully here to avoid
 	// falling into the CreateFile hook.
 	for (fd = -1, i = 0; fd == -1 && i < 10; i++) {
-	    if (!(tfn = _ttempnam(NULL, _T("ao.")))) {
-		putil_syserr(2, _T("tempnam()"));
+	    if (!(tfn = _ttempnam(NULL, "ao."))) {
+		putil_syserr(2, "tempnam()");
 	    }
 	    fh = CreateFileA_real(tfn,
 				  GENERIC_READ | GENERIC_WRITE | DELETE,
@@ -424,13 +424,13 @@ _audit_open(void)
 		putil_win32err(2, GetLastError(), tfn);
 	    }
 	    if ((fd = _open_osfhandle((intptr_t)fh, _O_RDWR)) == -1) {
-		putil_syserr(2, _T("_open_osfhandle()"));
+		putil_syserr(2, "_open_osfhandle()");
 	    }
 	    free(tfn);
 	}
 
 	if (fd == -1) {
-	    putil_syserr(2, _T("tempnam()"));
+	    putil_syserr(2, "tempnam()");
 	}
 #else	/*_WIN32*/
 	FILE *tfp;
@@ -441,7 +441,7 @@ _audit_open(void)
 	// so we convert it to a high-numbered descriptor and close
 	// the stream.
 	if (!(tfp = tmpfile())) {
-	    putil_syserr(2, _T("tmpfile"));
+	    putil_syserr(2, "tmpfile");
 	}
 
 	// If our preferred fd is not in use, try using it.
@@ -462,13 +462,13 @@ _audit_open(void)
 	// for the next available descriptor.
 	if (fd == -1) {
 	    if ((fd = dup(fileno(tfp))) == -1) {
-		putil_syserr(2, _T("dup"));
+		putil_syserr(2, "dup");
 	    }
 	}
 
 	// Now the stream can go away to preserve limited stdio count.
 	if (fclose(tfp)) {
-	    putil_syserr(2, _T("fclose"));
+	    putil_syserr(2, "fclose");
 	}
 
 	// Each new cmd and/or process must create its own temp file.
@@ -493,7 +493,7 @@ _audit_start(CCS call)
 
     // Allocate and format the cmdline SOA header.
     hdr = ca_format_header(CurrentCA);
-    if (!hdr || asprintf(&soa_hdr, _T("%s%s"), SOA, hdr) < 0) {
+    if (!hdr || asprintf(&soa_hdr, "%s%s", SOA, hdr) < 0) {
 	putil_syserr(2, NULL);
     }
     putil_free(hdr);
@@ -525,7 +525,7 @@ _audit_start(CCS call)
 	// way around it, either by keeping the socket open or
 	// allowing SOA to be sent in the same packet as EOA.
 	_socket_open(&ReportSocket, call);
-	SEND(ReportSocket, soa_hdr, _tcslen(soa_hdr));
+	SEND(ReportSocket, soa_hdr, strlen(soa_hdr));
 
 	// Block until monitor acknowledges receipt of SOA.
 	// This is needed to make sure it doesn't see EOA first.
@@ -542,7 +542,7 @@ _audit_start(CCS call)
 		    continue;
 		}
 #endif	/*!EINTR*/
-		putil_syserr(2, _T("recv(ack_soa)"));
+		putil_syserr(2, "recv(ack_soa)");
 		break;
 	    } else if (ret == 0) {
 		break;
@@ -561,7 +561,7 @@ _audit_start(CCS call)
 	    ack_soa, ca_get_line(CurrentCA));
 
 	if (!strcmp(ack_soa, ACK_FAILURE)) {
-	    _audit_end(_T("exit"), EXITING, 2);
+	    _audit_end("exit", EXITING, 2);
 	    exit(2);
 	} else if (!strcmp(ack_soa, ACK_OK_AGG)) {
 	    // Optimization: suppress shopping in aggregated children.
@@ -583,12 +583,12 @@ _audit_start(CCS call)
 	    // Exiting is VERY tricky here with all the variants
 	    // and hooks.
 	    // This seems to work but could maybe be done better.
-	    _audit_end(_T("exit"), EXITING, 0);
+	    _audit_end("exit", EXITING, 0);
 	    exit(0);
 	}
     } else {
-	if (write(AuditFD, soa_hdr, _tcslen(soa_hdr)) == -1) {
-	    putil_syserr(2, _T("write"));
+	if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
+	    putil_syserr(2, "write");
 	}
     }
 
@@ -648,8 +648,8 @@ static void
 _audit_end(CCS call, int exiting, long status)
 {
     int n;
-    TCHAR buf[4096];
-    TCHAR ack_eoa[ACK_BUFFER_SIZE];
+    char buf[4096];
+    char ack_eoa[ACK_BUFFER_SIZE];
 
     if (!_auditor_isActive()) {
 #if defined(_WIN32)
@@ -661,7 +661,7 @@ _audit_end(CCS call, int exiting, long status)
 	// not on Windows.
 	if (Depth == 0 && exiting && !prop_is_true(P_NO_MONITOR)) {
 	    _socket_open(&ReportSocket, call);
-	    SEND(ReportSocket, DONE, _tcslen(DONE));
+	    SEND(ReportSocket, DONE, strlen(DONE));
 	    shutdown(ReportSocket, 1);
 	    _socket_close(&ReportSocket, 1);
 	}
@@ -703,7 +703,7 @@ _audit_end(CCS call, int exiting, long status)
 
 	    // Rewind the temp file and send its contents to the monitor.
 	    if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-		putil_syserr(2, _T("lseek"));
+		putil_syserr(2, "lseek");
 	    }
 
 	    while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
@@ -713,7 +713,7 @@ _audit_end(CCS call, int exiting, long status)
 			continue;
 		    }
 #endif	/*!EINTR*/
-		    putil_syserr(2, _T("read"));
+		    putil_syserr(2, "read");
 		}
 		SEND(ReportSocket, buf, n);
 	    }
@@ -728,17 +728,17 @@ _audit_end(CCS call, int exiting, long status)
 	// Allocate and format the cmdline header.
 	hdr = ca_format_header(CurrentCA);
 	assert(hdr);
-	if (asprintf(&eoa_hdr, _T("%s[%ld]%s"), EOA, status, hdr) < 0) {
+	if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
 	    putil_syserr(2, NULL);
 	}
 	putil_free(hdr);
 
 	if (ReportSocket == INVALID_SOCKET) {
-	    if (write(AuditFD, eoa_hdr, _tcslen(eoa_hdr)) == -1) {
-		putil_syserr(2, _T("write"));
+	    if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
+		putil_syserr(2, "write");
 	    }
 	} else {
-	    SEND(ReportSocket, eoa_hdr, _tcslen(eoa_hdr));
+	    SEND(ReportSocket, eoa_hdr, strlen(eoa_hdr));
 	}
 
 	putil_free(eoa_hdr);
@@ -750,15 +750,15 @@ _audit_end(CCS call, int exiting, long status)
 	// In case more data is written to the temp file, reposition
 	// its pointer at the beginning.
 	if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-	    putil_syserr(2, _T("lseek"));
+	    putil_syserr(2, "lseek");
 	}
 #if defined(_WIN32)
 	if (_chsize(AuditFD, 0)) {
-	    putil_syserr(2, _T("_chsize"));
+	    putil_syserr(2, "_chsize");
 	}
 #else	/*_WIN32*/
 	if (ftruncate(AuditFD, 0)) {
-	    putil_syserr(2, _T("ftruncate"));
+	    putil_syserr(2, "ftruncate");
 	}
 #endif	/*!_WIN32*/
     }
@@ -775,10 +775,10 @@ _audit_end(CCS call, int exiting, long status)
     while (recv(ReportSocket, ack_eoa, sizeof(ack_eoa), 0) == INVALID_SOCKET) {
 #if defined(EINTR)
 	if (errno != EINTR) {
-	    putil_syserr(2, _T("recv(ack_eoa)"));
+	    putil_syserr(2, "recv(ack_eoa)");
 	}
 #else	/*!EINTR*/
-	putil_syserr(2, _T("recv(ack_eoa)"));
+	putil_syserr(2, "recv(ack_eoa)");
 #endif	/*!EINTR*/
     }
 
@@ -794,14 +794,14 @@ static unsigned long
 _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 {
     unsigned long pid;
-    TCHAR rwdbuf[PATH_MAX];
+    char rwdbuf[PATH_MAX];
     CCS pccode;
 
     // Initialize verbosity asap.
     vb_init();
 
     // Can't see any properties without initializing this first.
-    prop_init(_T(APPLICATION_NAME));
+    prop_init(APPLICATION_NAME);
 
     // We do not want to take properties from files within the
     // auditor as the CWD may be changing, so everything we care
@@ -821,17 +821,17 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Turned off pending further consideration ...
 #if 0 && !defined(_WIN32)
     if (1) {	// TODO - make optional
-	TCHAR pidbuf[32], *p;
+	char pidbuf[32], *p;
 
-	_sntprintf(pidbuf, charlen(pidbuf), _T("%lu"), pid);
-	while ((p = _tcsstr(cmdstr, pidbuf))) {
+	snprintf(pidbuf, charlen(pidbuf), "%lu", pid);
+	while ((p = strstr(cmdstr, pidbuf))) {
 	    int i, j;
 
 	    // Here we assume that the pid always formats to a string
 	    // longer than its replacement '$$'.
 	    *p++ = '$';
 	    *p++ = '$';
-	    for (i = 0, j = _tcslen(pidbuf) + 2; p[i]; p[i++] = p[j++]);
+	    for (i = 0, j = strlen(pidbuf) + 2; p[i]; p[i++] = p[j++]);
 	}
     }
 #endif	/*_WIN32*/
@@ -870,16 +870,16 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
 	if ((re = re_init__(P_ACTIVATION_PROG_RE))) {
 	    if (re_match__(re, exe)) {
-		vb_printf(VB_OFF, _T("ACTIVATED ON [%ld] '%s'"), pid, exe);
+		vb_printf(VB_OFF, "ACTIVATED ON [%ld] '%s'", pid, exe);
 		auditor_setActive();
 		// Can't remove this EV - must change it in place.
-		prop_mod_str(P_ACTIVATION_PROG_RE, _T(""), NULL);
+		prop_mod_str(P_ACTIVATION_PROG_RE, "", NULL);
 	    } else {
-		vb_printf(VB_OFF, _T("INACTIVATED ON [%ld] '%s'"), pid, exe);
+		vb_printf(VB_OFF, "INACTIVATED ON [%ld] '%s'", pid, exe);
 		return pid;
 	    }
 	} else {
-	    vb_printf(VB_OFF, _T("ACTIVE ON [%ld] '%s'"), pid, exe);
+	    vb_printf(VB_OFF, "ACTIVE ON [%ld] '%s'", pid, exe);
 	    _auditor_setActiveByDefault();
 	}
     }
@@ -903,17 +903,17 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     // Set the current hostname.
     if (!ca_get_host(CurrentCA)) {
-	TCHAR hostbuf[HOST_NAME_MAX];
+	char hostbuf[HOST_NAME_MAX];
 
 #if defined(_WIN32)
 	DWORD namelen = charlen(hostbuf);
 
 	if (!GetComputerNameEx(ComputerNameDnsHostname, hostbuf, &namelen)) {
-	    putil_win32err(2, GetLastError(), _T("GetComputerNameEx()"));
+	    putil_win32err(2, GetLastError(), "GetComputerNameEx()");
 	}
 #else	/*_WIN32*/
 	if (gethostname(hostbuf, sizeof(hostbuf))) {
-	    putil_syserr(2, _T("gethostname()"));
+	    putil_syserr(2, "gethostname()");
 	}
 #endif	/*_WIN32*/
 
@@ -930,9 +930,9 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     if (CSV_FIELD_IS_NULL(pccode)) {
 	ca_set_pccode(CurrentCA, NULL);
     } else {
-	TCHAR pccbuf[256];
+	char pccbuf[256];
 
-	_sntprintf(pccbuf, charlen(pccbuf), _T("%s"), pccode);
+	snprintf(pccbuf, charlen(pccbuf), "%s", pccode);
 	ca_set_pccode(CurrentCA, util_strtrim(pccbuf));
     }
 

@@ -133,6 +133,18 @@ extern void interposed_finalize(void);
 #define _RTLD_LOCAL_			RTLD_DEFAULT
 #endif
 
+// This seems to work OK on Cygwin. Not sure why though.
+#if defined(__CYGWIN__) && !defined(RTLD_NEXT)
+#define RTLD_NEXT RTLD_DEFAULT
+#endif
+
+#if defined(INTERPOSER_DEBUG) || 0
+#define WRAPPER_DEBUG(fmt, ...)						\
+    fprintf(stderr, fmt, ## __VA_ARGS__)
+#else
+#define WRAPPER_DEBUG(fmt, ...)
+#endif
+
 /***********************************************************************
  *	WRAP* macros.
  **********************************************************************/
@@ -423,6 +435,16 @@ interposer_argv_from_environ(int *p_argc)
     // OSX has its own way (as usual).
     char **av;
     av = *_NSGetArgv();
+    if (p_argc) {
+	int i;
+	for (i = 0; av[i]; i++)
+	*p_argc = i;
+    }
+    return av;
+#elif defined(__CYGWIN__)
+    extern char **__argv;
+    char **av;
+    av = __argv;
     if (p_argc) {
 	int i;
 	for (i = 0; av[i]; i++)

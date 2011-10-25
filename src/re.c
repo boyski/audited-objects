@@ -72,10 +72,10 @@ re_init__(prop_e prop)
 	    }
 	}
 
-	vb_printf(VB_RE, _T("COMPILING %s='%s'"), prop_to_name(prop), restr);
+	vb_printf(VB_RE, "COMPILING %s='%s'", prop_to_name(prop), restr);
 
 	if (!(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
-	    putil_warn(_T("compilation of RE '%s' failed at offset %d: %s"),
+	    putil_warn("compilation of RE '%s' failed at offset %d: %s",
 		       prop_get_str(prop), erroffset, error);
 	}
     }
@@ -89,7 +89,7 @@ re_match__(void *re, CCS str)
 {
     int ovec[OVECCNT];
     int rc;
-    static TCHAR match[256];
+    static char match[256];
 
     match[0] = '\0';
 
@@ -98,7 +98,7 @@ re_match__(void *re, CCS str)
 	return NULL;
     }
 
-    rc = pcre_exec((pcre *) re, NULL, str, (int)_tcslen(str),
+    rc = pcre_exec((pcre *) re, NULL, str, (int)strlen(str),
 		   0, 0, ovec, OVECCNT);
     if (rc < 0) {
 	return NULL;

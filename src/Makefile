@@ -28,17 +28,27 @@ TAR		:= gtar --owner=0 --group=0 --mode=u+rw --dereference
 ifndef CPU
 uname_s		:= $(shell uname -s)
 ifneq (,$(findstring Linux,$(uname_s)))
-CPU		:= $(uname_s)_i386
+export CPU	:= $(uname_s)_i386
 else
-CPU		:= $(uname_s)_$(shell uname -p)
+ifneq (,$(findstring CYGWIN%,$(uname_s)))
+else
+export CPU	:= Cygwin_i386
 endif
 endif
+$(info + export CPU=$(CPU))
+endif
 
-export CPU
-
-CPUDIR		:= .${CPU}
-CPUDIR64	:= $(CPUDIR)/64
+CPUARCH		:= $(CPU)
+TGTARCH		?= $(CPUARCH)
+TGTDIR		:= .${TGTARCH}
+TGTDIR64	:= $(TGTDIR)/64
 SCRIPTDIR	:= pl
+
+ifneq (,$(findstring 64,$(TGTARCH)))
+BITS		:= 64
+else
+BITS		:= 32
+endif
 
 OPS		:= ../OPS
 
@@ -47,7 +57,7 @@ ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
 #ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
 CSTYLE		:= -Wall -W $(ANAL)
 SHLIBFLAGS	:= -shared
-INST_PREFIX	:= ${HOME}/${CPU}
+INST_PREFIX	:= ${HOME}/${TGTARCH}
 
 # Source file data seems to be unavailable on OS X when using DWARF, and
 # STABS seems to do no harm across the board so we make it the default.
@@ -59,40 +69,43 @@ DFLAGS		:= -D_REENTRANT -D_LARGEFILE_SOURCE -DTRIO_REPLACE_STDIO
 
 CFLAGS		 = $(CSTYLE)
 
-ifneq (,$(findstring SunOS_,${CPU}))
+SHLIBDIR	:= /lib
+
+ifneq (,$(findstring SunOS_,${TGTARCH}))
 SOLARIS		:= 1
-ifneq (,$(findstring _sparc,${CPU}))
+ifneq (,$(findstring _sparc,${TGTARCH}))
 SOLARIS_SPARC	:= 1
 endif
 endif
 
-ifneq (,$(findstring Linux,${CPU}))
+ifneq (,$(findstring Linux,${TGTARCH}))
 LINUX		:= 1
-ifneq (,$(findstring _x86_64,${CPU}))
+ifneq (,$(findstring _x86_64,${TGTARCH}))
+SHLIBDIR	:= /lib64
 LINUX_X86_64	:= 1
 endif
 endif
 
-ifneq (,$(findstring HPUX_,${CPU}))
+ifneq (,$(findstring Cygwin,${TGTARCH}))
+CYGWIN		:= 1
+endif
+
+ifneq (,$(findstring HPUX_,${TGTARCH}))
 HPUX		:= 1
 endif
 
-ifneq (,$(findstring BSD,${CPU}))
+ifneq (,$(findstring BSD,${TGTARCH}))
 BSD		:= 1
 endif
 
-ifneq (,$(findstring Darwin,${CPU}))
+ifneq (,$(findstring Darwin,${TGTARCH}))
 DARWIN		:= 1
 endif
 
 # Really just needed for one target but passed to all for now.
 BUILTON		:= $(shell uname -mnrs)
 ifdef LINUX
-ifdef LINUX_X86_64
-BUILTON		+= $(shell /lib64/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
-else
-BUILTON		+= $(shell /lib/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
-endif
+BUILTON		+= $(shell $(SHLIBDIR)/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
 endif
 DFLAGS		+= -DPUTIL_BUILTON='"$(BUILTON)"'
 
@@ -124,19 +137,25 @@ debug release: all
 release: UFLAGS := -Os -DNDEBUG
 release: STRIP := strip
 
-$(INST_PREFIX)/lib/%: $(CPUDIR)/%
+$(INST_PREFIX)/lib/%: $(TGTDIR)/%
 	@chmod u+w $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@(set -x; cp $< $@)
 	@$(STRIP) $@
 
-$(INST_PREFIX)/lib/64/%: $(CPUDIR64)/%
+$(INST_PREFIX)/lib/64/%: $(TGTDIR64)/%
 	@chmod u+w $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@(set -x; cp $< $@)
 	@$(STRIP) $@
 
-$(INST_PREFIX)/bin/%: $(CPUDIR)/%
+$(INST_PREFIX)/lib64/%: $(TGTDIR64)/%
+	@chmod u+w $?
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	@(set -x; cp $< $@)
+	@$(STRIP) $@
+
+$(INST_PREFIX)/bin/%: $(TGTDIR)/%
 	@chmod u+wx $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@test -L $@ || (set -x; cp $< $@)
@@ -163,16 +182,13 @@ CFLAGS		+= -D_LARGEFILE64_SOURCE
 CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
 
 AUDITOR		:= libAO.so
-LIBAO32		:= $(addprefix $(CPUDIR)/, $(AUDITOR))
-LIBAO64		:= $(addprefix $(CPUDIR64)/, $(AUDITOR))
+LIBAO32		:= $(addprefix $(TGTDIR)/, $(AUDITOR))
+LIBAO64		:= $(addprefix $(TGTDIR64)/, $(AUDITOR))
 SHLIBS		:= $(LIBAO32)
-INST_LIBS	:= $(addprefix $(INST_PREFIX)/lib/, $(notdir $(SHLIBS)))
+INST_LIBS	:= $(addprefix $(INST_PREFIX)/lib/, $(notdir $(LIBAO32)))
 
-AOTOOL		:= $(CPUDIR)/ao
+AOTOOL		:= $(TGTDIR)/ao
 BINS		:= $(AOTOOL)
-INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
-
-INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make)
 
 # In general it's believed best to link the auditor with static libs
 # for faster startup time, whereas the driver program starts only
@@ -181,7 +197,7 @@ INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make)
 
 DLL_LIBS	:= -lkaz -lpcre -lz -ltrio -lcrypto
 
-OPSLIBDIR	:= $(OPS)/${CPU}/lib
+OPSLIBDIR	:= $(OPS)/${TGTARCH}/lib
 
 # On Solaris we can get some malloc debugging by linking with -lumem.
 # But we must use the vanilla malloc in production so as not to
@@ -209,8 +225,9 @@ endif	#SOLARIS_SPARC
 SYSINCS			:= -I/opt/csw/include
 SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
 $(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
-all: $(CPUDIR64)
+all: $(TGTDIR64)
 SHLIBS		+= $(LIBAO64)
+$(LIBAO64):     OPSLIBDIR := $(OPSLIBDIR)/64
 INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib/64/, $(notdir $(LIBAO64)))
 endif	#SOLARIS
 
@@ -221,16 +238,18 @@ CFLAGS		+= -fpic -D_GNU_SOURCE
 #CFLAGS		+= -fstack-protector --param=ssp-buffer-size=4
 SHLIBFLAGS	+= -z defs -z interpose -z combreloc -z ignore -z lazyload
 LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
-ifdef LINUX_X86_64
-DLL_LIBS	+= -lrt
-PLDLIBS		:= -ldl -lm
-SYSLIBS		:= -L/usr/lib64
-else
-DLL_LIBS	+= -lrt -lm
-PLDLIBS		:= -ldl
-SYSLIBS		:= -L/usr/lib
-endif
+PLDLIBS		:= -lm -lrt -ldl
 SYSINCS		:= -I/usr/include
+all: $(TGTDIR64)
+SHLIBS		+= $(LIBAO64)
+$(LIBAO32):     OPSLIBDIR := $(OPS)/Linux_i386/lib
+$(LIBAO64):     OPSLIBDIR := $(OPS)/Linux_x86_64/lib
+INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib64/, $(notdir $(LIBAO64)))
+endif
+
+ifdef CYGWIN
+CFLAGS		+= -D_GNU_SOURCE
+SHLIBFLAGS	+= -Wl,--enable-auto-image-base
 endif
 
 ifdef BSD
@@ -284,12 +303,15 @@ COMMINCS	:= libcommon.c ca.c code.c moment.c \
 
 INTERPOSERS	:= $(wildcard Interposer/*.h)
 
+INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
+INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make)
+
 #############################################################################
 
-$(CPUDIR) $(CPUDIR64):
+$(TGTDIR) $(TGTDIR64):
 	mkdir -p $@
 
-all: $(CPUDIR) $(TARGETS)
+all: $(TGTDIR) $(TARGETS)
 
 #############################################################################
 
@@ -301,29 +323,29 @@ docs dox:
 
 #############################################################################
 
-$(CPUDIR)/putil.o: Putil/putil.h
+$(TGTDIR)/putil.o: Putil/putil.h
 
-$(CPUDIR)/aotool.o: About/about.c
+$(TGTDIR)/aotool.o: About/about.c
 
-$(CPUDIR)/%.o: %.c AO.h App.properties
-	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
+$(TGTDIR)/%.o: %.c AO.h App.properties
+	$(CC) -m$(BITS) -c $(UFLAGS) $(CFLAGS) -o $@ $<
 
 #############################################################################
 
-$(AOTOOL): $(addprefix $(CPUDIR)/, $(OBJS))
-	$(CC) -o $@ $(UFLAGS) $(addprefix $(CPUDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
+$(AOTOOL): $(addprefix $(TGTDIR)/, $(OBJS))
+	$(CC) -m$(BITS) -o $@ $(UFLAGS) $(addprefix $(TGTDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
 
 $(LIBAO32): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -m32 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 $(LIBAO64): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR)/64 $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 cleantargets:
 	-rm -f $(TARGETS)
 
 clean: cleantargets
-	-rm -rf $(CPUDIR)/*.o core *.1 *.html HTML tags
+	-rm -rf $(TGTDIR)/*.o core *.1 *.html HTML tags
 
 tags:
 	rm -f tags && ectags *.h *.H *.c *.cpp

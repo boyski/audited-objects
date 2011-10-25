@@ -44,7 +44,7 @@
 
 /// @cond static
 #define AUDIT_BUF_INIT_SIZE			8192
-#define CSV_NEWLINE_TOKEN			_T("^J")
+#define CSV_NEWLINE_TOKEN			"^J"
 /// @endcond static
 
 /// Structure for passing multiple data items into a callback.
@@ -138,7 +138,7 @@ ck_set_cmdid(ck_o ck, unsigned long cmdid)
 static int
 _ca_cmp_codes(CCS ccode1, CCS ccode2)
 {
-    return _tcscmp(ccode1, ccode2);
+    return strcmp(ccode1, ccode2);
 }
 
 /// Finalizer for CmdKey class - releases all allocated memory.
@@ -238,7 +238,7 @@ ca_new()
     ca = (ca_o)putil_calloc(1, sizeof(*ca));
 
     if (!(ca->ca_raw_pa_dict = dict_create(DICTCOUNT_T_MAX, pa_cmp))) {
-	putil_syserr(2, _T("dict_create()"));
+	putil_syserr(2, "dict_create()");
     }
 
     return ca;
@@ -278,7 +278,7 @@ ca_newFromCSVString(CCS csv)
 	    !(pccode     = util_strsep(&linebuf, FS1)) ||
 	    !(ccode      = util_strsep(&linebuf, FS1)) ||
 	    !(pathcode   = util_strsep(&linebuf, FS1))) {
-	putil_int(_T("bad format: '%s'"), csv);
+	putil_int("bad format: '%s'", csv);
 	putil_free(original);
 	return NULL;
     }
@@ -286,15 +286,15 @@ ca_newFromCSVString(CCS csv)
 
     ca = ca_new();
 
-    ca_set_cmdid(ca, _tcstoul(cmdid, NULL, 10));
-    ca_set_depth(ca, _tcstoul(depth, NULL, 10));
-    ca_set_pcmdid(ca, _tcstoul(pcmdid, NULL, 10));
+    ca_set_cmdid(ca, strtoul(cmdid, NULL, 10));
+    ca_set_depth(ca, strtoul(depth, NULL, 10));
+    ca_set_pcmdid(ca, strtoul(pcmdid, NULL, 10));
     if (moment_parse(&(ca->ca_starttime), starttime)) {
-	putil_int(_T("bad moment format: %s"), starttime);
+	putil_int("bad moment format: %s", starttime);
 	putil_free(original);
 	return NULL;
     }
-    ca_set_duration(ca, _tcstoul(duration, NULL, 10));
+    ca_set_duration(ca, strtoul(duration, NULL, 10));
     ca_set_prog(ca, prog);
     ca_set_host(ca, host);
     ca_set_recycled(ca, recycled);
@@ -304,7 +304,7 @@ ca_newFromCSVString(CCS csv)
     ca_set_line(ca, linebuf);
 
     if (_ca_cmp_codes(ca_get_ccode(ca), ccode)) {
-	putil_int(_T("%s: ccode skew (%s != %s)"),
+	putil_int("%s: ccode skew (%s != %s)",
 		  ca_get_line(ca), ca_get_ccode(ca), ccode);
     }
 
@@ -319,12 +319,12 @@ _ca_verbosity_ag(ca_o ca, CCS action, CCS text)
     // Checking the verbosity bit twice here is actually an optimization.
     if (vb_bitmatch(VB_AG)) {
 #if 0
-	vb_printf(VB_AG, _T("%s: '%.50s' (%s=>%s==>%s.%lu)"), action,
+	vb_printf(VB_AG, "%s: '%.50s' (%s=>%s==>%s.%lu"), action,
 		  text ? text : ca_get_line(ca),
 		  ca_get_pccode(ca), ca_get_ccode(ca),
 		  ca_get_pathcode(ca), ca_get_depth(ca));
 #else
-	vb_printf(VB_AG, _T("%s: '%.60s'"), action,
+	vb_printf(VB_AG, "%s: '%.60s'", action,
 		  text ? text : ca_get_line(ca));
 #endif
     }
@@ -340,10 +340,10 @@ _ca_verbosity_pa(pa_o pa, ca_o ca, CCS action)
 
 	timestamp = pa_get_timestamp(pa);
 	if (timestamp.ntv_sec) {
-	    TCHAR tstamp[MOMENT_BUFMAX];
+	    char tstamp[MOMENT_BUFMAX];
 
 	    (void)moment_format(timestamp, tstamp, charlen(tstamp));
-	    vb_printf(VB_PA, _T("%s %c %s: (%s) %s"), action,
+	    vb_printf(VB_PA, "%s %c %s: (%s %s)", action,
 		      pa_get_op(pa), ca_get_prog(ca),
 		      tstamp, pa_get_abs(pa));
 	}
@@ -387,7 +387,7 @@ ca_foreach_raw_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
 	pa = (pa_o)dnode_getkey(dnp);
 	pret = process(pa, data);
 	if (pret < 0) {
-	    putil_int(_T("error from ca_foreach_raw_pa()"));
+	    putil_int("error from ca_foreach_raw_pa()");
 	    return -1;
 	} else {
 	    rc += pret;
@@ -419,7 +419,7 @@ ca_foreach_cooked_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
 	    if (pa_is_read(pa)) {
 		pret = process(pa, data);
 		if (pret < 0) {
-		    putil_int(_T("ca_foreach_cooked_pa(): %s"), pa_get_abs(pa));
+		    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
 		    return -1;
 		} else {
 		    rc += pret;
@@ -431,7 +431,7 @@ ca_foreach_cooked_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
 	    if (!pa_is_read(pa)) {
 		pret = process(pa, data);
 		if (pret < 0) {
-		    putil_int(_T("ca_foreach_cooked_pa(): %s"), pa_get_abs(pa));
+		    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
 		    return -1;
 		} else {
 		    rc += pret;
@@ -454,7 +454,7 @@ ca_write(ca_o ca, int fd)
     dict_t *dict;
     dnode_t *dnp, *next;
     pa_o pa;
-    TCHAR line[(PATH_MAX * 2) + 256];
+    char line[(PATH_MAX * 2) + 256];
     int len;
 
     dict = ca->ca_raw_pa_dict;
@@ -485,7 +485,7 @@ ca_write(ca_o ca, int fd)
 	len = pa_toCSVString(pa, line, charlen(line));
 	if (len > 0) {
 	    if (write(fd, line, len) == -1) {
-		putil_syserr(0, _T("write()"));
+		putil_syserr(0, "write()");
 	    }
 	}
 
@@ -514,7 +514,7 @@ ca_coalesce(ca_o ca)
     if ((dict_cooked = dict_create(DICTCOUNT_T_MAX, pa_cmp_by_pathname))) {
 	ca->ca_cooked_pa_dict = dict_cooked;
     } else {
-	putil_syserr(2, _T("dict_create()"));
+	putil_syserr(2, "dict_create()");
     }
 
     for (dnpr = dict_first(dict_raw); dnpr;) {
@@ -526,7 +526,7 @@ ca_coalesce(ca_o ca)
 	raw_pa = (pa_o)dnode_getkey(dnpr);
 	raw_op = pa_get_op(raw_pa);
 
-	_ca_verbosity_pa(raw_pa, ca, _T("COALESCING"));
+	_ca_verbosity_pa(raw_pa, ca, "COALESCING");
 
 	// All data is in the key - that's why the value can be null.
 	if ((dnpc = dict_lookup(dict_cooked, raw_pa))) {
@@ -568,17 +568,17 @@ ca_coalesce(ca_o ca)
 	    if (!keep_cooked) {
 		dict_delete(dict_cooked, dnpc);
 		dnode_destroy(dnpc);
-		_ca_verbosity_pa(ckd_pa, ca, _T("REMOVING"));
+		_ca_verbosity_pa(ckd_pa, ca, "REMOVING");
 		pa_destroy(ckd_pa);
 		if (!(dnpc = dnode_create(NULL))) {
-		    putil_syserr(2, _T("dnode_create()"));
+		    putil_syserr(2, "dnode_create()");
 		}
 		ckd_pa = pa_copy(raw_pa);
 		dict_insert(dict_cooked, dnpc, ckd_pa);
 	    }
 	} else {
 	    if (!(dnpc = dnode_create(NULL))) {
-		putil_syserr(2, _T("dnode_create()"));
+		putil_syserr(2, "dnode_create()");
 	    }
 	    ckd_pa = pa_copy(raw_pa);
 	    dict_insert(dict_cooked, dnpc, ckd_pa);
@@ -614,13 +614,13 @@ ca_merge(ca_o leader, ca_o donor)
     sub = ca_format_header(donor);
     if (leader->ca_subs) {
 	leader->ca_subs = (CCS)putil_realloc((void *)leader->ca_subs,
-					     (_tcslen(leader->ca_subs) +
-					      _tcslen(sub) +
+					     (strlen(leader->ca_subs) +
+					      strlen(sub) +
 					      1) * CHARSIZE);
-	_tcscat((CS)leader->ca_subs, sub);
+	strcat((CS)leader->ca_subs, sub);
     } else {
-	leader->ca_subs = (CCS)putil_malloc((_tcslen(sub) + 1) * CHARSIZE);
-	_tcscpy((CS)leader->ca_subs, sub);
+	leader->ca_subs = (CCS)putil_malloc((strlen(sub) + 1) * CHARSIZE);
+	strcpy((CS)leader->ca_subs, sub);
     }
     putil_free(sub);
 
@@ -650,11 +650,11 @@ ca_record_pa(ca_o ca, pa_o pa)
 {
     dnode_t *dnp;
 
-    _ca_verbosity_pa(pa, ca, _T("RECORDING"));
+    _ca_verbosity_pa(pa, ca, "RECORDING");
 
     // All data is in the key - that's why the value can be null.
     if (!(dnp = dnode_create(NULL))) {
-	putil_syserr(2, _T("dnode_create()"));
+	putil_syserr(2, "dnode_create()");
     }
     dict_insert(ca->ca_raw_pa_dict, dnp, pa);
 }
@@ -679,7 +679,7 @@ ca_start_group(ca_o ca, int strength)
     ca->ca_group_hash =
 	hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func);
     if (!ca->ca_group_hash) {
-	putil_syserr(2, _T("hash_create()"));
+	putil_syserr(2, "hash_create()");
     }
     // Mark the leader as a member of its own club.
     ca_set_leader(ca, ca);
@@ -704,7 +704,7 @@ ca_aggregate(ca_o ldr, ca_o sub)
 	ck_destroy(ck);
     } else {
 	if (!(hnp = hnode_create(sub))) {
-	    putil_int(_T("hnode_create()"));
+	    putil_int("hnode_create()");
 	}
 	hash_insert(ldr->ca_group_hash, hnp, ck);
     }
@@ -762,18 +762,18 @@ ca_disband(ca_o ldr, void (*process) (ca_o))
     ca_o sub;
     hscan_t hscan;
 
-    _ca_verbosity_ag(ldr, _T("DISBANDING"), NULL);
+    _ca_verbosity_ag(ldr, "DISBANDING", NULL);
 
     hash_scan_begin(&hscan, ldr->ca_group_hash);
     for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
 	ck = (ck_o)hnode_getkey(hnp);
 	sub = (ca_o)hnode_get(hnp);
 	if (ca_get_closed(sub)) {
-	    _ca_verbosity_ag(sub, _T("PROCESSING"), NULL);
+	    _ca_verbosity_ag(sub, "PROCESSING", NULL);
 	    ca_coalesce(sub);
 	    process(sub);
 	} else {
-	    _ca_verbosity_ag(sub, _T("RELEASING"), NULL);
+	    _ca_verbosity_ag(sub, "RELEASING", NULL);
 	}
 	ca_set_leader(sub, NULL);
 	hash_scan_delete(ldr->ca_group_hash, hnp);
@@ -782,11 +782,11 @@ ca_disband(ca_o ldr, void (*process) (ca_o))
     }
 
     if (ca_get_closed(ldr)) {
-	_ca_verbosity_ag(ldr, _T("PROCESSING"), NULL);
+	_ca_verbosity_ag(ldr, "PROCESSING", NULL);
 	ca_coalesce(ldr);
 	process(ldr);
     } else {
-	_ca_verbosity_ag(ldr, _T("RELEASING"), NULL);
+	_ca_verbosity_ag(ldr, "RELEASING", NULL);
     }
 
     hash_destroy(ldr->ca_group_hash);
@@ -800,7 +800,7 @@ ca_disband(ca_o ldr, void (*process) (ca_o))
 void
 ca_publish(ca_o ca, void (*process) (ca_o))
 {
-    _ca_verbosity_ag(ca, _T("BUNDLING"), NULL);
+    _ca_verbosity_ag(ca, "BUNDLING", NULL);
 
     // Combine the textual command lines of the subcommands for record keeping.
     if (ca->ca_group_hash) {
@@ -814,7 +814,7 @@ ca_publish(ca_o ca, void (*process) (ca_o))
 	    ck = (ck_o)hnode_getkey(hnp);
 	    sub = (ca_o)hnode_get(hnp);
 	    if (sub != ca) {
-		_ca_verbosity_ag(sub, _T("MERGING"), NULL);
+		_ca_verbosity_ag(sub, "MERGING", NULL);
 		ca_merge(ca, sub);
 		ca_set_processed(sub, 1);
 	    }
@@ -874,12 +874,12 @@ _ca_add_to_pathcode(pa_o pa, void *data)
 	pcap = (pathcode_accumulator_s *)data;
 
 	path = pa_get_abs(pa);
-	plen = _tcslen(path);
+	plen = strlen(path);
 
 	pcap->pca_buf = (CS)putil_realloc(pcap->pca_buf,
 					  pcap->pca_buflen + plen +
 					  CHARSIZE);
-	_tcscpy(pcap->pca_buf + pcap->pca_buflen, path);
+	strcpy(pcap->pca_buf + pcap->pca_buflen, path);
 
 	pcap->pca_buflen += plen;
 	pcap->pca_count++;
@@ -918,11 +918,11 @@ ca_derive_pathcode(ca_o ca)
     (void)ca_foreach_cooked_pa(ca, _ca_add_to_pathcode, &pca);
 
     if (pca.pca_buf) {
-	TCHAR pcbuf[CODE_IDENTITY_HASH_MAX_LEN];
+	char pcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
 	(void)code_from_str(pca.pca_buf, pcbuf, charlen(pcbuf));
 	putil_free(pca.pca_buf);
-	_sntprintf(endof(pcbuf), leftlen(pcbuf), _T("-%d"), pca.pca_count);
+	snprintf(endof(pcbuf), leftlen(pcbuf), "-%d", pca.pca_count);
 	ca_set_pathcode(ca, pcbuf);
     } else {
 	ca_set_pathcode(ca, NULL);
@@ -936,35 +936,35 @@ CCS
 ca_format_header(ca_o ca)
 {
     CS hdr, p;
-    TCHAR started[MOMENT_BUFMAX];
+    char started[MOMENT_BUFMAX];
     int ret;
 
     (void)moment_format(ca->ca_starttime, started, charlen(started));
 
     // *INDENT-OFF*
     ret = asprintf(&hdr,
-			  _T("%lu%s")			// 1  - PID
-			  _T("%lu%s")			// 2  - DEPTH
-			  _T("%lu%s")			// 3  - PPID
-			  _T("%s%s")			// 4  - STARTED
-			  _T("%lu%s")			// 5  - DURATION
-			  _T("%s%s")			// 6  - HOST
-			  _T("%s%s")			// 7  - RECYCLED
-			  _T("%s%s")			// 8  - PROG
-			  _T("%s%s")			// 9  - RWD
-			  _T("%s%s")			// 10 - PCCODE
-			  _T("%s%s")			// 11 - CCODE
-			  _T("%s%s")			// 12 - PATHCODE
-			  _T("%s@"),			// 13 - CMDLINE
+			  "%lu%s"			// 1  - PID
+			  "%lu%s"			// 2  - DEPTH
+			  "%lu%s"			// 3  - PPID
+			  "%s%s"			// 4  - STARTED
+			  "%lu%s"			// 5  - DURATION
+			  "%s%s"			// 6  - HOST
+			  "%s%s"			// 7  - RECYCLED
+			  "%s%s"			// 8  - PROG
+			  "%s%s"			// 9  - RWD
+			  "%s%s"			// 10 - PCCODE
+			  "%s%s"			// 11 - CCODE
+			  "%s%s"			// 12 - PATHCODE
+			  "%s@",			// 13 - CMDLINE
 	ca->ca_cmdid, FS1,
 	ca->ca_depth, FS1,
 	ca->ca_pcmdid, FS1,
 	started, FS1,
 	ca->ca_duration, FS1,
-	ca->ca_host ? ca->ca_host : _T("?"), FS1,
-	ca->ca_recycled ? ca->ca_recycled : _T(""), FS1,
+	ca->ca_host ? ca->ca_host : "?", FS1,
+	ca->ca_recycled ? ca->ca_recycled : "", FS1,
 	ca->ca_prog, FS1,
-	ca->ca_rwd ? ca->ca_rwd : _T("."), FS1,
+	ca->ca_rwd ? ca->ca_rwd : ".", FS1,
 	ca_get_pccode(ca), FS1,
 	ca_get_ccode(ca), FS1,
 	ca_get_pathcode(ca), FS1,
@@ -979,24 +979,24 @@ ca_format_header(ca_o ca)
     // newlines and have to replace them with a conventional token.
     // This should be a rare occurrence so we don't worry too much
     // about efficiency here.
-    if (_tcschr(hdr, '\n')) {
+    if (strchr(hdr, '\n')) {
 	CS nhdr, o, n;
 
-	nhdr = (CS)putil_calloc(_tcslen(hdr) * 2, CHARSIZE);
+	nhdr = (CS)putil_calloc(strlen(hdr) * 2, CHARSIZE);
 	for (o = hdr, n = nhdr; *o; o++) {
 	    if (*o == '\n') {
-		_tcscpy(n, CSV_NEWLINE_TOKEN);
+		strcpy(n, CSV_NEWLINE_TOKEN);
 		n = endof(n);
 	    } else {
 		*n++ = *o;
 	    }
 	}
 	putil_free(hdr);
-	hdr = (CS)putil_realloc(nhdr, _tcslen(nhdr) + CHARSIZE);
+	hdr = (CS)putil_realloc(nhdr, strlen(nhdr) + CHARSIZE);
     }
 
     // We know this is present because we put it there.
-    p = _tcsrchr(hdr, '@');
+    p = strrchr(hdr, '@');
     *p = '\n';
 
     return hdr;
@@ -1008,7 +1008,7 @@ _ca_format_palist_callback(pa_o pa, void *data)
 {
     format_palist_s *fps;
     long dcode_all;
-    TCHAR line[(PATH_MAX * 2) + 256];
+    char line[(PATH_MAX * 2) + 256];
     int len;
 
     fps = (format_palist_s *) data;
@@ -1066,7 +1066,7 @@ _ca_format_palist_callback(pa_o pa, void *data)
 	    fps->fp_bufsize *= 2;
 	    fps->fp_buf = (CS)putil_realloc(fps->fp_buf, fps->fp_bufsize);
 	}
-	_tcscpy(fps->fp_buf + fps->fp_bufnext, line);
+	strcpy(fps->fp_buf + fps->fp_bufnext, line);
 	fps->fp_bufnext += len;
     }
 
@@ -1100,21 +1100,21 @@ ca_toCSVString(ca_o ca)
     size_t len;
 
     str = ca_format_header(ca);
-    len = _tcslen(str);
+    len = strlen(str);
 
     subs = ca_get_subs(ca);
-    len += subs ? _tcslen(subs) : 0;
+    len += subs ? strlen(subs) : 0;
 
     pas = _ca_format_cooked_palist(ca);
-    len += _tcslen(pas);
+    len += strlen(pas);
 
     str = (CCS)putil_realloc((void *)str, (len + 1) * CHARSIZE);
 
     if (subs) {
-	_tcscat((CS)str, subs);
+	strcat((CS)str, subs);
     }
 
-    _tcscat((CS)str, pas);
+    strcat((CS)str, pas);
     putil_free(pas);
 
     return str;
@@ -1128,8 +1128,8 @@ _ca_dump_pa(pa_o pa, void *data)
 
     pfx = (CCS)data;
     str = pa_tostring(pa);
-    _fputts(pfx, stderr);
-    _fputts(str, stderr);
+    fputs(pfx, stderr);
+    fputs(str, stderr);
     putil_free(str);
 
     return 0;
@@ -1141,15 +1141,15 @@ _ca_dump_pa(pa_o pa, void *data)
 ca_dump(ca_o ca)
 {
     CCS hdr;
-    CCS stars = _T("******************************************************\n");
-    CCS subsep = _T("@@@@@@@@@@@\n");
+    CCS stars = "******************************************************\n";
+    CCS subsep = "@@@@@@@@@@@\n";
 
     assert(ca);
 
-    _fputts(stars, stderr);
+    fputs(stars, stderr);
 
     hdr = ca_format_header(ca);
-    _fputts(hdr, stderr);
+    fputs(hdr, stderr);
     putil_free(hdr);
 
     if (ca->ca_raw_pa_dict) {
@@ -1168,13 +1168,13 @@ ca_dump(ca_o ca)
 	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
 	    ca_o sub;
 
-	    _fputts(subsep, stderr);
+	    fputs(subsep, stderr);
 	    sub = (ca_o)hnode_get(hnp);
 	    ca_dump(sub);
 	}
     }
 
-    _fputts(stars, stderr);
+    fputs(stars, stderr);
 }
 
 /// Sets the command-line field for the CmdAction object. The string
@@ -1193,11 +1193,11 @@ ca_set_line(ca_o ca, CCS line)
 	size_t nlen;
 
 	// Turn newline tokens back into actual newlines.
-	ca->ca_line = (CCS)putil_malloc((_tcslen(line) + 1) * CHARSIZE);
-	nlen = _tcslen(CSV_NEWLINE_TOKEN);
+	ca->ca_line = (CCS)putil_malloc((strlen(line) + 1) * CHARSIZE);
+	nlen = strlen(CSV_NEWLINE_TOKEN);
 	for (l1 = (CS)line, l2 = (CS)ca->ca_line; *l1; ) {
 	    if (l1[0] == CSV_NEWLINE_TOKEN[0] &&
-		    !_tcsncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
+		    !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
 		l1 += nlen;
 		*l2++ = '\n';
 	    } else {
@@ -1211,24 +1211,12 @@ ca_set_line(ca_o ca, CCS line)
 
     // Determine the "command code" (aka ccode).
     if (ca->ca_line) {
-	TCHAR ccbuf[CODE_IDENTITY_HASH_MAX_LEN];
+	char ccbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
-#if defined(_UNICODE)
-	int wlen;
-	char *astr;
-
-	wlen = (wcslen(ca->ca_line) + 1) * sizeof(WCHAR);
-	astr = (char *)_alloca(wlen);
-	if (wcstombs(astr, ca->ca_line, wlen) < 0) {
-	    putil_syserr(2, _T("wcstombs()"));
-	}
-	(void)code_from_str(astr, ccbuf, sizeof(ccbuf));
-#else	/*_UNICODE*/
 	(void)code_from_str(ca->ca_line, ccbuf, sizeof(ccbuf));
-#endif	/*_UNICODE*/
 	if (ccbuf[0]) {
-	    _sntprintf(endof(ccbuf), leftlen(ccbuf),
-		       _T("+%lu"), (unsigned long)_tcslen(ca->ca_line));
+	    snprintf(endof(ccbuf), leftlen(ccbuf),
+		       "+%lu", (unsigned long)strlen(ca->ca_line));
 	    ca->ca_ccode = putil_strdup(ccbuf);
 	} else {
 	    ca->ca_ccode = NULL;
@@ -1357,7 +1345,7 @@ ca_destroy(ca_o ca)
 
     if ((hash = ca->ca_group_hash)) {
 	if (hash_count(hash)) {
-	    putil_warn(_T("group destroyed with %d audits left"),
+	    putil_warn("group destroyed with %d audits left",
 		       (int)hash_count(hash));
 	}
 	hash_destroy(ca->ca_group_hash);

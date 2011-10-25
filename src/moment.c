@@ -82,7 +82,7 @@ moment_get_systime(moment_s *mptr)
     struct timeval tv;
 
     if ((gettimeofday(&tv, NULL) == -1)) {
-	putil_syserr(2, _T("gettimeofday()"));
+	putil_syserr(2, "gettimeofday()");
     }
     mptr->ntv_sec = tv.tv_sec;
     mptr->ntv_nsec = tv.tv_usec * 1000;
@@ -232,13 +232,13 @@ moment_duration(moment_s ended, moment_s started)
 int
 moment_parse(moment_s *mptr, CCS str)
 {
-    TCHAR mbuf[MOMENT_BUFMAX], *nsec;
+    char mbuf[MOMENT_BUFMAX], *nsec;
 
-    _tcscpy(mbuf, str);
-    if ((nsec = _tcschr(mbuf, '.'))) {
+    strcpy(mbuf, str);
+    if ((nsec = strchr(mbuf, '.'))) {
 	*nsec++ = '\0';
 	mptr->ntv_sec = putil_strtoll(mbuf, NULL, CSV_RADIX);
-	mptr->ntv_nsec = _tcstol(nsec, NULL, CSV_RADIX);
+	mptr->ntv_nsec = strtol(nsec, NULL, CSV_RADIX);
     } else {
 	memset(mptr, 0, sizeof(moment_s));
 	return 1;
@@ -256,14 +256,14 @@ moment_parse(moment_s *mptr, CCS str)
 CCS
 moment_format(moment_s moment, CS buf, size_t bufmax)
 {
-    TCHAR secbuf[MOMENT_BUFMAX], nsecbuf[MOMENT_BUFMAX];
+    char secbuf[MOMENT_BUFMAX], nsecbuf[MOMENT_BUFMAX];
 
     buf[0] = '\0';
     (void)util_format_to_radix(CSV_RADIX, secbuf, charlen(secbuf),
 	moment.ntv_sec);
     (void)util_format_to_radix(CSV_RADIX, nsecbuf, charlen(nsecbuf),
 	moment.ntv_nsec);
-    _sntprintf(buf, bufmax, "%s.%s", secbuf, nsecbuf);
+    snprintf(buf, bufmax, "%s.%s", secbuf, nsecbuf);
     return buf;
 }
 
@@ -277,19 +277,19 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
 {
     time_t seconds;
     struct tm *ptm;
-    TCHAR lbuf[256];
+    char lbuf[256];
 
     seconds = (time_t)moment.ntv_sec;
 
     if (!(ptm = localtime(&seconds))) {
-	putil_syserr(2, _T("localtime()"));
+	putil_syserr(2, "localtime()");
     }
 
     if (!strftime(lbuf, charlen(lbuf), "%H:%M:%S", ptm)) {
-	putil_syserr(2, _T("strftime()"));
+	putil_syserr(2, "strftime()");
     }
 
-    _sntprintf(buf, bufmax, "%s,%03ld",
+    snprintf(buf, bufmax, "%s,%03ld",
 	lbuf, moment.ntv_nsec / NANOS_PER_MILLI);
     return buf;
 }
@@ -314,11 +314,11 @@ moment_format_id(moment_s *mp, CS buf, size_t bufmax)
     }
 
     if (!(ptm = gmtime(&seconds))) {
-	putil_syserr(2, _T("gmtime()"));
+	putil_syserr(2, "gmtime()");
     }
 
     if (!strftime(buf, bufmax, "%Y%m%d%H%M%S", ptm)) {
-	putil_syserr(2, _T("strftime()"));
+	putil_syserr(2, "strftime()");
     }
 
     return buf;

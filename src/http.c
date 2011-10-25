@@ -162,7 +162,7 @@ _http_stream_body(void *buffer, size_t size, size_t nitems, void *rc_p)
     if (leftover && *leftover) {
 	size_t len;
 
-	len = _tcslen(leftover);
+	len = strlen(leftover);
 	body = curr = (CS)putil_malloc(buflen + len + 1);
 	memcpy(body, leftover, len);
 	memcpy(body + len, buffer, buflen);
@@ -183,26 +183,26 @@ _http_stream_body(void *buffer, size_t size, size_t nitems, void *rc_p)
     for (leftover = curr;
 	 (line = util_strsep(&curr, "\r\n")) && curr; leftover = curr) {
 
-	if (!_tcsncmp(line, HTTP_NOTE, charlen(HTTP_NOTE) - 1)) {
+	if (!strncmp(line, HTTP_NOTE, charlen(HTTP_NOTE) - 1)) {
 	    if (vb_bitmatch(VB_STD)) {
-		_fputts(prop_get_app(), stderr);
-		_fputts(_T(": "), stderr);
-		_fputts(line + charlen(HTTP_NOTE) - 1, stderr);
-		_fputts(_T("\n"), stderr);
+		fputs(prop_get_app(), stderr);
+		fputs(": ", stderr);
+		fputs(line + charlen(HTTP_NOTE) - 1, stderr);
+		fputs("\n", stderr);
 	    }
-	} else if (!_tcsncmp(line, HTTP_ERROR, charlen(HTTP_ERROR) - 1)) {
+	} else if (!strncmp(line, HTTP_ERROR, charlen(HTTP_ERROR) - 1)) {
 	    if (rcptr && !*rcptr) {
 		*rcptr = 2;
 	    }
-	    putil_error(_T("%s"), line + charlen(HTTP_ERROR) - 1);
-	} else if (!_tcsncmp(line, HTTP_WARNING, charlen(HTTP_WARNING) - 1)) {
-	    putil_warn(_T("%s"), line + charlen(HTTP_WARNING) - 1);
+	    putil_error("%s", line + charlen(HTTP_ERROR) - 1);
+	} else if (!strncmp(line, HTTP_WARNING, charlen(HTTP_WARNING) - 1)) {
+	    putil_warn("%s", line + charlen(HTTP_WARNING) - 1);
 	} else {
 	    FILE *fp;
 
 	    fp = Output_FP ? Output_FP : stdout;
-	    _fputts(line, fp);
-	    _fputts(_T("\n"), fp);
+	    fputs(line, fp);
+	    fputs("\n", fp);
 	}
 
 	if (*curr == '\n') {
@@ -299,11 +299,11 @@ http_init(void)
 {
     vb_printf(VB_CURL, "Libcurl init");
     if (curl_global_init(CURL_GLOBAL_ALL)) {
-	putil_die(_T("internal error at %s:%d"), __FILE__, __LINE__);
+	putil_die("internal error at %s:%d", __FILE__, __LINE__);
     }
     if (!prop_is_true(P_SYNCHRONOUS_TRANSFERS)) {
 	if (!(MultiHandle = curl_multi_init())) {
-	    putil_die(_T("internal error at %s:%d"), __FILE__, __LINE__);
+	    putil_die("internal error at %s:%d", __FILE__, __LINE__);
 	}
     }
 }
@@ -422,15 +422,15 @@ http_get_curl_handle(int reuse)
 	http_clear_conn_info(curl);
 	putil_free(cip);
 	curl_easy_reset(curl);
-	vb_printf(VB_CURL, _T("Curl handle %p reset"), curl);
+	vb_printf(VB_CURL, "Curl handle %p reset", curl);
     } else {
 	if (!(curl = curl_easy_init())) {
-	    putil_die(_T("internal error at %s:%d"), __FILE__, __LINE__);
+	    putil_die("internal error at %s:%d", __FILE__, __LINE__);
 	}
 	if (reuse) {
 	    DefaultHandle = curl;
 	}
-	vb_printf(VB_CURL, _T("New handle %p"), curl);
+	vb_printf(VB_CURL, "New handle %p", curl);
     }
 
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
@@ -452,7 +452,7 @@ http_get_curl_handle(int reuse)
 	char *user_agent;
 
 	if (putil_uname(&sysdata) == -1) {
-	    putil_syserr(2, _T("uname"));
+	    putil_syserr(2, "uname");
 	}
 
 	if (asprintf(&user_agent, "%s %s (%s %s %s)",
@@ -500,7 +500,7 @@ http_get_curl_handle(int reuse)
 
     // Tell the server we're prepared to handle gzip- or deflate-
     // formatted as well as "identity" (unencoded) response bodies.
-    curl_easy_setopt(curl, CURLOPT_ENCODING, _T(""));
+    curl_easy_setopt(curl, CURLOPT_ENCODING, "");
 
     // Useful for stress testing ...
     // curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 16L);
@@ -561,7 +561,7 @@ http_async_get_free_curl_handle(void)
 
 	    rc = _http_check_connect_result(curl, curlmsg->data.result);
 	    if (rc && prop_is_true(P_STRICT_UPLOAD)) {
-		putil_die(_T("unable to get libcurl handle (%d)"), rc);
+		putil_die("unable to get libcurl handle (%d)", rc);
 	    }
 
 	    curl_multi_remove_handle(MultiHandle, curl);
@@ -572,11 +572,11 @@ http_async_get_free_curl_handle(void)
     }
 
     if (curl) {
-	vb_printf(VB_UP, _T("Reusing handle %p"), curl);
+	vb_printf(VB_UP, "Reusing handle %p", curl);
     } else {
 	curl = http_get_curl_handle(0);
 	in_use++;
-	vb_printf(VB_UP, _T("Issuing handle %p (in use=%d)"), curl, in_use);
+	vb_printf(VB_UP, "Issuing handle %p (in use=%d)", curl, in_use);
 
 	// When the number of simultaneous transfers begins to get
 	// ridiculous, pump for a while until the waters recede.
@@ -613,7 +613,7 @@ http_async_transfer(int limit)
 	    } else if (still_running < limit) {
 		break;
 	    } else {
-		vb_printf(VB_OFF, _T("Scaling down from %d to %d handles\n"),
+		vb_printf(VB_OFF, "Scaling down from %d to %d handles\n",
 		    still_running, limit);
 	    }
 	}
@@ -641,7 +641,7 @@ http_connect(CURL *curl, char *url, int loud)
     cip->ci_errbuf[0] = '\0';
 
     // Always provide the client version.
-    http_add_param(&url, HTTP_CLIENT_VERSION_PARAM, _T(APPLICATION_VERSION));
+    http_add_param(&url, HTTP_CLIENT_VERSION_PARAM, APPLICATION_VERSION);
 
     // Always set the URL last since adding parameters to it might
     // lead to a realloc/move.
@@ -669,7 +669,7 @@ http_connect(CURL *curl, char *url, int loud)
     // Error handling.
     if (rc) {
 	if (*cip->ci_errbuf) {
-	    putil_error("%s [%s]", cip->ci_errbuf, prop_get_strA(P_SERVER));
+	    putil_error("%s [%s]", cip->ci_errbuf, prop_get_str(P_SERVER));
 	} else {
 	    putil_error("HTTP code %ld", http_code);
 	}
@@ -687,16 +687,7 @@ http_connect(CURL *curl, char *url, int loud)
 static char *
 _http_url_encode(CCS value)
 {
-#if defined(_UNICODE)
-    char valbuf[4096];
-
-    if ((wcstombs(valbuf, value, sizeof(valbuf)) == (size_t)-1)) {
-	putil_syserr(2, value);
-    }
-    return curl_easy_escape(NULL, valbuf, 0);
-#else				/*!_UNICODE */
     return curl_easy_escape(NULL, value, 0);
-#endif				/*!_UNICODE */
 }
 
 /// Adds the specified header to the handle's set. Added headers will
@@ -716,7 +707,7 @@ http_add_header(CURL *curl, const char *header, const char *value)
 	if (asprintf(&hdrstr, "%s: %s", header, value) > 0) {
 	    if (!(cip->ci_extra_headers =
 		    curl_slist_append(cip->ci_extra_headers, hdrstr))) {
-		putil_die(_T("internal error at %s:%d"), __FILE__, __LINE__);
+		putil_die("internal error at %s:%d", __FILE__, __LINE__);
 	    }
 	    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, cip->ci_extra_headers);
 	    putil_free(hdrstr);
@@ -778,13 +769,13 @@ _http_make_url(CCS pfx, const char *cmd)
     int rc;
 
     // Ensure that we have a server to talk to.
-    svr = prop_get_strA(P_SERVER);
+    svr = prop_get_str(P_SERVER);
     if (!svr || !*svr) {
 	putil_die("missing Server property");
     }
 
     // The 'context' part of the URL.
-    if (!(ctx = prop_get_strA(P_SERVER_CONTEXT))) {
+    if (!(ctx = prop_get_str(P_SERVER_CONTEXT))) {
 	ctx = prop_get_app();
     }
 
@@ -795,7 +786,7 @@ _http_make_url(CCS pfx, const char *cmd)
     }
 
     if (rc < 0 || !url) {
-	putil_syserr(2, _T("asprintf"));
+	putil_syserr(2, "asprintf");
     }
 
     return url;
@@ -861,11 +852,11 @@ http_parse_error_from_server(char *hdr)
 	    ptr++;
 	}
 	if (*ptr) {
-	    putil_die(_T("%s"), ptr);
+	    putil_die("%s", ptr);
 	}
     } else {
 	rc = 3;
-	putil_error(_T("%s"), hdr);
+	putil_error("%s", hdr);
     }
 
     return rc;
@@ -885,7 +876,7 @@ http_find_errors(void *vptr, size_t size, size_t nitems, void *userp)
 
     UNUSED(userp);
 
-    if (!_strnicmp(hdr, X_SERVER_STATUS_HEADER,
+    if (!strnicmp(hdr, X_SERVER_STATUS_HEADER,
 	    strlen(X_SERVER_STATUS_HEADER))) {
 	int rc;
 
@@ -934,30 +925,12 @@ http_parse_startup_headers(void *vptr, size_t size, size_t nitems, void *userp)
 	val = strchr(name, '=');
 	*val++ = '\0';
 
-#if defined(_UNICODE)
-	wchar_t wname[1024], wval[4096];
-
-	if (mbstowcs(wname, name, charlen(wname)) == (size_t)-1) {
-	    putil_die(_T("mbstowcs()"));
-	}
-
-	if (mbstowcs(wval, val, charlen(wval)) == (size_t)-1) {
-	    putil_die(_T("mbstowcs()"));
-	}
-
-	if ((prop = prop_from_name(wname)) != P_BADPROP) {
-	    prop_put_str(prop, wval);
-	} else {
-	    putil_int(_T("property %s"), wname);
-	}
-#else				/*!_UNICODE */
 	if ((prop = prop_from_name(name)) != P_BADPROP) {
 	    prop_put_str(prop, val);
 	} else {
-	    putil_int(_T("property %s"), name);
+	    putil_int("property %s", name);
 	}
-#endif				/*!_UNICODE */
-    } else if (!_strnicmp(hdr, cookie, strlen(cookie))) {
+    } else if (!strnicmp(hdr, cookie, strlen(cookie))) {
 	char *id;
 
 	http_chomp(hdr);
@@ -970,7 +943,7 @@ http_parse_startup_headers(void *vptr, size_t size, size_t nitems, void *userp)
 	    *semi = '\0';
 	    prop_put_str(P_SESSIONID, id);
 	}
-    } else if (!_strnicmp(hdr, X_SERVER_STATUS_HEADER,
+    } else if (!strnicmp(hdr, X_SERVER_STATUS_HEADER,
 	    strlen(X_SERVER_STATUS_HEADER))) {
 	int rc;
 
@@ -1030,7 +1003,7 @@ static int
 _http_action_connect(char **uptr, CS const *argv, int statfiles)
 {
     CURL *curl;
-    TCHAR rwdbuf[PATH_MAX];
+    char rwdbuf[PATH_MAX];
     CS projname = NULL;
     CCS ofile;
     int rc = 0;
@@ -1061,9 +1034,9 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
 
 	for (bsd_getopt_reset(), bsd_opterr = 0; ;) {
 	    // *INDENT-OFF*
-	    static CS short_opts = _T("+p:");
+	    static CS short_opts = "+p:";
 	    static struct option long_opts[] = {
-		{_T("project-name"),	required_argument, NULL, 'p'},
+		{"project-name",	required_argument, NULL, 'p'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -1102,7 +1075,7 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
 	    }
 	}
     } else {
-	http_add_param(uptr, ACTION_ARGS_PARAM, _T(""));
+	http_add_param(uptr, ACTION_ARGS_PARAM, "");
     }
 
     // The server must be told how to format paths (/ or \).
@@ -1256,9 +1229,9 @@ http_restart(void)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, stderr);
     curl_easy_setopt(curl, CURLOPT_USERPWD, "AO:AO");
 
-    svr = prop_get_strA(P_SERVER);
+    svr = prop_get_str(P_SERVER);
 
-    if (!(app = prop_get_strA(P_SERVER_CONTEXT))) {
+    if (!(app = prop_get_str(P_SERVER_CONTEXT))) {
 	app = prop_get_app();
     }
 

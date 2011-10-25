@@ -79,6 +79,46 @@ static pthread_t(*pthread_self_real) (void);
 static pthread_mutex_t StaticDataAccessMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 
+#if defined(__CYGWIN__)
+/*
+ * An un(der)documented fact about Cygwin is that LD_PRELOAD works as long as you
+ * call out each interceptable function via CW_HOOK as shown. In order to avoid
+ * dragging in <windows.h> here and confusing everyone, we provide the DllMain
+ * signature in terms of basic types, presuming it can never change.
+ * Another strange thing about Cygwin is that it does not implement RTLD_NEXT,
+ * only RTLD_DEFAULT, and yet RTLD_DEFAULT seems to behave like RTLD_NEXT.
+ * Not complaining, because it works for us. Just saying.
+ */
+#include <sys/cygwin.h>
+int __attribute__((__stdcall__)) DllMain(void *hinstDLL, unsigned long fdwReason, void *lpvReserved)
+{
+    (void)hinstDLL; (void)fdwReason; (void)lpvReserved;
+    cygwin_internal (CW_HOOK, "_Exit", _Exit);
+    cygwin_internal (CW_HOOK, "_exit", _exit);
+    cygwin_internal (CW_HOOK, "close", close);
+    cygwin_internal (CW_HOOK, "creat", creat);
+    cygwin_internal (CW_HOOK, "execv", execv);
+    cygwin_internal (CW_HOOK, "execve", execve);
+    cygwin_internal (CW_HOOK, "execvp", execvp);
+    cygwin_internal (CW_HOOK, "fopen", fopen);
+    cygwin_internal (CW_HOOK, "freopen", freopen);
+    cygwin_internal (CW_HOOK, "open64", open64);
+    cygwin_internal (CW_HOOK, "fork", fork);
+    cygwin_internal (CW_HOOK, "link", link);
+    cygwin_internal (CW_HOOK, "mkdir", mkdir);
+    cygwin_internal (CW_HOOK, "open", open);
+    cygwin_internal (CW_HOOK, "popen", popen);
+    cygwin_internal (CW_HOOK, "pthread_create", pthread_create);
+    cygwin_internal (CW_HOOK, "pthread_exit", pthread_exit);
+    cygwin_internal (CW_HOOK, "rename", rename);
+    cygwin_internal (CW_HOOK, "symlink", symlink);
+    cygwin_internal (CW_HOOK, "system", system);
+    cygwin_internal (CW_HOOK, "unlink", unlink);
+    cygwin_internal (CW_HOOK, "vfork", vfork);
+    return 1;
+}
+#endif
+
 // Contains some declarations used by the common code.
 #include "Interposer/interposer.h"
 
@@ -138,7 +178,7 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 #include <sys/vfs.h>
 #endif	/*BSD*/
 
-#if !defined(__APPLE__) && !defined(__hpux__)
+#if !defined(__APPLE__) && !defined(__hpux__) && !defined(__CYGWIN__)
 #include <link.h>
 #endif /*APPLE*/
 
@@ -222,7 +262,7 @@ _ignore_path(const char *path)
 	// The Sun Workshop (aka Forte etc) (5.0? 6.0) compiler apparently
 	// creates and does not remove a file beginning like this.
 	rc = 1;
-#elif defined(linux)
+#elif defined(linux) || defined(__CYGWIN__)
     } else if (!strcmp(path, "/etc/mtab") || !strcmp(path, "/proc/mounts")) {
 	// On Linux all processes seem to open /etc/mtab.
 	// And we ourselves need to open /proc/mounts.
@@ -338,6 +378,7 @@ execv_wrapper(const char *call,
 	      const char *path, char *const argv[])
 {
     int ret, dbg;
+    WRAPPER_DEBUG("ENTERING execv_wrapper() => %p [%s ...]\n", next, path);
 
     dbg = _pre_exec(call, path, &argv, NULL);
 
@@ -364,6 +405,7 @@ execve_wrapper(const char *call,
 	       char *const argv[], char *const envp[])
 {
     int ret, dbg;
+    WRAPPER_DEBUG("ENTERING execve_wrapper() => %p [%s ...]\n", next, argv[0]);
 
     dbg = _pre_exec(call, path, &argv, envp);
 
@@ -503,6 +545,7 @@ execvp_wrapper(const char *call,
 {
     int ret, dbg;
     char buf[PATH_MAX];
+    WRAPPER_DEBUG("ENTERING execvp_wrapper() => %p [%s ...]\n", next, file);
 
     if (strchr(file, '/')) {
 	dbg = _pre_exec(call, file, &argv, NULL);
@@ -535,6 +578,7 @@ execvp_wrapper(const char *call,
 fork_wrapper(const char *call, pid_t(*next) (void))
 {
     pid_t pid;
+    WRAPPER_DEBUG("ENTERING fork_wrapper() => %p [%s]\n", next, interposer_get_cmdline());
 
     // A subtlety: try the following command on Solaris:
     //   % truss -texec,creat,fork -f -a /bin/sh -c "date > foo"
@@ -542,7 +586,7 @@ fork_wrapper(const char *call, pid_t(*next) (void))
     // then execs "date" (also on the child side of course).
     // Interestingly, some shells (/usr/xpg4/bin/sh on Solaris) detect
     // that no fork is needed here and open "foo" in the original process.
-    // NOTE: vfork calls may come through here too for reasons explained
+    // NOTE: vfork calls come through here too for reasons explained
     // in its wrapper.
 
     // Flush all accumulated file audits at fork. This must be done
@@ -614,14 +658,12 @@ fork1_wrapper(const char *call, pid_t(*next) (void))
 /*static*/ pid_t
 vfork(void)
 {
-    interposer_late_init("vfork");
-    if (interposer_get_active()) {
-	static pid_t(*next) (void);
+    const char *call = "vfork";
+    interposer_late_init(call);
+    WRAPPER_DEBUG("ENTERING vfork_wrapper() => %p\n", fork_real);
 
-	if (next == 0) {
-	    next = _get_real("fork");	// Converting vfork() to fork()
-	}
-	return fork_wrapper("vfork", next);
+    if (interposer_get_active()) {
+	return fork_wrapper(call, fork_real);
     } else {
 	return fork_real();
     }
@@ -638,6 +680,7 @@ vfork(void)
 system_wrapper(const char *call, int (*next) (const char *), const char *str)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING system_wrapper() => %p [%s ...]\n", next, str);
 
     // See comments in fork() wrapper.
     _audit_flush(call);
@@ -661,6 +704,7 @@ popen_wrapper(const char *call,
 	      const char *command, const char *mode)
 {
     FILE *ret;
+    WRAPPER_DEBUG("ENTERING popen_wrapper() => %p [%s ...]\n", next, command);
 
     // See comments in fork() wrapper.
     _audit_flush(call);
@@ -786,7 +830,7 @@ thr_exit_wrapper(const char *call, void (*next) (void *), void *status)
 }
 #endif				/*sun */
 
-#if defined(linux)
+#if defined(linux) || defined(__CYGWIN__)
 // I have no idea if this works but it should at least print a message
 // so we know we've found an actual use of clone, at which time more
 // work can be put into making it work right. To date I've never observed
@@ -798,6 +842,7 @@ clone_wrapper(const char *call,
 	      int (*fn) (void *), void *child_stack, int flags, void *arg)
 {
     int pid;
+    WRAPPER_DEBUG("ENTERING %s_wrapper() => %p\n", call, next);
 
     // See comments in fork() wrapper.
     _audit_flush("clone");
@@ -824,6 +869,7 @@ open_wrapper(const char *call,
 	     const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
+    WRAPPER_DEBUG("ENTERING open_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, oflag, mode);
     saved_errno = errno;
@@ -858,6 +904,7 @@ open64_wrapper(const char *call,
 	       int (*next) (const char *, int, ...),
 	       const char *path, int oflag, mode_t mode)
 {
+    WRAPPER_DEBUG("ENTERING open64_wrapper() => %p [%s ...]\n", next, path);
     oflag |= O_LARGEFILE;
     return open_wrapper(call, next, path, oflag, mode);
 }
@@ -947,9 +994,9 @@ creat_wrapper(const char *call,
 	      int (*next) (const char *, mode_t), const char *path, mode_t mode)
 {
     int oflag;
+    WRAPPER_DEBUG("ENTERING creat_wrapper() => %p [%s ...]\n", next, path);
 
-    next = next;
-
+    UNUSED(next);
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
     return open_wrapper(call, open_real, path, oflag, mode);
 }
@@ -967,13 +1014,13 @@ creat64_wrapper(const char *call,
 {
     int oflag;
     static int (*open64_real) (const char *, int, ...);
+    WRAPPER_DEBUG("ENTERING creat64_wrapper() => %p [%s ...]\n", next, path);
 
     if (!open64_real) {
 	open64_real = (int (*)(const char *, int, ...))_get_real("open64");
     }
 
-    next = next;
-
+    UNUSED(next);
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
     return open64_wrapper(call, open64_real, path, oflag, mode);
 }
@@ -1006,6 +1053,7 @@ fopen_wrapper(const char *call,
 {
     FILE *ret;
     int saved_errno;
+    WRAPPER_DEBUG("ENTERING fopen_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode);
     saved_errno = errno;
@@ -1029,6 +1077,7 @@ fopen64_wrapper(const char *call,
 		FILE *(*next)(const char *, const char *),
 		const char *path, const char *mode)
 {
+    WRAPPER_DEBUG("ENTERING fopen64_wrapper() => %p [%s ...]\n", next, path);
     return fopen_wrapper(call, next, path, mode);
 }
 
@@ -1046,6 +1095,7 @@ freopen_wrapper(const char *call,
 {
     FILE *ret;
     int saved_errno;
+    WRAPPER_DEBUG("ENTERING freopen_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode, stream);
     saved_errno = errno;
@@ -1070,6 +1120,7 @@ freopen64_wrapper(const char *call,
 		  FILE *(*next)(const char *, const char *, FILE *),
 		  const char *path, const char *mode, FILE *stream)
 {
+    WRAPPER_DEBUG("ENTERING freopen64_wrapper() => %p [%s ...]\n", next, path);
     return freopen_wrapper(call, next, path, mode, stream);
 }
 
@@ -1111,6 +1162,7 @@ mkdir_wrapper(const char *call,
 	     const char *path, mode_t mode)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING mkdir_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
@@ -1145,6 +1197,7 @@ mkdirp_wrapper(const char *call,
 	     const char *path, mode_t mode)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING mkdirp_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
@@ -1166,6 +1219,7 @@ link_wrapper(const char *call,
 	     const char *existing, const char *newpath)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING link_wrapper() => %p [%s => %s]\n", next, existing, newpath);
 
     ret = (*next)(existing, newpath);
     if (ret == 0) {
@@ -1187,6 +1241,7 @@ symlink_wrapper(const char *call,
 		const char *name1, const char *name2)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING symlink_wrapper() => %p [%s -> %s]\n", next, name1, name2);
 
     ret = (*next)(name1, name2);
     if (ret == 0) {
@@ -1208,6 +1263,7 @@ rename_wrapper(const char *call,
 	       const char *oldpath, const char *newpath)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING rename_wrapper() => %p [%s >> %s]\n", next, oldpath, newpath);
 
     ret = (*next)(oldpath, newpath);
 
@@ -1226,7 +1282,7 @@ rename_wrapper(const char *call,
 
 	// SUS says "rename(foo, foo)" is a no-op so we ignore that case.
 	// Should be quite rare so not a concern from a performance POV.
-	if (!_tstat64(oldpath, &ostbuf) && !_tstat64(newpath, &nstbuf)) {
+	if (!stat64(oldpath, &ostbuf) && !stat64(newpath, &nstbuf)) {
 	    if (ostbuf.st_ino == nstbuf.st_ino &&
 		ostbuf.st_dev == nstbuf.st_dev) {
 		return ret;
@@ -1256,6 +1312,7 @@ rename_wrapper(const char *call,
 unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 {
     int ret;
+    WRAPPER_DEBUG("ENTERING unlink_wrapper() => %p [%s]\n", next, path);
 
     // In this special case we record the op BEFORE performing it
     // in order to collect metadata from the path before it goes away.
@@ -1297,7 +1354,7 @@ interposed_finalize(void)
 	// Answer, no, vfork is not allowed to return. There could be
 	// an answer within posix_spawn but I haven't looked into it.
 	if ((pid = fork_real()) == -1) {
-	    putil_syserr(0, _T("fork"));
+	    putil_syserr(0, "fork");
 	} else if (pid == 0) {
 	    // The child just returns so the parent can wait for it.
 	} else {
@@ -1308,7 +1365,7 @@ interposed_finalize(void)
 		    status = WEXITSTATUS(wstat);
 		}
 	    } else {
-		putil_syserr(0, _T("waitpid"));
+		putil_syserr(0, "waitpid");
 	    }
 
 	    _audit_end("exit", EXITING, status);
@@ -1347,6 +1404,7 @@ interposed_finalize(void)
 /*static*/ void
 _exit_wrapper(const char *call, void (*next) (int), int status)
 {
+    WRAPPER_DEBUG("ENTERING _exit_wrapper() => %p [%d]\n", next, status);
     // Apparently exit() and _exit() are separate entry points on Solaris
     // and Linux, but on FreeBSD and OSX exit() calls _exit(). On those
     // platforms we must still intercept _exit() for programs which call
@@ -1373,5 +1431,6 @@ _Exit_wrapper(const char *call, void (*next) (int), int status)
 {
     // Since both signature and semantics are guaranteed identical
     // we can use the _exit() wrapper.
+    WRAPPER_DEBUG("ENTERING _Exit_wrapper() => %p [%d]\n", next, status);
     _exit_wrapper(call, next, status);
 }

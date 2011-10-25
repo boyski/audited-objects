@@ -32,7 +32,7 @@
 /// could be promoted to public, whereas internal properties would
 /// make no sense to expose.
 ///
-/// properties may optionally be exported, which causes them to be
+/// Properties may optionally be exported, which causes them to be
 /// made available to child processes (typically via the auditor).
 ///
 /// All property names are case-insensitive but by convention we use
@@ -50,29 +50,29 @@
 #include <alloca.h>
 #endif	/*BSD*/
 /// @cond static
-extern TCHAR **environ;		// Win32 declares this in stdlib.h
+extern char **environ;		// Win32 declares this in stdlib.h
 /// @endcond static
 #endif	/*_WIN32*/
 
 #if  defined(_WIN32)
 static WCHAR PropEnvPrefixW[PATH_MAX];
 #endif	/*_WIN32*/
-static TCHAR PropEnvPrefix[PATH_MAX];
+static char PropEnvPrefix[PATH_MAX];
 static size_t PropEnvPrefixLen;
 
 static void _prop_export(prop_e);
 
 /// @cond static
-#define DEFAULT_LIST_SEP	_T(",")
+#define DEFAULT_LIST_SEP	","
 
 #define PROP_NAME_MAX		256
 #define PROP_VAL_MAX		(PATH_MAX*2)
 #define PROP_STR_MAX		(PROP_NAME_MAX + PROP_VAL_MAX + 2)
 
-#define PROP_NULL		_T("<NULL>")
-#define PROP_TRUE		_T("<TRUE>")
-#define PROP_FALSE		_T("<FALSE>")
-#define PROP_REQUIRED		_T("<REQUIRED>")
+#define PROP_NULL		"<NULL>"
+#define PROP_TRUE		"<TRUE>"
+#define PROP_FALSE		"<FALSE>"
+#define PROP_REQUIRED		"<REQUIRED>"
 
 #define PROP_FLAG_INTERNAL	0x000
 #define PROP_FLAG_PRIVATE	PROP_FLAG_INTERNAL
@@ -92,71 +92,71 @@ static struct {
     prop_e	 pr_index;
 } proptab[] = {
     {
-	_T("APP"),	// THIS PROPERTY IS SPECIAL
+	"APP",	// THIS PROPERTY IS SPECIAL
 	NULL,
-	_T("Base name of the application"),
-	_T("ao"),
+	"Base name of the application",
+	"ao",
 	PROP_FLAG_INTERNAL,
 	0,
 	P_APP,
     },
     {
-	_T("Absolute.Paths"),
+	"Absolute.Paths",
 	NULL,
-	_T("Show member paths as absolute"),
+	"Show member paths as absolute",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_ABSOLUTE_PATHS,
     },
     {
-	_T("Activation.Prog.RE"),
+	"Activation.Prog.RE",
 	NULL,
-	_T("Regular expression describing programs which trigger an audit"),
+	"Regular expression describing programs which trigger an audit",
 	NULL,
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_ACTIVATION_PROG_RE,
     },
     {
-	_T("Aggregated.Subcmd"),
+	"Aggregated.Subcmd",
 	NULL,
-	_T("Boolean - disable build avoidance within aggregated subcommands"),
+	"Boolean - disable build avoidance within aggregated subcommands",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_AGGREGATED_SUBCMD,
     },
     {
-	_T("Aggregation.Line.Break.RE"),
+	"Aggregation.Line.Break.RE",
 	NULL,
-	_T("Break-aggregation RE based on cmd line"),
+	"Break-aggregation RE based on cmd line",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_LINE_BREAK_RE,
     },
     {
-	_T("Aggregation.Line.Strong.RE"),
+	"Aggregation.Line.Strong.RE",
 	NULL,
-	_T("Strong-aggregation RE based on cmd line"),
+	"Strong-aggregation RE based on cmd line",
 #if defined(_WIN32)
 	// Windows patterns are always case-insensitive.
 	NULL,
 #else	/*_WIN32*/
-	_T("^(?:(?:/usr|/usr/xpg4)?/bin/)?[a-z]*sh\\s+|libtool|^/\\S*/perl\\s+\\S+gcc"),
+	"^(?:(?:/usr|/usr/xpg4)?/bin/)?[a-z]*sh\\s+|libtool|^/\\S*/perl\\s+\\S+gcc",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_LINE_STRONG_RE,
     },
     {
-	_T("Aggregation.Line.Weak.RE"),
+	"Aggregation.Line.Weak.RE",
 	NULL,
-	_T("Weak-aggregation RE based on cmd line"),
+	"Weak-aggregation RE based on cmd line",
 #if defined(_WIN32)
 	// Windows patterns are always case-insensitive.
-	_T("cmd\\.exe$"),
+	"cmd\\.exe$",
 #else	/*_WIN32*/
 	NULL,
 #endif	/*_WIN32*/
@@ -165,51 +165,51 @@ static struct {
 	P_AGGREGATION_LINE_WEAK_RE,
     },
     {
-	_T("Aggregation.Prog.Break.RE"),
+	"Aggregation.Prog.Break.RE",
 	NULL,
-	_T("Break-aggregation RE based on prog name"),
+	"Break-aggregation RE based on prog name",
 #if defined(_WIN32)
 	// Windows patterns are always case-insensitive.
 	NULL,
 #else	/*_WIN32*/
-	_T("make$"),
+	"make$",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_BREAK_RE,
     },
     {
-	_T("Aggregation.Prog.Strong.RE"),
+	"Aggregation.Prog.Strong.RE",
 	NULL,
-	_T("Strong-aggregation RE based on prog name"),
+	"Strong-aggregation RE based on prog name",
 #if defined(_WIN32)
 	// Windows patterns are always case-insensitive.
-	_T("(cl|link|msbuild|vcbuild|devenv)\\.(exe|com)$"),
+	"(cl|link|msbuild|vcbuild|devenv)\\.(exe|com)$",
 #else	/*_WIN32*/
-	_T("(\\bcc|\\bCC|gcc|gcc-.*|[cg][+]{2}|[cg][+]{2}-.*|ccache)$"),
+	"(\\bcc|\\bCC|gcc|gcc-.*|[cg][+]{2}|[cg][+]{2}-.*|ccache)$",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_STRONG_RE,
     },
     {
-	_T("Aggregation.Prog.Weak.RE"),
+	"Aggregation.Prog.Weak.RE",
 	NULL,
-	_T("Weak-aggregation RE based on prog name"),
+	"Weak-aggregation RE based on prog name",
 #if defined(_WIN32)
 	// Windows patterns are always case-insensitive.
-	_T("java\\.exe$"),
+	"java\\.exe$",
 #else	/*_WIN32*/
-	_T("java$"),
+	"java$",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_WEAK_RE,
     },
     {
-	_T("Aggregation.Style"),
+	"Aggregation.Style",
 	NULL,
-	_T("Whether to aggregate all, some, or none"),
+	"Whether to aggregate all, some, or none",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
@@ -217,33 +217,33 @@ static struct {
     },
     // This is an undocumented  development hack which may be removed in time.
     {
-	_T("Aggressive.Server"),
+	"Aggressive.Server",
 	NULL,
-	_T("Temporary hack to request aggressive server-side optimization"),
+	"Temporary hack to request aggressive server-side optimization",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_AGGRESSIVE_SERVER,
     },
     {
-	_T("Audit.Ignore.Path.RE"),
+	"Audit.Ignore.Path.RE",
 	NULL,
-	_T("Regular expression matching pathnames to be completely ignored"),
+	"Regular expression matching pathnames to be completely ignored",
 #if defined(_WIN32)
-	_T("\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$|\\.cmake\\.state"),
+	"\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$|\\.cmake\\.state",
 #else	/*_WIN32*/
-	_T("/tmp\\d+\\b|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$"),
+	"/tmp\\d+\\b|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_AUDIT_IGNORE_PATH_RE,
     },
     {
-	_T("Audit.Ignore.Prog.RE"),
+	"Audit.Ignore.Prog.RE",
 	NULL,
-	_T("Regular expression matching programs to be completely ignored"),
+	"Regular expression matching programs to be completely ignored",
 #if defined(_WIN32)
-	_T("mspdbsrv"),
+	"mspdbsrv",
 #else	/*_WIN32*/
 	NULL,
 #endif	/*_WIN32*/
@@ -252,90 +252,90 @@ static struct {
 	P_AUDIT_IGNORE_PROG_RE,
     },
     {
-	_T("Audit.Only"),
+	"Audit.Only",
 	NULL,
-	_T("Audit file and command activity but do no uploads or downloads"),
+	"Audit file and command activity but do no uploads or downloads",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AUDIT_ONLY,
     },
     {
-	_T("Base.Dir"),
+	"Base.Dir",
 	NULL,
-	_T("The root of this project tree"),
+	"The root of this project tree",
 	PROP_REQUIRED,
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_BASE_DIR,
     },
     {
-	_T("Client.Host"),
+	"Client.Host",
 	NULL,
-	_T("Host for intra-client audit delivery connections"),
-	_T("127.0.0.1"),
+	"Host for intra-client audit delivery connections",
+	"127.0.0.1",
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_CLIENT_HOST,
     },
     {
-	_T("Client.Platform"),
+	"Client.Platform",
 	NULL,
-	_T("Type of client platform: Unix, Windows, Cygwin, ..."),
-	_T("u"),
+	"Type of client platform: Unix, Windows, Cygwin, ...",
+	"u",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_CLIENT_PLATFORM,
     },
     {
-	_T("Client.Port"),
+	"Client.Port",
 	NULL,
-	_T("Port for intra-client audit delivery connections"),
-	_T("0xA0A0"),		// A0A0 hex == 41120 decimal
+	"Port for intra-client audit delivery connections",
+	"0xA0A0",		// A0A0 hex == 41120 decimal
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_CLIENT_PORT,
     },
     {
-	_T("Client.Timeout.Secs"),
+	"Client.Timeout.Secs",
 	NULL,
-	_T("How often to check health of audited process, in seconds"),
-	_T("30"),
+	"How often to check health of audited process, in seconds",
+	"30",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_CLIENT_TIMEOUT_SECS,
     },
     {
-	_T("Dcode.All"),
+	"Dcode.All",
 	NULL,
-	_T("Derive the data-code for all involved files"),
+	"Derive the data-code for all involved files",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_DCODE_ALL,
     },
     {
-	_T("Dcode.Cache.Secs"),
+	"Dcode.Cache.Secs",
 	NULL,
-	_T("Timestamp offset from start time for dcode cache"),
-	_T("-1"),
+	"Timestamp offset from start time for dcode cache",
+	"-1",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_DCODE_CACHE_SECS,
     },
     {
-	_T("DEPTH"),
+	"DEPTH",
 	NULL,
-	_T("Special modifiable EV carrying the cmd depth"),
+	"Special modifiable EV carrying the cmd depth",
 	NULL,
 	PROP_FLAG_INTERNAL | PROP_FLAG_EXPORT,
 	10,
 	P_DEPTH,
     },
     {
-	_T("Doc.Pager"),
+	"Doc.Pager",
 	NULL,
-	_T("Pipe help output through specified pager"),
+	"Pipe help output through specified pager",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
@@ -347,279 +347,279 @@ static struct {
     // and to grab some recycling from it, but it will have no record
     // of any of this. Intended for debugging use.
     {
-	_T("Download.Only"),
+	"Download.Only",
 	NULL,
-	_T("Allow downloads but no uploads"),
+	"Allow downloads but no uploads",
 	0,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_DOWNLOAD_ONLY,
     },
     {
-	_T("Execute.Only"),
+	"Execute.Only",
 	NULL,
-	_T("Suppress auditing and just run the command"),
+	"Suppress auditing and just run the command",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_EXECUTE_ONLY,
     },
     {
-	_T("Git"),
+	"Git",
 	NULL,
-	_T("Boolean - pass audit data to git"),
+	"Boolean - pass audit data to git",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_GIT,
     },
     {
-	_T("Git.Dir"),
+	"Git.Dir",
 	NULL,
-	_T("The location of an optional Git repository"),
+	"The location of an optional Git repository",
 	NULL,
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_GIT_DIR,
     },
     {
-	_T("Identity.Hash"),
+	"Identity.Hash",
 	NULL,
-	_T("Name of identity hash (CRC, SHA1, GIT)"),
-	_T("GIT"),
+	"Name of identity hash (CRC, SHA1, GIT)",
+	"GIT",
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_IDENTITY_HASH,
     },
     {
-	_T("Leave.Roadmap"),
+	"Leave.Roadmap",
 	NULL,
-	_T("Boolean - don't unlink roadmap file when done"),
+	"Boolean - don't unlink roadmap file when done",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_LEAVE_ROADMAP,
     },
     {
-	_T("Log.File"),
+	"Log.File",
 	NULL,
-	_T("Path for automatically generated logfile"),
+	"Path for automatically generated logfile",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_LOG_FILE,
     },
     {
-	_T("Log.File.Temp"),
+	"Log.File.Temp",
 	NULL,
-	_T("Log to a temp file, uploaded and removed"),
+	"Log to a temp file, uploaded and removed",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_LOG_FILE_TEMP,
     },
     {
-	_T("Make.Depends"),
+	"Make.Depends",
 	NULL,
-	_T("Dump makefile dependency info to .d files"),
+	"Dump makefile dependency info to .d files",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_MAKE_DEPENDS,
     },
     {
-	_T("Make.File"),
+	"Make.File",
 	NULL,
-	_T("Generate a Makefile in the named file"),
+	"Generate a Makefile in the named file",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_MAKE_FILE,
     },
     {
-	_T("Make.OneShell"),
+	"Make.OneShell",
 	NULL,
-	_T("Ask make to use a single shell for each recipe"),
+	"Ask make to use a single shell for each recipe",
 	PROP_TRUE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_MAKE_ONESHELL,
     },
     {
-	_T("Members.Only"),
+	"Members.Only",
 	NULL,
-	_T("Show and consider only project member files"),
+	"Show and consider only project member files",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_MEMBERS_ONLY,
     },
     {
-	_T("MMap.Larger.Than"),
+	"MMap.Larger.Than",
 	NULL,
-	_T("Use memory mapping to read files larger than this size"),
-	_T("32768"),
+	"Use memory mapping to read files larger than this size",
+	"32768",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_MMAP_LARGER_THAN,
     },
     {
-	_T("NO.MONITOR"),
+	"NO.MONITOR",
 	NULL,
-	_T("Boolean - dump truly raw audit data without aggregation"),
+	"Boolean - dump truly raw audit data without aggregation",
 	PROP_FALSE,
 	PROP_FLAG_INTERNAL | PROP_FLAG_EXPORT,
 	0,
 	P_NO_MONITOR,
     },
     {
-	_T("Original.Datestamp"),
+	"Original.Datestamp",
 	NULL,
-	_T("Boolean - set mod time of downloaded files back to uploaded time"),
-	_T("1"),
+	"Boolean - set mod time of downloaded files back to uploaded time",
+	"1",
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_ORIGINAL_DATESTAMP,
     },
     {
-	_T("Output.File"),
+	"Output.File",
 	NULL,
-	_T("Dump output data to specified file"),
+	"Dump output data to specified file",
 	NULL,
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_OUTPUT_FILE,
     },
     {
-	_T("PCCODE"),
+	"PCCODE",
 	NULL,
-	_T("Special modifiable EV holding the parent cmd code"),
+	"Special modifiable EV holding the parent cmd code",
 	NULL,
 	PROP_FLAG_INTERNAL | PROP_FLAG_EXPORT,
 	64,	// Buffer big enough for SHA-256 hash.
 	P_PCCODE,
     },
     {
-	_T("PCMDID"),
+	"PCMDID",
 	NULL,
-	_T("Special modifiable EV holding the parent pid"),
+	"Special modifiable EV holding the parent pid",
 	NULL,
 	PROP_FLAG_INTERNAL | PROP_FLAG_EXPORT,
 	10,
 	P_PCMDID,
     },
     {
-	_T("Perl.Cmd"),
+	"Perl.Cmd",
 	NULL,
-	_T("Name of or path to the preferred Perl binary"),
-	_T("perl"),
+	"Name of or path to the preferred Perl binary",
+	"perl",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_PERL_CMD,
     },
     {
-	_T("Print.Elapsed"),
+	"Print.Elapsed",
 	NULL,
-	_T("Print the elapsed wall-clock time at exit"),
+	"Print the elapsed wall-clock time at exit",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_PRINT_ELAPSED,
     },
     {
-	_T("PROGNAME"),
+	"PROGNAME",
 	NULL,
-	_T("Name of the running program (best guess)"),
+	"Name of the running program (best guess)",
 	NULL,
 	PROP_FLAG_INTERNAL,
 	0,
 	P_PROGNAME,
     },
     {
-	_T("Project.Name"),
+	"Project.Name",
 	NULL,
-	_T("Assign a name to this project"),
+	"Assign a name to this project",
 	NULL,
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_PROJECT_NAME,
     },
     {
-	_T("PTX.Strategy"),
+	"PTX.Strategy",
 	NULL,
-	_T("Selection criteria for downloadable PTXes"),
-	_T("30,-1,10,10"),
+	"Selection criteria for downloadable PTXes",
+	"30,-1,10,10",
 	PROP_FLAG_PUBLIC,
 	0,
 	P_PTX_STRATEGY,
     },
     {
-	_T("Reuse.Roadmap"),
+	"Reuse.Roadmap",
 	NULL,
-	_T("Boolean - use the pre-existing roadmap (debugging use only)"),
+	"Boolean - use the pre-existing roadmap (debugging use only)",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_REUSE_ROADMAP,
     },
     {
-	_T("Roadmap.File"),
+	"Roadmap.File",
 	NULL,
-	_T("Path to the file containing the CA/PS/PTX database"),
+	"Path to the file containing the CA/PS/PTX database",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_ROADMAPFILE,
     },
     {
-	_T("Server"),
+	"Server",
 	NULL,
-	_T("Name of server in <host>:<port> format"),
+	"Name of server in <host>:<port> format",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_SERVER,
     },
     {
-	_T("SERVER.CONTEXT"),
+	"SERVER.CONTEXT",
 	NULL,
-	_T("The webapp 'context' string"),
+	"The webapp 'context' string",
 	"AO",
 	PROP_FLAG_INTERNAL,
 	0,
 	P_SERVER_CONTEXT,
     },
     {
-	_T("Server.Log.Level"),
+	"Server.Log.Level",
 	NULL,
-	_T("Server-side log4j level (OFF, ALL, DEBUG, ...)"),
+	"Server-side log4j level (OFF, ALL, DEBUG, ...)",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_SERVER_LOG_LEVEL,
     },
     {
-	_T("SESSIONID"),
+	"SESSIONID",
 	NULL,
-	_T("The HTTP session id cookie value received from the server"),
+	"The HTTP session id cookie value received from the server",
 	NULL,
 	PROP_FLAG_INTERNAL,
 	0,
 	P_SESSIONID,
     },
     {
-	_T("Session.Timeout.Secs"),
+	"Session.Timeout.Secs",
 	NULL,
-	_T("The HTTP session timeout used during a build, in seconds"),
-	_T("0"),
+	"The HTTP session timeout used during a build, in seconds",
+	"0",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_SESSION_TIMEOUT_SECS,
     },
     {
-	_T("Shop.Ignore.Path.RE"),
+	"Shop.Ignore.Path.RE",
 	NULL,
-	_T("Regular expression matching pathnames to ignore when shopping"),
+	"Regular expression matching pathnames to ignore when shopping",
 	NULL,
 	PROP_FLAG_PUBLIC,
 	0,
@@ -631,108 +631,108 @@ static struct {
     // handle only microseconds. Thus, comparing nanoseconds is unfair
     // because a command like "touch" cannot control them.
     {
-	_T("Shop.Time.Precision"),
+	"Shop.Time.Precision",
 	NULL,
-	_T("Number of decimal digits to consider in timestamp comparisons"),
-	_T("6"),
+	"Number of decimal digits to consider in timestamp comparisons",
+	"6",
 	PROP_FLAG_PRIVATE,
 	0,
 	P_SHOP_TIME_PRECISION,
     },
     {
-	_T("Strict"),
+	"Strict",
 	NULL,
-	_T("A shorthand for all strict options"),
+	"A shorthand for all strict options",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_STRICT,
     },
     {
-	_T("Strict.Audit"),
+	"Strict.Audit",
 	NULL,
-	_T("Abort if any command cannot be audited"),
+	"Abort if any command cannot be audited",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_STRICT_AUDIT,
     },
     {
-	_T("Strict.Download"),
+	"Strict.Download",
 	NULL,
-	_T("Abort if any audited objects cannot be downloaded"),
+	"Abort if any audited objects cannot be downloaded",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_STRICT_DOWNLOAD,
     },
     {
-	_T("Strict.Error"),
+	"Strict.Error",
 	NULL,
-	_T("Abort after any error message"),
+	"Abort after any error message",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_STRICT_ERROR,
     },
     {
-	_T("Strict.Upload"),
+	"Strict.Upload",
 	NULL,
-	_T("Abort if any audited objects cannot be uploaded"),
+	"Abort if any audited objects cannot be uploaded",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_STRICT_UPLOAD,
     },
     {
-	_T("Synchronous.Transfers"),
+	"Synchronous.Transfers",
 	NULL,
-	_T("Upload files in the foreground, for debugging"),
+	"Upload files in the foreground, for debugging",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_SYNCHRONOUS_TRANSFERS,
     },
     {
-	_T("Uncompressed.Transfers"),
+	"Uncompressed.Transfers",
 	NULL,
-	_T("Boolean - handle compression/decompression on server"),
+	"Boolean - handle compression/decompression on server",
 	PROP_FALSE,
 	PROP_FLAG_PRIVATE,
 	0,
 	P_UNCOMPRESSED_TRANSFERS,
     },
     {
-	_T("Upload.Only"),
+	"Upload.Only",
 	NULL,
-	_T("Disable downloads and build avoidance"),
+	"Disable downloads and build avoidance",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_UPLOAD_ONLY,
     },
     {
-	_T("Upload.Reads"),
+	"Upload.Reads",
 	NULL,
-	_T("Boolean - upload files read as well as written"),
+	"Boolean - upload files read as well as written",
 	PROP_FALSE,
 	PROP_FLAG_PUBLIC,
 	0,
 	P_UPLOAD_READS,
     },
     {
-	_T("Verbosity"),
+	"Verbosity",
 	NULL,
-	_T("Set verbosity flags"),
-	_T("STD"),
+	"Set verbosity flags",
+	"STD",
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_VERBOSITY,
     },
     {
-	_T("WFlag"),
+	"WFlag",
 	NULL,
-	_T("Extension flags directed to subsystems"),
+	"Extension flags directed to subsystems",
 	NULL,
 	PROP_FLAG_PRIVATE,
 	0,
@@ -744,7 +744,7 @@ static struct {
 
 // Utility: switch one char for another
 static void
-_prop_replace_char(CS bp, TCHAR newchar, TCHAR oldchar)
+_prop_replace_char(CS bp, char newchar, char oldchar)
 {
     for (; *bp; bp++) {
 	if (*bp == oldchar) {
@@ -763,10 +763,10 @@ prop_init(CCS app)
     prop_assert(P_APP);
 
     // Initialize the prefix which is used for exported properties.
-    _sntprintf(PropEnvPrefix, charlen(PropEnvPrefix),
-	_T("_%s_"), proptab[P_APP].pr_value);
+    snprintf(PropEnvPrefix, charlen(PropEnvPrefix),
+	"_%s_", proptab[P_APP].pr_value);
     util_strup(PropEnvPrefix);
-    PropEnvPrefixLen = _tcslen(PropEnvPrefix);
+    PropEnvPrefixLen = strlen(PropEnvPrefix);
 #if defined(_WIN32)
     (void)MultiByteToWideChar(CP_ACP, 0, PropEnvPrefix, -1,
 	PropEnvPrefixW, charlen(PropEnvPrefixW));
@@ -778,9 +778,9 @@ static CCS
 _prop_get_value(prop_e prop)
 {
     if (!prop_get_app()) {
-	putil_warn(_T("uninitialized properties table"));
+	putil_warn("uninitialized properties table");
     } else if (proptab[prop].pr_index != prop) {
-	putil_die(_T("properties table definition skew"));
+	putil_die("properties table definition skew");
     }
 
     return proptab[prop].pr_value;
@@ -791,11 +791,11 @@ _prop_get_value(prop_e prop)
 static int
 _prop_process_line(CS line)
 {
-    TCHAR buf[4096];
+    char buf[4096];
     CS bp, ep;
     prop_e prop;
 
-    _sntprintf(buf, charlen(buf), _T("%s"), line);
+    snprintf(buf, charlen(buf), "%s", line);
     bp = buf;
     ep = endof(buf) - 1;
 
@@ -847,7 +847,7 @@ _prop_process_line(CS line)
 
     prop = prop_from_name(bp);
     if (prop == P_BADPROP) {
-	putil_warn(_T("unrecognized property: %s"), bp);
+	putil_warn("unrecognized property: %s", bp);
     } else {
 	prop_put_str(prop, ep);
     }
@@ -864,7 +864,7 @@ prop_from_name(CCS name)
     int i;
 
     for (i = 0; proptab[i].pr_name; i++) {
-	if (!_tcsicmp(name, proptab[i].pr_name)) {
+	if (!stricmp(name, proptab[i].pr_name)) {
 	    return (prop_e)i;
 	}
     }
@@ -956,9 +956,9 @@ static void
 _prop_report_missing(prop_e prop, int isfatal)
 {
     if (isfatal) {
-	putil_die(_T("missing required property: %s"), prop_to_name(prop));
+	putil_die("missing required property: %s", prop_to_name(prop));
     } else {
-	putil_warn(_T("missing required property: %s"), prop_to_name(prop));
+	putil_warn("missing required property: %s", prop_to_name(prop));
     }
 }
 
@@ -972,7 +972,7 @@ _prop_get_str(prop_e prop, int isfatal)
     dflt = proptab[prop].pr_dflt;
 
     if (result) {
-	if (!_tcscmp(result, PROP_NULL)) {
+	if (!strcmp(result, PROP_NULL)) {
 	    result = NULL;
 	}
     } else {
@@ -992,26 +992,12 @@ _prop_get_str(prop_e prop, int isfatal)
 /// @param[in] prop     a property
 /// @return the value of the property as a string
 const char *
-prop_get_strA(prop_e prop)
+prop_get_str(prop_e prop)
 {
     CCS wval;
 
     if ((wval = _prop_get_str(prop, 1))) {
-#if defined(_UNICODE)
-	int wlen;
-	char *aval;
-
-	// Convert the Unicode value to its ANSI equivalent on the *heap*.
-	// HACK: this is a leak!
-	wlen = (wcslen(wval) + 1) * sizeof(WCHAR);
-	aval = (char *)putil_malloc(wlen);
-	if (wcstombs(aval, wval, wlen) < 0) {
-	    putil_syserr(2, _T("wcstombs()"));
-	}
-	return aval;
-#else	/*_UNICODE*/
 	return wval;
-#endif	/*_UNICODE*/
     } else {
 	return NULL;
     }
@@ -1029,12 +1015,12 @@ prop_get_ulong(prop_e prop)
     if (!(str = prop_get_str(prop))) {
 	return 0;
     }
-    if (!_tcsicmp(str, _T("true")) || !_tcsicmp(str, PROP_TRUE) ||
-	!_tcsicmp(str, _T("yes"))) {
+    if (!stricmp(str, "true") || !stricmp(str, PROP_TRUE) ||
+	!stricmp(str, "yes")) {
 	return 1;
     }
     base = (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) ? 16 : 10;
-    return _tcstoul(str, NULL, base);
+    return strtoul(str, NULL, base);
 }
 
 /// Gets a signed numeric-valued property. Accepts values in decimal or hex.
@@ -1049,12 +1035,12 @@ prop_get_long(prop_e prop)
     if (!(str = prop_get_str(prop))) {
 	return 0;
     }
-    if (!_tcsicmp(str, _T("true")) || !_tcsicmp(str, PROP_TRUE) ||
-	!_tcsicmp(str, _T("yes"))) {
+    if (!stricmp(str, "true") || !stricmp(str, PROP_TRUE) ||
+	!stricmp(str, "yes")) {
 	return 1;
     }
     base = (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) ? 16 : 10;
-    return _tcstol(str, NULL, base);
+    return strtol(str, NULL, base);
 }
 
 // Internal utility function to set a property, possibly exported.
@@ -1089,7 +1075,7 @@ prop_put_str(prop_e prop, CCS val)
 
 	len = proptab[prop].pr_pad + CHARSIZE;
 	vbuf = (CS)alloca(len);
-	_sntprintf(vbuf, len, _T("%*s"), proptab[prop].pr_pad, val);
+	snprintf(vbuf, len, "%*s", proptab[prop].pr_pad, val);
 	_prop_put_str(prop, vbuf);
     } else {
 	_prop_put_str(prop, val);
@@ -1114,9 +1100,9 @@ prop_override_str(prop_e prop, CCS val)
 void
 prop_put_long(prop_e prop, long val)
 {
-    TCHAR vbuf[64];
+    char vbuf[64];
 
-    _sntprintf(vbuf, charlen(vbuf), _T("%ld"), val);
+    snprintf(vbuf, charlen(vbuf), "%ld", val);
     prop_put_str(prop, vbuf);
 }
 
@@ -1127,9 +1113,9 @@ prop_put_long(prop_e prop, long val)
 void
 prop_put_ulong(prop_e prop, unsigned long val)
 {
-    TCHAR vbuf[64];
+    char vbuf[64];
 
-    _sntprintf(vbuf, charlen(vbuf), _T("%lu"), val);
+    snprintf(vbuf, charlen(vbuf), "%lu", val);
     prop_put_str(prop, vbuf);
 }
 
@@ -1179,9 +1165,9 @@ prop_get_app(void)
 static int
 _prop_matches_ev_name(CCS name)
 {
-    if (!_tcsncmp(name, PropEnvPrefix, PropEnvPrefixLen)) {
+    if (!strncmp(name, PropEnvPrefix, PropEnvPrefixLen)) {
 	return PropEnvPrefixLen;
-    } else if (!_tcsncmp(name, PropEnvPrefix + 1, PropEnvPrefixLen - 1)) {
+    } else if (!strncmp(name, PropEnvPrefix + 1, PropEnvPrefixLen - 1)) {
 	return PropEnvPrefixLen - 1;
     } else {
 	return 0;
@@ -1209,7 +1195,7 @@ _prop_load_from_ev(CS buf)
     CS bp;
     prop_e prop;
 
-    if ((bp = _tcschr(buf, '=')) == NULL) {
+    if ((bp = strchr(buf, '=')) == NULL) {
 	return;
     }
 
@@ -1217,7 +1203,7 @@ _prop_load_from_ev(CS buf)
     _prop_replace_char(buf, '.', '_');
     prop = prop_from_name(buf);
     if (prop < 0) {
-	putil_warn(_T("unrecognized property: %s"), buf);
+	putil_warn("unrecognized property: %s", buf);
     } else {
 	// For consistency, if a property is inherited from the
 	// environment but is not marked as exported, remove it from
@@ -1239,19 +1225,19 @@ _prop_load_from_ev(CS buf)
 void
 prop_load(CCS fname, CCS verbose)
 {
-    TCHAR buf[PROP_STR_MAX];
+    char buf[PROP_STR_MAX];
 
     if (!fname) {
 	if (verbose) {
-	    _tprintf(_T("%s[Environment]\n"), verbose);
+	    printf("%s[Environment]\n", verbose);
 	}
-    } else if (!_taccess(fname, F_OK)) {
+    } else if (!access(fname, F_OK)) {
 	if (verbose) {
-	    _tprintf(_T("%s%s\n"), verbose, fname);
+	    printf("%s%s\n", verbose, fname);
 	}
     } else {
 	if (verbose) {
-	    _tprintf(_T("%s%s (not present)\n"), verbose, fname);
+	    printf("%s%s (not present)\n", verbose, fname);
 	}
 	return;
     }
@@ -1259,23 +1245,23 @@ prop_load(CCS fname, CCS verbose)
     if (fname) {
 	FILE *fp;
 	int ln;
-	TCHAR pstr[PROP_STR_MAX], *tp, *bp;
+	char pstr[PROP_STR_MAX], *tp, *bp;
 
-	if ((fp = _tfopen(fname, _T("r")))) {
-	    for (ln = 1; _fgetts(buf, charlen(buf), fp); ln++) {
+	if ((fp = fopen(fname, "r"))) {
+	    for (ln = 1; fgets(buf, charlen(buf), fp); ln++) {
 		// In case a line-continuation (\) character is found.
-		while ((bp = _tcschr(buf, '\n')) &&
+		while ((bp = strchr(buf, '\n')) &&
 			bp > buf && *(bp - 1) == '\\') {
 		    *--bp = '\0';
-		    if (!_fgetts(pstr, charlen(pstr), fp)) {
+		    if (!fgets(pstr, charlen(pstr), fp)) {
 			break;
 		    }
 		    ln++;
 		    for (tp = pstr; ISSPACE(*tp); tp++);
-		    _tcscpy(bp, tp);
+		    strcpy(bp, tp);
 		}
 		if (_prop_process_line(buf)) {
-		    putil_warn(_T("malformed line (%d) in %s: '%s'"), ln, fname,
+		    putil_warn("malformed line (%d) in %s: '%s'", ln, fname,
 			       buf);
 		}
 	    }
@@ -1295,19 +1281,19 @@ prop_load(CCS fname, CCS verbose)
 
 	for (ep = env; *ep; ep++) {
 	    if ((offset = _prop_matches_ev_name(ep))) {
-		_tcscpy(buf, ep + offset);
+		strcpy(buf, ep + offset);
 		_prop_load_from_ev(buf);
 	    }
-	    ep = _tcschr(ep, '\0');
+	    ep = strchr(ep, '\0');
 	}
 
 	FreeEnvironmentStrings(env);
 #else	/*_WIN32*/
-	TCHAR **envp;
+	char **envp;
 
-	for (envp = _tenviron; *envp; envp++) {
+	for (envp = environ; *envp; envp++) {
 	    if ((offset = _prop_matches_ev_name(*envp))) {
-		_tcscpy(buf, *envp + offset);
+		strcpy(buf, *envp + offset);
 		_prop_load_from_ev(buf);
 	    }
 	}
@@ -1330,7 +1316,7 @@ prop_assert(prop_e prop)
 static CS
 _prop_to_ev(prop_e prop, CS buf, size_t len)
 {
-    _sntprintf(buf, len, _T("%s%s"), PropEnvPrefix, prop_to_name(prop));
+    snprintf(buf, len, "%s%s", PropEnvPrefix, prop_to_name(prop));
     _prop_replace_char(buf, '_', '.');
     util_strup(buf);
     return buf;
@@ -1341,34 +1327,41 @@ _prop_to_ev(prop_e prop, CS buf, size_t len)
 static void
 _prop_export(prop_e prop)
 {
-    TCHAR name[PROP_NAME_MAX];
+    char namebuf[PROP_NAME_MAX];
+    char *name;
     CS str;
     CCS val;
 
     if (!(val = prop_get_str(prop))) {
 	_prop_report_missing(prop, 1);
     }
-    _prop_to_ev(prop, name, charlen(name));
+    _prop_to_ev(prop, namebuf, charlen(namebuf));
+    name = namebuf;
+
+    /* These properties are public so leave off the underscore */
+    if (prop == P_BASE_DIR || prop == P_PROJECT_NAME) {
+	name++;
+    }
 
 #if defined(_WIN32)
     str = (CS)alloca(PROP_STR_MAX);
-    if (GetEnvironmentVariable(name, str, PROP_STR_MAX) && !_tcscmp(str, val)) {
+    if (GetEnvironmentVariable(name, str, PROP_STR_MAX) && !strcmp(str, val)) {
 	return;
     }
     if (!SetEnvironmentVariable(name, val)) {
 	putil_syserr(0, name);
     }
     if (GetEnvironmentVariable(name, str, PROP_STR_MAX)) {
-	assert(!_tcscmp(str, val));
+	assert(!strcmp(str, val));
     }
 #else	/*_WIN32*/
-    if ((str = putil_getenv(name)) && !_tcscmp(str, val)) {
+    if ((str = putil_getenv(name)) && !strcmp(str, val)) {
 	return;
     }
-    str = (CS)putil_calloc(_tcslen(name) + _tcslen(val) + 2, CHARSIZE);
-    _tcscpy(str, name);
-    _tcscat(str, _T("="));
-    _tcscat(str, val);
+    str = (CS)putil_calloc(strlen(name) + strlen(val) + 2, CHARSIZE);
+    strcpy(str, name);
+    strcat(str, "=");
+    strcat(str, val);
     putil_putenv(str);
     // Despite the confusing putenv man page we must NOT free this str.
     // Unfortunately Sun's bcheck will show it as a memory leak.
@@ -1387,7 +1380,7 @@ _prop_export(prop_e prop)
 void
 prop_unexport(prop_e prop, int forever)
 {
-    TCHAR buf[PROP_NAME_MAX];
+    char buf[PROP_NAME_MAX];
 
     _prop_to_ev(prop, buf, charlen(buf));
 
@@ -1421,11 +1414,11 @@ void
 prop_help(int all, int verbose, CCS exe)
 {
     int prop;
-    TCHAR name[PROP_NAME_MAX];
+    char name[PROP_NAME_MAX];
     CCS val;
 
     if (verbose) {
-	_tprintf(_T("\nPROPERTIES [current values]:\n\n"));
+	printf("\nPROPERTIES [current values]:\n\n");
     }
 
     for (prop = 0; proptab[prop].pr_name; prop++) {
@@ -1438,7 +1431,7 @@ prop_help(int all, int verbose, CCS exe)
 	}
 
 	if (verbose && proptab[prop].pr_desc) {
-	    TCHAR pfx;
+	    char pfx;
 
 	    if (all && (proptab[prop].pr_flags & PROP_FLAG_EXPORT)) {
 		pfx = '*';
@@ -1446,11 +1439,11 @@ prop_help(int all, int verbose, CCS exe)
 		pfx = '#';
 	    }
 
-	    _tprintf(_T("%c %s:\n"), pfx, proptab[prop].pr_desc);
+	    printf("%c %s:\n", pfx, proptab[prop].pr_desc);
 	}
 
-	_sntprintf(name, sizeof(name), _T("%s:"), proptab[prop].pr_name);
-	_tprintf(_T("%-28s %s\n"), name, val);
+	snprintf(name, sizeof(name), "%s:", proptab[prop].pr_name);
+	printf("%-28s %s\n", name, val);
 
 	if (verbose && proptab[prop + 1].pr_name) {
 	    fputc('\n', stdout);
@@ -1458,8 +1451,8 @@ prop_help(int all, int verbose, CCS exe)
     }
 
     if (verbose && exe) {
-	_tprintf(_T("\nLOADED FROM:\n"));
-	prefs_init(exe, PROP_EXT, _T("\t"));
+	printf("\nLOADED FROM:\n");
+	prefs_init(exe, PROP_EXT, "\t");
     }
 }
 
@@ -1497,10 +1490,10 @@ _prop_modify_env_val(char *const *envp, CCS name, CCS nval)
 		ovlen = strlen(oval);
 		nvlen = strlen(nval);
 		if (nvlen > ovlen) {
-		    putil_int(_T("EV %s has no room for value %s"), name, nval);
+		    putil_int("EV %s has no room for value %s", name, nval);
 		    break;
 		} else {
-		    _sntprintf(oval, ovlen + 1, _T("%*s"), (int)ovlen, nval);
+		    snprintf(oval, ovlen + 1, "%*s", (int)ovlen, nval);
 		    result = putil_getenv(name);
 		    break;
 		}
@@ -1516,12 +1509,12 @@ _prop_modify_env_val(char *const *envp, CCS name, CCS nval)
 	    ovlen = strlen(oval);
 	    nvlen = strlen(result);
 	    if (nvlen != ovlen) {
-		putil_int(_T("EV %s failed to update ('%d' != '%d'"),
+		putil_int("EV %s failed to update ('%d' != '%d'",
 			  name, (int)nvlen, (int)ovlen);
 	    }
 	}
     } else {
-	putil_int(_T("EV %s not found in specified env"), name);
+	putil_int("EV %s not found in specified env", name);
     }
 
     return (CCS)result;
@@ -1542,27 +1535,27 @@ void
 prop_mod_str(prop_e prop, CCS val, char *const *envp)
 {
     int ovlen;
-    TCHAR nbuf[PROP_NAME_MAX];
+    char nbuf[PROP_NAME_MAX];
 
     assert(proptab[prop].pr_flags & PROP_FLAG_EXPORT);
 
     if (!proptab[prop].pr_value) {
-	putil_int(_T("property %s is not set"), proptab[prop].pr_name);
+	putil_int("property %s is not set", proptab[prop].pr_name);
     }
 
     if (proptab[prop].pr_value != val) {
-	if (_tcslen(val) > _tcslen(proptab[prop].pr_value)) {
-	    putil_int(_T("property '%s=%s' has no room for value '%s'"),
+	if (strlen(val) > strlen(proptab[prop].pr_value)) {
+	    putil_int("property '%s=%s' has no room for value '%s'",
 		      proptab[prop].pr_name, proptab[prop].pr_value, val);
 	}
 
-	ovlen = _tcslen(proptab[prop].pr_value);
-	_sntprintf(proptab[prop].pr_value, ovlen + 1, _T("%*s"), ovlen, val);
+	ovlen = strlen(proptab[prop].pr_value);
+	snprintf(proptab[prop].pr_value, ovlen + 1, "%*s", ovlen, val);
     }
 
     _prop_to_ev(prop, nbuf, charlen(nbuf));
     if (!_prop_modify_env_val(envp, nbuf, val)) {
-	putil_warn(_T("can't update env var %s to '%s'"), nbuf, val);
+	putil_warn("can't update env var %s to '%s'", nbuf, val);
     }
 }
 
@@ -1574,17 +1567,17 @@ void
 prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
 {
     int ovlen;
-    TCHAR vbuf[64];
+    char vbuf[64];
 
     assert(proptab[prop].pr_flags & PROP_FLAG_EXPORT);
 
     if (!proptab[prop].pr_value) {
-	putil_int(_T("property %s not set"), proptab[prop].pr_name);
+	putil_int("property %s not set", proptab[prop].pr_name);
     }
     // Figure out how long the existing value is and make sure the
     // new value has the exact same number of characters.
-    ovlen = _tcslen(proptab[prop].pr_value);
-    _sntprintf(vbuf, charlen(vbuf), _T("%lu"), val);
+    ovlen = strlen(proptab[prop].pr_value);
+    snprintf(vbuf, charlen(vbuf), "%lu", val);
 
     // Any overflows should be detected here.
     prop_mod_str(prop, vbuf, envp);
@@ -1662,7 +1655,7 @@ prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
 // strings from MBCS (ANSI) code, which takes some fancy stepping.
 //
 // Note that these functions must be independent of character width
-// compilation mode. In other words they must not use the TCHAR API,
+// compilation mode. In other words they must not use the char API,
 // because they are and should be hardwired to a particular char width.
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1781,7 +1774,7 @@ _prop_qsort_nenvA(const void *p1, const void *p2)
     const char **rp = (const char **)p2;
 
 #if defined(_WIN32)
-    return _stricmp(*lp, *rp);
+    return stricmp(*lp, *rp);
 #else	/*_WIN32*/
     return strcmp(*lp, *rp);
 #endif	/*_WIN32*/

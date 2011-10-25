@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -38,7 +38,7 @@
 
 /// @cond static
 #define MILLIS_PER_SECOND				1000
-#define NANOS_PER_MILLI					1000000		
+#define NANOS_PER_MILLI					1000000
 #define NANOS_PER_SECOND				1000000000
 /// @endcond static
 
@@ -296,7 +296,7 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
 
 /// Formats a Moment into a standard id-style string
 /// If the parameter is NULL, the moment is 'now'.
-/// @param[in] moment   pointer to a struct to be formatted
+/// @param[in] mp   pointer to a struct to be formatted
 /// @return the allocated, formatted string
 CCS
 moment_format_id(moment_s *mp)

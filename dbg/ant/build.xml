@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<project name="launch" default="uname" basedir=".">
+  <target name="uname" description="demonstrate ant launcher problem">
+    <exec executable="uname" failonerror="true" />
+  </target>
+</project>

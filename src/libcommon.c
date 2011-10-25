@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -245,7 +245,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 
 	    // User may choose to limit legal pathnames for writes.
 	    if (AllowedWritePathRE && !re_match__(AllowedWritePathRE, path)) {
-		putil_die("disallowed write to '%s' per /%s/", path, 
+		putil_die("disallowed write to '%s' per /%s/", path,
 		    prop_get_str(P_ALLOWED_WRITE_PATH_RE));
 	    }
 	}
@@ -802,7 +802,24 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 {
     unsigned long pid;
     CCS rwd;
-    CCS pccode;
+    CCS pccode = NULL;
+
+    // For a reason I don't understand, and would have to read
+    // the Perl sources to learn, re-setting EVs in the
+    // environment with putenv() causes perl to core dump.
+    // However, when we modify them in place there's no problem.
+    // Best guess is that perl maintains a static pointer to
+    // the env block and the putenv() causes a realloc of said
+    // env block leaving perl's pointer dangling.
+    // The main point is, even if this isn't exactly what's
+    // happening in perl, the case described could happen in any
+    // program. Therefore the rule is that the auditor must *NEVER*
+    // add or modify an env var via putenv(). The wrapper program must
+    // make sure an EV is already present with sufficient padding
+    // and the auditor can then twiddle those bits in place.
+    // For instance, if an EV must hold a number we allocate 10
+    // bytes (plus nul) for it in the wrapper because that's the
+    // number of characters needed to represent 2**32 in decimal.
 
     // Initialize verbosity asap.
     vb_init();
@@ -815,59 +832,30 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // about should have been placed in the environment by now.
     prefs_init(exe, NULL, NULL);
 
+    if (prop_has_value(P_DEPTH)) {
+	// Find the current depth and increment it for child cmds.
+	// From here on P_DEPTH is a lie for the current cmd.
+	Depth = prop_get_ulong(P_DEPTH);
+	prop_mod_ulong(P_DEPTH, Depth + 1, NULL);
+
+	pccode = prop_get_str(P_PCCODE);
+    } else {
+	// Special case to allow "naked" testing of the auditor via e.g.
+	// "LD_PRELOAD=/path/to/libAO.so some-command".
+	prop_override_true(P_NO_MONITOR);
+	vb_printf(VB_OFF, "running in %s mode", prop_to_name(P_NO_MONITOR));
+    }
+
     // Initialize the hash-code generation.
     code_init();
 
     // We'll need this more than once, so remember it here.
     pid = getpid();
 
-    // Kind of a hack - if the command line contains the pid,
-    // and we're on Unix, turn the pid back into the string $$
-    // where it most likely originated. It's not hard to think
-    // of ways this could fail but it's usually a feature.
-    // Turned off pending further consideration ...
-#if 0 && !defined(_WIN32)
-    if (1) {	// TODO - make optional
-	char pidbuf[32], *p;
-
-	snprintf(pidbuf, charlen(pidbuf), "%lu", pid);
-	while ((p = strstr(cmdstr, pidbuf))) {
-	    int i, j;
-
-	    // Here we assume that the pid always formats to a string
-	    // longer than its replacement '$$'.
-	    *p++ = '$';
-	    *p++ = '$';
-	    for (i = 0, j = strlen(pidbuf) + 2; p[i]; p[i++] = p[j++]);
-	}
-    }
-#endif	/*_WIN32*/
-
     // Optionally show commands as executed.
     if (vb_bitmatch(VB_EXEC)) {
 	fprintf(vb_get_stream(), "+ %s\n", cmdstr);
     }
-
-    // For some reason I don't understand, and would have to read
-    // the Perl sources to understand, re-setting EVs in the
-    // environment with putenv() causes perl to core dump.
-    // However, when we modify them in place there's no problem.
-    // Best guess is that perl maintains a static pointer to
-    // the env block and the putenv() causes a realloc of said
-    // env block leaving perl's pointer dangling. Therefore
-    // the rule is that the auditor must *NEVER* add or
-    // modify an env var via putenv(). The wrapper program must
-    // make sure an EV is already present with sufficient space
-    // and the auditor can then twiddle those bits in place.
-    // In fact the length of such an EV should never change.
-
-    // Find the current depth and increment it for child cmds.
-    // From here on P_DEPTH is a lie for the current cmd.
-    Depth = prop_get_ulong(P_DEPTH);
-    prop_mod_ulong(P_DEPTH, Depth + 1, NULL);
-
-    pccode = prop_get_str(P_PCCODE);
-    assert(pccode);
 
     // If full auditing is already activated, keep it going.
     // If not, and we have no activation RE, activate by default.
@@ -935,7 +923,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // the top of the cmd tree may have no parent or grandparent.
 
     // Parent command ...
-    if (CSV_FIELD_IS_NULL(pccode)) {
+    if (!pccode || CSV_FIELD_IS_NULL(pccode)) {
 	ca_set_pccode(CurrentCA, NULL);
     } else {
 	char pccbuf[256];
@@ -949,7 +937,8 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Push the current ccode into the environment as the
     // parent ccode. From here on the environment will be a lie
     // but we have the truth in the CA object.
-    prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
+    if (prop_has_value(P_PCCODE))
+	prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
 
     // Special case - show the program itself as a file that we read
     // (because it is and we did).

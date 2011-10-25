@@ -1,0 +1,9 @@
+#!/opt/perl/bin/perl
+
+my $rc = system @ARGV;
+my $elapsed = time - $^T;
+my($mins, $secs) = ($elapsed / 60, $elapsed % 60);
+my $ms = ($mins != 1) ? 's' : '';
+my $ss = ($secs != 1) ? 's' : '';
+printf STDERR "Elapsed: %d minute$ms %d second$ss\n", $mins, $secs;
+exit($rc>>8);

@@ -1,0 +1,13 @@
+<project default="all">
+    <target name="all" depends="compile"/>
+
+    <target name="compile">
+	<javac srcdir="."/>
+    </target>
+
+    <target name="clean">
+	<delete>
+	    <fileset dir="." includes="*.class"/>
+	</delete>
+    </target>
+</project>

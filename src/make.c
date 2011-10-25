@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,8 +32,8 @@ void
 make_init(CCS exe)
 {
     CCS str;
-    CS p;
     CCS t;
+    CS p;
 
     // Try getting make to run in .ONESHELL mode. If this build
     // doesn't use make, or uses a version which doesn't know
@@ -41,7 +41,9 @@ make_init(CCS exe)
     // the environment. But we almost always want make
     // to use .ONESHELL if available because audits can be
     // unreliable without it.
-    if (prop_is_true(P_MAKE_ONESHELL)) {
+    if (prop_is_true(P_EXECUTE_ONLY)) {
+	// This mode should not change the command's behavior at all.
+    } else if (prop_is_true(P_MAKE_ONESHELL)) {
 	char *exedir, *appdir, *fragment = NULL;
 
 	if (exe && (exedir = putil_dirname(exe))) {
@@ -60,17 +62,26 @@ make_init(CCS exe)
 	if (!fragment) {
 	    putil_warn("missing makefile fragment");
 	} else if (access(fragment, R_OK)) {
+#if !defined(_WIN32)
+	    /*
+	     * On Windows we use this if present but don't bother warning
+	     * if not, because use of gnu make is less likely.
+	     */
 	    putil_syserr(0, fragment);
+#endif	/*_WIN32*/
 	} else {
 	    CS mf, ev;
 
 	    if ((mf = putil_getenv("MAKEFILES"))) {
-		asprintf(&ev, "MAKEFILES=%s %s", fragment, mf);
+		if (!strstr(mf, fragment)) {
+		    asprintf(&ev, "MAKEFILES=%s %s", fragment, mf);
+		    putil_putenv(ev);
+		}
 	    } else {
 		asprintf(&ev, "MAKEFILES=%s", fragment);
+		putil_putenv(ev);
 	    }
-	    putil_putenv(ev);
-	    vb_printf(VB_OFF, "export MAKEFILES=%s\n", putil_getenv("MAKEFILES"));
+	    vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));
 	}
 
 	putil_free(fragment);
@@ -154,7 +165,7 @@ void
 make_file(ca_o ca)
 {
     CCS cmdbuf;
-    
+
     if (MakeFP && (cmdbuf = ca_toCSVString(ca))) {
 	if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
 	    putil_syserr(0, "fputs(cmdbuf)");

@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -828,7 +828,7 @@ http_chomp(char *buf)
 
 /// Parses the special "X-ReturnCode" header to get the return code
 /// and prints the associated error message if present.
-/// @param[in] hdr      the HTTP header to be parsed 
+/// @param[in] hdr      the HTTP header to be parsed
 /// @return the error code supplied by the server
 int
 http_parse_error_from_server(char *hdr)
@@ -1098,7 +1098,7 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
     http_add_param(uptr, HTTP_RWD_PARAM, rwd = util_get_rwd());
     putil_free(rwd);
 
-    // This will set the output file pointer to either stdout or 
+    // This will set the output file pointer to either stdout or
     // the path specified by the property.
     if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
 	Output_FP = util_open_output_file(ofile);
@@ -1160,8 +1160,9 @@ http_namestate(CCS name, CCS pathstate, CS const *argv)
 }
 
 /// Executes an action by passing it to the server and printing the results.
-/// @param[in] action   a string representing the action name
-/// @param[in] argv     a classic NULL-terminated arg vector
+/// @param[in] action    a string representing the action name
+/// @param[in] argv      a classic NULL-terminated arg vector
+/// @param[in] statfiles update file status prior to http transaction
 /// @return 0 on success
 int
 http_action(CCS action, CS const *argv, int statfiles)

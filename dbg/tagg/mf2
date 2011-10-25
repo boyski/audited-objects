@@ -1,0 +1,10 @@
+.PHONY: all first second
+
+all: first second
+
+first:
+	cp orig foo-t
+	mv -f foo-t foo
+
+second:
+	uname -r > bar;

@@ -20,7 +20,7 @@ pod2usage(1) if !@ARGV;
 
 my %opt;
 GetOptions(\%opt, qw(base=s BaseVar=s dbg existing-only full
-    NOGNU help ext=s members-only MF|output-file=s pdump|PDUMP
+    NOGNU help ext=s members-only output-file|MF=s pdump|PDUMP
     prqre=s Parallel vars=s));
 
 pod2usage(1) if $opt{help};
@@ -480,7 +480,7 @@ for my $ca (@Actions) {
 
 my %Includes;
 
-my $ofile = $opt{MF};
+my $ofile = $opt{'output-file'};
 if ($ofile && $ofile ne '-') {
     if ($iext && open(OUTPUT, $ofile)) {
 	for (<OUTPUT>) {
@@ -650,7 +650,7 @@ ao2make - Generate a Makefile from AO audit data
    -ext string		The extension for prereq fragment files (default: .d)
    -full		Generate a useable makefile (default: dependencies only)
    -members-only	Ignore files which are not project members
-   -MF file		Create a Makefile in the specified file
+   -output file		Create a Makefile in the specified file
    -pdump 		(with -full) Use variables extracted from GNU "make -p"
    -vars file		(with -full) A set of make variables to be substituted
 
@@ -662,8 +662,8 @@ ao2make - Generate a Makefile from AO audit data
 =head2 EXAMPLES
 
     ao2make audit-file
-    ao2make -MF Makefile < audit-file
-    ao2make -MF Makefile -full -pdump < audit-file
+    ao2make -o Makefile < audit-file
+    ao2make -o Makefile -full -pdump < audit-file
 
 =head1 DESCRIPTION
 
@@ -673,7 +673,7 @@ create a set of I<target.d> files, one for each target. In the case of
 sibling groups it will guess at a I<primary> target and use that for the
 name of the prereq file.
 
-With the I<-MF> flag it will I<also> produce a wrapper Makefile
+With the I<-output> flag it will I<also> produce a wrapper Makefile
 which includes all the prereq files. If I<-full> is added,
 the generated file will be a full, self-contained Makefile
 which inlines the prereq data and adds build commands, aka "recipes".

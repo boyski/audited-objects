@@ -1,0 +1,37 @@
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AOTool", "AOTool.vcproj", "{B262480F-5C4F-4639-ADE7-0AB1E6D9EF85}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LibAO", "LibAO.vcproj", "{9CB63239-A45A-4758-A383-B24C19ED2E8D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPCI", "CPCI\cpci.vcproj", "{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B262480F-5C4F-4639-ADE7-0AB1E6D9EF85}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B262480F-5C4F-4639-ADE7-0AB1E6D9EF85}.Debug|Win32.Build.0 = Debug|Win32
+		{B262480F-5C4F-4639-ADE7-0AB1E6D9EF85}.Release|Win32.ActiveCfg = Release|Win32
+		{B262480F-5C4F-4639-ADE7-0AB1E6D9EF85}.Release|Win32.Build.0 = Release|Win32
+		{9CB63239-A45A-4758-A383-B24C19ED2E8D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9CB63239-A45A-4758-A383-B24C19ED2E8D}.Debug|Win32.Build.0 = Debug|Win32
+		{9CB63239-A45A-4758-A383-B24C19ED2E8D}.Release|Win32.ActiveCfg = Release|Win32
+		{9CB63239-A45A-4758-A383-B24C19ED2E8D}.Release|Win32.Build.0 = Release|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Debug|Win32.Build.0 = Debug|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Release|Any CPU.ActiveCfg = Release|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Release|Win32.ActiveCfg = Release|Win32
+		{77C2D93A-0710-4B57-BEAE-6B1E7D86DF8B}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

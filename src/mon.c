@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -42,9 +42,11 @@
 
 #include <time.h>
 
+/// @cond static
 static hash_t *AuditHash;
 static void *line_break_re, *line_strong_re, *line_weak_re;
 static void *prog_break_re, *prog_strong_re, *prog_weak_re;
+/// @endcond static
 
 /// Enumeration of the different aggregation types.
 typedef enum {

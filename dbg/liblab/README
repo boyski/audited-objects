@@ -1,0 +1,28 @@
+This is a simple interposer library plus a test case. Type "make"
+to build both. After doing so, there are two ways to run the "lab"
+program: first we can run it with LD_PRELOAD set to insert the
+library:
+
+% LD_PRELOAD=./liblab.so ./lab
+= Loading library!
+= close(250)
+= open(/etc/passwd, 0, 00) = 3
+= close(3)
+= close(251)
+= Unloading library!
+
+Note that the test program simply opens and then closes a file, and
+closes a couple of random file descriptors for good measure.  Next
+we can run it without LD_PRELOAD. The test case is coded such that
+if LD_PRELOAD is not present it will load and unload the library
+explicitly:
+
+% ./lab                       
+= Loading library!
+= Unloading library!
+
+Here we can see that the library is still mapped and unmapped but
+the interposing no longer works. The goal of this project is to
+make the second case behave like the first, with the exception that
+the two extraneous closes should be ignored since the library is
+not present at those times.

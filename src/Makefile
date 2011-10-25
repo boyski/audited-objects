@@ -1,398 +1,172 @@
-#!/usr/local/bin/gmake -f
+########################################################
+## Use: nmake [Release | Debug]
+##      (default is Debug)
 
-############################################################################
-# The command line "gcc -m32 -E -dM -xc /dev/null" will cause gcc
-# to dump all the preprocessor macros it knows on that platform
-# in 32-bit mode.
-############################################################################
+## THIS FILE IS NOT NECESSARILY UP TO DATE. Although it worked fine when last
+## checked, I tend to use the solution file, largely because this forces
+## the solution to be kept up to date. The GNUmakefile has a clause to
+## support this, so if you have GNU make installed for Windows you can just
+## run "make". Whereas if you want to use this file, use "nmake".
+## In all cases this must be done in a VC-enabled shell.
 
-.PHONY: all debug release install i clean cleantargets realclean \
-	roundtrip rt fi relink manpages htmlpages tags pkg
+## Note: not all the compiler flags here are carefully thought out and
+## and analyzed - some were just copied random other projects.
+## There may be room for improvement there.
+## In general you should assume flags are present as a result of flailing
+## rather than exhaustive research.
+## An exception: /MT[d] is used deliberately to avoid complex interactions
+## between the CRT of the host program and the auditor.
 
 .SUFFIXES:
+.SUFFIXES:	.cpp .c
 
-# On Windows, defer to msbuild/vcbuild in order to keep the solution current.
-ifdef VSINSTALLDIR
-
-MSBLDCMD	:= msbuild AO.sln /nologo
-install all: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Debug
-install-pkg: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Release
-clean: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Debug
-clean-pkg: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Release
-
-CPUARCH	:= Windows_i386
-TGTARCH	:= $(CPUARCH)
-
-PKG	 := ao-$(TGTARCH).zip
-
-PKGFILES := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
-
-pkg: clean-pkg install-pkg
-	$(RM) ..\rel\$(PKG)
-	$(RM) -r .$(TGTARCH)\Release\AO
-	cp ../ao.properties-windows .$(TGTARCH)/Release/ao.properties-sample
-	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\Release\AO
-	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\Release
-	cd .$(TGTARCH)/Release && zip -rD ../../../rel/$(PKG) $(PKGFILES)
-
-else
-
-.POSIX:
-
-# Derive the $CPU env var which drives all OS/arch divisions.
-ifndef CPU
-uname_s		:= $(shell uname -s)
-ifneq (,$(findstring CYGWIN,$(uname_s)))
-export CPU	:= Cygwin_i386
-else ifneq (,$(findstring Linux,$(uname_s)))
-ifneq (,$(findstring 64,$(shell uname -m)))
-export CPU	:= $(uname_s)_x86_64
-else
-export CPU	:= $(uname_s)_i386
-endif
-else
-export CPU	:= $(uname_s)_$(shell uname -p)
-endif
-endif
-$(info CPU=$(CPU))
-
-CPUARCH		:= $(CPU)
-TGTARCH		?= $(CPUARCH)
-TGTDIR		:= .${TGTARCH}
-TGTDIR64	:= $(TGTDIR)/64
-SCRIPTDIR	:= pl
-
-ifneq (,$(findstring 64,$(TGTARCH)))
-BITS		:= 64
-else
-BITS		:= 32
-endif
-
-OPS		:= ../OPS
-
-CC		:= gcc
-ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
-#ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
-CSTYLE		:= -Wall -W $(ANAL)
-SHLIBFLAGS	:= -shared
-INST_PREFIX	:= ${HOME}/${TGTARCH}
-
-# Source file data seems to be unavailable on OS X when using DWARF, and
-# STABS seems to do no harm across the board so we make it the default.
-# But it's really only for OS X and there may be a better answer there too.
-UFLAGS		:= -g
-
-#DFLAGS		:= $(shell getconf LFS_CFLAGS 2>/dev/null || echo $(DEF_DFLAGS))
-DFLAGS		:= -D_REENTRANT -D_LARGEFILE_SOURCE -DTRIO_REPLACE_STDIO
-
-CFLAGS		 = $(CSTYLE)
-
-SHLIBDIR	:= /lib
-
-ifneq (,$(findstring SunOS_,${TGTARCH}))
-SOLARIS		:= 1
-ifneq (,$(findstring _sparc,${TGTARCH}))
-SOLARIS_SPARC	:= 1
-endif
-endif
-
-ifneq (,$(findstring Linux,${TGTARCH}))
-LINUX		:= 1
-ifneq (,$(findstring _x86_64,${TGTARCH}))
-SHLIBDIR	:= /lib64
-LINUX_X86_64	:= 1
-endif
-endif
-
-ifneq (,$(findstring Cygwin,${TGTARCH}))
-CYGWIN		:= 1
-endif
-
-ifneq (,$(findstring HPUX_,${TGTARCH}))
-HPUX		:= 1
-endif
-
-ifneq (,$(findstring BSD,${TGTARCH}))
-BSD		:= 1
-endif
-
-ifneq (,$(findstring Darwin,${TGTARCH}))
-DARWIN		:= 1
-endif
-
-# Really just needed for one target but passed to all for now.
-BUILTON		:= $(shell uname -mnrs)
-ifdef LINUX
-BUILTON		+= $(shell $(SHLIBDIR)/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
-endif
-DFLAGS		+= -DPUTIL_BUILTON='"$(BUILTON)"'
-
-CFLAGS		+= $(DFLAGS)
-
-STRIP		:= :
-
-MAN_HDR		:= User Documentation
-POD2MAN_FLAGS	= -r "$(MAN_RELEASE)" -c "$(MAN_HDR)"
-
-%.1: %.pod
-	pod2man $(POD2MAN_FLAGS) $< > $@
-
-%.html: %.pod
-	pod2html --infile=$< --outfile=$@
-	@rm -f *~~
-
-#############################################################################
-
-# The install target should only be default for an actual developer of AO.
-ifdef AODEVELOPER
-install:
-else
-all:
-endif
-
-# The Kazlib code overloads -DNDEBUG to turn off its own debugging mode.
-debug release: all
-release: UFLAGS := -Os -DNDEBUG
-release: STRIP := strip
-
-$(INST_PREFIX)/lib/%: $(TGTDIR)/%
-	@chmod u+w $?
-	@[ -d $(@D) ] || mkdir -p $(@D)
-	@(set -x; cp $< $@)
-	@$(STRIP) $@
-
-$(INST_PREFIX)/lib/64/%: $(TGTDIR64)/%
-	@chmod u+w $?
-	@[ -d $(@D) ] || mkdir -p $(@D)
-	@(set -x; cp $< $@)
-	@$(STRIP) $@
-
-$(INST_PREFIX)/lib64/%: $(TGTDIR64)/%
-	@chmod u+w $?
-	@[ -d $(@D) ] || mkdir -p $(@D)
-	@(set -x; cp $< $@)
-	@$(STRIP) $@
-
-$(INST_PREFIX)/bin/%: $(TGTDIR)/%
-	@chmod u+wx $?
-	@[ -d $(@D) ] || mkdir -p $(@D)
-	@test -L $@ || (set -x; cp $< $@)
-
-$(INST_PREFIX)/bin/%: pl/%
-	@chmod u+wx $?
-	@[ -d $(@D) ] || mkdir -p $(@D)
-	@test -L $@ || (set -x; cp $< $@)
-
-# Compile in the version number if accessible.
 include App.properties
-ifdef APPLICATION_VERSION
-CFLAGS		+= -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
-else
-APPLICATION_VERSION	:= 0.0
-endif
 
-OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o git.o http.o \
-		   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
-		   putil.o re.o shop.o unix.o up.o util.o vb.o
+CRT		= MT
+MSCVER		= 8
 
-CFLAGS		+= -D_LARGEFILE64_SOURCE
+OS_CPU		= Windows_i386
+P		= .$(OS_CPU)
 
-CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
+BUILTON		= Windows $(COMPUTERNAME) $(PROCESSOR_ARCHITECTURE)
 
-AUDITOR		:= libAO.so
-LIBAO32		:= $(addprefix $(TGTDIR)/, $(AUDITOR))
-LIBAO64		:= $(addprefix $(TGTDIR64)/, $(AUDITOR))
-SHLIBS		:= $(LIBAO32)
-INST_LIBS	:= $(addprefix $(INST_PREFIX)/lib/, $(notdir $(LIBAO32)))
+INSTALL		= C:\Windows
 
-AOTOOL		:= $(TGTDIR)/ao
-BINS		:= $(AOTOOL)
+AOTOOL		= $P\ao.exe
+LIBAO		= $P\LibAO.dll
+TEE		= $P\tee.exe
+AO2MAKE		= pl\ao2make
 
-# In general it's believed best to link the auditor with static libs
-# for faster startup time, whereas the driver program starts only
-# once so it doesn't matter. Though linking them both statically
-# may be logistically simpler.
+## Debug
+CC		= cl /nologo
+LINK		= link /nologo
 
-DLL_LIBS	:= -lkaz -lpcre -lz -ltrio -lcrypto
+STATICFLAGS	= /D CURL_STATICLIB /D PCRE_STATIC # /D XML_STATIC
+WARNFLAGS	= /W3 /D _CRT_SECURE_NO_DEPRECATE /D _CRT_NONSTDC_NO_DEPRECATE
 
-OPSLIBDIR	:= $(OPS)/${TGTARCH}/lib
+CFLAGS		= /c /TC\
+		  /GF\
+		  $(WARNFLAGS)\
+		  $(STATICFLAGS)\
+		  $(CRYPTOFLAGS)\
+		  /D TRIO_REPLACE_STDIO\
+		  /D WIN32 /D _WINDOWS /D _CONSOLE\
+		  /D PUTIL_BUILTON="\"$(BUILTON)\""\
+		  /D APPLICATION_VERSION="\"$(APPLICATION_VERSION)\""\
+		  /I ../OPS/$(OS_CPU)/include\
+		  /Fo$P/ /Fd$P/AO
 
-# On Solaris we can get some malloc debugging by linking with -lumem.
-# But we must use the vanilla malloc in production so as not to
-# complicate things for the host process.
-ifdef SOLARIS
-CFLAGS		+= -fpic
-SHLIBFLAGS	+= -nodefaultlibs -Bdirect -z defs -z text -z interpose -z combreloc -z ignore -z lazyload
-## I worked out a link map for Solaris which cut the number of exported
-## symbols from 685 to ~60 in hopes that this would speed up loading
-## of the audit library. Unfortunately, though it works fine, it has no
-## measurable effect on performance. We might still want to do this for
-## other reasons so the files and this note are left in place.
-#LINKMAP32	:= -Wl,-M,Sol32.linkmap
-#LINKMAP64	:= -Wl,-M,Sol64.linkmap
-# For some reason the -lgcc is required on Solaris; otherwise we get
-# "fatal: relocation error: symbol __floatdidf: referenced symbol not found"
-# It's *possible* that after upgrading to libcurl 7.19.x with LFS support
-# turned on that -lgcc would not be needed. Strangely, ldd shows no
-# dependency even though we do not use -static-libgcc.
-ifdef SOLARIS_SPARC
-PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lc # -lumem
-else
-PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lrt -lc
-endif	#SOLARIS_SPARC
-#SYSINCS			:= -I/opt/csw/include
-#SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
-#$(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
-all: $(TGTDIR64)
-SHLIBS		+= $(LIBAO64)
-$(LIBAO64):     OPSLIBDIR := $(OPSLIBDIR)/64
-INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib/64/, $(notdir $(LIBAO64)))
-endif	#SOLARIS
+CXXFLAGS	= /c /TP\
+		  /GF\
+		  /EHsc\
+		  $(WARNFLAGS)\
+		  $(STATICFLAGS)\
+		  $(CRYPTOFLAGS)\
+		  /D TRIO_REPLACE_STDIO\
+		  /D WIN32 /D _WINDOWS /D _CONSOLE\
+		  /D APPLICATION_VERSION="\"$(APPLICATION_VERSION)\""\
+		  /I ../OPS/$(OS_CPU)/include\
+		  /Fo$P/ /Fd$P/AO
 
-ifdef LINUX
-CFLAGS		+= -fpic -D_GNU_SOURCE
-# These require gcc 4.x or so.
-#CFLAGS		+= -D_FORTIFY_SOURCE=2
-#CFLAGS		+= -fstack-protector --param=ssp-buffer-size=4
-SHLIBFLAGS	+= -z defs -z interpose -z combreloc -z ignore -z lazyload
-LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
-PLDLIBS		:= -lm -lrt -ldl
-SYSINCS		:= -I/usr/include
-all: $(TGTDIR64)
-SHLIBS		+= $(LIBAO64)
-$(LIBAO32):     OPSLIBDIR := $(OPS)/Linux_i386/lib
-$(LIBAO64):     OPSLIBDIR := $(OPS)/Linux_x86_64/lib
-INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib64/, $(notdir $(LIBAO64)))
-endif
+#CXXFLAGS	+=  /D _USRDLL /D _WINDLL
 
-ifdef CYGWIN
-CFLAGS		+= -D_GNU_SOURCE
-SHLIBFLAGS	+= -Wl,--enable-auto-image-base
-endif
+!IF "$(CFG)" == "Release"
+DBG		=
+CFG_CFLAGS	= /$(CRT) /O2 /Gy /D _STATIC_CPPLIB /D NDEBUG
+CFG_LFLAGS	= /debug
+!ELSE
+CFG		= Debug
+DBG		= d
+CFG_CFLAGS	= /$(CRT)d /Od /Zi /GS- /RTC1
+CFG_LFLAGS	= /debug /nodefaultlib:libcmt.lib
+!ENDIF
 
-ifdef BSD
-CFLAGS		+= -fpic
-SHLIBFLAGS	+= -static-libgcc
-PLDLIBS		:=
-endif
+CPCI		= $P\$(CFG)\CPCI.dll
 
-ifdef HPUX
-CFLAGS		+= -D_LARGEFILE64_SOURCE
-PLDLIBS		:= -lm
-endif
+DLL_LIBS	= pcre$(CRT)$(DBG).lib\
+		  zlib$(CRT).lib\
+		  kazlib$(CRT)$(DBG)$(MSCVER).lib\
+		  unstamp$(CRT)$(DBG)$(MSCVER).lib\
+		  trio$(CRT)$(DBG).lib\
+		  git2$(CRT)$(DBG).lib\
+		  advapi32.lib winmm.lib ws2_32.lib
 
-ifdef DARWIN
-CFLAGS		+= -fPIC -fno-common # Q: add -dynamic too?
-CFLAGS		+= -arch i386 -arch x86_64
-UFLAGS		:= -gstabs+
-SHLIBFLAGS	:= -dynamiclib -flat_namespace -multiply_defined suppress
-SHLIBFLAGS	+= -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
-PLDLIBS		:=
-endif
+EXE_LIBS	= libcurl$(CRT)$(DBG).lib\
+		  cdb$(CRT)$(DBG).lib\
+		  $(DLL_LIBS)
 
-ifdef DARWIN
-DLL_LIBS	:= -Wl,-search_paths_first -Wl,-Z $(DLL_LIBS)
-else
-ifndef HPUX
-DLL_LIBS	:= -Wl,-Bstatic $(DLL_LIBS) -Wl,-Bdynamic
-endif
-endif
+LFLAGS		= /machine:X86 /libpath:../OPS/$(OS_CPU)/lib
 
-ifndef DARWIN
-$(AOTOOL):	CFLAGS += -m$(BITS)
-$(LIBAO32):	CFLAGS += -m32
-$(LIBAO64):	CFLAGS += -m64
-endif
+# This prevents Address Space Layout Randomization (ASLR) from occurring
+# on Windows Vista and up. Unfortunately it only affects the current
+# executable, not the ones we're injecting into, so it does no good here.
+# Kept around for documentation as it's not well documented in MSDN.
+#LFLAGS		+= /dynamicbase:no
 
-EXE_LIBS	:= -lcurl -lcdb $(DLL_LIBS)
+OBJS	=\
+	$P\aotool.obj\
+	$P\bsd_getopt.obj\
+	$P\ca.obj\
+	$P\code.obj\
+	$P\down.obj\
+	$P\git.obj\
+	$P\http.obj\
+	$P\make.obj\
+	$P\moment.obj\
+	$P\mon.obj\
+	$P\pa.obj\
+	$P\pn.obj\
+	$P\prefs.obj\
+	$P\prop.obj\
+	$P\ps.obj\
+	$P\putil.obj\
+	$P\re.obj\
+	$P\shop.obj\
+	$P\up.obj\
+	$P\util.obj\
+	$P\vb.obj\
+	$P\win.obj
 
-## NOTE: the native HP-UX compiler/linker (aCC) uses +init/+fini to specify
-## static constructors. This also seems to differ between 32- and 64-bit
-## and PA and Itanium (boo).
+{.\}.cpp{$P\}.obj:
+	$(CC) $(CFG_CFLAGS) $(CXXFLAGS) $<
 
-ifneq (,$(MEMDBG))
-# Likely values are MEMDBG=-lumem, MEMDBG=-ldmalloc, and MEMDBG=-lwatchmalloc
-# These may need EV's to turn them on:
-# UMEM_DEBUG=default,verbose or MALLOC_DEBUG=WATCH
-PLDLIBS		+= $(MEMDBG)
-ifneq (,$(findstring dmalloc,${MEMDBG}))
-CFLAGS		+= -DDMALLOC
-endif	#dmalloc
-endif	#MEMDBG
+{.\}.c{$P\}.obj:
+	$(CC) $(CFG_CFLAGS) $(CFLAGS) $<
+ 
+install: all
+	copy $(AOTOOL)  $(INSTALL)
+	copy $(TEE)     $(INSTALL)
+	copy $(LIBAO)   $(INSTALL)
+	copy $(AO2MAKE) $(INSTALL)
+	copy $P\$(CFG)\CPCI.dll $(INSTALL)
 
-TARGETS		:= $(BINS) $(SHLIBS)
+all: $(AOTOOL) $(LIBAO) $(CPCI)
 
-# The list of source files included by libunix.c
-COMMINCS	:= libcommon.c ca.c code.c moment.c \
+$P\putil.obj $P\LibWin.obj: Putil\putil.h
+
+$P\aotool.obj $P\http.obj: About\about.c
+
+COMMINCS	=  libcommon.c ca.c code.c moment.c \
 		   pa.c pn.c prefs.c prop.c ps.c \
 		   re.c util.c vb.c
 
-INTERPOSERS	:= $(wildcard Interposer/*.h)
+$P\LibWin.obj: libcommon.c $(COMMINCS)
 
-INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
-INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make aoquery)
+$(AOTOOL): $(OBJS)
+	$(LINK) /out:$(AOTOOL) $(CFG_LFLAGS) /subsystem:console $(LFLAGS) $(OBJS) setargv.obj $(EXE_LIBS)
 
-#############################################################################
+$(LIBAO): $P\LibWin.obj $P\APIHook.obj
+	$(LINK) /out:$P/LibAO.dll $(CFG_LFLAGS) /dll /pdb:$P\LibAO.pdb /subsystem:WINDOWS $(LFLAGS) $P\LibWin.obj $P\APIHook.obj $(DLL_LIBS)
 
-$(TGTDIR) $(TGTDIR64):
-	mkdir -p $@
+$(CPCI): CPCI\CPCI.vcproj CPCI\cpci.cpp
+	msbuild CPCI\CPCI.vcproj /nologo /t:build /p:Configuration=$(CFG)
 
-all: $(TGTDIR) $(TARGETS)
+_relink:
+	-del /q $P\*.exe $P\*.dll
 
-#############################################################################
+relink: _relink install
 
-.PHONY: docs dox
-docs dox:
-	rm -rf HTML ${HOME}/HTML
-	doxygen DOXYFILE
-	cp -r HTML ${HOME}
-
-#############################################################################
-
-$(TGTDIR)/putil.o: Putil/putil.h
-
-$(TGTDIR)/aotool.o: About/about.c
-
-$(TGTDIR)/%.o: %.c AO.h App.properties
-	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
-
-#############################################################################
-
-$(AOTOOL): $(addprefix $(TGTDIR)/, $(OBJS))
-	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
-
-$(LIBAO32): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
-
-$(LIBAO64): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
-
-cleantargets:
-	-rm -f $(TARGETS)
-
-clean: cleantargets
-	-$(RM) $(TGTDIR)/*.o core *.1 *.html HTML tags
-	-$(RM) -r HTML
-
-tags:
-	$(RM) tags && ectags *.h *.H *.c *.cpp
-
-realclean: clean
-	-$(RM) *.user .*/*.o .*/*.obj 2>/dev/null
-
-ifdef SOLARIS
-ifndef SOLARIS_SPARC
-roundtrip rt fi: tags
-endif
-endif
-
-relink: cleantargets install
-
-install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)
-
-pkg:
-	$(MAKE) --no-print-directory CPU=$(CPU) -f Makefile.pkg pkg
-
-endif
+clean:
+	-del /q $(AOTOOL) $P\*.obj $P\*.dll $P\*.*db $P\*.ilk $P\*.sbr $P\*.manifest
 
 roundtrip rt fi: clean install

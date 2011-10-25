@@ -53,13 +53,21 @@ extern "C" {
  * exported. In other words we always *calculate* all three LD_PRELOAD*
  * values; on Solaris we export the _32 and _64 versions and elsewhere
  * we export just the unadorned LD_PRELOAD.
- *   The situation on LInux is quite similar but they have a different
+ *   The situation on Linux is quite similar but they have a different
  * solution. The Linux ld.so uses a "dynamic string token" or DST called
  * $LIB. When LD_PRELOAD contains the string $LIB, ld.so will replace
  * it with "lib" or "lib64" depending on the type of the executable.
  * Linux does NOT implement LD_PRELOAD_32 and LD_PRELOAD_64.
  * Note the slight difference in convention: Linux uses "lib" and "lib64"
  * for shared libraries while Solaris uses "lib" and "lib/64".
+ *   However, it gets more complex on Linux due to different strategies
+ * of different distros. In particular Ubuntu appears to believe in
+ * purity, i.e. they do not support multilib (mixed 32- and 64-bit)
+ * systems; Ubuntu 64-bit builds link /lib64 to /lib and fill /lib
+ * with 64-bit binaries. This would be fine but for some inscrutable
+ * reason they also disable the $LIB token. So we have a special case;
+ * when /lib64 is a link to /lib we assume a pure 64-bit OS and replace
+ * our use of '$LIB' with '/lib64'.
  *   Meanwhile, on Mac OSX the equivalent var is DYLD_INSERT_LIBRARIES
  * and it only works in the presence of DYLD_FORCE_FLAT_NAMESPACE.
  *   On HP-UX 11* the following may be needed for LD_PRELOAD to work:
@@ -98,7 +106,7 @@ libinterposer_preload_dbg(const char *location)
 }
 
 static char *
-_add2ldp(char *ev, char *prev, char *add)
+_add2path(char *ev, char *prev, char *add)
 {
     char *nldp;
 
@@ -143,13 +151,38 @@ libinterposer_preload_on(const char *so, const char *base)
 
     /*
      * If the required EVS weren't previously present, add them now.
-     * Note that Linux uses the "dynamic string token" $LIB - see
+     * Note that Linux has the "dynamic string token" $LIB - see
      * http://www.akkadia.org/drepper/dsohowto.pdf for details.
+     * HOWEVER, Ubuntu (at least) seems to disable $LIB so we employ
+     * an alternate strategy of setting up LD_LIBRARY_PATH to search
+     * for the auditor in both 32- and 64-bit dirs.
+     * At the moment, for simplicity, this is done across the board
+     * on Linux but it's really required on for Ubuntu, so we could
+     * go back to using $LIB on distros where it works if need be.
      */
 
 #if defined(linux) 
-    snprintf(lib64, sizeof(lib64), "%s/$LIB/%s", base, so);
-    snprintf(lib32, sizeof(lib32), "%s/$LIB/%s", base, so);
+    {
+	char searchlibs[PATH_MAX * 2];
+	char *libpath;
+
+	/*
+	 * Handle Linux multilib by using $LD_LIBRARY_PATH to search
+	 * both 32- and 64-bit lib dirs. This is because $LIB does not
+	 * work on Ubuntu for a reason not yet understood.
+	 */
+
+	snprintf(searchlibs, sizeof(searchlibs),
+	    "%s/lib64:%s/lib", base, base);
+	libpath = _add2path("LD_LIBRARY_PATH",
+	    getenv("LD_LIBRARY_PATH"), searchlibs);
+	if (putenv(libpath)) {
+	    _libinterposer_die("putenv");
+	}
+
+	snprintf(lib64, sizeof(lib64), "%s", so);
+	snprintf(lib32, sizeof(lib32), "%s", so);
+    }
 #else
     snprintf(lib64, sizeof(lib64), "%s/lib/64/%s", base, so);
     snprintf(lib32, sizeof(lib32), "%s/lib/%s", base, so);
@@ -163,27 +196,27 @@ libinterposer_preload_on(const char *so, const char *base)
 	// Anything we find on LD_PRELOAD gets promoted to *both*
 	// LD_PRELOAD_32 and LD_PRELOAD_64 unless previously eclipsed.
 	if (ldp64) {
-	    nldp64 = _add2ldp(PRELOAD_EV_64, ldp64, lib64);
+	    nldp64 = _add2path(PRELOAD_EV_64, ldp64, lib64);
 	} else {
-	    nldp64 = _add2ldp(PRELOAD_EV_64, ldp, lib64);
+	    nldp64 = _add2path(PRELOAD_EV_64, ldp, lib64);
 	}
 	if (ldp32) {
-	    nldp32 = _add2ldp(PRELOAD_EV_32, ldp32, lib32);
+	    nldp32 = _add2path(PRELOAD_EV_32, ldp32, lib32);
 	} else {
-	    nldp32 = _add2ldp(PRELOAD_EV_32, ldp, lib32);
+	    nldp32 = _add2path(PRELOAD_EV_32, ldp, lib32);
 	}
     } else {
 	// If we had no LD_PRELOAD coming in, work directly with the
 	// 32/64 variants.
 	if (ldp64 && *ldp64) {
-	    nldp64 = _add2ldp(PRELOAD_EV_64, ldp64, lib64);
+	    nldp64 = _add2path(PRELOAD_EV_64, ldp64, lib64);
 	} else {
-	    nldp64 = _add2ldp(PRELOAD_EV_64, NULL, lib64);
+	    nldp64 = _add2path(PRELOAD_EV_64, NULL, lib64);
 	}
 	if (ldp32 && *ldp32) {
-	    nldp32 = _add2ldp(PRELOAD_EV_32, ldp32, lib32);
+	    nldp32 = _add2path(PRELOAD_EV_32, ldp32, lib32);
 	} else {
-	    nldp32 = _add2ldp(PRELOAD_EV_32, NULL, lib32);
+	    nldp32 = _add2path(PRELOAD_EV_32, NULL, lib32);
 	}
     }
 

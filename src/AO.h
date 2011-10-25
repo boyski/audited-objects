@@ -48,8 +48,8 @@
     smaller task than hacking the code itself.
 
     In fact there are two makefiles. For Unix there is a
-    <i>Makefile</i> which <b>requires GNU Make</b>. For Windows there
-    is an equivalent <i>NMakefile</i> which assumes nmake and MS Visual
+    <i>GNUmakefile</i> which <b>requires GNU Make</b>. For Windows there
+    is a <i>Makefile</i> which assumes Windows, nmake, and MS Visual
     Studio.
 
     AO is built only with GCC on Unix/Linux and with Visual Studio
@@ -287,6 +287,9 @@ typedef enum {
 
 /// Macro representing the size of one char regardless of charset.
 #define CHARSIZE			sizeof(char)
+
+/// Macro for brute-force debugging.
+#define AT__ fprintf(stderr, "AT %s:%d\n", __FILE__, __LINE__);
 
 /// Generates the declaration of a setter.
 #define GEN_SETTER_DECL(class, attr, type)				\

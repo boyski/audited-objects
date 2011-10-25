@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -246,7 +246,7 @@ ca_new()
 
 /// Constructor for CmdAction class.
 /// Any change to the CSV format requires an equivalent change here.
-/// @param[in] csv      a string in the canonical CSV format for CAs 
+/// @param[in] csv      a string in the canonical CSV format for CAs
 /// @return a new, complete CmdAction object
 ca_o
 ca_newFromCSVString(CCS csv)
@@ -724,7 +724,7 @@ ca_has_leader(ca_o ca)
 /// Checks the list of PAs and tells us whether any of them references
 /// a file which needs to be uploaded.
 /// @param[in] ca       the object pointer
-/// @return true if the object refers to an uploadable file 
+/// @return true if the object refers to an uploadable file
 int
 ca_is_uploadable(ca_o ca)
 {
@@ -746,7 +746,7 @@ ca_is_uploadable(ca_o ca)
 }
 
 /// Breaks up the aggregation and uploads each piece separately.
-/// Audit groups do not nest. Therefore, when we see an aggregating 
+/// Audit groups do not nest. Therefore, when we see an aggregating
 /// cmd while already within an audit group, the "outer" group becomes
 /// invalid. This method traverses an audit group, publishes each of
 /// its audits individually, and destroys the group, thus clearing

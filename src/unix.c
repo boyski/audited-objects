@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -314,7 +314,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // system and also protects against port collisions with other tools.
     // Alternative is to call bind() with the port set to IPPORT_ANY,
     // and the OS will find an unused port and bind it. Then call
-    // getsockname() to find out what port was assigned. 
+    // getsockname() to find out what port was assigned.
     while (1) {
 	struct sockaddr_in myaddr;
 	u_short pport;
@@ -471,7 +471,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    // its session alive.
 	    if (prop_has_value(P_SERVER)) {
 		int64_t now;
-		
+
 		now = time(NULL);
 		if ((now - last_heartbeat) >= heartbeat_interval) {
 		    http_heartbeat(now - last_heartbeat);
@@ -580,7 +580,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		}
 	    }
 
-	    // We've reached EOF on a particular delivery; 
+	    // We've reached EOF on a particular delivery;
 	    // close the socket, remove it from the select mask, and
 	    // return to the loop.
 	    close(fd);

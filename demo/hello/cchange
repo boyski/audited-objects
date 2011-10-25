@@ -1,0 +1,5 @@
+#!/bin/sh
+# Makes trivial changes to C source code for test and demo purposes.
+
+int=`date '+I%y%m%d%H%M%S'`
+echo "static int $int = 42;"

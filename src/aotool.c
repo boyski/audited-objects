@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -41,8 +41,8 @@
 #include "cdb.h"
 #include "curl/curl.h"
 #include "pcre.h"
+#include "git2.h"
 #include "zlib.h"
-#include "openssl/opensslv.h"
 
 #include "About/about.c"	// NOTE: including a .c file!
 
@@ -218,8 +218,8 @@ _print_version(int full)
 	fputs("\n", stdout);
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", pcre_version());
+	printf("libgit2=%s\n", LIBGIT2_VERSION);
 	printf("zlib=%s\n", (const char *)zlibVersion());
-	printf("libcrypto=%p\n", OPENSSL_VERSION_NUMBER);
 	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
 	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
@@ -389,7 +389,7 @@ do_action(CCS action, int argc, CS const *argv)
 	    } else {
 		size_t len;
 		CS buf;
-		
+
 		len = putil_path_max() + 256 + 1;
 		buf = putil_malloc(len);
 		ps_format_user(ps, long_flag, short_flag, buf, len);
@@ -643,7 +643,7 @@ main(int argc, CS const *argv)
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse
     // only -flag1 and -flag2.
-    for (bsd_getopt_reset(); ;) {
+    for (bsd_getopt_reset();;) {
 	int c;
 
 	// *INDENT-OFF*
@@ -730,11 +730,17 @@ main(int argc, CS const *argv)
 		break;
 
 	    case 'C':
-		if (!QuietMode) {
-		    fprintf(stderr, "+ cd %s\n", bsd_optarg);
-		}
-		if (chdir(bsd_optarg)) {
-		    putil_syserr(2, bsd_optarg);
+		{
+		    CCS cd_to;
+
+		    (void)util_substitute_params(bsd_optarg, &cd_to);
+		    if (!QuietMode) {
+			fprintf(stderr, "+ cd %s\n", cd_to);
+		    }
+		    if (chdir(cd_to)) {
+			putil_syserr(2, cd_to);
+		    }
+		    putil_free(cd_to);
 		}
 		break;
 
@@ -1213,7 +1219,7 @@ main(int argc, CS const *argv)
 	// dtrace script.
 	if (dscript) {
 	    CS *dargv;
-	    
+
 	    dargv = putil_malloc(sizeof(*dargv) * 6);
 	    dargv[0] = "dtrace";
 	    dargv[1] = "-s";

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cat <<EOF >miniperl
+#!/bin/sh
+date
+EOF
+
+chmod 755 miniperl
+
+./miniperl > foo

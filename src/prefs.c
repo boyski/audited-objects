@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -65,7 +65,7 @@ _find_file_up(CCS name)
 
 	    asprintf(&glob, "%s/%s", dir, project_base_glob);
 	    if ((hFind = FindFirstFile(glob, &FindFileData)) != INVALID_HANDLE_VALUE) {
-		asprintf(&result, "%s\\%s", dir, FindFileData.cFileName);
+		asprintf(&result, "%s\\%s", dir, putil_basename(FindFileData.cFileName));
 		FindClose(hFind);
 		putil_free(glob);
 		putil_free(dir);
@@ -74,28 +74,35 @@ _find_file_up(CCS name)
 	    putil_free(glob);
 #else	/*_WIN32*/
 	    wordexp_t wexp;
+	    CS scratch;
+	    CS g;
 
-	    asprintf(&glob, "%s/%s", dir, project_base_glob);
-	    switch (wordexp(glob, &wexp, WRDE_NOCMD)) {
-		case 0:
-		    if (wexp.we_wordc > 1 ||
-			    (wexp.we_wordc == 1 && strcmp(glob, wexp.we_wordv[0]))) {
-			asprintf(&result, "%s", wexp.we_wordv[0]);
+	    scratch = putil_strdup(project_base_glob);
+
+	    for (g = util_strsep(&scratch, " "); g; g = util_strsep(&scratch, " ")) {
+		asprintf(&glob, "%s/%s", dir, g);
+		switch (wordexp(glob, &wexp, WRDE_NOCMD)) {
+		    case 0:
+			if (wexp.we_wordc > 0 && !access(wexp.we_wordv[0], F_OK)) {
+			    asprintf(&result, "%s/%s", dir, putil_basename(wexp.we_wordv[0]));
+			    wordfree(&wexp);
+			    putil_free(glob);
+			    putil_free(dir);
+			    return result;
+			} else {
+			    wordfree(&wexp);
+			}
+			break;
+		    case WRDE_NOSPACE:
 			wordfree(&wexp);
-			putil_free(glob);
-			putil_free(dir);
-			return result;
-		    } else {
-			wordfree(&wexp);
-		    }
-		    break;
-		case WRDE_NOSPACE:
-		    wordfree(&wexp);
-		    break;
-		default:
-		    break;
+			break;
+		    default:
+			break;
+		}
+		putil_free(glob);
 	    }
-	    putil_free(glob);
+
+	    putil_free(scratch);
 #endif	/*_WIN32*/
 	}
 

@@ -1,32 +1,33 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+/* Copyright (c) 2005-2011 David Boyce.  All rights reserved. */
 
 /*
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// @file
-/// @brief Support for PCRE regular expressions.
-/// Note that although we try to encapsulate ancillary technologies
-/// such as HTTP, regular expressions, compression, hashing, etc.
-/// to make it easier to swap out one such library for another,
-/// full abstraction is not always possible. That applies here;
-/// even though all interaction with PCRE is channeled through
-/// this file, the regular expressions themselves are going to
-/// be in PCRE dialect and any change in the RE engine is likely
-/// to risk subtle incompatibilities. Fortunately PCRE is a very
-/// solid technology and there's no reason to think it will ever
-/// need to be replaced.
+/** @file
+  * @brief Support for PCRE regular expressions.
+  * Note that although we try to encapsulate ancillary technologies
+  * such as HTTP, regular expressions, compression, hashing, etc.
+  * to make it easier to swap out one such library for another,
+  * full abstraction is not always possible. That applies here;
+  * even though all interaction with PCRE is channeled through
+  * this file, the regular expressions themselves are going to
+  * be in PCRE dialect and any change in the RE engine is likely
+  * to risk subtle incompatibilities. Fortunately PCRE is a very
+  * solid technology and there's no reason to think it will ever
+  * need to be replaced.
+**/
 
 #include "AO.h"
 
@@ -35,12 +36,12 @@
 
 #include "pcre.h"
 
-/// @cond static
-// See pcreapi man page and pcredemo.c sample program (www.pcre.org).
+/** @cond static*/
+/* See pcreapi man page and pcredemo.c sample program (www.pcre.org). */
 #define OVECCNT					30
-/// @endcond static
+/** @endcond static*/
 
-// Documented in the header to avoid triggering some doxygen bug.
+/* Documented in the header to avoid triggering some doxygen bug. */
 void *
 re_init__(prop_e prop)
 {
@@ -56,11 +57,13 @@ re_init__(prop_e prop)
 	opts |= PCRE_CASELESS;
 #endif	/*_WIN32*/
 
-	// Allow REs to be specified as e.g. m%regexp%, partly because
-	// it looks natural to Perl users and partly to make leading and
-	// trailing whitespace possible. However, do NOT treat /regexp/
-	// specially because that could confuse users trying to match
-	// paths containing (say) the 5 characters "/tmp/".
+	/*
+	 * Allow REs to be specified as e.g. m%regexp%, partly because
+	 * it looks natural to Perl users and partly to make leading and
+	 * trailing whitespace possible. However, do NOT treat /regexp
+	 * specially because that could confuse users trying to match
+	 * paths containing (say) the 5 characters "/tmp/".
+	 */
 	if (*restr == 'm') {
 	    char *start, *end;
 
@@ -83,7 +86,7 @@ re_init__(prop_e prop)
     return re;
 }
 
-// Documented in the header to avoid triggering some doxygen bug.
+/* Documented in the header to avoid triggering some doxygen bug. */
 CCS
 re_match__(void *re, CCS str)
 {
@@ -93,7 +96,7 @@ re_match__(void *re, CCS str)
 
     match[0] = '\0';
 
-    // No RE means no match.
+    /* No RE means no match. */
     if (!re || !str) {
 	return NULL;
     }
@@ -108,7 +111,7 @@ re_match__(void *re, CCS str)
     }
 }
 
-// Documented in the header to avoid triggering some doxygen bug.
+/* Documented in the header to avoid triggering some doxygen bug. */
 void
 re_fini__(void **re)
 {

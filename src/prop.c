@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -1963,7 +1963,7 @@ prop_custom_envW(WCHAR **pblock, WCHAR *const *cenv)
 	widelen = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
 	name_w = (LPWSTR) _alloca(widelen * sizeof(WCHAR));
 	widelen = MultiByteToWideChar(CP_ACP, 0, name, -1, name_w, widelen);
-	    
+
 	// Convert the property value to wide characters.
 	widelen = MultiByteToWideChar(CP_ACP, 0, value, -1, NULL, 0);
 	value_w = (LPWSTR) _alloca(widelen * sizeof(WCHAR));

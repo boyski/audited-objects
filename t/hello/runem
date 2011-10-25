@@ -1,0 +1,7 @@
+#!/bin/sh
+
+./gb/goodbye
+./hello
+./ta/ba/back
+./ta/ta2/tata
+./ta/tata

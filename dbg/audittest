@@ -1,0 +1,97 @@
+#! /usr/local/bin/perl -w
+
+use Getopt::Long;
+
+my %opt;
+GetOptions(\%opt, qw(r));
+
+sub run {
+    print STDERR "+ @_\n";
+    return system('time', @_);
+}
+
+my($prog) = reverse split '/', $0;
+
+my $tfile = "/tmp/T";
+my $afile = "/tmp/A";
+
+if (! $opt{r}) {
+    run(qw(truss -f), '-topen,exec', '-o', $tfile, '--', @ARGV);
+    run(qw(auditshell -A -O), $afile, '-F,', '--', @ARGV);
+}
+
+my(%tset, %aset);
+
+my $linked = 0;
+
+if (open(TFILE, $tfile)) {
+    for (<TFILE>) {
+	chomp;
+	s%^\d+:\s*%%;
+	my($path, $rc);
+	if (m%^open\d*\("(.*)",\s+.*\).*=\s+(\d+)$%) {
+	    ($path, $rc) = ($1, $2);
+	    if ($path =~ m%libc_psr.so%) {
+		$linked = 1;
+		next;
+	    }
+	    next unless $linked;
+	    next if $path eq '/etc/mnttab';
+	    next if $path eq '/var/ld/ld.config';
+	    next if $path =~ m%lib\w+\.so(\.\d+)?% && $rc == 3;
+	    next if $rc < 0;
+	} elsif (m%^exec\w+\("(.*)",\s+.*\)\s+(\S+)%) {
+	    ($path, $rc) = ($1, $2);
+	    next if $rc =~ m%^Err#%;
+	    $linked = 0;
+	} else {
+	    next;
+	}
+	next if $path =~ m%^(?:/proc/|/dev/|/tmp/)%;
+	next unless -f $path || -l $path;
+	my $fileid = join(':', (stat $path)[0,1]);
+	next if exists $tset{$fileid};
+	$tset{$fileid} = "$.: $_";
+	#print "\$tset{$fileid} = $_\n" if $path =~ m%/specs%;
+    }
+    close(TFILE);
+} else {
+    warn "Warning: $tfile: $!";
+}
+
+my %seen;
+
+open(AFILE, $afile) || die "$afile: $!";
+for (<AFILE>) {
+    next if /^#/;
+    next if /^\s*$/;
+    chomp;
+    my $path = (split(/,/, $_, 9))[-1];
+    next unless -f $path || -l $path;
+    next if $path =~ m%^(?:/proc/|/dev/|/tmp/)%;
+    my $fileid = join(':', (stat $path)[0,1]);
+    next if $seen{$fileid}++;
+    if (exists $tset{$fileid}) {
+	delete $tset{$fileid};
+    } else {
+	print "\$aset{$fileid} = $_\n" if $path =~ m%/specs%;
+	$aset{$fileid} = "$.: $_";
+    }
+}
+close(AFILE);
+
+#unlink($afile, $tfile);
+
+my $rc = 0;
+
+for (keys %tset) {
+    $rc++;
+    print STDERR "TRUSS ONLY: $tset{$_}\n";
+}
+
+for (keys %aset) {
+    $rc++;
+    print STDERR "AO ONLY: $aset{$_}\n";
+}
+
+exit $rc;

@@ -1,0 +1,36 @@
+// cpci.idl : IDL source for cpci
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (cpci.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	object,
+	uuid(ECD01BB1-1486-44E4-BCF7-69149C5A4399),
+	dual,
+	nonextensible,
+	helpstring("IProfiler Interface"),
+	pointer_default(unique)
+]
+interface IProfiler : IUnknown{
+};
+[
+	uuid(3C0C84D5-DB8B-4901-ADC0-EAEC63763DFD),
+	version(1.0),
+	helpstring("cpci 1.0 Type Library")
+]
+library cpciLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(1394B93A-EBE4-4232-8FB7-088A2CE89898),
+		helpstring("Profiler Class")
+	]
+	coclass Profiler
+	{
+		[default] interface IProfiler;
+	};
+};

@@ -1,0 +1,338 @@
+#!/usr/bin/perl
+
+use Benchmark qw(cmpthese timediff timeit timestr timesum);
+use Cwd 'realpath';
+use File::Basename;
+use File::Path;
+use Getopt::Long;
+
+use constant MSWIN => $^O =~ m%MSWin32|Windows_NT%i ? 1 : 0;
+
+sub walltime {
+    my $bm = shift;
+    my $wall = timestr($bm, 'nop');
+    $wall =~ s%\(.*%%;
+    return $wall;
+}
+
+my %opt;
+$Getopt::Long::ignorecase = 0;
+GetOptions(\%opt, qw(all configure flat Fresh keepgoing
+    quiet Strict verbose warmup Automated Check CCACHE NoClean W=s));
+
+my $prog = basename($0);
+my $start = new Benchmark;
+my $checkpoint;
+my $bl_total = timediff($start, $start);
+my $cc_total = $bl_total;
+my $up_total = $bl_total;
+my $dn_total = $bl_total;
+my $dflag = $opt{Strict} ? '-D' : '-d';
+my $qflag = '-q';
+my $sflag = $opt{verbose} ? '' : '-s';
+
+my($devnull, $root);
+if (MSWIN) {
+    $devnull = 'NUL';
+    $root = "C:\\AO\\$ENV{PLATFORM}";
+} else {
+    $devnull = '/dev/null';
+    $root = "/var/AO/$ENV{PLATFORM}";
+}
+
+$ENV{AO_CHECK_BEFORE_UPLOAD} = 1 if $opt{Check};
+
+sub cd {
+    my $dir = shift;
+    mkdir($dir) if shift && ! -d $dir;
+    print STDERR "+ cd $dir\n";
+    chdir($dir) || die "$prog: Error: $dir: $!";
+}
+
+# This is basically a fake system() which does not block SIGINT.
+sub run {
+    if (MSWIN) {
+	print STDERR "@_\n";
+	return system(@_);
+    }
+
+    my $cmd = "set -x; @_";
+    my $pid = fork;
+    if (!defined($pid)) {
+	die "$prog: Error: fork: $!";
+    } elsif ($pid == 0) {
+	exec('sh', '-c', $cmd) || die "$prog: Error: $!";
+    } else {
+	wait;
+	return $?;
+    }
+}
+
+my @summ = ();
+my $bars = '#' x 72;
+my $stars = '*' x 30;
+
+cd($root, 1);
+
+if (!$opt{flat}) {
+    die "$prog: Error: no \$PLATFORM" if !$ENV{PLATFORM};
+    if ($opt{Automated}) {
+	exit(2) if system("ao Admin restart");
+    }
+}
+
+print STDERR "Packages: @ARGV\n";
+
+for my $pkg (@ARGV) {
+    $pkg = realpath($pkg);
+
+    if ($opt{Automated} && ! -r $pkg) {
+	print STDERR "Skipping $pkg - turned off\n";
+	next;
+    }
+
+    exit(2) if !$opt{flat} && system("ao ping");
+
+    my $success = 1;
+    my $name = basename($pkg);
+    $name =~ s%\.(tar|zip).*%%;
+    my $base = "$root/$name";
+    my $projfile = "$base/ao.project";
+    my @project_properties = ();
+    if ($opt{Fresh} && -e $base) {
+	if (open($projfile, $projfile)) {
+	    @project_properties = <$projfile>;
+	    close($projfile);
+	}
+	print STDERR "+ rm -rf $base\n";
+	rmtree([$base]);
+    }
+
+    if (! -e $base) {
+	if ($pkg =~ m%\.(tar\.gz|tgz)$%) {
+	    exit(2) if run(qq(cd $root && gtar -xzf "$pkg"));
+	} elsif ($pkg =~ m%\.tar\.bz2$%) {
+	    exit(2) if run(qq(cd $root && gtar -xjf "$pkg"));
+	} elsif ($pkg =~ m%\.tar$%) {
+	    exit(2) if run(qq(cd $root && gtar -xf "$pkg"));
+	} elsif ($pkg =~ m%\.zip$%) {
+	    exit(2) if run(qq(cd $root && unzip "$pkg"));
+	}
+    }
+
+    cd($base, 1);
+
+    open($projfile, ">>", $projfile) || die "$prog: Error: $projfile: $!";
+    print $projfile @project_properties;
+    close($projfile);
+
+    my $cfgcmd = "sh configure";
+    my $clncmd = $opt{NoClean} ? undef : "make $sflag clean >$devnull";
+    my $bldcmd = "make $sflag";
+
+    if (-f 'build.bat') {
+	# The "normal" case for Windows if we need to hack up a special script
+	$cfgcmd = '';
+	$clncmd = -f 'clean.bat' ? 'clean.bat' : '';
+	$bldcmd = 'build.bat';
+    } elsif ($name =~ m%^gcc-%) {
+	# Special case for gcc ...
+	cd('objdir', 1);
+	$cfgcmd = "sh ../configure";
+	$bldcmd = "make $sflag bootstrap";
+    } elsif ($name =~ m%^perl-%) {
+	# Special case for Perl. Can't test for 'Configure' due to
+	# case-insensitive filesystems.
+	# Note: Perl cannot build from ./$PLATFORM.
+	$cfgcmd = "CCCMD=gcc sh Configure -de";
+	# Perl still has a couple of funky files which cannot be recycled.
+	# Presumably a bug in AO - TODO.
+	$dflag = '';
+    } elsif (-f 'configure') {
+	# The "normal" case for unix ...
+    } elsif (-d 'source') {
+	# Special case for Samba. Note: Samba cannot build from ./$PLATFORM.
+	cd('source');
+    } elsif (-d 'xc') {
+	# Special case for X11R6.9.0
+	cd('xc');
+	$cfgcmd = '';
+	$clncmd = undef;
+	$bldcmd = 'make World';
+    } elsif (-d 'build_unix') {
+	# Special case for Berkeley DB, ...
+	cd('build_unix');
+	$cfgcmd = "sh ../dist/configure";
+    } elsif (-f 'build.xml' || -f 'build/build.xml') {
+	cd('build') if ! -f 'build.xml';
+	$cfgcmd = '';
+	$clncmd = 'ant clean';
+	$bldcmd = 'ant jar';
+    } else {
+	$cfgcmd = '';
+	warn "$prog: no configure script, trying make directly\n";
+    }
+
+    my $configured = "$base/CONFIGURED";
+    my $timings = "$base/TIMINGS";
+
+    if (! $opt{all} && -f $timings) {
+	print STDERR "\n******** Skipping $name - previously succeeded\n\n";
+	next;
+    }
+    unlink $timings;
+
+    if (!$opt{Fresh} && !$opt{configure} && -f $configured) {
+	warn "Looks like $name is already configured ...\n";
+    } else {
+	if ($cfgcmd && run($cfgcmd)) {
+	    if ($opt{keepgoing}) {
+		next;
+	    } else {
+		exit(2);
+	    }
+	}
+	open($configured, '>', $configured) && close($configured);
+    }
+
+    print STDERR "\n$stars $name $stars\n\n";
+
+    if ($opt{warmup}) {
+	print STDERR "Start with a 'practice' build to warm up caches ...\n";
+	print STDERR '+ ', scalar(localtime), "\n";
+	if (run("time $bldcmd")) {
+	    if ($opt{keepgoing}) {
+		next;
+	    } else {
+		exit(2);
+	    }
+	}
+    }
+
+    my $timing = "\n$bars\n";
+
+    my($bl_time, $cc_time, $up_time, $dn_time) = ();
+
+    # FLAT
+    print STDERR '+ ', scalar(localtime), "\n";
+    run($clncmd) if $clncmd;
+    $checkpoint = new Benchmark;
+    if (run($bldcmd)) {
+	if ($opt{keepgoing}) {
+	    $success = 0;
+	    $timing .= "## $name BL: FAILURE \n";
+	    next;
+	} else {
+	    exit(2);
+	}
+    }
+    $bl_time = timediff(new Benchmark, $checkpoint);
+    $timing .= join('', "## $name BL: ", walltime($bl_time), "\n");
+    $bl_total = timesum($bl_total, $bl_time);
+
+    # CCACHE
+    if ($opt{CCACHE}) {
+	print STDERR '+ ', scalar(localtime), "\n";
+	run($clncmd) if $clncmd;
+	$checkpoint = new Benchmark;
+	local $ENV{PATH} = join(':', '/opt/ccache/bin', $ENV{PATH});
+	if (run($bldcmd)) {
+	    if ($opt{keepgoing}) {
+		$success = 0;
+		$timing .= "## $name CC: FAILURE \n";
+		next;
+	    } else {
+		exit(2);
+	    }
+	}
+	$cc_time = timediff(new Benchmark, $checkpoint);
+	$timing .= join('', "## $name CC: ", walltime($cc_time), "\n");
+	$cc_total = timesum($cc_total, $cc_time);
+    }
+
+    if (! $opt{flat} && $success && (!$opt{Automated} || -x $pkg || MSWIN)) {
+	system("ao Admin destroy project $name 2>$devnull");
+
+	print STDERR '+ ', scalar(localtime), "\n";
+	run($clncmd) if $clncmd;
+	my $run = 'run';
+	$run = join(' ', $opt{W}, $run) if $opt{W};
+	$checkpoint = new Benchmark;
+	if (run("ao -L $qflag $run $bldcmd")) {
+	    if ($opt{keepgoing}) {
+		$success = 0;
+		$timing .= "## $name UP: FAILURE \n";
+		next;
+	    } else {
+		exit(2);
+	    }
+	}
+	$up_time = timediff(new Benchmark, $checkpoint);
+	$timing .= join('', "## $name UP: ", walltime($up_time), "\n");
+	$up_total = timesum($up_total, $up_time);
+
+	print STDERR '+ ', scalar(localtime), "\n";
+	run($clncmd) if $clncmd;
+	$run = 'run';
+	$run = join(' ', $opt{W}, $run) if $opt{W};
+	$checkpoint = new Benchmark;
+	if (run("ao -L $qflag -r $dflag $run $bldcmd")) {
+	    if ($opt{keepgoing}) {
+		$success = 0;
+		$timing .= "## $name DN: FAILURE \n";
+		next;
+	    } else {
+		exit(2);
+	    }
+	}
+	$dn_time = timediff(new Benchmark, $checkpoint);
+	$timing .= join('', "## $name DN: ", walltime($dn_time), "\n");
+	$dn_total = timesum($dn_total, $dn_time);
+    }
+
+    $timing .= "$bars\n\n";
+    print STDERR $timing;
+
+    if ($success && open($timings, '>', $timings)) {
+	print $timings $timing;
+	close($timings);
+    }
+
+    push(@summ, $timing);
+}
+
+my $bl =  walltime($bl_total);
+my $cc =  walltime($cc_total);
+my $up =  walltime($up_total);
+my $dn =  walltime($dn_total);
+
+my $bl_wall = (split ' ', $bl)[0];
+my $cc_wall = (split ' ', $cc)[0];
+my $up_wall = (split ' ', $up)[0];
+my $dn_wall = (split ' ', $dn)[0];
+
+my $up_pct = $bl_wall ? $up_wall / $bl_wall : 0;
+my $dn_pct = $bl_wall ? $dn_wall / $bl_wall : 0;
+
+my $end = new Benchmark;
+my $elapsed = walltime(timediff($end, $start));
+print "### Elapsed: $elapsed\n";
+printf "### Percentages: UP%%=%f DN%%=%f\n", $up_pct, $dn_pct;
+
+if ($opt{Automated} && @summ) {
+    my $summary = "$root/SUMMARY";
+    if (open($summary, '>>', $summary)) {
+    } else {
+	warn "$prog: Error: $summary: $!\n";
+    }
+    print $summary "\n\nRUN: ", scalar(localtime), "\n";
+    print $summary @summ;
+    print $summary "### TOTAL BL: $bl\n";
+    print $summary "### TOTAL CC: $cc\n" if $opt{CCACHE};
+    print $summary "### TOTAL UP: $up\n";
+    print $summary "### TOTAL DN: $dn\n";
+    print $summary "\n";
+    print $summary "### Elapsed time: $elapsed\n";
+    printf $summary "### Percentages: UP%%=%f DN%%=%f\n", $up_pct, $dn_pct;
+    close($summary);
+}

@@ -1,0 +1,15 @@
+These source packages are not part of the AO tool and are provided for
+test and demo purposes only.
+
+The 'hello' directory contains a typical "Hello World" program. This is
+the simplest demo and generally should be tried first. It is provided
+with both a Makefile and a build.sh script for Unix build purposes, and
+a NMakefile (e.g. "nmake -f NMakefile") and a build.bat script for
+Windows. Any of these build models may be used with AO; in fact that is
+the point of this demo.
+
+Other source packages are simply downloaded open-source tools which are
+known to work well with AO. They should be unpacked and built in the
+standard, documented manner and then built with AO. Generally these can
+be built on Unix via "sh configure && make clean all". On Windows this
+is often trickier but a "build.bat" script may have been supplied.

@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -65,22 +65,9 @@
 /// that was too slow. I plugged in SHA-256 which, being a 256-bit
 /// hash, has extraordinary collision resistance and it seems to
 /// slow down by "only" about 40%. I looked at a bunch of other
-/// individual algorithms (VMAC, Tiger, etc) before I finally got
-/// smart enough to do what I should have done all along; link
-/// with the OpenSSL libcrypto library and let the user decide
-/// which of its many algorithms to rely on.
+/// individual algorithms (VMAC, Tiger, etc) before I finally
+/// settled on SHA-1.
 ///
-/// The only complication around libcrypto is that AO links to
-/// it statically. Dragging in all of libcrypto indiscriminately
-/// would make binary size grow drastically, so currently
-/// SHA1 is selected as the only runtime alternative to CRC32.
-/// If you want some hash from libcrypto other than CRC32 or SHA1,
-/// it should be easy to change the AO build to get it from OpenSSL.
-///
-/// Note that most of libcrypto is intended as cryptographic hashes;
-/// protection against bad guys is not necessary for a simple
-/// fingerprint hash but does no harm.
-
 // Special case: the Unix "ar" (and Windows "lib") format
 // unfortunately includes a timestamp. Thus, archives made at
 // different times will hash with different values even if
@@ -116,10 +103,8 @@
 #include "CODE.h"
 #include "PROP.h"
 
+#include "git2.h"
 #include "zlib.h"
-
-#include <openssl/ssl.h>
-#include <openssl/evp.h>
 
 /// Returns true iff the file looks like the kind with an embedded
 /// timestamp based on its name.
@@ -179,23 +164,10 @@ static inline unsigned int hexval(unsigned char c)
     return hexval_table[c];
 }
 
-static void
-sha1_to_hex(const unsigned char *sha1, CS buf)
-{
-    static const char hex[] = "0123456789abcdef";
-    int i;
-
-    for (i = 0; i < 20; i++) {
-	unsigned int val = *sha1++;
-	*buf++ = hex[val >> 4];
-	*buf++ = hex[val & 0xf];
-    }
-    *buf = '\0';
-}
-
 static int _code_is_zip_file(const void *, off_t);
 static int _code_clear_zip_file(void *, off_t);
 
+/// Initializes hash-code data structures.
 void
 code_init(void)
 {
@@ -220,28 +192,15 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     algorithm = prop_get_str(P_IDENTITY_HASH);
 
-    if (algorithm && *algorithm && (!stricmp(algorithm, "sha1") ||
-	    !stricmp(algorithm, "git"))) {
-	SHA_CTX ctx;
-	char prefix[64];
-	unsigned char sha1[SHA_DIGEST_LENGTH];
+    if (algorithm && *algorithm &&
+	    (!stricmp(algorithm, "sha1") || !stricmp(algorithm, "git"))) {
+	git_oid oid;
 
-	SHA1_Init(&ctx);
-
-	if (!stricmp(algorithm, "git")) {
-	    // It may be convenient for SHA-1 hashes to match up with
-	    // those of Git. Therefore we gratuitously, but harmlessly,
-	    // prepend the same header Git does for blobs. However,
-	    // note that this will not work for some file types because
-	    // AO elides timestamps while Git does not.
-	    snprintf(prefix, charlen(prefix), "blob %lu", size);
-	    SHA1_Update(&ctx, prefix, strlen(prefix) + CHARSIZE);
+	if (git_odb_hash(&oid, data, size, GIT_OBJ_BLOB)) {
+	    putil_die("sha-1 failed: %s", git_lasterror());
 	}
-
-	SHA1_Update(&ctx, data, size);
-	SHA1_Final(sha1, &ctx);
-
-	sha1_to_hex(sha1, buf);
+	git_oid_fmt(buf, &oid);
+	buf[40] = '\0';
     } else {
 	// Old reliable CRC32. Said to be a bad choice for an identity
 	// hash as the distribution is not great. It's not really a hash
@@ -911,6 +870,7 @@ _code_is_zip_file(const void *data, off_t size)
     }
 }
 
+/// Finalizes hash-code data structures.
 void
 code_fini(void)
 {

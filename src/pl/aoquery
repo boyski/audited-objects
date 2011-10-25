@@ -19,7 +19,7 @@ use AO::System qw($prog $verbosity);
 pod2usage(1) if !@ARGV;
 
 my %opt;
-GetOptions(\%opt, qw(help absolute base=s members-only quiet Cmd=s Intpaths Srcpaths Tgtpaths));
+GetOptions(\%opt, qw(help absolute base=s members-only quiet short Cmd=s Intpaths Srcpaths Tgtpaths));
 
 $opt{Intpaths} = $opt{Srcpaths} = $opt{Tgtpaths} = 1
     unless $opt{Intpaths} || $opt{Srcpaths} || $opt{Tgtpaths} || $opt{Cmd};
@@ -83,7 +83,9 @@ if (my $re = $opt{Cmd}) {
 	}
 	if (@found) {
 	    printf "= [%s] %s\n", $ca->get_rwd, $ca->get_line;
-	    print "$_\n" for @found;
+	    if (! $opt{short}) {
+		print "$_\n" for @found;
+	    }
 	}
     }
     exit(0);
@@ -138,6 +140,7 @@ aoquery - Generic script for pulling data from a raw AO audit file.
    -base dir		Specify the root dir (default: cwd)
    -members-only	Ignore files which are not project members
    -quiet		Suppress verbosity
+   -short		Request short-form output
    -Cmd regex		Show commands associated with paths matching "regex"
    -Srcpaths		Show all "src" (only opened for read) paths
    -Intpaths		Show all "intermediate" paths (written and read)

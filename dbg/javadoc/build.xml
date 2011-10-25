@@ -1,0 +1,13 @@
+<project name="jfreechart" default="all" basedir=".">
+    <target name="all">
+        <javadoc sourcepath="${basedir}/src" destdir="${basedir}/javadoc"
+                 use="yes">
+            <packageset dir="${basedir}/src" defaultexcludes="yes">
+                <include name="foo/**"/>
+            </packageset>
+        </javadoc>
+    </target>
+  <target name="clean">
+    <delete dir="javadoc"/>
+  </target>
+</project>

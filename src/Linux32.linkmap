@@ -25,7 +25,6 @@ V1.0 {
 	http_*;
 	inflate*;
 	interposer_*;
-	libao_*;
 	moment_*;
 	pa_*;
 	pcre_*;

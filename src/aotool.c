@@ -115,12 +115,12 @@ _usage(int rc)
     _ftprintf(fp, fmt, _T("-H"), _T("Print current properties"));
     _usg_line(fp, fmt, _T("-a"), P_ABSOLUTE_PATHS, NULL);
     _usg_line(fp, fmt, _T("-d"), P_DOWNLOAD_ONLY, NULL);
-    _usg_line(fp, fmt, _T("-f file"), P_MAKE_FILE, NULL);
-    _usg_line(fp, fmt, _T("-F file"), P_MAKE_FILE_FULL, NULL);
+    _usg_line(fp, fmt, _T("-F file"), P_MAKE_FILE, NULL);
 #if !defined(_WIN32)
     _usg_line(fp, fmt, _T("-l file"), P_LOG_FILE, NULL);
     _usg_line(fp, fmt, _T("-L"), P_LOG_FILE_TEMP, NULL);
 #endif	/*_WIN32*/
+    _usg_line(fp, fmt, _T("-MD"), P_MAKE_DEPENDS, NULL);
     _usg_line(fp, fmt, _T("-m"), P_MEMBERS_ONLY, NULL);
     _usg_line(fp, fmt, _T("-o file"), P_OUTPUT_FILE, NULL);
     _usg_line(fp, fmt, _T("-p name"), P_PROJECT_NAME, NULL);
@@ -140,7 +140,7 @@ _usage(int rc)
     _ftprintf(fp, _T("EXAMPLES:\n"));
     _ftprintf(fp, _T("   %s help\n"), prog);
     _ftprintf(fp, _T("   %s ping\n"), prog);
-    _ftprintf(fp, _T("   %s -o@ -F foo.mk make -s clean all\n"), prog);
+    _ftprintf(fp, _T("   %s -o@ -F Makefile.new make -s clean all\n"), prog);
     _ftprintf(fp, _T("   %s make clean all\n"), prog);
     _ftprintf(fp, _T("   %s lsbuilds -s\n"), prog);
 
@@ -578,7 +578,7 @@ main(int argc, CS const *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    _T("+1adf:hl:mo:p:qrs:uv::wxACDEF:H::I:LO:PQRSTUV:W:XY");
+	    _T("+1adhl:mo:p:qrs:uv::wxACDEF:H::I:LM:O:PQRSTUV:W:XY");
 	static struct option long_opts[] = {
 	    {_T("oneshell"),		no_argument,	   NULL, '1'},
 	    {_T("absolute-paths"),	no_argument,	   NULL, 'a'},
@@ -590,15 +590,15 @@ main(int argc, CS const *argv)
 	    {_T("dtrace"),		required_argument, NULL, LF('D','T')},
 	    {_T("client-platform"),	required_argument, NULL, LF('C','P')},
 	    {_T("error-strict"),	no_argument,	   NULL, 'E'},
-	    {_T("make-file"),		required_argument, NULL, 'f'},
-	    {_T("make-file-full"),	required_argument, NULL, 'F'},
+	    {_T("make-file"),		required_argument, NULL, 'F'},
 	    {_T("help"),		no_argument,	   NULL, 'h'},
 	    {_T("Help"),		optional_argument, NULL, 'H'},
 	    {_T("properties"),		optional_argument, NULL, LF('P','*')},
 	    {_T("identity-hash"),	required_argument, NULL, 'I'},
 	    {_T("log-file"),		required_argument, NULL, 'l'},
 	    {_T("log-file-temp"),	no_argument,	   NULL, 'L'},
-	    {_T("mem-debug"),		optional_argument, NULL, LF('M','D')},
+	    {_T("make-depends"),	optional_argument, NULL, 'M'},
+	    {_T("mem-debug"),		optional_argument, NULL, LF('D','M')},
 	    {_T("members-only"),	no_argument,	   NULL, 'm'},
 	    {_T("output-file"),		required_argument, NULL, 'o'},
 	    {_T("Output-file"),		required_argument, NULL, 'O'},
@@ -700,12 +700,15 @@ main(int argc, CS const *argv)
 
 
 	    case 'F':
-		prop_override_true(P_MAKE_FILE_FULL);
-	    case 'f':
 		prop_override_str(P_MAKE_FILE, bsd_optarg);
-		// If any files are recycled we'll end up with bad
-		// dependency data, so recycling is suppressed here.
-		prop_override_ulong(P_UPLOAD_ONLY, 1);
+		break;
+
+	    case 'M':
+		if (!bsd_optarg || !_tcscmp(bsd_optarg, _T("D"))) {
+		    prop_override_str(P_MAKE_DEPENDS, _T("d"));
+		} else {
+		    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
+		}
 		break;
 
 	    case 'm':
@@ -791,7 +794,7 @@ main(int argc, CS const *argv)
 		vb_addstr(bsd_optarg);
 		break;
 
-	    case LF('M', 'D'):
+	    case LF('D', 'M'):
 #if defined(sun)
 		if (bsd_optarg && *bsd_optarg == 'w') {
 		    putil_putenv("LD_PRELOAD=watchmalloc.so.1");
@@ -929,6 +932,11 @@ main(int argc, CS const *argv)
     // with specifying an output file.
     if (no_server) {
 	prop_unset(P_SERVER, 1);
+    }
+
+    // Recycling would break full-makefile generation.
+    if (prop_has_value(P_MAKE_FILE) && !prop_has_value(P_MAKE_DEPENDS)) {
+	prop_override_ulong(P_UPLOAD_ONLY, 1);
     }
 
     // Optionally run help output through a pager.

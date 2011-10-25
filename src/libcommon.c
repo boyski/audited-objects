@@ -111,7 +111,7 @@ static void _audit_end(CCS, int, long);
 /// Un-exported API to ask whether the auditor is globally active.
 /// @return true if so activated
 static int
-libao_isActiveByDefault()
+_auditor_isActiveByDefault()
 {
     return Activated == LIBAO_ACTIVE_BY_DEFAULT;
 }
@@ -119,7 +119,7 @@ libao_isActiveByDefault()
 /// Un-exported API to ask whether the auditor is was activated by request.
 /// @return true if so activated
 static int
-libao_isActiveByRequest()
+_auditor_isActiveByRequest()
 {
     return Activated == LIBAO_ACTIVE_BY_REQUEST;
 }
@@ -127,28 +127,28 @@ libao_isActiveByRequest()
 /// Un-exported API to ask whether the auditor is currently active.
 /// @return true if activated
 static int
-libao_isActive()
+_auditor_isActive()
 {
     return Activated != LIBAO_INACTIVE;
 }
 
 /// Exported API to request temporary auditor activation.
 void
-libao_setActive(void)
+auditor_setActive(void)
 {
     Activated = LIBAO_ACTIVE_BY_REQUEST;
 }
 
 /// Un-exported API to make the auditor globally active.
 static void
-libao_setActiveByDefault(void)
+_auditor_setActiveByDefault(void)
 {
     Activated = LIBAO_ACTIVE_BY_DEFAULT;
 }
 
 /// Exported API to make the auditor inactive.
 void
-libao_setInactive(void)
+auditor_setInactive(void)
 {
     Activated = LIBAO_INACTIVE;
 }
@@ -162,7 +162,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
     ps_o ps;
     pa_o pa;
 
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 	vb_printf(VB_REC, _T("not active: %c,%s,%s"), op, call, path);
 	return;
     }
@@ -358,7 +358,7 @@ _audit_open(void)
 {
     int fd;
 
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 	return -1;
     }
 
@@ -487,7 +487,7 @@ _audit_start(CCS call)
     CCS hdr;
     CS soa_hdr;
 
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 	return;
     }
 
@@ -613,7 +613,7 @@ _audit_flush(CCS call)
 {
     UNUSED(call);
 
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 	return;
     }
 
@@ -651,7 +651,7 @@ _audit_end(CCS call, int exiting, long status)
     TCHAR buf[4096];
     TCHAR ack_eoa[ACK_BUFFER_SIZE];
 
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 #if defined(_WIN32)
 	// Very special case: if (a) we're on Windows, (b) this
 	// command is not activated, (c) it's the top-level command,
@@ -865,13 +865,13 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // If full auditing is already activated, keep it going.
     // If not, and we have no activation RE, activate by default.
     // If we have an RE, apply it.
-    if (!libao_isActive()) {
+    if (!_auditor_isActive()) {
 	void *re;
 
 	if ((re = re_init__(P_ACTIVATION_PROG_RE))) {
 	    if (re_match__(re, exe)) {
 		vb_printf(VB_OFF, _T("ACTIVATED ON [%ld] '%s'"), pid, exe);
-		libao_setActive();
+		auditor_setActive();
 		// Can't remove this EV - must change it in place.
 		prop_mod_str(P_ACTIVATION_PROG_RE, _T(""), NULL);
 	    } else {
@@ -880,7 +880,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 	    }
 	} else {
 	    vb_printf(VB_OFF, _T("ACTIVE ON [%ld] '%s'"), pid, exe);
-	    libao_setActiveByDefault();
+	    _auditor_setActiveByDefault();
 	}
     }
 

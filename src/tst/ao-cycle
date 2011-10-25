@@ -7,9 +7,15 @@ use File::Basename;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
+# Some builds are inherently non-parallel-safe for reasons that
+# cannot be fixed with good prereq data. One example would be
+# building an archive library incrementally with "ao -r". Therefore,
+# we have to turn off parallel testing on some packages.
 my $SpecialCase;
+$SpecialCase->{bash}->{NOTPARALLEL} = 1;
 $SpecialCase->{gdb}->{PROPERTIES}->{'Audit.Ignore.Path.RE'} =
     '/tmp\\d+\\b|\\b(\\.bak|\\.BAK)$|/conf[^i][^g]';
+$SpecialCase->{openssl}->{NOTPARALLEL} = 1;
 $SpecialCase->{openssl}->{PROPERTIES}->{'Aggregation.Prog.Strong.RE'} =
     '(\\bcc|gcc|gcc-.*|g[+]{2}|ccache|perl)$';
 $SpecialCase->{zsh}->{PROPERTIES}->{'Aggregation.Prog.Break.RE'} =
@@ -20,7 +26,7 @@ my($prog) = fileparse($0, '\.\w*$');
 my %opt;
 GetOptions(\%opt, qw(help AllModes FreshDB IdentityHash=s Jobs=i
     KeepGoing Logbase=s Make=s MF=s OutputToScreen PackageDir=s Verbose
-    audited compare download remake warmup));
+    audited compare download parallel remake warmup));
 
 my $logfile = ($opt{Logbase} || $prog) . '.log';
 
@@ -32,10 +38,12 @@ if ($opt{help}) {
 }
 
 $opt{AllModes} = 1
-    unless $opt{warmup} || $opt{download} || $opt{remake} || $opt{compare};
-$opt{warmup} = $opt{download} = $opt{remake} = $opt{compare} = 1
-    if $opt{AllModes};
-$opt{audited} = 1 if $opt{download} || $opt{remake};
+    unless $opt{warmup} || $opt{download} ||
+	   $opt{remake} || $opt{parallel} || $opt{compare};
+
+@opt{qw(warmup download remake parallel compare)} = 1 if $opt{AllModes};
+
+$opt{audited} = 1 if $opt{download} || $opt{remake} || $opt{parallel};
 
 if (! $opt{OutputToScreen}) {
     open(ORIG_STDERR, ">&STDERR") || die "$prog: Error: can't dup stderr\n";
@@ -45,13 +53,6 @@ if (! $opt{OutputToScreen}) {
 }
 
 $ENV{AO_IDENTITY_HASH} = $opt{IdentityHash} if $opt{IdentityHash};
-
-sub timing {
-    my $delta = shift;
-    my $timed = timestr($delta, 'noc', '5.1f');
-    $timed =~ s%wallclock secs.*%seconds%;
-    return $timed;
-}
 
 my $status = 0;
 
@@ -63,6 +64,13 @@ my $start = Benchmark->new;
 my $zero = timediff($start, $start);
 
 my $projname = 'unknown';
+
+sub timing {
+    my $delta = shift;
+    my $timed = timestr($delta, 'noc', '5.1f');
+    $timed =~ s%wallclock secs.*%seconds%;
+    return $timed;
+}
 
 sub run {
     my $cmd = "@_";
@@ -80,21 +88,8 @@ sub run {
     }
 }
 
-sub findbase {
-    my $dir = shift;
-    if (-d "$dir/.$app" || -f "$dir/$app.project") {
-	return $dir;
-    } else {
-	my $parent = dirname($dir);
-	if ($parent eq $dir) {
-	    return undef;
-	} else {
-	    return findbase($parent);
-	}
-    } 
-}
-
-my($total_w, $total_a, $total_r, $total_c, $total_d) = ($zero, $zero, $zero, $zero, $zero);
+my($total_w, $total_a, $total_r, $total_p, $total_c, $total_d) =
+    ($zero, $zero, $zero, $zero, $zero, $zero);
 
 # Default to the set of known good test cases listed in the DATA section.
 if (! @ARGV) {
@@ -148,7 +143,7 @@ for my $dir (@dirs) {
 
     print "========== $dir ==========\n";
 
-    my $projbase = findbase(realpath('.')) || getcwd;
+    chomp(my $projbase = qx(ao property Base.Dir));
     my $projfile = "$projbase/.$app/$app.properties";
     if (! -f $projfile) {
 	mkdir "$projbase/.$app" unless -d "$projbase/.$app";
@@ -195,66 +190,95 @@ for my $dir (@dirs) {
 		    $rc++;
 		    $status++;
 		}
-		$rcmd = "$app $q -C -X -l make-r.log $Make -f $mf";
+		$rcmd = qq($app $q -C -X -l make-r.log $Make -f $mf);
 		$rcmd .= ' -j ' . $opt{Jobs} if $opt{Jobs};
 	    }
 	    my $t2b = Benchmark->new;
 	    if ($rcmd && run($rcmd)) {
 		$rc++;
 	    } else {
-		my $t3 = Benchmark->new;
-		my $ccmd = "$app $q -C -X -l make-c.log $Make";
-		if ($opt{compare} && run($ccmd)) {
+		my $t3a = Benchmark->new;
+		my $pcmd;
+		if ($opt{parallel} && !$rc) {
+		    if (exists($SpecialCase->{$projname}->{NOTPARALLEL})) {
+			warn "NOTPARALLEL: $projname (SKIPPED)\n";
+		    } else {
+			my($basedir, $audit) = qx($app substitute %b %p.$app);
+			chomp($basedir, $audit);
+			my $md = 'MD';
+			if (system "set -x; $^X -wS ao2make -MF=$md $audit") {
+			    $rc++;
+			    $status++;
+			}
+			$pcmd = qq(MAKEFILES=$md);
+			$pcmd .= qq( $app $q -C -X -l make-p.log $Make);
+			$pcmd .= ' -j ' . ($opt{Jobs} ? $opt{Jobs} : 4);
+		    }
+		}
+		my $t3b = Benchmark->new;
+		if ($pcmd && run($pcmd)) {
 		    $rc++;
 		} else {
 		    my $t4 = Benchmark->new;
-		    my $dcmd = "$app $q -C -r -w -l make-d.log $Make";
-		    if ($opt{download} && run($dcmd)) {
+		    my $ccmd = "$app $q -C -X -l make-c.log $Make";
+		    if ($opt{compare} && run($ccmd)) {
 			$rc++;
 		    } else {
 			my $t5 = Benchmark->new;
-			my @timings = ();
-			if ($opt{warmup}) {
-			    my $delta = timediff($t1, $t0);
-			    push(@timings, sprintf "%-12s   %s\n", 'Warmup:',
-				timing($delta));
-			    $total_w = timesum($total_w, $delta);
+			my $dcmd = "$app $q -C -r -w -l make-d.log $Make";
+			if ($opt{download} && run($dcmd)) {
+			    $rc++;
+			} else {
+			    my $t6 = Benchmark->new;
+			    my @timings = ();
+			    if ($opt{warmup}) {
+				my $delta = timediff($t1, $t0);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Warmup:', timing($delta));
+				$total_w = timesum($total_w, $delta);
+			    }
+			    if ($opt{audited}) {
+				my $delta = timediff($t2a, $t1);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Audited:', timing($delta));
+				$total_a = timesum($total_a, $delta);
+			    }
+			    if ($opt{remake}) {
+				my $delta = timediff($t3a, $t2b);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Remake:', timing($delta));
+				$total_r = timesum($total_r, $delta);
+			    }
+			    if ($opt{parallel}) {
+				my $delta = timediff($t4, $t3b);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Parallel:', timing($delta));
+				$total_p = timesum($total_p, $delta);
+			    }
+			    if ($opt{compare}) {
+				my $delta = timediff($t5, $t4);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Compare:', timing($delta));
+				$total_c = timesum($total_c, $delta);
+			    }
+			    print STDERR '=' x 74, "\n";
+			    if ($opt{download}) {
+				my $delta = timediff($t6, $t5);
+				push(@timings, sprintf "%-12s   %s\n",
+				    'Download:', timing($delta));
+				$total_d = timesum($total_d, $delta);
+				system qq(set -x; $app lsbuilds -l);
+			    }
+			    push(@timings, sprintf "%-12s   %s\n", 'Total:',
+				timing(timediff($t6, $t0)));
+			    unlink $logfile;
+			    open(MARKER, '>', $logfile)
+				|| die "$prog: Error: $logfile: $!";
+			    print MARKER @timings;
+			    close(MARKER);
+			    print STDERR @timings;
+			    print STDERR '=' x 74, "\n\n";
 			}
-			if ($opt{audited}) {
-			    my $delta = timediff($t2a, $t1);
-			    push(@timings, sprintf "%-12s   %s\n", 'Audited:',
-				timing($delta));
-			    $total_a = timesum($total_a, $delta);
-			}
-			if ($opt{remake}) {
-			    my $delta = timediff($t3, $t2b);
-			    push(@timings, sprintf "%-12s   %s\n", 'Remake:',
-				timing($delta));
-			    $total_r = timesum($total_r, $delta);
-			}
-			if ($opt{compare}) {
-			    my $delta = timediff($t4, $t3);
-			    push(@timings, sprintf "%-12s   %s\n", 'Compare:',
-				timing($delta));
-			    $total_c = timesum($total_c, $delta);
-			}
-			print STDERR '=' x 74, "\n";
-			if ($opt{download}) {
-			    my $delta = timediff($t5, $t4);
-			    push(@timings, sprintf "%-12s   %s\n", 'Download:',
-				timing($delta));
-			    $total_d = timesum($total_d, $delta);
-			    system qq(set -x; $app lsbuilds -l);
-			}
-			push(@timings, sprintf "%-12s   %s\n", 'Total:',
-			    timing(timediff($t5, $t0)));
-			unlink $logfile;
-			open(MARKER, '>', $logfile)
-			    || die "$prog: Error: $logfile: $!";
-			print MARKER @timings;
-			close(MARKER);
-			print STDERR @timings;
-			print STDERR '=' x 74, "\n\n";
 		    }
 		}
 	    }
@@ -274,6 +298,9 @@ push(@summary,
 push(@summary,
     sprintf "%-12s   %s\n", 'REMAKE:', timing(timediff($total_r, $zero)))
 	if $opt{remake};
+push(@summary,
+    sprintf "%-12s   %s\n", 'PARALLEL:', timing(timediff($total_p, $zero)))
+	if $opt{parallel};
 push(@summary,
     sprintf "%-12s   %s\n", 'COMPARE:', timing(timediff($total_c, $zero)))
 	if $opt{compare};
@@ -300,7 +327,8 @@ ao-cycle - A test harness for AO.
    -warmup		Run a "vanilla" build first, to get caches warm
    -audited		Do an audited build, uploading results to server
    -download		Follow an audited build with a downloading build
-   -remake		Use audit results to generate and use a Makefile
+   -parallel		Use audit to generate prereqs and rebuild with -j
+   -remake		Use audit to generate and use a new Makefile
    -compare		Run a "vanilla" build last for timing comparison
    -AllModes		Perform all build modes (audited, remake, etc)
    -FreshDB		Clear the server database before beginning

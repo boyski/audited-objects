@@ -200,7 +200,7 @@ _mon_process_ca(ca_o ca)
 
     putil_free(cabuf);
 
-    if (prop_has_value(P_MAKE_FILE)) {
+    if (prop_has_value(P_MAKE_DEPENDS) || prop_has_value(P_MAKE_FILE)) {
 	make_file(ca);
     }
 

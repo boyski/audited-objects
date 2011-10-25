@@ -367,7 +367,7 @@ class ## _get_ ## attr(class ## _o obj)					\
 #if defined(_WIN32)
 #define AUDITOR			"LibAO.dll"
 #else	/*_WIN32*/
-#define AUDITOR			"libao.so"
+#define AUDITOR			"libAO.so"
 #endif	/*_WIN32*/
 
 // Drag these in here because (a) just about everybody needs them and

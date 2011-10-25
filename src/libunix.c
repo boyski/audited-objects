@@ -561,7 +561,7 @@ fork_wrapper(const char *call, pid_t(*next) (void))
     pid = (*next)();
 
     // Child side.
-    if (pid == 0 && libao_isActive()) {
+    if (pid == 0 && _auditor_isActive()) {
 	// Open a new audit record for any files which might
 	// be opened on the child side (prior to exec if any).
 	// An alternative might be a lock on the existing file to
@@ -1281,7 +1281,7 @@ unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 /*static*/ void
 interposed_finalize(void)
 {
-    if (libao_isActiveByRequest()) {
+    if (_auditor_isActiveByRequest()) {
 	pid_t pid;
 
 	// This is a really cute trick I got from a guy named Nate Eldredge.
@@ -1321,7 +1321,7 @@ interposed_finalize(void)
 	    // exit processing here would run the latter set twice.
 	    _exit_real(status);
 	}
-    } else if (libao_isActiveByDefault()) {
+    } else if (_auditor_isActiveByDefault()) {
 	_audit_end("exit", EXITING, 0);
     }
 

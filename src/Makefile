@@ -44,7 +44,7 @@ OPS		:= ../OPS
 CC		:= gcc
 ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
 #ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
-CSTYLE		:= -W -Wall $(ANAL)
+CSTYLE		:= -Wall -W $(ANAL)
 SHLIBFLAGS	:= -shared
 INST_PREFIX	:= ${HOME}/${CPU}
 
@@ -148,8 +148,9 @@ CFLAGS		+= -D_LARGEFILE64_SOURCE
 
 CFLAGS		+= -I. -I$(OPS)/include
 
-LIBAO32		:= $(addprefix $(CPUDIR)/, libao.so)
-LIBAO64		:= $(addprefix $(CPUDIR64)/, libao.so)
+AUDITOR		:= libAO.so
+LIBAO32		:= $(addprefix $(CPUDIR)/, $(AUDITOR))
+LIBAO64		:= $(addprefix $(CPUDIR64)/, $(AUDITOR))
 SHLIBS		:= $(LIBAO32)
 INST_LIBS	:= $(addprefix $(INST_PREFIX)/lib/, $(notdir $(SHLIBS)))
 
@@ -200,6 +201,9 @@ endif	#SOLARIS
 
 ifdef LINUX
 CFLAGS		+= -fpic -D_GNU_SOURCE
+# These require gcc 4.x or so.
+#CFLAGS		+= -D_FORTIFY_SOURCE=2
+#CFLAGS		+= -fstack-protector --param=ssp-buffer-size=4
 SHLIBFLAGS	+= -z defs -z interpose -z combreloc -z ignore -z lazyload
 LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
 ifdef LINUX_X86_64

@@ -30,10 +30,13 @@ sub syserr {
 }
 
 my %opt;
-GetOptions(\%opt, qw(base=s existing-only full NOGNU help
-    members-only output=s pdump|PDUMP Parallel vars=s));
+GetOptions(\%opt, qw(base=s dbg existing-only full NOGNU help
+    ext=s members-only MF|output-file=s pdump|PDUMP Parallel vars=s));
 
 pod2usage(1) if $opt{help};
+
+$opt{full} = 1 if $opt{pdump} || $opt{vars};
+my $iext = $opt{full} ? undef : ($opt{'ext'} || 'd');
 
 # The dash shell does not implement -n or -v correctly.
 my $broken_sh = 0;
@@ -43,8 +46,6 @@ if (-x '/bin/sh' && -x '/bin/dash') {
 	undef $ENV{BASH_ENV};
     }
 }
-
-unlink $opt{output} if $opt{output} && -e $opt{output};
 
 my $BaseDir = $opt{'base'};
 if ($BaseDir) {
@@ -132,12 +133,24 @@ for my $audit (@ARGV) {
     }
 
     # Prints a one-line variable definition in a neatly formatted way.
-    sub format {
+    sub _format {
 	my $self = shift;
+	my $eq = shift;
 	my $ending = shift || '';
-	my $eq = $self->{EQ} || ($opt{NOGNU} ? '=' : ':=');
 	return sprintf "%-*s %s %s$ending\n",
 	    25 - length($eq), $self->get_name, $eq, $self->get_value || '';
+    }
+
+    sub format {
+	my $self = shift;
+	my $eq = $self->{EQ} || ($opt{NOGNU} ? '=' : ':=');
+	return $self->_format($eq, @_);
+    }
+
+    sub format_ifndef {
+	my $self = shift;
+	my $eq = ($opt{NOGNU} ? '=' : '?=');
+	return $self->_format($eq, @_);
     }
 
     sub get_name {
@@ -212,6 +225,14 @@ sub parameterize {
     return quote($path);
 }
 
+# Takes a parameterized, possibly quoted path and returns the original
+# string form which can be opened or tested with -f.
+sub deparameterize {
+    (my $path = shift) =~ s%\${BASE_DIR}%$BaseDir%;
+    $path =~ s%"$%% if $path =~ s%^"%%;
+    return $path;
+}
+
 # Takes a string and tries to substitute in known make variables such
 # that "-c -g -O2 -Wall -DNDEBUG" might become "-c $(CFLAGS) $(DFLAGS)".
 sub varify {
@@ -276,7 +297,7 @@ sub printlist {
     }
 }
 
-# Some stuff needs to be at the top in full-makefile format.
+# Some stuff needs to be at the top of a full Makefile.
 if ($opt{full}) {
     push(@{$Makefile->{HEADER}}, ".PHONY: all clean rt\n\n");
     push(@{$Makefile->{HEADER}}, ".SUFFIXES:\n\n");
@@ -367,7 +388,7 @@ if (my $vars = $opt{vars}) {
 }
 
 # This is a special variable which must always be available.
-my $basevar = MakeVar->new->assign($BaseVar, undef, $BaseDir);
+my $basevar = MakeVar->new->assign($BaseVar, '?=', $BaseDir);
 unshift(@{$Makefile->{VARLIST}}, $basevar);
 
 # There's some black magic to finding the "primary target". First, we
@@ -377,7 +398,7 @@ unshift(@{$Makefile->{VARLIST}}, $basevar);
 #
 # Next we observe that generated "frill" files (.pdb and so on) tend
 # to be distinguished by additional extensions or placement in
-# subdirectories, and therefore we prefer shorter paths.
+# subdirectories, and therefore we push shorter paths towards the front.
 #
 # Still, this is basically guesswork and subject to breakage.
 # Looking for a better way.
@@ -430,7 +451,7 @@ for my $ca (@Actions) {
 	# See if any targets are duplicated. If so, this would likely
 	# reflect a bug in the original build model but we have to
 	# deal with it.  Currently this is done by converting to use
-	# of double-colon rules exclusively where duplications
+	# of double-colon rules exclusively whenever duplications
 	# exist.  It's hard to generate a combination of single- and
 	# double-colon rules reliably so we go all single (preferred)
 	# or all double.
@@ -479,7 +500,7 @@ for my $ca (@Actions) {
 	for my $target (@targets) {
 	    push(@tlist, parameterize($target->get_path));
 	}
-	$recipe_key = join(':', sort @tlist);
+	$recipe_key = join(':', @tlist);
     }
 
     # Add the standard set of prereqs to the "derived" list.
@@ -523,28 +544,55 @@ for my $ca (@Actions) {
 # From here on we're concerned only with formatting and printing it.
 ###########################################################################
 
-if ($opt{output} && $opt{output} ne '-') {
-    open(STDOUT, '>', $opt{output}) || syserr(1, $opt{output});
+my %Includes;
+
+my $ofile = $opt{MF};
+if ($ofile && $ofile ne '-') {
+    if ($iext && open(OUTPUT, $ofile)) {
+	for (<OUTPUT>) {
+	    chomp;
+	    if (m%^-?include\s+(.*)%) {
+		my $incfile = deparameterize($1);
+		$Includes{$incfile}++ if -f $incfile;
+	    }
+	}
+	close(OUTPUT);
+    }
+    unlink $ofile;
+    open(STDOUT, '>', $ofile) || syserr(1, $ofile);
 }
 
-if ($opt{full}) {
+if ($ofile) {
     for my $line (@{$Makefile->{HEADER}}) {
 	print $line;
     }
-}
 
-# Dump the list of printable (non-default) make variables.
-for my $var (@{$Makefile->{VARLIST}}) {
-    next unless $var->explicit;
-    print $var->format;
+    # Dump the list of printable (non-default) make variables.
+    for my $var (@{$Makefile->{VARLIST}}) {
+	next unless $var->explicit;
+	print $var->format;
+    }
 }
 
 # Dump the set of rules and their recipes if present.
 for my $tkey (sort keys %{$Makefile->{RULES}}) {
-    print "\n";
 
     my @tgtlist = split ':', $tkey;
     my @prqlist = sort keys %{$Makefile->{RULES}->{$tkey}->{PREREQS}};
+
+    my $fh;
+    if ($iext) {
+	my $incfile = join('.', deparameterize($tgtlist[0]), $iext);
+	open(INCFILE, '>', $incfile) || die "$prog: Error: $incfile: $!\n";
+	$fh = select INCFILE;
+	$Includes{$incfile}++;
+	if ($opt{dbg}) {
+	    print q($(info + Including $(lastword $(MAKEFILE_LIST)))), "\n\n";
+	}
+	print $basevar->format;
+    }
+
+    print "\n";
 
     for (my $i = 0; $i <= $#tgtlist; $i++) {
 	print $tgtlist[$i];
@@ -566,10 +614,24 @@ for my $tkey (sort keys %{$Makefile->{RULES}}) {
     if (my $recipe = $Makefile->{RULES}->{$tkey}->{RECIPE}) {
 	print $recipe;
     }
+
+    if ($iext) {
+	select($fh);
+	close(INCFILE);
+    }
+}
+
+if ($ofile && $iext) {
+    print "\n";
+    for my $incfile (sort keys %Includes) {
+	my $pinc = parameterize($incfile);
+	print "-include $pinc\n";
+    }
 }
 
 # Flesh out the rest of the full makefile if requested.
-if ($opt{full}) {
+if ($ofile && $opt{full}) {
+
     print "\n";
 
     for my $dir (keys %DirTargets) {
@@ -644,13 +706,13 @@ ao2make - Generate a Makefile from AO audit data
 =head1 OPTIONS
 
    -help		Print this message and exit
-   -base dir		Specify the root dir (default: current)
+   -base dir		Specify the root dir (default: cwd)
+   -ext string		The extension for prereq fragment files
    -full		Generate a useable makefile
-   -members-only	Ignore files which are not part of the project
-   -NOGNU		Disallow GNU make syntax in generated makefile
-   -output file		Write results to file instead of stdout
-   -pdump 		Use variables extracted from GNU "make -p"
-   -vars file		A set of make variables to be substituted in
+   -members-only	Ignore files which are not project members
+   -MF file		Create a Makefile in the specified file
+   -pdump 		(with -full) Use variables extracted from GNU "make -p"
+   -vars file		(with -full) A set of make variables to be substituted
 
 =head2 NOTES
 
@@ -659,13 +721,24 @@ ao2make - Generate a Makefile from AO audit data
 
 =head2 EXAMPLES
 
-    ao2make -full -base . < audit-file > Makefile
+    ao2make audit-file
+    ao2make -MF Makefile < audit-file
+    ao2make -MF Makefile -full -pdump < audit-file
 
 =head1 DESCRIPTION
 
 The script can generate make-format dependency data, or even a full working
-makefile, from the output of the AO auditing tool. It can be used in a
-few ways:
+makefile, from the output of the AO auditing tool. By default it will
+create a set of I<target.d> files, one for each target. In the case of
+sibling groups it will guess at a I<primary> target and use that for the
+name of the prereq file.
+
+With the I<-MF> flag it will I<also> produce a wrapper Makefile
+which includes all the prereq files. If I<-full> is added,
+the generated file will be a full, self-contained Makefile
+which inlines the prereq data and adds build commands, aka "recipes".
+
+It can be used in a few ways:
 
 =over 4
 
@@ -678,6 +751,9 @@ file. Now the Makefile will have full knowledge of which files
 depend on which other files, making the build more reliable and
 also opening the way to parallel builds, since generally the
 problems of parallelism are solved by full dependency information.
+This mode has no required flags, though you can change the file
+extension with I<-extension> and may need I<-base> with recursive
+build models.
 
 =item * COMPLETE MAKEFILE
 
@@ -687,12 +763,12 @@ and/or recursive, this can be used to generate a single, flat
 Makefile with full prerequisite data as above. After some
 massaging, the new Makefile may be able to replace the old, and
 thus this can be used as an automated way to update old build
-tooling.
+tooling. Use I<-full> and optionally I<-pdump> or I<-vars>.
 
 =item * OTHER FORMATS
 
-The script can be modified to generate any other format. The
-majority of the script simply reads audit data into a set of Perl
+This script could be modified to generate any other format. The
+majority of the code simply reads audit data into a set of Perl
 hashes; this data can be sliced and diced and dumped in any format,
 limited only by your Perl skills.
 

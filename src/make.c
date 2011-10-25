@@ -39,7 +39,7 @@ make_init(CCS exe)
     // doesn't use make, or uses a version which doesn't know
     // .ONESHELL, no harm done, but we almost always want make
     // to use .ONESHELL if available.
-    if (prop_is_true(P_MAKE_ONESHELL) && !putil_getenv("MAKEFILES")) {
+    if (prop_is_true(P_MAKE_ONESHELL)) {
 	TCHAR exedir[PATH_MAX], appdir[PATH_MAX];
 	CS ev;
 
@@ -52,8 +52,14 @@ make_init(CCS exe)
 	asprintf(&MakeFragment, "%s/etc/%s.mk", appdir, prop_get_app());
 #endif	/*_WIN32*/
 
-	if (!_taccess(MakeFragment, F_OK) &&
-		asprintf(&ev, "MAKEFILES=%s", MakeFragment) > 0) {
+	if (!_taccess(MakeFragment, F_OK)) {
+	    CS mf;
+
+	    if ((mf = putil_getenv("MAKEFILES"))) {
+		asprintf(&ev, "MAKEFILES=%s %s", MakeFragment, mf);
+	    } else {
+		asprintf(&ev, "MAKEFILES=%s", MakeFragment);
+	    }
 	    putil_putenv(ev);
 	} else {
 #if !defined(_WIN32)
@@ -67,7 +73,8 @@ make_init(CCS exe)
     }
 #endif	/*_WIN32*/
 
-    if ((str = prop_get_str(P_MAKE_FILE))) {
+    if ((str = prop_get_str(P_MAKE_FILE))
+	    || prop_has_value(P_MAKE_DEPENDS)) {
 	TCHAR buf[PATH_MAX];
 	const char *perl;
 
@@ -75,14 +82,20 @@ make_init(CCS exe)
 		!(perl = putil_getenv("PERL"))) {
 	    perl = "perl";
 	}
-	util_substitute_params(str, buf, charlen(buf));
-	snprintf(MakeCmd, charlen(MakeCmd), "%s -S ao2make -out %s", perl, buf);
+	snprintf(MakeCmd, charlen(MakeCmd), "%s -S ao2make", perl);
+
+	if (str) {
+	    util_substitute_params(str, buf, charlen(buf));
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -MF=\"%s\"", str);
+	}
+
+	if ((str = prop_get_str(P_MAKE_DEPENDS))) {
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -ext=%s", str);
+	} else {
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -full");
+	}
     } else {
 	return;
-    }
-
-    if (prop_is_true(P_MAKE_FILE_FULL)) {
-	snprintf(endof(MakeCmd), leftlen(MakeCmd), " -full");
     }
 
     if (prop_is_true(P_MEMBERS_ONLY)) {
@@ -104,7 +117,7 @@ make_init(CCS exe)
     }
 
     if ((str = prop_get_str(P_BASE_DIR))) {
-	snprintf(endof(MakeCmd), leftlen(MakeCmd), " -base \"%s\"", str);
+	snprintf(endof(MakeCmd), leftlen(MakeCmd), " -base=\"%s\"", str);
     }
 
     snprintf(endof(MakeCmd), leftlen(MakeCmd), " -");

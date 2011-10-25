@@ -18,10 +18,10 @@
 /// @file
 /// @brief Support for signature hashes, similar in concept to checksums.
 /// Also known as "fingerprint" or "identity" hashes. This signature
-/// hash is used for file contents and possibly other things like
-/// command lines.  We define a signature hash to be a fast,
-/// not-necessarily-cryptographic hash with "good enough" range
-/// and distribution such that the odds of a collision between
+/// hash is used primarily for file contents, possibly other things like
+/// command lines.  We define a signature hash as a fast,
+/// not-necessarily-cryptographically-secure hash with "good enough"
+/// range and distribution such that the odds of a collision between
 /// different data sets is "sufficiently low".
 ///
 /// The odds of collision are given by the so-called birthday paradox.
@@ -33,11 +33,11 @@
 /// when there are 2**16 or 65536 items in the collection, and a 64-bit
 /// hash has the same odds with 4 billion items. Of course these
 /// numbers describe 50-50 odds; it would take far fewer data points
-/// for the odds of a collision to be non-negligible.
+/// for the odds of a collision to be a concern.
 ///
 /// Fortunately it's not as bad as all that. First, not every data
 /// set is compared with every other; we only compare contents
-/// of files of the same name. So only if the collision happens
+/// between files of the same name. So only if the collision happens
 /// to be between data sets representing different versions of the
 /// same file does it represent a problem. Or to put it another way,
 /// it would take 2**(N/2) versions <i>of the same file</i> before
@@ -51,52 +51,49 @@
 /// though I do not have the math skills to come up with a number.
 ///
 /// The current default hash algorithm is CRC32, though it seems
-/// to be conventional wisdom that CRC32 is not the best signature
+/// to be conventional wisdom that CRC32 is not a great identity
 /// hash because its distribution is not ideal (where good distribution
 /// means it uses all of the 2**32 bit patterns with the same
 /// likelihood and doesn't tend to favor, say, the even numbers or
-/// the positive numbers).
+/// the positive numbers or the low numbers).
 ///
 /// I looked at a number of other 32-bit hashes and they seemed
 /// equally fast.  In fact after a little more testing it emerged
 /// that most were fast enough to be lost in the noise of file
-/// I/O.  In other words when hashing file contents, reading the
-/// files took all the significant time.  I tried MD5 but that was
-/// painfully slow. I plugged in SHA-256 which, being a 256-bit
+/// I/O.  In other words when hashing file contents, file I/O
+/// seems to use all the significant time.  OTOH I tried MD5 but
+/// that was too slow. I plugged in SHA-256 which, being a 256-bit
 /// hash, has extraordinary collision resistance and it seems to
-/// slow down by "only" about 40%.  I then found a 64-bit hash
-/// called VMAC (in an implementation by Ted Krovetz (tdk@acm.org)
-/// and Wei Dai) which is at least as fast as CRC (i.e. lost in the
-/// noise again) and is said to be even faster on 64-bit chips.  So
-/// my current inclination is to switch the default from CRC32 to
-/// VMAC, and allow SHA-256 as an option when speed is less
-/// important. There are quite a number of other contenders, for
-/// instance "Tiger".
+/// slow down by "only" about 40%. I looked at a bunch of other
+/// individual algorithms (VMAC, Tiger, etc) before I finally got
+/// smart enough to do what I should have done all along; link
+/// with the OpenSSL libcrypto library and let the user decide
+/// which of its many algorithms to rely on.
 ///
-/// Note that many of these are intended as cryptographic hashes;
+/// The only complication around libcrypto is that AO links to
+/// it statically. Dragging in all of libcrypto indiscriminately
+/// would make binary size grow drastically, so currently
+/// SHA1 is selected as the only runtime alternative to CRC32.
+/// If you want some hash from libcrypto other than CRC32 or SHA1,
+/// it should be easy to change the AO build to get it from OpenSSL.
+///
+/// Note that most of libcrypto is intended as cryptographic hashes;
 /// protection against bad guys is not necessary for a simple
-/// fingerprint hash but does no harm. I've also read about a
-/// so-called "Rabin fingerprint" algorithm but have not dug up an
-/// implementation to evaluate.
-///
-/// Perhaps the best approach would be to link statically against a
-/// well-known "crypto library" (OpenSSL?) which exports a full set
-/// of algorithms and let the choice be made at runtime. Much of
-/// the infrastructure required is in place.
+/// fingerprint hash but does no harm.
 
 // Special case: the Unix "ar" (and Windows "lib") format
 // unfortunately includes a timestamp. Thus, archives made at
 // different times will hash with different values even if
 // they're semantically identical. Since the whole point of
-// the dcode is to determine whether files are semantically
+// the identity hash is to determine whether files are semantically
 // identical, we need a workaround. All files needing a data
 // hash are mapped into memory and then examined; if they start
 // with a magic number indicating a file type which contains
 // timestamps they're sent to a special "handler" for that type.
 // Otherwise we just hash the full raw contents. There are a few
 // assumptions buried here, e.g. that archives will not contain
-// other archives, etc. But this is pretty standard stuff and
-// should almost always work.
+// other archives, etc. But this is pretty standard,stable stuff
+// and should almost always work.
 
 #include "Putil/putil.h"
 

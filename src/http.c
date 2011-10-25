@@ -364,7 +364,7 @@ http_get_conn_info(CURL *curl)
 {
     conn_info_s *cip;
 
-    curl_easy_getinfo(curl, CURLINFO_PRIVATE, &cip);
+    curl_easy_getinfo(curl, CURLINFO_PRIVATE, (char **)&cip);
     return cip;
 }
 

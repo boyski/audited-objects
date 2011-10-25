@@ -46,5 +46,6 @@ extern unsigned long moment_duration(moment_s, moment_s);
 extern int moment_parse(moment_s *, CCS);
 extern CCS moment_format(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
+extern CCS moment_format_id(moment_s *, CS, size_t);
 
 #endif				/*MOMENT_H */

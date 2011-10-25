@@ -86,20 +86,20 @@ make_init(CCS exe)
 
 	if (str) {
 	    util_substitute_params(str, buf, charlen(buf));
-	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -MF=\"%s\"", str);
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " --MF=\"%s\"", str);
 	}
 
 	if ((str = prop_get_str(P_MAKE_DEPENDS))) {
-	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -ext=%s", str);
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " --ext=%s", str);
 	} else {
-	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " -full");
+	    snprintf(endof(MakeCmd), leftlen(MakeCmd), " --full");
 	}
     } else {
 	return;
     }
 
     if (prop_is_true(P_MEMBERS_ONLY)) {
-	snprintf(endof(MakeCmd), leftlen(MakeCmd), " -members-only");
+	snprintf(endof(MakeCmd), leftlen(MakeCmd), " --members-only");
     }
 
     if ((str = prop_get_str(P_WFLAG))) {
@@ -117,7 +117,7 @@ make_init(CCS exe)
     }
 
     if ((str = prop_get_str(P_BASE_DIR))) {
-	snprintf(endof(MakeCmd), leftlen(MakeCmd), " -base=\"%s\"", str);
+	snprintf(endof(MakeCmd), leftlen(MakeCmd), " --base=\"%s\"", str);
     }
 
     snprintf(endof(MakeCmd), leftlen(MakeCmd), " -");

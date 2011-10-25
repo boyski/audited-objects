@@ -230,9 +230,9 @@ static struct {
 	NULL,
 	_T("Regular expression matching pathnames to be completely ignored"),
 #if defined(_WIN32)
-	_T("\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$"),
+	_T("\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$|\\.cmake\\.state"),
 #else	/*_WIN32*/
-	_T("/tmp\\d+\\b|\\b(\\.bak|\\.BAK)$"),
+	_T("/tmp\\d+\\b|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$"),
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
@@ -365,10 +365,28 @@ static struct {
 	P_EXECUTE_ONLY,
     },
     {
+	_T("Git"),
+	NULL,
+	_T("Boolean - pass audit data to git"),
+	PROP_FALSE,
+	PROP_FLAG_PRIVATE,
+	0,
+	P_GIT,
+    },
+    {
+	_T("Git.Dir"),
+	NULL,
+	_T("The location of an optional Git repository"),
+	NULL,
+	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
+	0,
+	P_GIT_DIR,
+    },
+    {
 	_T("Identity.Hash"),
 	NULL,
-	_T("Name of identity hash (CRC, SHA, Adler, ...)"),
-	_T("CRC"),
+	_T("Name of identity hash (CRC, SHA1, GIT)"),
+	_T("GIT"),
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_IDENTITY_HASH,
@@ -863,7 +881,7 @@ prop_value_from_name(CCS name)
     prop_e prop;
 
     prop = prop_from_name(name);
-    if (prop && prop != P_BADPROP) {
+    if (prop != P_BADPROP) {
 	return prop_get_str(prop);
     } else {
 	return NULL;

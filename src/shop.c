@@ -456,7 +456,7 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
     int ignored;
     pa_o dummy_pa;
     ps_o shopped_ps;
-    CCS path, reason;
+    CCS path, reason = NULL;
     CS csv, ptxbuf, explanation = NULL;
 
     if (cdb_find(ssp->cdbp, pskey, _tcslen(pskey)) <= 0) {
@@ -496,7 +496,7 @@ _shop_cmp_pathstate(shopping_state_s *ssp, CCS pskey, CS ptxes1)
 
 	// If this iteration produced a mismatch, invalidate all the
 	// PTXes associated with that PS.
-	if (!explanation) {
+	if (reason) {
 	    if (asprintf(&explanation, "%s mismatch on %s",
 		    reason, path) < 0) {
 		putil_syserr(2, NULL);

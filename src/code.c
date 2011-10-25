@@ -118,10 +118,8 @@
 
 #include "zlib.h"
 
-#if defined(USE_LIBCRYPTO)
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
-#endif	/*USE_LIBCRYPTO*/
 
 /// Returns true iff the file looks like the kind with an embedded
 /// timestamp based on its name.
@@ -136,82 +134,72 @@
 				    && !access(path, F_OK))
 #endif				/*!_WIN32 */
 
+
+const signed char hexval_table[256] = {
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 00-07 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 08-0f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 10-17 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 18-1f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 20-27 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 28-2f */
+	  0,  1,  2,  3,  4,  5,  6,  7,		/* 30-37 */
+	  8,  9, -1, -1, -1, -1, -1, -1,		/* 38-3f */
+	 -1, 10, 11, 12, 13, 14, 15, -1,		/* 40-47 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 48-4f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 50-57 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 58-5f */
+	 -1, 10, 11, 12, 13, 14, 15, -1,		/* 60-67 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 68-67 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 70-77 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 78-7f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 80-87 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 88-8f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 90-97 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* 98-9f */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* a0-a7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* a8-af */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* b0-b7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* b8-bf */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* c0-c7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* c8-cf */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* d0-d7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* d8-df */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* e0-e7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* e8-ef */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* f0-f7 */
+	 -1, -1, -1, -1, -1, -1, -1, -1,		/* f8-ff */
+};
+
+#if defined(_WIN32)
+static unsigned int hexval(unsigned char c)
+#else	/*_WIN32*/
+static inline unsigned int hexval(unsigned char c)
+#endif	/*_WIN32*/
+{
+    return hexval_table[c];
+}
+
+static void
+sha1_to_hex(const unsigned char *sha1, CS buf)
+{
+    static const char hex[] = "0123456789abcdef";
+    int i;
+
+    for (i = 0; i < 20; i++) {
+	unsigned int val = *sha1++;
+	*buf++ = hex[val >> 4];
+	*buf++ = hex[val & 0xf];
+    }
+    *buf = '\0';
+}
+
 static int _code_is_zip_file(const void *, off_t);
 static int _code_clear_zip_file(void *, off_t);
-
-/* ---- Base64 Encoding/Decoding Table --- */
-static const char table64[]=
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 void
 code_init(void)
 {
-}
-
-/// Encodes an input string to base64
-/// @param[in] inp      The input string
-/// @param[in] insize   The length of the input string, or 0 to use strlen
-/// @param[out] outptr  Pointer to receive a newly malloc-ed, encoded string
-/// @return the length of the encoded string, or 0 on error
-/*static*/ size_t
-_code_base64_encode(unsigned char *inp, size_t insize, char **outptr)
-{
-    unsigned char ibuf[3];
-    unsigned char obuf[4];
-    int i;
-    int inputparts;
-    char *output;
-    char *base64data;
-    const unsigned char *indata = inp;
-
-    *outptr = NULL;
-
-    if (0 == insize)
-	insize = strlen((const char *)indata);
-
-    base64data = output = (char *)putil_malloc(insize * 4 / 3 + 4);
-    if (NULL == output)
-	return 0;
-
-    while (insize > 0) {
-	for (i = inputparts = 0; i < 3; i++) {
-	    if (insize > 0) {
-		inputparts++;
-		ibuf[i] = *indata;
-		indata++;
-		insize--;
-	    } else
-		ibuf[i] = 0;
-	}
-
-	obuf[0] = (unsigned char)((ibuf[0] & 0xFC) >> 2);
-	obuf[1] = (unsigned char)(((ibuf[0] & 0x03) << 4) |
-				  ((ibuf[1] & 0xF0) >> 4));
-	obuf[2] = (unsigned char)(((ibuf[1] & 0x0F) << 2) |
-				  ((ibuf[2] & 0xC0) >> 6));
-	obuf[3] = (unsigned char)(ibuf[2] & 0x3F);
-
-	switch (inputparts) {
-	    case 1:		/* only one byte read */
-		snprintf(output, 5, "%c%c==",
-			 table64[obuf[0]], table64[obuf[1]]);
-		break;
-	    case 2:		/* two bytes read */
-		snprintf(output, 5, "%c%c%c=",
-			 table64[obuf[0]], table64[obuf[1]], table64[obuf[2]]);
-		break;
-	    default:
-		snprintf(output, 5, "%c%c%c%c",
-			 table64[obuf[0]],
-			 table64[obuf[1]], table64[obuf[2]], table64[obuf[3]]);
-		break;
-	}
-	output += 4;
-    }
-    *output = 0;
-    *outptr = base64data;	/* make it return the actual data memory */
-
-    return strlen(base64data);	/* return the length of the new data */
+    // Nothing to do here.
 }
 
 /// Takes a data area and length and a string buffer. Generates a hash
@@ -232,65 +220,29 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     algorithm = prop_get_str(P_IDENTITY_HASH);
 
-    if (algorithm && *algorithm && _tcsnicmp(algorithm, _T("crc"), 3)) {
-#if defined(USE_LIBCRYPTO)
-#if defined(USE_LIBCRYPTO_EVP)
-	static const EVP_MD *EvpMD;
-	EVP_MD_CTX mdctx;
-	unsigned char md_val[EVP_MAX_MD_SIZE];
-	unsigned int md_len;
-	size_t cvt = 0;
-	CS ostr = NULL;
+    if (algorithm && *algorithm && (!_tcsicmp(algorithm, _T("sha1")) ||
+	    !_tcsicmp(algorithm, _T("git")))) {
+	SHA_CTX ctx;
+	TCHAR prefix[64];
+	unsigned char sha1[SHA_DIGEST_LENGTH];
 
-	// SHA-* digests have an estimated chance of collision
-	// said to be 1 in 2^128. Early tests show SHA-* as maybe 40%
-	// slower than CRC32 but with far far better distribution.
-	// Much more testing needed, esp per chip/architecture.
+	SHA1_Init(&ctx);
 
-	if (EvpMD == NULL) {
-	    OpenSSL_add_all_digests();
-	    if (!(EvpMD = EVP_get_digestbyname(algorithm))) {
-		putil_die("unrecognized digest name: %s", algorithm);
-	    }
+	if (!_tcsicmp(algorithm, _T("git"))) {
+	    // It may be convenient for SHA-1 hashes to match up with
+	    // those of Git. Therefore we gratuitously, but harmlessly,
+	    // prepend the same header Git does for blobs. However,
+	    // note that this will not work for some file types because
+	    // AO elides timestamps while Git does not.
+	    _sntprintf(prefix, charlen(prefix), _T("blob %lu"), size);
+	    SHA1_Update(&ctx, prefix, _tcslen(prefix) + CHARSIZE);
 	}
 
-	EVP_MD_CTX_init(&mdctx);
-	EVP_DigestInit_ex(&mdctx, EvpMD, NULL);
-	EVP_DigestUpdate(&mdctx, data, size);
-	EVP_DigestFinal_ex(&mdctx, md_val, &md_len);
-	EVP_MD_CTX_cleanup(&mdctx);
+	SHA1_Update(&ctx, data, size);
+	SHA1_Final(sha1, &ctx);
 
-	if ((cvt = _code_base64_encode(md_val, md_len, &ostr))) {
-	    assert(buflen > cvt);
-	    strncpy(buf, ostr, cvt);
-	    buf[cvt] = '\0';
-	    putil_free(ostr);
-	}
-#else	/*!USE_LIBCRYPTO_EVP*/
-	if (!_tcsicmp(algorithm, _T("sha1"))) {
-	    SHA_CTX ctx;
-	    unsigned char sha1[SHA_DIGEST_LENGTH];
-	    size_t cvt = 0;
-	    CS ostr = NULL;
-
-	    SHA1_Init(&ctx);
-	    SHA1_Update(&ctx, data, size);
-	    SHA1_Final(sha1, &ctx);
-
-	    if ((cvt = _code_base64_encode(sha1, sizeof(sha1), &ostr))) {
-		assert(buflen > cvt);
-		strncpy(buf, ostr, cvt);
-		buf[cvt] = '\0';
-		putil_free(ostr);
-	    }
-	} else {
-	    putil_die("unrecognized digest name: %s", algorithm);
-	}
-#endif /*!USE_LIBCRYPTO_EVP*/
-#endif /*!USE_LIBCRYPTO*/
-    }
-
-    if (buf[0] == '\0') {
+	sha1_to_hex(sha1, buf);
+    } else {
 	// Old reliable CRC32. Said to be a bad choice for an identity
 	// hash as the distribution is not great. It's not really a hash
 	// algorithm at all, it's an error checker. That said, it's
@@ -451,6 +403,16 @@ _code_clear_PE_file(const unsigned char *data)
     return 0;
 }
 #endif	/*_WIN32*/
+
+static int
+_code_needs_patching(const void *data, off_t size)
+{
+    return _code_is_archive_file(data) ||
+#if defined(_WIN32)
+	_code_is_PE_file(data) ||
+#endif	/*_WIN32*/
+	_code_is_zip_file(data, size);
+}
 
 /// Returns a signature hash for the supplied buffer. This is
 /// similar to code_from_str() but does not assume the passed
@@ -620,10 +582,20 @@ code_from_path(CCS path, CS buf, size_t len)
 		return NULL;
 	    }
 	} else {
-	    // The mapping must be writeable so we can null out datestamps.
-	    // This could fail if the file is too big for available swap.
-	    fdata = (unsigned char *)mmap(0, size, PROT_READ | PROT_WRITE,
-		    MAP_PRIVATE, fd, 0);
+	    int prot = PROT_READ;
+	    size_t lookahead = 2048;
+
+	    // The mapping may need to be writeable so we can null out datestamps.
+	    // Examine the first few bytes before mapping to see if write is needed.
+	    fdata = putil_malloc(size);
+	    if ((util_read_all(fd, fdata, lookahead) != (ssize_t)lookahead) ||
+			_code_needs_patching(fdata, lookahead)) {
+		prot |= PROT_WRITE;
+	    }
+	    putil_free(fdata);
+
+	    // Mapping could fail if the file is too big for available swap.
+	    fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
 	    if (fdata == MAP_FAILED) {
 		putil_syserr(0, path);
 		close(fd);
@@ -643,7 +615,7 @@ code_from_path(CCS path, CS buf, size_t len)
     }
 #endif				/*!_WIN32 */
 
-    // Checksum the entire mapped region in one pass.
+    // Hash the entire mapped region in one pass.
     code_from_buffer(fdata, size, path, buf, len);
 
     // Release the buffer whether things went well or not.
@@ -933,4 +905,5 @@ _code_is_zip_file(const void *data, off_t size)
 void
 code_fini(void)
 {
+    // Nothing to do here.
 }

@@ -16,6 +16,7 @@ sub new {
     my $csv = shift;
     my @fields = split(',', $csv, PA_FIELDNUM);
     $self->{PA_OP} = $fields[0];
+    $self->{PA_DCODE} = $fields[14];
     my $path = $fields[-1];
     $path =~ s%/%\\%g if MSWIN;
     if (!File::Spec->file_name_is_absolute($path)) {
@@ -95,6 +96,11 @@ sub is_member {
     my $self = shift;
     $self->{PA_MEMBER} = shift if @_;
     return exists($self->{PA_MEMBER}) && $self->{PA_MEMBER};
+}
+
+sub get_dcode {
+    my $self = shift;
+    return $self->{PA_DCODE};
 }
 
 sub get_path {

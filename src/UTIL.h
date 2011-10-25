@@ -50,7 +50,7 @@
 extern int util_pathcmp(const void *, const void *);
 extern void util_socket_lib_init(void);
 extern void util_socket_lib_fini(void);
-unsigned char * util_map_file(CCS, int, unsigned long);
+unsigned char * util_map_file(CCS, int, off_t, unsigned long);
 extern void util_unmap_file(unsigned char *, unsigned long);
 extern CS util_requote(CS const *);
 extern CCS util_get_rwd(CS, size_t);
@@ -63,6 +63,7 @@ extern CS util_strtrim(CS);
 extern CCS util_find_fsname(CCS, CS, size_t);
 extern ssize_t util_send_all(SOCKET, const void *, ssize_t, int);
 extern ssize_t util_read_all(int, void *, size_t);
+extern ssize_t util_write_all(int, const void *, size_t);
 extern int util_substitute_params(CCS, CS, size_t);
 extern unsigned long util_hash_fun_default(const void *);
 extern int util_is_tmp(CCS);

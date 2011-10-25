@@ -38,6 +38,7 @@ export CPU
 
 CPUDIR		:= .${CPU}
 CPUDIR64	:= $(CPUDIR)/64
+SCRIPTDIR	:= pl
 
 OPS		:= ../OPS
 
@@ -55,9 +56,8 @@ UFLAGS		:= -g
 
 #DFLAGS		:= $(shell getconf LFS_CFLAGS 2>/dev/null || echo $(DEF_DFLAGS))
 DFLAGS		:= -D_REENTRANT -D_LARGEFILE_SOURCE -DTRIO_REPLACE_STDIO
-DFLAGS		+= -DUSE_LIBCRYPTO # -DUSE_LIBCRYPTO_EVP
 
-CFLAGS		:= $(CSTYLE)
+CFLAGS		 = $(CSTYLE)
 
 ifneq (,$(findstring SunOS_,${CPU}))
 SOLARIS		:= 1
@@ -88,7 +88,11 @@ endif
 # Really just needed for one target but passed to all for now.
 BUILTON		:= $(shell uname -mnrs)
 ifdef LINUX
+ifdef LINUX_X86_64
+BUILTON		+= $(shell /lib64/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
+else
 BUILTON		+= $(shell /lib/libc.so.6 | perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
+endif
 endif
 DFLAGS		+= -DPUTIL_BUILTON='"$(BUILTON)"'
 
@@ -108,7 +112,12 @@ POD2MAN_FLAGS	= -r "$(MAN_RELEASE)" -c "$(MAN_HDR)"
 
 #############################################################################
 
+# The install target should only be default for an actual developer of AO.
+ifdef AODEVELOPER
 install:
+else
+all:
+endif
 
 # The Kazlib code overloads -DNDEBUG to turn off its own debugging mode.
 debug release: all
@@ -132,6 +141,11 @@ $(INST_PREFIX)/bin/%: $(CPUDIR)/%
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@test -L $@ || (set -x; cp $< $@)
 
+$(INST_PREFIX)/bin/%: pl/%
+	@chmod u+wx $?
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	@test -L $@ || (set -x; cp $< $@)
+
 # Compile in the version number if accessible.
 include App.properties
 ifdef APPLICATION_VERSION
@@ -140,13 +154,13 @@ else
 APPLICATION_VERSION	:= 0.0
 endif
 
-OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o http.o \
+OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o git.o http.o \
 		   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
 		   putil.o re.o shop.o unix.o up.o util.o vb.o
 
 CFLAGS		+= -D_LARGEFILE64_SOURCE
 
-CFLAGS		+= -I. -I$(OPS)/include
+CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
 
 AUDITOR		:= libAO.so
 LIBAO32		:= $(addprefix $(CPUDIR)/, $(AUDITOR))
@@ -158,9 +172,7 @@ AOTOOL		:= $(CPUDIR)/ao
 BINS		:= $(AOTOOL)
 INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
 
-AO2MAKE		:= $(CPUDIR)/ao2make
-SCRIPTS		:= $(AO2MAKE)
-INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(SCRIPTS)))
+INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, ao2make)
 
 # In general it's believed best to link the auditor with static libs
 # for faster startup time, whereas the driver program starts only
@@ -194,6 +206,9 @@ PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lc # -lumem
 else
 PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lrt -lc
 endif	#SOLARIS_SPARC
+SYSINCS			:= -I/opt/csw/include
+SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
+$(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
 all: $(CPUDIR64)
 SHLIBS		+= $(LIBAO64)
 INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib/64/, $(notdir $(LIBAO64)))
@@ -209,10 +224,13 @@ LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
 ifdef LINUX_X86_64
 DLL_LIBS	+= -lrt
 PLDLIBS		:= -ldl -lm
+SYSLIBS		:= -L/usr/lib64
 else
 DLL_LIBS	+= -lrt -lm
 PLDLIBS		:= -ldl
+SYSLIBS		:= -L/usr/lib
 endif
+SYSINCS		:= -I/usr/include
 endif
 
 ifdef BSD
@@ -257,7 +275,7 @@ CFLAGS		+= -DDMALLOC
 endif	#dmalloc
 endif	#MEMDBG
 
-TARGETS		:= $(BINS) $(SHLIBS) $(SCRIPTS)
+TARGETS		:= $(BINS) $(SHLIBS)
 
 # The list of source files included by libunix.c
 COMMINCS	:= libcommon.c ca.c code.c moment.c \
@@ -293,16 +311,13 @@ $(CPUDIR)/%.o: %.c AO.h App.properties
 #############################################################################
 
 $(AOTOOL): $(addprefix $(CPUDIR)/, $(OBJS))
-	$(CC) -o $@ $(UFLAGS) $(addprefix $(CPUDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(EXE_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(addprefix $(CPUDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS)
 
 $(LIBAO32): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 $(LIBAO64): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR)/64 $(DLL_LIBS) $(PLDLIBS)
-
-$(AO2MAKE): $(addprefix pl/, $(notdir $(AO2MAKE)))
-	@(set -x; cp $< $@) && chmod u+w,a+x $@
+	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR)/64 $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS)
 
 cleantargets:
 	-rm -f $(TARGETS)

@@ -148,7 +148,7 @@ up_load_file(ps_o ps, int logfile)
 	return;
     }
 
-    fdata = util_map_file(path, fd, fsize);
+    fdata = util_map_file(path, fd, 0, fsize);
     close(fd);
 
     if ((fsize > UPLOAD_COMPRESS_MIN_SIZE) &&
@@ -163,7 +163,7 @@ up_load_file(ps_o ps, int logfile)
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)zsize);
 	cip->ci_malloced = zdata;
     } else {
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, fdata);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (char *)fdata);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)fsize);
 	cip->ci_mapaddr = fdata;
 	cip->ci_mapsize = fsize;

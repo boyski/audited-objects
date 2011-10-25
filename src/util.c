@@ -115,10 +115,11 @@ util_socket_lib_fini(void) {
 /// Maps the specified file into memory.
 /// @param[in] path     The pathname of the file to map
 /// @param[in] fd       A file descriptor for the file to be mapped
-/// @param[in] fsize    The size of the file
+/// @param[in] offset   The offset of the first byte to map
+/// @param[in] extent   The amount of the file to map
 /// @return a pointer to the address at which the file is mapped
 unsigned char *
-util_map_file(CCS path, int fd, unsigned long fsize)
+util_map_file(CCS path, int fd, off_t offset, unsigned long extent)
 {
     unsigned char *fdata;
 
@@ -135,8 +136,8 @@ util_map_file(CCS path, int fd, unsigned long fsize)
     }
 
     if (!(fdata = (unsigned char *)MapViewOfFile(hMap,
-						 FILE_MAP_COPY, 0, 0,
-						 fsize))) {
+						 FILE_MAP_COPY, 0, offset,
+						 extent))) {
 	putil_win32err(2, GetLastError(), path);
     }
 
@@ -151,13 +152,16 @@ util_map_file(CCS path, int fd, unsigned long fsize)
     // It's not documented whether 'private' or 'shared' mapping
     // is faster when the mapping is PROT_READ anyway, but Solaris
     // uses 'private' to map its shared libraries and we can assume
-    // that that code has been carefully tuned.
-    fdata = (unsigned char *)mmap(0, fsize, PROT_READ, MAP_PRIVATE, fd, 0);
+    // that that code has been carefully tuned. Git is another data
+    // point which also uses 'private' mode.
+    fdata = (unsigned char *)mmap64(0, extent, PROT_READ, MAP_PRIVATE, fd, offset);
     if (fdata == MAP_FAILED) {
 	putil_syserr(2, path);
     }
 
-    madvise((char *)fdata, fsize, MADV_SEQUENTIAL);
+    // Everything we do is sequential so might as well handle this
+    // in one place.
+    madvise((char *)fdata, extent, MADV_SEQUENTIAL);
 #endif	/*_WIN32*/
 
     vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
@@ -165,20 +169,20 @@ util_map_file(CCS path, int fd, unsigned long fsize)
     return fdata;
 }
 
-/// Unmaps the specified file.
+/// Unmaps the specified region of a mapped file.
 /// @param[in] fdata    A pointer to the mapped region
-/// @param[in] fsize    The size of the mapped region
+/// @param[in] extent   The size of the mapped region
 void
-util_unmap_file(unsigned char *fdata, unsigned long fsize)
+util_unmap_file(unsigned char *fdata, unsigned long extent)
 {
     if (fdata) {
 #if defined(_WIN32)
-	UNUSED(fsize);
+	UNUSED(extent);
 	if (UnmapViewOfFile(fdata) == 0) {
 	    putil_win32err(2, GetLastError(), "unmap");
 	}
 #else	/*_WIN32*/
-	if (munmap((void *)fdata, fsize) == -1) {
+	if (munmap((void *)fdata, extent) == -1) {
 	    putil_syserr(0, "munmap");
 	}
 #endif	/*_WIN32*/
@@ -695,7 +699,7 @@ util_send_all(SOCKET fd, const void *buf, ssize_t len, int flags)
 /// Reads "n" bytes from a descriptor.
 /// Adapted from Unix Network Programming. Takes care of interrupted
 /// system calls, short reads, etc and guarantees not to return until
-/// "n" bytes have been read, or EOF or an error condition is encountered.
+/// all "n" bytes have been read, or EOF or an error is encountered.
 /// @param[in] fd       file descriptor to read from
 /// @param[out] vptr    buffer for incoming data
 /// @param[in] n        number of bytes requested
@@ -728,6 +732,46 @@ util_read_all(int fd, void *vptr, size_t n)
 	ptr += nread;
     }
     return n - nleft;		/* return >= 0 */
+}
+
+/// Writes "n" bytes to a descriptor.
+/// Adapted from Unix Network Programming. Takes care of interrupted
+/// system calls, short writes, etc and guarantees not to return until
+/// all "n" bytes have been read, or EOF or an error is encountered.
+/// @param[in] fd       file descriptor to read from
+/// @param[in] vptr     buffer for outgoing data
+/// @param[in] n        number of bytes requested
+/// @return the number of bytes written
+ssize_t
+util_write_all(int fd, const void *vptr, size_t n)
+{
+    ssize_t total;
+    const char *p;
+
+    for (p = (const char *)vptr, total = 0; n > 0; ) {
+	ssize_t sofar;
+
+	for (sofar = 0; ; total += sofar) {
+	    ssize_t w;
+
+	    w = write(fd, p, n);
+	    if (w < 0) {
+#if defined(_WIN32)
+		return -1;
+#else	/*_WIN32*/
+		if (errno != EAGAIN && errno != EINTR)
+		    return -1;
+		continue;
+#endif	/*_WIN32*/
+	    }
+	    sofar += w;
+	    break;
+	}
+	n -= sofar;
+	p += sofar;
+    }
+
+    return total;
 }
 
 /// Certain properties are allowed to contain standard substitution strings

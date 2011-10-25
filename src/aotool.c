@@ -26,6 +26,7 @@
 #include "CA.h"
 #include "CODE.h"
 #include "DOWN.h"
+#include "GIT.h"
 #include "HTTP.h"
 #include "MAKE.h"
 #include "MON.h"
@@ -41,9 +42,7 @@
 #include "curl/curl.h"
 #include "pcre.h"
 #include "zlib.h"
-#if defined(USE_LIBCRYPTO)
 #include "openssl/opensslv.h"
-#endif	/*!USE_LIBCRYPTO*/
 
 #include "About/about.c"	// NOTE: including a .c file!
 
@@ -214,9 +213,7 @@ _print_version(int full)
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", pcre_version());
 	printf("zlib=%s\n", (const char *)zlibVersion());
-#if defined(USE_LIBCRYPTO)
 	printf("libcrypto=%p\n", OPENSSL_VERSION_NUMBER);
-#endif	/*!USE_LIBCRYPTO*/
 	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
 	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
@@ -236,8 +233,14 @@ do_action(CCS action, int argc, CS const *argv)
 	CCS str;
 
 	for (i = 0; i < argc; i++) {
-	    str = prop_value_from_name(argv[i]);
-	    printf(_T("%s\n"), str ? str : _T("NULL"));
+	    if (vb_bitmatch(VB_STD)) {
+		printf(_T("%s="), argv[i]);
+	    }
+	    if ((str = prop_value_from_name(argv[i]))) {
+		printf(_T("%s\n"), str);
+	    } else {
+		printf(_T("\n"));
+	    }
 	}
     } else if (streq(action, _T("Substitute")) ||
 	    streq(action, _T("substitute"))) {
@@ -250,6 +253,57 @@ do_action(CCS action, int argc, CS const *argv)
 	    util_substitute_params(argv[i], subsbuf, charlen(subsbuf));
 	    printf(_T("%s\n"), subsbuf);
 	}
+    } else if (streq(action, _T("hash-object"))) {
+	int write_flag = 0;
+	CCS dcode = NULL;
+	ps_o ps;
+
+	for (bsd_getopt_reset(); argv && *argv; ) {
+	    int c;
+
+	    // *INDENT-OFF*
+	    static CS short_opts = _T("+s:w");
+	    static struct option long_opts[] = {
+		{_T("sha1"),		required_argument, NULL, 's'},
+		{_T("write"),		no_argument,	   NULL, 'w'},
+		{0,			0,		   NULL,  0 },
+	    };
+	    // *INDENT-ON*
+
+	    c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
+	    if (c == -1 || c == '?') {
+		break;
+	    }
+
+	    switch (c) {
+		case 's':
+		    dcode = putil_strdup(bsd_optarg);
+		    break;
+		case 'w':
+		    write_flag = 1;
+		    break;
+		default:
+		    break;
+	    }
+	}
+	argc -= (bsd_optind - 1);
+	argv += (bsd_optind - 1);
+
+	ps = ps_newFromPath(*argv);
+	if (dcode) {
+	    ps_set_dcode(ps, dcode);
+	} else if (ps_stat(ps, 1)) {
+	    putil_syserr(2, *argv);
+	}
+
+	if (write_flag) {
+	    git_store_blob(ps);
+	} else {
+	    printf("%s\n", ps_get_dcode(ps));
+	}
+
+	ps_destroy(ps);
+	putil_free(dcode);
     } else if (streq(action, _T("Stat")) || streq(action, _T("stat"))) {
 	// print vital statistics for specified files.
 	int long_flag = 0, short_flag = 0, deref_flag = 0;
@@ -578,7 +632,7 @@ main(int argc, CS const *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    _T("+1adhl:mo:p:qrs:uv::wxACDEF:H::I:LM:O:PQRSTUV:W:XY");
+	    _T("+1adhl:mo:p:qrs:uv::wxACDEF:GH::I:LM:O:PQRSTUV:W:XY");
 	static struct option long_opts[] = {
 	    {_T("oneshell"),		no_argument,	   NULL, '1'},
 	    {_T("absolute-paths"),	no_argument,	   NULL, 'a'},
@@ -591,6 +645,7 @@ main(int argc, CS const *argv)
 	    {_T("client-platform"),	required_argument, NULL, LF('C','P')},
 	    {_T("error-strict"),	no_argument,	   NULL, 'E'},
 	    {_T("make-file"),		required_argument, NULL, 'F'},
+	    {_T("git"),			no_argument,	   NULL, 'G'},
 	    {_T("help"),		no_argument,	   NULL, 'h'},
 	    {_T("Help"),		optional_argument, NULL, 'H'},
 	    {_T("properties"),		optional_argument, NULL, LF('P','*')},
@@ -698,9 +753,13 @@ main(int argc, CS const *argv)
 		prop_override_str(P_LOG_FILE, bsd_optarg);
 		break;
 
-
 	    case 'F':
 		prop_override_str(P_MAKE_FILE, bsd_optarg);
+		break;
+
+	    case 'G':
+		prop_override_true(P_GIT);
+		no_server = 1;
 		break;
 
 	    case 'M':
@@ -1129,8 +1188,16 @@ main(int argc, CS const *argv)
 
 	make_init(exe);
 
+	if (prop_is_true(P_GIT)) {
+	    git_init(exe);
+	}
+
 	// RUN AND AUDIT THE COMMAND.
 	rc = run_cmd(exe, (CS *)argv, logfile);
+
+	if (prop_is_true(P_GIT)) {
+	    git_fini();
+	}
 
 	make_fini();
 

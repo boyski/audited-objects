@@ -31,6 +31,7 @@
 #include "CA.h"
 #include "CODE.h"
 #include "DOWN.h"
+#include "GIT.h"
 #include "HTTP.h"
 #include "MAKE.h"
 #include "MON.h"
@@ -202,6 +203,10 @@ _mon_process_ca(ca_o ca)
 
     if (prop_has_value(P_MAKE_DEPENDS) || prop_has_value(P_MAKE_FILE)) {
 	make_file(ca);
+    }
+
+    if (prop_is_true(P_GIT)) {
+	git_deliver(ca);
     }
 
     ca_set_processed(ca, 1);

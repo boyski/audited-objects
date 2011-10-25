@@ -293,3 +293,33 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
 	lbuf, moment.ntv_nsec / NANOS_PER_MILLI);
     return buf;
 }
+
+/// Formats a Moment into a standard id-style string
+/// @param[in] moment   pointer to a struct to be formatted
+/// @param[out] buf     a buffer to hold the formatted string
+/// @param[in] bufmax   the size of the passed-in buffer
+/// @return the formatted string
+CCS
+moment_format_id(moment_s *mp, CS buf, size_t bufmax)
+{
+    time_t seconds;
+    struct tm *ptm;
+
+    if (mp) {
+	seconds = (time_t)mp->ntv_sec;
+    } else {
+	moment_s m2;
+	moment_get_systime(&m2);
+	seconds = (time_t)m2.ntv_sec;
+    }
+
+    if (!(ptm = gmtime(&seconds))) {
+	putil_syserr(2, _T("gmtime()"));
+    }
+
+    if (!strftime(buf, bufmax, "%Y%m%d%H%M%S", ptm)) {
+	putil_syserr(2, _T("strftime()"));
+    }
+
+    return buf;
+}

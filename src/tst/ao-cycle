@@ -78,7 +78,7 @@ sub run {
     my $rc = system($cmd);
     if ($rc) {
 	warn "$prog: Error: BUILD OF '$projname' FAILED ($rc)\n";
-	if (($rc == 512 || $rc & 127) && !$opt{'KeepGoing'}) {
+	if (($rc == 512 || $rc & 127) && !$opt{KeepGoing}) {
 	    exit(2);
 	} else {
 	    return 1;

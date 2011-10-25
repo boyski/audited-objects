@@ -47,57 +47,47 @@ if (-x '/bin/sh' && -x '/bin/dash') {
     }
 }
 
-my $BaseDir = $opt{'base'};
-if ($BaseDir) {
-    $BaseDir = Cwd::realpath($BaseDir);
-} else {
-    chomp($BaseDir = qx(ao property Base.Dir));
-}
+chomp(my($ProjName, $BaseDir) = qx(ao -q property Project.Name Base.Dir));
+$BaseDir = Cwd::realpath($opt{base}) if $opt{base};
 $BaseDir =~ s%/%\\%g if MSWIN;
 
-my @Actions;
-my(%FileTargets, %DirTargets, %DirLinkTargets);
-my $ca;
-push(@ARGV, '-') unless @ARGV;
-for my $audit (@ARGV) {
-    chomp($audit = qx(ao substitute $audit));
-    open(AUDIT, $audit) || die "$prog: Error: $audit: $!\n";
-    for (<AUDIT>) {
-	chomp;
-	if (m%^\d%) {
-	    next if $ca;
-	    $ca = CommandAction->new($_);
-	    push(@Actions, $ca);
-	} elsif (m%^[A-Z]%) {
-	    my $pa = PathAction->new($_, $BaseDir);
+@ARGV = ("$ProjName.ao") if (!@ARGV || $ARGV[0] eq '-') && -t STDIN;
 
-	    my $path = $pa->get_path;
+my($ca, @Actions, %FileTargets, %DirTargets, %DirLinkTargets);
+while (<>) {
+    chomp;
+    if (m%^\d%) {
+	next if $ca;
+	$ca = CommandAction->new($_);
+	push(@Actions, $ca);
+    } elsif (m%^[A-Z]%) {
+	my $pa = PathAction->new($_, $BaseDir);
 
-	    if ($opt{'existing-only'} && ! -e $path) {
-		# Optionally ignore files which did not survive the build.
-	    } elsif ($opt{'members-only'} && !$pa->is_member) {
-		# Optionally ignore nonmember files.
-	    } elsif ($pa->is_target) {
-		$ca->add_target($pa);
-		if ($pa->is_dir) {
-		    if (!exists($DirTargets{$path})) {
-			$DirTargets{$path} = $pa;
-			$DirLinkTargets{$path} = $pa if $pa->is_symlink;
+	my $path = $pa->get_path;
+
+	if ($opt{'existing-only'} && ! -e $path) {
+	    # Optionally ignore files which did not survive the build.
+	} elsif ($opt{'members-only'} && !$pa->is_member) {
+	    # Optionally ignore nonmember files.
+	} elsif ($pa->is_target) {
+	    $ca->add_target($pa);
+	    if ($pa->is_dir) {
+		if (!exists($DirTargets{$path})) {
+		    $DirTargets{$path} = $pa;
+		    $DirLinkTargets{$path} = $pa if $pa->is_symlink;
 # TODO Bug here - $pa cannot currently be both a dir and a symlink.
 # We need a way to solve this, preferably without depending on -d.
 # Maybe by assuming dirs will only be created to hold files, and thus
 # check whether there are other file or dir names beginning with the
 # resolved path?
-		    }
 		}
-	    } else {
-		$ca->add_prereq($pa) unless $pa->is_unlink;
 	    }
 	} else {
-	    $ca = undef;
+	    $ca->add_prereq($pa) unless $pa->is_unlink;
 	}
+    } else {
+	$ca = undef;
     }
-    close(AUDIT);
 }
 
 ###########################################################################
@@ -391,57 +381,12 @@ if (my $vars = $opt{vars}) {
 my $basevar = MakeVar->new->assign($BaseVar, '?=', $BaseDir);
 unshift(@{$Makefile->{VARLIST}}, $basevar);
 
-# There's some black magic to finding the "primary target". First, we
-# have some special cases: directories are pushed to the back of the
-# list and so are files whose name starts with ".". Files newly
-# created are preferred over files merely appended to.
-#
-# Next we observe that generated "frill" files (.pdb and so on) tend
-# to be distinguished by additional extensions or placement in
-# subdirectories, and therefore we push shorter paths towards the front.
-#
-# Still, this is basically guesswork and subject to breakage.
-# Looking for a better way.
-sub for_primary {
-    my $result = 0;
-    my($a_wins, $a_loses) = (-1, 1);
-    if ($a->is_dir && ! $b->is_dir) {
-	$result = $a_loses;
-    } else {
-	if ($a->is_append && !$b->is_append) {
-	    $result = $a_loses;
-	} elsif ($b->is_append && !$a->is_append) {
-	    $result = $a_wins;
-	} else {
-	    my $path_a = $a->get_path;
-	    my $path_b = $b->get_path;
-	    my $a_len = index(basename($path_a), '.');
-	    my $b_len = index(basename($path_b), '.');
-	    if ($a_len <= 0 && $b_len > 0) {
-		$result = $a_loses;
-	    } elsif ($b_len <= 0 && $a_len > 0) {
-		$result = $a_wins;
-	    } else {
-		$result = $a_len - $b_len;
-		if ($result == 0) {
-		    $result = length($path_a) - length($path_b);
-		    if ($result == 0) {
-			# when all else fails
-			$result = $path_a cmp $path_b;
-		    }
-		}
-	    }
-	}
-    }
-    return $result;
-}
-
 # Derive the set of required "rules" (target: prereq sequences
 # optionally followed by recipes).
 my %Duplicated;
 for my $ca (@Actions) {
     my(%tgtpaths, %prereqs);
-    my @targets = sort for_primary $ca->get_targets;
+    my @targets = $ca->get_targets;
     next unless @targets;
 
     for (my $i = 0; $i <= $#targets; $i++) {

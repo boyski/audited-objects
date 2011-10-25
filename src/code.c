@@ -120,7 +120,11 @@
 #include "PROP.h"
 
 #include "zlib.h"
-#include "sha2.h"
+
+#if defined(USE_LIBCRYPTO)
+#include <openssl/ssl.h>
+#include <openssl/evp.h>
+#endif	/*USE_LIBCRYPTO*/
 
 /// Returns true iff the file looks like the kind with an embedded
 /// timestamp based on its name.
@@ -142,13 +146,18 @@ static int _code_clear_zip_file(void *, off_t);
 static const char table64[]=
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+void
+code_init(void)
+{
+}
+
 /// Encodes an input string to base64
 /// @param[in] inp      The input string
 /// @param[in] insize   The length of the input string, or 0 to use strlen
 /// @param[out] outptr  Pointer to receive a newly malloc-ed, encoded string
 /// @return the length of the encoded string, or 0 on error
-static size_t
-_code_base64_encode(const char *inp, size_t insize, char **outptr)
+/*static*/ size_t
+_code_base64_encode(unsigned char *inp, size_t insize, char **outptr)
 {
     unsigned char ibuf[3];
     unsigned char obuf[4];
@@ -156,12 +165,12 @@ _code_base64_encode(const char *inp, size_t insize, char **outptr)
     int inputparts;
     char *output;
     char *base64data;
-    const char *indata = inp;
+    const unsigned char *indata = inp;
 
     *outptr = NULL;
 
     if (0 == insize)
-	insize = strlen(indata);
+	insize = strlen((const char *)indata);
 
     base64data = output = (char *)putil_malloc(insize * 4 / 3 + 4);
     if (NULL == output)
@@ -224,79 +233,78 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     buf[0] = '\0';
 
-    algorithm = prop_get_str(P_IDENTITY_HASH_ALGORITHM);
+    algorithm = prop_get_str(P_IDENTITY_HASH);
 
-    switch (algorithm[0]) {
+    if (algorithm && *algorithm && _tcsnicmp(algorithm, _T("crc"), 3)) {
+#if defined(USE_LIBCRYPTO)
+#if defined(USE_LIBCRYPTO_EVP)
+	static const EVP_MD *EvpMD;
+	EVP_MD_CTX mdctx;
+	unsigned char md_val[EVP_MAX_MD_SIZE];
+	unsigned int md_len;
+	size_t cvt = 0;
+	CS ostr = NULL;
+
+	// SHA-* digests have an estimated chance of collision
+	// said to be 1 in 2^128. Early tests show SHA-* as maybe 40%
+	// slower than CRC32 but with far far better distribution.
+	// Much more testing needed, esp per chip/architecture.
+
+	if (EvpMD == NULL) {
+	    OpenSSL_add_all_digests();
+	    if (!(EvpMD = EVP_get_digestbyname(algorithm))) {
+		putil_die("unrecognized digest name: %s", algorithm);
+	    }
+	}
+
+	EVP_MD_CTX_init(&mdctx);
+	EVP_DigestInit_ex(&mdctx, EvpMD, NULL);
+	EVP_DigestUpdate(&mdctx, data, size);
+	EVP_DigestFinal_ex(&mdctx, md_val, &md_len);
+	EVP_MD_CTX_cleanup(&mdctx);
+
+	if ((cvt = _code_base64_encode(md_val, md_len, &ostr))) {
+	    assert(buflen > cvt);
+	    strncpy(buf, ostr, cvt);
+	    buf[cvt] = '\0';
+	    putil_free(ostr);
+	}
+#else	/*!USE_LIBCRYPTO_EVP*/
+	if (!_tcsicmp(algorithm, _T("sha1"))) {
+	    SHA_CTX ctx;
+	    unsigned char sha1[SHA_DIGEST_LENGTH];
+	    size_t cvt = 0;
+	    CS ostr = NULL;
+
+	    SHA1_Init(&ctx);
+	    SHA1_Update(&ctx, data, size);
+	    SHA1_Final(sha1, &ctx);
+
+	    if ((cvt = _code_base64_encode(sha1, sizeof(sha1), &ostr))) {
+		assert(buflen > cvt);
+		strncpy(buf, ostr, cvt);
+		buf[cvt] = '\0';
+		putil_free(ostr);
+	    }
+	} else {
+	    putil_die("unrecognized digest name: %s", algorithm);
+	}
+#endif /*!USE_LIBCRYPTO_EVP*/
+#endif /*!USE_LIBCRYPTO*/
+    }
+
+    if (buf[0] == '\0') {
 	// Old reliable CRC32. Said to be a bad choice for an identity
 	// hash as the distribution is not great. It's not really a hash
 	// algorithm at all, it's an error checker. That said, it's
-	// easy to use, bundled with zlib, and pretty fast.
-	default:
-	case 'C': case 'c':
-	    hash1 = crc32(crc32(0L, Z_NULL, 0), data, size);
-	    (void)util_format_to_radix(CSV_RADIX, buf, buflen, hash1);
-	    break;
+	// easy to use, bundled with zlib, pretty fast, and probably
+	// won't fail most of the time :-)
 
-	case 'A': case 'a':
-	    hash1 = adler32(adler32(0L, Z_NULL, 0), data, size);
-	    (void)util_format_to_radix(CSV_RADIX, buf, buflen, hash1);
-	    break;
-
-	case '+':
-	{
-	    size_t len1;
-	    uint32_t hash2;
-
-	    hash1 = crc32(crc32(0L, Z_NULL, 0), data, size);
-	    hash2 = adler32(adler32(0L, Z_NULL, 0), data, size);
-	    (void)util_format_to_radix(CSV_RADIX, buf, buflen, hash1);
-	    len1 = strlen(buf);
-	    (void)util_format_to_radix(CSV_RADIX, buf + len1, buflen - len1, hash2);
+	hash1 = crc32(crc32(0L, Z_NULL, 0), data, size);
+	(void)util_format_to_radix(CSV_RADIX, buf, buflen, hash1);
+	if (algorithm && *algorithm && _tcsnicmp(algorithm, _T("crc"), 3)) {
+	    putil_die("unrecognized digest name: %s", algorithm);
 	}
-	    break;
-
-	// This is an SHA-256 algorithm. Estimated chance of collision
-	// are said to be 1 in 2^128. Early tests show it as maybe 40%
-	// slower than CRC32 but with far far better distribution.
-	// Much more testing needed, esp per chip/architecture.
-	case 'S': case 's':
-	{
-	    unsigned char digest[SHA512_DIGEST_SIZE];
-	    size_t cvt;
-	    CS outstr = NULL;
-
-	    memset(digest, 0, sizeof(digest));
-	    switch (algorithm[1]) {
-		case '4':
-		    sha224(data, size, digest);
-		    cvt = _code_base64_encode((const char *)digest,
-			SHA224_DIGEST_SIZE, &outstr);
-		    break;
-		case '6':
-		default:
-		    sha256(data, size, digest);
-		    cvt = _code_base64_encode((const char *)digest,
-			SHA256_DIGEST_SIZE, &outstr);
-		    break;
-		case '3':
-		    sha384(data, size, digest);
-		    cvt = _code_base64_encode((const char *)digest,
-			SHA384_DIGEST_SIZE, &outstr);
-		    break;
-		case '5':
-		    sha512(data, size, digest);
-		    cvt = _code_base64_encode((const char *)digest,
-			SHA512_DIGEST_SIZE, &outstr);
-		    break;
-	    }
-	    if (cvt) {
-		assert(buflen > cvt);
-		strncpy(buf, outstr, cvt);
-		buf[cvt] = '\0';
-		putil_free(outstr);
-	    }
-	}
-	    break;
     }
 
     // An empty string from the formatter signals a failure.
@@ -465,16 +473,16 @@ code_from_buffer(const unsigned char *data, off_t size,
 	// No sense comparing this...
     } else if (_code_is_archive_file(data)) {
 	if (_code_clear_archive_file(data, size)) {
-	    putil_warn("corrupt archive file: %s\n", path);
+	    putil_warn("corrupt archive file: %s", path);
 	}
     } else if (_code_is_zip_file(data, size)) {
 	if (_code_clear_zip_file((unsigned char *)data, size)) {
-	    putil_warn("corrupt zip file: %s\n", path);
+	    putil_warn("corrupt zip file: %s", path);
 	}
 #if defined(_WIN32)
     } else if (_code_is_PE_file(data) || GetBinaryType(path, NULL)) {
 	if (_code_clear_PE_file((unsigned char *)data)) {
-	    putil_warn("corrupt PE/COFF file: %s\n", path);
+	    putil_warn("corrupt PE/COFF file: %s", path);
 	}
     } else if (HAS_TIMESTAMP(path) && _code_is_PE_file(data + 6)) {
 	putil_warn(_T("dcode on Windows .obj built with /GL: %s"), path);
@@ -923,4 +931,9 @@ _code_is_zip_file(const void *data, off_t size)
 	    + sizeof(struct cd_end))
 	    && SIGNATURE_MATCHES(data, file_header);
     }
+}
+
+void
+code_fini(void)
+{
 }

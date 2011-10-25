@@ -86,6 +86,9 @@
 /// For analysis within the uploading subsystem.
 #define VB_UP			15
 
+/// Report each time the auditor calls the file-access-reporting function.
+#define VB_REC			16
+
 /// @endcond VB
 
 #include <stdio.h>

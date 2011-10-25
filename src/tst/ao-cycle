@@ -9,11 +9,12 @@ use Pod::Usage;
 
 my($prog) = fileparse($0, '\.\w*$');
 
-my $marker = uc $prog;
-
 my %opt;
-GetOptions(\%opt, qw(help AllModes audited compare download FreshDB
-    Jobs=i Keep-Going Make=s MF=s OutputToScreen remake Verbose warmup));
+GetOptions(\%opt, qw(help AllModes FreshDB IdentityHash=s Jobs=i
+    Keep-Going Logger=s Make=s MF=s OutputToScreen ReConfigure Verbose
+    audited compare download remake warmup));
+
+my $logfile = ($opt{Logger} || $prog) . '.log';
 
 if ($opt{help}) {
     pod2usage(-exitval => 'NOEXIT');
@@ -30,9 +31,12 @@ $opt{audited} = 1;
 
 if (! $opt{OutputToScreen}) {
     open(ORIG_STDERR, ">&STDERR") || die "$prog: Error: can't dup stderr\n";
-    open(STDOUT, ">$marker.log") || die "$prog: Error: $marker.log: $!\n";
+    my $biglog = @ARGV ? $logfile : uc $logfile;
+    open(STDOUT, ">$biglog") || die "$prog: Error: $biglog: $!\n";
     open(STDERR, ">&STDOUT") || die "$prog: Error: can't dup stdout\n";
 }
+
+$ENV{AO_IDENTITY_HASH} = $opt{IdentityHash} if $opt{IdentityHash};
 
 sub timing {
     my $delta = shift;
@@ -128,6 +132,19 @@ for my $dir (@dirs) {
 
     chomp($projname = qx(ao property Project.Name));
 
+    if ($opt{ReConfigure}) {
+	if (-f 'Makefile') {
+	    run("$Make clean distclean > /dev/null 2>&1");
+	}
+
+	if (-f 'configure') {
+	    if (run("sh configure")) {
+		$rc++;
+		next;
+	    }
+	}
+    }
+
     if ($opt{FreshDB}) {
 	system("set -x; $app ADMIN delete PROJECT $projname 2>/dev/null");
     }
@@ -203,9 +220,9 @@ for my $dir (@dirs) {
 			}
 			push(@timings, sprintf "%-12s   %s\n", 'Combined:',
 			    timing(timediff($t5, $t0)));
-			unlink $marker;
-			open(MARKER, '>', $marker)
-			    || die "$prog: Error: $marker: $!";
+			unlink $logfile;
+			open(MARKER, '>', $logfile)
+			    || die "$prog: Error: $logfile: $!";
 			print MARKER @timings;
 			close(MARKER);
 			print STDERR @timings;

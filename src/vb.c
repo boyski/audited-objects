@@ -141,6 +141,11 @@ static struct {
 	VBFLAG_PRIVATE,
 	"Show what's going on within the uploading subsystem",
     },
+    {
+	"REC",
+	VBFLAG_PRIVATE,
+	"Report each time the auditor calls the file-access-reporting function",
+    },
     {NULL, 0, NULL}
 };
 

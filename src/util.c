@@ -1191,6 +1191,12 @@ util_gzip_buffer(CCS name, unsigned const char *source, unsigned long slen, unsi
 	if (rc == Z_STREAM_END) {
 	    break;
 	} else if (rc == Z_OK) {
+	    if (stream.avail_out == 0) {
+		// Not sure this makes sense ... it avoids an apparently
+		// spurious warning on Ubuntu 9.04 x86_64, but I don't
+		// understand the zlib API so it may not be the right fix.
+		break;
+	    }
 	    stream.avail_out *= 2;
 	    stream.next_out = dest =
 		(unsigned char *)realloc(dest, stream.avail_out);

@@ -1326,14 +1326,13 @@ interposed_finalize(void)
     }
 
     /*
-     * The cleanup below would be done by exit anyway but we try to
+     * The cleanups below would be done by exit anyway but we try to
      * free things explicitly so that leak detectors such as valgrind
      * can more easily pinpoint real leaks. Perhaps we could have an
      * optimized "production mode" which skips the explicit cleanup.
      */
-
+    code_fini();
     prop_fini();
-
     vb_fini();
 }
 
@@ -1355,6 +1354,7 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
     // try to send EOA twice.
     if (CurrentCA) {
 	_audit_end(call, EXITING, status);
+	code_fini();
 	prop_fini();
 	vb_fini();
     }

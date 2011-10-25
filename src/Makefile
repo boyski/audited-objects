@@ -25,28 +25,28 @@ else
 
 TAR		:= gtar --owner=0 --group=0 --mode=u+rw --dereference
 
-ifndef PLATFORM
+ifndef CPU
 uname_s		:= $(shell uname -s)
 ifneq (,$(findstring Linux,$(uname_s)))
-PLATFORM	:= $(uname_s)_i386
+CPU		:= $(uname_s)_i386
 else
-PLATFORM	:= $(uname_s)_$(shell uname -p)
+CPU		:= $(uname_s)_$(shell uname -p)
 endif
 endif
 
-export PLATFORM
+export CPU
 
-PLATDIR		:= .${PLATFORM}
-PLATDIR64	:= $(PLATDIR)/64
+CPUDIR		:= .${CPU}
+CPUDIR64	:= $(CPUDIR)/64
 
 OPS		:= ../OPS
 
 CC		:= gcc
-ANAL		:= -Wcast-align -Wshadow -Wpointer-arith ## -Waggregate-return
+ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
 #ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
 CSTYLE		:= -W -Wall $(ANAL)
 SHLIBFLAGS	:= -shared
-INST_PREFIX	:= ${HOME}/${PLATFORM}
+INST_PREFIX	:= ${HOME}/${CPU}
 
 # Source file data seems to be unavailable on OS X when using DWARF, and
 # STABS seems to do no harm across the board so we make it the default.
@@ -55,29 +55,33 @@ UFLAGS		:= -g
 
 #DFLAGS		:= $(shell getconf LFS_CFLAGS 2>/dev/null || echo $(DEF_DFLAGS))
 DFLAGS		:= -D_REENTRANT -D_LARGEFILE_SOURCE -DTRIO_REPLACE_STDIO
+DFLAGS		+= -DUSE_LIBCRYPTO # -DUSE_LIBCRYPTO_EVP
 
 CFLAGS		:= $(CSTYLE)
 
-ifneq (,$(findstring SunOS_,${PLATFORM}))
+ifneq (,$(findstring SunOS_,${CPU}))
 SOLARIS		:= 1
-ifneq (,$(findstring _sparc,${PLATFORM}))
+ifneq (,$(findstring _sparc,${CPU}))
 SOLARIS_SPARC	:= 1
 endif
 endif
 
-ifneq (,$(findstring Linux,${PLATFORM}))
+ifneq (,$(findstring Linux,${CPU}))
 LINUX		:= 1
+ifneq (,$(findstring _x86_64,${CPU}))
+LINUX_X86_64	:= 1
+endif
 endif
 
-ifneq (,$(findstring HPUX_,${PLATFORM}))
+ifneq (,$(findstring HPUX_,${CPU}))
 HPUX		:= 1
 endif
 
-ifneq (,$(findstring BSD,${PLATFORM}))
+ifneq (,$(findstring BSD,${CPU}))
 BSD		:= 1
 endif
 
-ifneq (,$(findstring Darwin,${PLATFORM}))
+ifneq (,$(findstring Darwin,${CPU}))
 DARWIN		:= 1
 endif
 
@@ -111,19 +115,19 @@ debug release: all
 release: UFLAGS := -Os -DNDEBUG
 release: STRIP := strip
 
-$(INST_PREFIX)/lib/%: $(PLATDIR)/%
+$(INST_PREFIX)/lib/%: $(CPUDIR)/%
 	@chmod u+w $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@(set -x; cp $< $@)
 	@$(STRIP) $@
 
-$(INST_PREFIX)/lib/64/%: $(PLATDIR64)/%
+$(INST_PREFIX)/lib/64/%: $(CPUDIR64)/%
 	@chmod u+w $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@(set -x; cp $< $@)
 	@$(STRIP) $@
 
-$(INST_PREFIX)/bin/%: $(PLATDIR)/%
+$(INST_PREFIX)/bin/%: $(CPUDIR)/%
 	@chmod u+wx $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@test -L $@ || (set -x; cp $< $@)
@@ -144,16 +148,16 @@ CFLAGS		+= -D_LARGEFILE64_SOURCE
 
 CFLAGS		+= -I. -I$(OPS)/include
 
-LIBAO32		:= $(addprefix $(PLATDIR)/, libao.so)
-LIBAO64		:= $(addprefix $(PLATDIR64)/, libao.so)
+LIBAO32		:= $(addprefix $(CPUDIR)/, libao.so)
+LIBAO64		:= $(addprefix $(CPUDIR64)/, libao.so)
 SHLIBS		:= $(LIBAO32)
 INST_LIBS	:= $(addprefix $(INST_PREFIX)/lib/, $(notdir $(SHLIBS)))
 
-AOTOOL		:= $(PLATDIR)/ao
+AOTOOL		:= $(CPUDIR)/ao
 BINS		:= $(AOTOOL)
 INST_BINS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(BINS)))
 
-AO2MAKE		:= $(PLATDIR)/ao2make
+AO2MAKE		:= $(CPUDIR)/ao2make
 SCRIPTS		:= $(AO2MAKE)
 INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(SCRIPTS)))
 
@@ -162,9 +166,9 @@ INST_SCRIPTS	:= $(addprefix $(INST_PREFIX)/bin/, $(notdir $(SCRIPTS)))
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS	:= -lkaz -lpcre -lz -ltrio -lsha2
+DLL_LIBS	:= -lkaz -lpcre -lz -ltrio -lcrypto
 
-OPSLIBDIR	:= $(OPS)/${PLATFORM}/lib
+OPSLIBDIR	:= $(OPS)/${CPU}/lib
 
 # On Solaris we can get some malloc debugging by linking with -lumem.
 # But we must use the vanilla malloc in production so as not to
@@ -189,7 +193,7 @@ PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lc # -lumem
 else
 PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lrt -lc
 endif	#SOLARIS_SPARC
-all: $(PLATDIR64)
+all: $(CPUDIR64)
 SHLIBS		+= $(LIBAO64)
 INST_LIBS	+= $(addprefix $(INST_PREFIX)/lib/64/, $(notdir $(LIBAO64)))
 endif	#SOLARIS
@@ -198,8 +202,13 @@ ifdef LINUX
 CFLAGS		+= -fpic -D_GNU_SOURCE
 SHLIBFLAGS	+= -z defs -z interpose -z combreloc -z ignore -z lazyload
 LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
+ifdef LINUX_X86_64
+DLL_LIBS	+= -lrt
+PLDLIBS		:= -ldl -lm
+else
 DLL_LIBS	+= -lrt -lm
 PLDLIBS		:= -ldl
+endif
 endif
 
 ifdef BSD
@@ -255,10 +264,10 @@ INTERPOSERS	:= $(wildcard Interposer/*.h)
 
 #############################################################################
 
-$(PLATDIR) $(PLATDIR64):
+$(CPUDIR) $(CPUDIR64):
 	mkdir -p $@
 
-all: $(PLATDIR) $(TARGETS)
+all: $(CPUDIR) $(TARGETS)
 
 #############################################################################
 
@@ -270,20 +279,20 @@ docs dox:
 
 #############################################################################
 
-$(PLATDIR)/putil.o: Putil/putil.h
+$(CPUDIR)/putil.o: Putil/putil.h
 
-$(PLATDIR)/aotool.o: About/about.c
+$(CPUDIR)/aotool.o: About/about.c
 
-$(PLATDIR)/%.o: %.c AO.h Application.properties
+$(CPUDIR)/%.o: %.c AO.h Application.properties
 	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
 
 #############################################################################
 
-$(AOTOOL): $(addprefix $(PLATDIR)/, $(OBJS))
-	$(CC) -o $@ $(UFLAGS) $(addprefix $(PLATDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(EXE_LIBS) $(PLDLIBS)
+$(AOTOOL): $(addprefix $(CPUDIR)/, $(OBJS))
+	$(CC) -o $@ $(UFLAGS) $(addprefix $(CPUDIR)/, $(OBJS)) -L$(OPSLIBDIR) $(EXE_LIBS) $(PLDLIBS)
 
 $(LIBAO32): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
-	$(CC) -m32 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(DLL_LIBS) $(PLDLIBS)
+	$(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP32) $< -L$(OPSLIBDIR) $(DLL_LIBS) $(PLDLIBS)
 
 $(LIBAO64): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS)
 	$(CC) -m64 -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< -L$(OPSLIBDIR)/64 $(DLL_LIBS) $(PLDLIBS)
@@ -295,7 +304,7 @@ cleantargets:
 	-rm -f $(TARGETS)
 
 clean: cleantargets
-	-rm -rf $(PLATDIR)/*.o core *.1 *.html HTML tags
+	-rm -rf $(CPUDIR)/*.o core *.1 *.html HTML tags
 
 tags:
 	rm -f tags && ectags *.h *.H *.c *.cpp

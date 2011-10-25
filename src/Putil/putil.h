@@ -169,10 +169,14 @@ typedef ULONG64		uint64_t;
 #endif	/*_WIN32*/
 
 // Special hack because Linux, or at least Fedora, goes out of its
-// way to hide/undef ARG_MAX. Might be a good idea to research this
-// more deeply.
+// way to hide/undef ARG_MAX presumably because such a limit no longer
+// exists.  Might be a good idea to research this more deeply.
+// For now, the number 131072 represents the most recent max on
+// both Solaris and Linux, and probably the maximum-maximum of
+// all UNix platforms. But still a pretty random choice. Ideally
+// we would also get out of the business of caring about ARG_MAX.
 #if !defined(ARG_MAX)
-#define ARG_MAX			_POSIX_ARG_MAX
+#define ARG_MAX			131072
 #endif
 
 #if defined(__APPLE__)

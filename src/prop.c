@@ -144,7 +144,7 @@ static struct {
 	// Windows patterns are always case-insensitive.
 	NULL,
 #else	/*_WIN32*/
-	_T("^(?:(?:/usr|/usr/xpg4)?/bin/)?[a-z]*sh\\s+|libtool"),
+	_T("^(?:(?:/usr|/usr/xpg4)?/bin/)?[a-z]*sh\\s+|libtool|^/\\S*/perl\\s+\\S+gcc"),
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
@@ -365,13 +365,13 @@ static struct {
 	P_EXECUTE_ONLY,
     },
     {
-	_T("Identity.Hash.Algorithm"),
+	_T("Identity.Hash"),
 	NULL,
 	_T("Name of identity hash (CRC, SHA, Adler, ...)"),
 	_T("CRC"),
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
-	P_IDENTITY_HASH_ALGORITHM,
+	P_IDENTITY_HASH,
     },
     {
 	_T("Leave.Roadmap"),

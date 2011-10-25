@@ -163,92 +163,91 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
     pa_o pa;
 
     if (!libao_isActive()) {
+	vb_printf(VB_REC, _T("not active: %c,%s,%s"), op, call, path);
 	return;
     }
 
     pn = pn_new(path, 1);
     path = pn_get_abs(pn);
 
-    // We needed to wait to be sure the path was fully qualified
-    // before doing this check.
     if (_ignore_path(path)) {
+	// We needed to derive a fully qualified path before doing this check.
+	vb_printf(VB_REC, _T("ignoring: %c,%s,%s"), op, call, path);
 	pn_destroy(pn);
-	return;
-    }
-
-    // This was moved down to after _ignore_path() to avoid
-    // certain funky loops, such as when ao is run under the OS X
-    // malloc debugger which writes a malloc_history file into /tmp
-    // during exit processing.
-    if (!CurrentCA) {
+    } else if (!CurrentCA) {
+	// This was moved down to after _ignore_path() to avoid
+	// certain funky loops, such as when ao is run under the OS X
+	// malloc debugger which writes a malloc_history file into /tmp
+	// during exit processing.
 	putil_int(_T("PA after EOA: call=%s pid=%lu path=%s"),
 		  call, (unsigned long)getpid(), path);
-	return;
-    }
-
-    pa = pa_new();
-    pa_set_op(pa, op);
-    pa_set_call(pa, call);
-    pa_set_pid(pa, ca_get_cmdid(CurrentCA));
-    pa_set_ppid(pa, ca_get_pcmdid(CurrentCA));
-    pa_set_depth(pa, ca_get_depth(CurrentCA));
-    pa_set_pccode(pa, ca_get_pccode(CurrentCA));
-    pa_set_ccode(pa, ca_get_ccode(CurrentCA));
-    pa_set_fd(pa, fd);
-
-    // Only store the thread id for a threaded program (on Windows
-    // they're all threaded). We believe 0 to be an invalid thread
-    // which is thus used to indicate "unthreaded".
-#if defined(_WIN32)
-    // This won't work right because it's not "stable", meaning that
-    // the Win32 thread id seems to be a random number. We need to
-    // synthesize something that's the same from run to run (even this
-    // must assume the host program creates threads in a static order).
-    pa_set_tid(pa, (unsigned long)GetCurrentThreadId());
-#else	/*_WIN32*/
-    if (pthread_self_real) {
-	pa_set_tid(pa, (unsigned long)pthread_self_real());
     } else {
-	pa_set_tid(pa, 0);
-    }
+	vb_printf(VB_REC, _T("recording: %c,%s,%s"), op, call, path);
+
+	pa = pa_new();
+	pa_set_op(pa, op);
+	pa_set_call(pa, call);
+	pa_set_pid(pa, ca_get_cmdid(CurrentCA));
+	pa_set_ppid(pa, ca_get_pcmdid(CurrentCA));
+	pa_set_depth(pa, ca_get_depth(CurrentCA));
+	pa_set_pccode(pa, ca_get_pccode(CurrentCA));
+	pa_set_ccode(pa, ca_get_ccode(CurrentCA));
+	pa_set_fd(pa, fd);
+
+	// Only store the thread id for a threaded program (on Windows
+	// they're all threaded). We believe 0 to be an invalid thread
+	// id which is thus used to indicate "unthreaded".
+#if defined(_WIN32)
+	// This won't work right because it's not "stable", meaning that
+	// the Win32 thread id seems to be a random number. We need to
+	// synthesize something that's the same from run to run (even this
+	// must assume the host program creates threads in a static order).
+	pa_set_tid(pa, (unsigned long)GetCurrentThreadId());
+#else	/*_WIN32*/
+	if (pthread_self_real) {
+	    pa_set_tid(pa, (unsigned long)pthread_self_real());
+	} else {
+	    pa_set_tid(pa, 0);
+	}
 #endif	/*_WIN32*/
 
-    ps = ps_new();
-    ps_set_pn(ps, pn);
+	ps = ps_new();
+	ps_set_pn(ps, pn);
 
-    // If this was a link op we may have a 2nd path to remember.
-    if (extra) {
-	if (op == OP_SYMLINK) {
-	    ps_set_target(ps, extra);
-	} else {
-	    ps_set_pn2(ps, pn_new(extra, 1));
+	// If this was a link op we may have a 2nd path to remember.
+	if (extra) {
+	    if (op == OP_SYMLINK) {
+		ps_set_target(ps, extra);
+	    } else {
+		ps_set_pn2(ps, pn_new(extra, 1));
+	    }
 	}
+
+	pa_set_ps(pa, ps);
+
+	if (op == OP_UNLINK) {
+	    ps_set_unlinked(ps);
+	} else if (op == OP_MKDIR) {
+	    ps_set_dir(ps);
+	} else if (op == OP_SYMLINK) {
+	    ps_set_symlinked(ps);
+	} else if (op == OP_LINK) {
+	    ps_set_linked(ps);
+	}
+
+	// Read ops don't need to be time-stamped.
+	if (!pa_is_read(pa)) {
+	    moment_s tstamp;
+
+	    moment_get_systime(&tstamp);
+	    pa_set_timestamp(pa, tstamp);
+	}
+
+	// Finish by recording this path action.
+	_thread_mutex_lock();
+	ca_record_pa(CurrentCA, pa);
+	_thread_mutex_unlock();
     }
-
-    pa_set_ps(pa, ps);
-
-    if (op == OP_UNLINK) {
-	ps_set_unlinked(ps);
-    } else if (op == OP_MKDIR) {
-	ps_set_dir(ps);
-    } else if (op == OP_SYMLINK) {
-	ps_set_symlinked(ps);
-    } else if (op == OP_LINK) {
-	ps_set_linked(ps);
-    }
-
-    // Read ops don't need to be time-stamped.
-    if (!pa_is_read(pa)) {
-	moment_s tstamp;
-
-	moment_get_systime(&tstamp);
-	pa_set_timestamp(pa, tstamp);
-    }
-
-    // Finish by recording this path action.
-    _thread_mutex_lock();
-    ca_record_pa(CurrentCA, pa);
-    _thread_mutex_unlock();
 }
 
 // NOTE: The current design opens two sockets per audited command;
@@ -803,6 +802,9 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // auditor as the CWD may be changing, so everything we care
     // about should have been placed in the environment by now.
     prefs_init(exe, NULL, NULL);
+
+    // Initialize the hash-code generation.
+    code_init();
 
     // We'll need this more than once, so remember it here.
     pid = getpid();

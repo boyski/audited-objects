@@ -37,14 +37,22 @@ WRAP(FILE *, fopen, (const char *path, const char *mode), path, mode)
 WRAP(FILE *, freopen, (const char *path, const char *mode, FILE *stream), path, mode, stream)
 WRAP(FILE *, fdopen, (int fildes, const char *mode), fildes, mode)
 
-// Transitional lf64 I/O calls for Solaris (and Linux?) 32-bit objects.
-// But if we're in a true 64-bit env, no need for *64() interfaces.
-// Not all 32-bit binaries have access to *64(); they'd need to have
-// been compiled with -D_LARGEFILE_SOURCE (at least on Solaris).
-// However, there's no harm in providing hooks for them in all
-// 32-bit processes as long as this file itself is compiled with
-// -D_LARGEFILE_SOURCE.
-#if !defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE)
+// Transitional lf64 I/O calls for Unix/Linux 32-bit objects.
+// The use of these is pretty confused; following is what I believe to
+// be the situation. On Solaris, these are available to 32-bit processes
+/// only if -D_LARGEFILE_SOURCE was used. In Solaris 64-bit binaries 
+// they should never occur because they become compile-time macro
+// aliases to the regular names. The situation is the same on Linux
+// except that the *64 variants can still be used explicitly (as
+// functions, not macros) in a 64-bit binary.
+// Bottom line: the rules concerning when these might be needed are
+// complex, undocumented, and subject to change/surprise. Since I
+// know of no harm that comes from defining the wrappers even when
+// they couldn't be used, that's the approach I'd prefer to take.
+// But ATM we just hack it for Solaris and Linux and worry about other
+// 64-bit platforms as they come alone. This is hacky and should be
+// revisited.
+#if !defined(sun) || (!defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE))
 WRAP_OPEN(int, open64)
 WRAP(int, creat64, (const char *path, mode_t mode), path, mode)
 WRAP(FILE *, fopen64, (const char *path, const char *mode), path, mode)

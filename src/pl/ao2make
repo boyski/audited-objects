@@ -35,6 +35,15 @@ GetOptions(\%opt, qw(base=s existing-only full NOGNU help
 
 pod2usage(1) if $opt{help};
 
+# The dash shell does not implement -n or -v correctly.
+my $broken_sh = 0;
+if (-x '/bin/sh' && -x '/bin/dash') {
+    if ((stat '/bin/sh')[1] == (stat '/bin/dash')[1]) {
+	$broken_sh = 1;
+	undef $ENV{BASH_ENV};
+    }
+}
+
 unlink $opt{output} if $opt{output} && -e $opt{output};
 
 my $BaseDir = $opt{'base'};
@@ -50,6 +59,7 @@ my(%FileTargets, %DirTargets, %DirLinkTargets);
 my $ca;
 push(@ARGV, '-') unless @ARGV;
 for my $audit (@ARGV) {
+    chomp($audit = qx(ao substitute $audit));
     open(AUDIT, $audit) || die "$prog: Error: $audit: $!\n";
     for (<AUDIT>) {
 	chomp;
@@ -232,11 +242,22 @@ sub renew {
 # shell in verbose (-v) and no-execute (-n) mode and capture the
 # output. BTW it turns out that due to subtle variations and bugs
 # in different Unix shells (bash, ksh, zsh, etc) it's better to
-# always use /bin/sh for this purpose. Usually faster too.
-sub deshell {
+# always use /bin/sh for this purpose. Usually faster too. However,
+# there's an exception (boo): many newer Linux distros use 'dash'
+# as their /bin/sh, and dash doesn't seem to implement -n or -v
+# correctly, so we have to work around that. The current hack is
+# that if /bin/sh == dash, use bash instead with some special flags.
+# Argh.
+sub desh {
     my $line = "@_";
-    if ($line =~ s%^\S+sh\s+(-[a-z]*)c%/bin/sh ${1}nvc%) {
-	$line = qx($line 2>&1);
+    if ($broken_sh) {
+	if ($line =~ s%^\S+sh\s+(-[a-z]*)c%/bin/bash --norc --noprofile ${1}nvc%) {
+	    $line = qx($line 2>&1);
+	}
+    } else {
+	if ($line =~ s%^\S+sh\s+(-[a-z]*)c%/bin/sh ${1}nvc%) {
+	    $line = qx($line 2>&1);
+	}
     }
     return $line;
 }
@@ -490,7 +511,7 @@ for my $ca (@Actions) {
 	$line =~ s%^\s+%%;
 	$line =~ s%\s+$%%;
 	$line =~ s%[ ]{2,}% %g unless $line =~ m%["'\\]%;
-	$line = deshell($line) unless MSWIN;
+	$line = desh($line) unless MSWIN;
 	$line = varify($line);
 	my $recipe = sprintf "\tcd %s && %s\n", $dir, $line;
 	$Makefile->{RULES}->{$recipe_key}->{RECIPE} = $recipe;

@@ -24,8 +24,10 @@
 /// The size of a buffer guaranteed big enough for any identity hash.
 #define CODE_IDENTITY_HASH_MAX_LEN	2048
 
+extern void code_init(void);
 extern CCS code_from_str(CCS, CS, size_t);
 extern CCS code_from_buffer(const unsigned char *, off_t, CCS, CS, size_t);
 extern CCS code_from_path(CCS, CS, size_t);
+extern void code_fini(void);
 
 #endif				/*CODE_H */

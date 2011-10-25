@@ -24,6 +24,7 @@
 #include "AO.h"
 
 #include "CA.h"
+#include "CODE.h"
 #include "DOWN.h"
 #include "HTTP.h"
 #include "MAKE.h"
@@ -40,6 +41,9 @@
 #include "curl/curl.h"
 #include "pcre.h"
 #include "zlib.h"
+#if defined(USE_LIBCRYPTO)
+#include "openssl/opensslv.h"
+#endif	/*!USE_LIBCRYPTO*/
 
 #include "About/about.c"	// NOTE: including a .c file!
 
@@ -210,7 +214,11 @@ _print_version(int full)
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", pcre_version());
 	printf("zlib=%s\n", (const char *)zlibVersion());
+#if defined(USE_LIBCRYPTO)
+	printf("libcrypto=%p\n", OPENSSL_VERSION_NUMBER);
+#endif	/*!USE_LIBCRYPTO*/
 	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
+	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
     }
 }
@@ -559,6 +567,9 @@ main(int argc, CS const *argv)
     // the environment.
     prefs_init(exe, PROP_EXT, NULL);
 
+    // Initialize the hash-code generation.
+    code_init();
+
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse
     // only -flag1 and -flag2.
@@ -567,7 +578,7 @@ main(int argc, CS const *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    _T("+1adf:hl:mo:p:qrs:uv::wxACDEF:H::LO:PQRSTUV:W:XY");
+	    _T("+1adf:hl:mo:p:qrs:uv::wxACDEF:H::I:LO:PQRSTUV:W:XY");
 	static struct option long_opts[] = {
 	    {_T("oneshell"),		no_argument,	   NULL, '1'},
 	    {_T("absolute-paths"),	no_argument,	   NULL, 'a'},
@@ -584,6 +595,7 @@ main(int argc, CS const *argv)
 	    {_T("help"),		no_argument,	   NULL, 'h'},
 	    {_T("Help"),		optional_argument, NULL, 'H'},
 	    {_T("properties"),		optional_argument, NULL, LF('P','*')},
+	    {_T("identity-hash"),	required_argument, NULL, 'I'},
 	    {_T("log-file"),		required_argument, NULL, 'l'},
 	    {_T("log-file-temp"),	no_argument,	   NULL, 'L'},
 	    {_T("mem-debug"),		optional_argument, NULL, LF('M','D')},
@@ -665,6 +677,10 @@ main(int argc, CS const *argv)
 
 	    case 'E':
 		prop_put_long(P_STRICT_ERROR, 1);
+		break;
+
+	    case 'I':
+		prop_override_str(P_IDENTITY_HASH, bsd_optarg);
 		break;
 
 	    case 'L':
@@ -898,13 +914,19 @@ main(int argc, CS const *argv)
     }
 
     // Default project name is the name of the dir containing the project
-    // config file.
+    // config file, with any numerical extension following a '-' removed.
     if (!prop_has_value(P_PROJECT_NAME)) {
-	CS pbase, pjname;
+	CCS pbase;
+	CS pjname, ptr, dash;
 
-	pbase = (CS)prop_get_str(P_BASE_DIR);
+	pbase = prop_get_str(P_BASE_DIR);
 	if (pbase && (pjname = putil_basename(pbase)) && *pjname) {
-	    prop_put_str(P_PROJECT_NAME, pjname);
+	    ptr = putil_strdup(pjname);
+	    if ((dash = _tcschr(ptr, '-')) && ISDIGIT(dash[1])) {
+		*dash = '\0';
+	    }
+	    prop_put_str(P_PROJECT_NAME, ptr);
+	    putil_free(ptr);
 	}
     }
 
@@ -998,6 +1020,10 @@ main(int argc, CS const *argv)
 	TCHAR cwd[PATH_MAX];
 	TCHAR logbuf[PATH_MAX];
 	CCS rmap, logfile;
+
+	if (!argv || !*argv) {
+	    _usage(1);
+	}
 
 	// The auditor ignores anything it considers to be a temp
 	// file, which can cause terribly confusing behavior if
@@ -1171,6 +1197,8 @@ main(int argc, CS const *argv)
     } else {
 	rc = do_action(action, argc, argv);
     }
+
+    code_fini();
 
     http_fini();
 

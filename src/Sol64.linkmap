@@ -1,0 +1,56 @@
+{
+        global:
+
+	    _exit;
+	    _exit_wrapper;
+	    close;
+	    close_wrapper;
+	    creat;
+	    creat_wrapper;
+	    execv;
+	    execv_wrapper;
+	    execve;
+	    execve_wrapper;
+	    execvp;
+	    execvp_wrapper;
+	    execl;
+	    execle;
+	    execlp;
+	    fopen;
+	    fopen_wrapper;
+	    fork;
+	    fork_wrapper;
+	    fork1;
+	    fork1_wrapper;
+	    freopen;
+	    freopen_wrapper;
+	    isaexec;
+	    isaexec_wrapper;
+	    link;
+	    link_wrapper;
+	    open;
+	    open_wrapper;
+	    popen;
+	    popen_wrapper;
+	    pthread_create;
+	    pthread_create_wrapper;
+	    pthread_exit;
+	    pthread_exit_wrapper;
+	    thr_create;
+	    thr_create_wrapper;
+	    thr_exit;
+	    thr_exit_wrapper;
+	    interposed_finalize;
+	    interposed_late_init;
+	    rename;
+	    rename_wrapper;
+	    symlink;
+	    symlink_wrapper;
+	    system;
+	    system_wrapper;
+	    unlink;
+	    unlink_wrapper;
+	    vfork;
+
+        local:  *;
+};

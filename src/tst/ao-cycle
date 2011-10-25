@@ -1,0 +1,321 @@
+#!/usr/bin/perl
+
+use strict;
+use Benchmark qw(timediff timesum timestr);
+use Cwd qw(getcwd realpath);
+use File::Basename;
+use Getopt::Long qw(:config no_ignore_case);
+use Pod::Usage;
+
+my($prog) = fileparse($0, '\.\w*$');
+
+my $marker = uc $prog;
+
+my %opt;
+GetOptions(\%opt, qw(help AllModes audited compare download FreshDB
+    Jobs=i Keep-Going Make=s MF=s OutputToScreen remake Verbose warmup));
+
+if ($opt{help}) {
+    pod2usage(-exitval => 'NOEXIT');
+    print "\nStandard test packages include:\n";
+    print "\t$_" for <DATA>;
+    exit(2);
+}
+
+$opt{AllModes} = 1
+    unless $opt{warmup} || $opt{download} || $opt{remake} || $opt{compare};
+$opt{warmup} = $opt{download} = $opt{remake} = $opt{compare} = 1
+    if $opt{AllModes};
+$opt{audited} = 1;
+
+if (! $opt{OutputToScreen}) {
+    open(ORIG_STDERR, ">&STDERR") || die "$prog: Error: can't dup stderr\n";
+    open(STDOUT, ">$marker.log") || die "$prog: Error: $marker.log: $!\n";
+    open(STDERR, ">&STDOUT") || die "$prog: Error: can't dup stdout\n";
+}
+
+sub timing {
+    my $delta = shift;
+    my $timed = timestr($delta, 'noc', '5.1f');
+    $timed =~ s%wallclock secs.*%seconds%;
+    return $timed;
+}
+
+my $status = 0;
+
+my $Make = $opt{Make} || 'make';
+my $app = 'ao';
+my $q = $opt{Verbose} ? '' : '-q';
+
+my $start = Benchmark->new;
+my $zero = timediff($start, $start);
+
+my $projname = 'unknown';
+
+sub run {
+    my $cmd = "@_";
+    print STDERR "+ $cmd\n";
+    my $status = system($cmd);
+    if ($status) {
+	warn "$prog: Error: BUILD OF '$projname' FAILED ($status)\n";
+	if (($status == 512 || $status & 127) && !$opt{'Keep-Going'}) {
+	    exit(2);
+	} else {
+	    return 1;
+	}
+    } else {
+	return 0;
+    }
+}
+
+sub findbase {
+    my $dir = shift;
+    if (-d "$dir/.$app" || -f "$dir/$app.project") {
+	return $dir;
+    } else {
+	my $parent = dirname($dir);
+	if ($parent eq $dir) {
+	    return undef;
+	} else {
+	    return findbase($parent);
+	}
+    } 
+}
+
+my($total_w, $total_a, $total_r, $total_c, $total_d) = ($zero, $zero, $zero, $zero, $zero);
+
+# Default to the list of known good test cases in the DATA section.
+if (! @ARGV) {
+    for (<DATA>) {
+	chomp;
+	my @results = glob($_);
+	if (@results) {
+	    push(@ARGV, @results);
+	} else {
+	    push(@ARGV, $_);
+	}
+    }
+}
+
+my @dirs = map { realpath($_) } @ARGV;
+for my $dir (@dirs) {
+    my $rc = 0;
+
+    if (!chdir($dir)) {
+	warn "$prog: Error: $dir: $!\n";
+	$status++;
+	next;
+    }
+    
+    if (! -f 'Makefile') {
+	warn "$prog: Error: $dir: missing Makefile\n";
+	$status++;
+	next;
+    }
+
+    print "========== $dir ==========\n";
+
+    my $projbase = findbase(realpath('.')) || getcwd;
+    my $projfile = "$projbase/.$app/$app.properties";
+    if (! -f $projfile) {
+	mkdir "$projbase/.$app" unless -d "$projbase/.$app";
+	open(PROJFILE, '>', $projfile) || die "$prog: Error: $projfile: $!";
+	($projname = basename($dir)) =~ s%^(\w*).*%$1%;
+	print PROJFILE "Project.Name = $projname\n";
+	close(PROJFILE);
+    }
+    exit(2) if system("cat $projfile");
+
+    chomp($projname = qx(ao property Project.Name));
+
+    if ($opt{FreshDB}) {
+	system("set -x; $app ADMIN delete PROJECT $projname 2>/dev/null");
+    }
+
+    my $t0 = Benchmark->new;
+    my $wcmd = "$app $q -C -X -l make-w.log $Make";
+    if ($opt{warmup} && run($wcmd)) {
+	$rc++;
+    } else {
+	my $t1 = Benchmark->new;
+	my $disp = $opt{download} ? "-O %p.$app" : "-o %p.$app";
+	my $acmd = "$app $q -C -u $disp -m -l make-a.log $Make";
+	if (run($acmd)) {
+	    $rc++;
+	} else {
+	    my $t2a = Benchmark->new;
+	    my($basedir, $audit) = qx($app substitute %b %p.$app);
+	    chomp($basedir, $audit);
+	    my $mf = $opt{MF} || 'MF';
+	    my $mflags = qq(-out=$mf -full -members -pdump -base="$basedir");
+	    if (system qq(set -x; $^X -wS ao2make $mflags $audit)) {
+		$rc++;
+	    }
+	    my $t2b = Benchmark->new;
+	    my $rcmd = "$app $q -C -X -l make-r.log $Make -f $mf";
+	    $rcmd .= ' -j ' . $opt{Jobs} if $opt{Jobs};
+	    if ($opt{remake} && !$rc && run($rcmd)) {
+		$rc++;
+	    } else {
+		my $t3 = Benchmark->new;
+		my $ccmd = "$app $q -C -X -l make-c.log $Make";
+		if ($opt{compare} && run($ccmd)) {
+		    $rc++;
+		} else {
+		    my $t4 = Benchmark->new;
+		    my $dcmd = "$app $q -C -r -w -l make-d.log $Make";
+		    if ($opt{download} && run($dcmd)) {
+			$rc++;
+		    } else {
+			my $t5 = Benchmark->new;
+			my @timings = ();
+			if ($opt{warmup}) {
+			    my $delta = timediff($t1, $t0);
+			    push(@timings, sprintf "%-12s   %s\n", 'Warmup:',
+				timing($delta));
+			    $total_w = timesum($total_w, $delta);
+			}
+			if ($opt{audited}) {
+			    my $delta = timediff($t2a, $t1);
+			    push(@timings, sprintf "%-12s   %s\n", 'Audited:',
+				timing($delta));
+			    $total_a = timesum($total_a, $delta);
+			}
+			if ($opt{remake}) {
+			    my $delta = timediff($t3, $t2b);
+			    push(@timings, sprintf "%-12s   %s\n", 'Remake:',
+				timing($delta));
+			    $total_r = timesum($total_r, $delta);
+			}
+			if ($opt{compare}) {
+			    my $delta = timediff($t4, $t3);
+			    push(@timings, sprintf "%-12s   %s\n", 'Compare:',
+				timing($delta));
+			    $total_c = timesum($total_c, $delta);
+			}
+			print STDERR '=' x 74, "\n";
+			if ($opt{download}) {
+			    my $delta = timediff($t5, $t4);
+			    push(@timings, sprintf "%-12s   %s\n", 'Download:',
+				timing($delta));
+			    $total_d = timesum($total_d, $delta);
+			    system qq(set -x; $app lsbuilds -l);
+			}
+			push(@timings, sprintf "%-12s   %s\n", 'Combined:',
+			    timing(timediff($t5, $t0)));
+			unlink $marker;
+			open(MARKER, '>', $marker)
+			    || die "$prog: Error: $marker: $!";
+			print MARKER @timings;
+			close(MARKER);
+			print STDERR @timings;
+			print STDERR '=' x 74, "\n\n";
+		    }
+		}
+	    }
+	}
+    }
+
+    $status += $rc;
+}
+
+my $end = Benchmark->new;
+
+my @summary;
+push(@summary,
+    sprintf "%-12s   %s\n", 'WARMUP:', timing(timediff($total_w, $zero)))
+	if $opt{warmup};
+push(@summary,
+    sprintf "%-12s   %s\n", 'AUDITED:', timing(timediff($total_a, $zero)))
+	if $opt{audited};
+push(@summary,
+    sprintf "%-12s   %s\n", 'REMAKE:', timing(timediff($total_r, $zero)))
+	if $opt{remake};
+push(@summary,
+    sprintf "%-12s   %s\n", 'COMPARE:', timing(timediff($total_c, $zero)))
+	if $opt{compare};
+push(@summary,
+    sprintf "%-12s   %s\n", 'DOWNLOAD:', timing(timediff($total_d, $zero)))
+	if $opt{download};
+push(@summary,
+    sprintf "%-12s   %s\n", 'TOTAL:', timing(timediff($end, $start)));
+
+print STDERR @summary;
+print ORIG_STDERR @summary unless $opt{OutputToScreen};
+
+exit($status != 0);
+
+=pod
+
+=head1 NAME
+
+ao-cycle - A test harness for AO.
+
+=head1 OPTIONS
+
+   -help		Print this message and exit
+   -warmup		Run a "vanilla" build first, to get caches warm
+   -audited		Do an audited build, uploading results to server
+   -download		Follow an audited build with a downloading build
+   -remake		Use audit results to generate and use a Makefile
+   -compare		Run a "vanilla" build last for timing comparison
+   -AllModes		Perform all build modes (audited, remake, etc)
+   -FreshDB		Clear the server database before beginning
+   -Jobs=n		Test "remake" parallelism by using 'n' jobs
+   -Keep-Going		Do not exit if a test buiuld fails
+   -OutputToScreen	Send output to stdout/stderr instead of a file
+   -Verbose		Do not suppress AO verbosity
+
+=head2 NOTES
+
+    - With no arguments, all packages are tested in all modes.
+    - All flags may be abbreviated to their shortest unique name.
+    - The -AllModes flag is assumed if no specific mode is requested.
+    - The -audited flag is implied by certain other modes.
+
+=head2 EXAMPLES
+
+    % ao-cycle -w -a -d -r -O gdb-7.0 pcre-8.02
+	(builds gdb and pcre in warmup, audited, download, and remake modes)
+
+    % ao-cycle -w -d -r
+	(builds all known-and-present packages in the specified modes)
+
+    % ao-cycle
+	(builds all known-and-present packages in all modes)
+
+=head1 DESCRIPTION
+
+This script is a testing harness which performs a set of software
+builds using the AO client, recording and measuring the results.
+By default all output is written to the file './AO-CYCLE.log'.
+The script contains a list of open-source packages known to build
+well with AO and will build them all if no directories are specified
+on the command line.
+
+By default, all testing modes are used. Therefore, when run with no
+arguments it will build all known packages (if present) in all
+modes, and save output to the file noted above.
+
+=cut
+
+__DATA__
+autocutsel-*
+bash-*
+coreutils-*
+curl-*
+diffutils-*
+exim-*
+gdb-*
+httpd-*
+indent-*
+jikes-*
+make-*
+openssl-1.*
+pcre-*
+postgresql-*
+qpopper*
+tar-*
+trio-*
+wget-*
+zlib-*

@@ -1,0 +1,41 @@
+# This may not be the best-conceived Doxyfile ever; I threw it together
+# after a quick review of the docs and once things seemed to work ok I
+# moved on to other things.
+
+PROJECT_NAME			= "AO"
+
+PROJECT_NUMBER			= 1.0
+
+QUIET				= YES
+
+INPUT				= .
+
+FILE_PATTERNS			= *.h *.c
+
+EXCLUDE				= bsd_getopt.h
+
+RECURSIVE			= NO
+
+MACRO_EXPANSION			= YES
+
+EXPAND_ONLY_PREDEF		= YES
+
+PREDEFINED			= 
+
+OPTIMIZE_OUTPUT_FOR_C		= YES
+
+STRIP_CODE_COMMENTS		= NO
+
+FULL_PATH_NAMES			= NO
+
+CASE_SENSE_NAMES		= YES
+
+EXTRACT_STATIC			= NO
+
+GENERATE_LATEX			= NO
+
+JAVADOC_AUTOBRIEF		= YES
+
+SORT_MEMBER_DOCS		= NO
+
+HTML_OUTPUT			= HTML

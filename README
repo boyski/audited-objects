@@ -1,0 +1,15 @@
+Audited Objects (AO) is a tool for the analysis and optimization of
+automated software processes such as builds. When a build process
+is run under AO control, each command executed is recorded in a
+central database along with a record of each file opened by that
+command and its state (checksum/size/timestamp) as of the instant
+it was opened. A full copy of each modified file is stored in
+the database as well.
+
+AO has much in common with clearmake, the IBM Rational build tool,
+but unlike clearmake it's not a build tool per se; instead,
+it injects its auditing capabilities into the build tool of
+your choice.
+
+See the website at http://audited-objects.sourceforge.net/ for
+more information.

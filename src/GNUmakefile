@@ -374,7 +374,7 @@ clean: cleantargets
 	-$(RM) -r HTML
 
 tags:
-	$(RM) tags && ectags *.h *.H *.c *.cpp
+	$(RM) tags && ectags *.h *.c
 
 realclean: clean
 	-$(RM) *.user .*/*.o .*/*.obj 2>/dev/null

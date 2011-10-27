@@ -1,25 +1,17 @@
-.PHONY: all clean rt
+CC		= cl.exe
+CFLAGS		= /nologo
+LFLAGS		= /nologo
 
-.ONESHELL:
-
-# Windows/MSVC compatibility.
-ifdef VSINSTALLDIR
-include NMakefile
-else	#VSINSTALLDIR
-
-CC	:= gcc
+.SUFFIXES: .c .o .obj
 
 all: hello.exe
 
-hello.exe: hello.o goodbye.o
-	$(CC) -o $@ $^
+.c.obj:
+	$(CC) $(CFLAGS) /c /D _CRT_SECURE_NO_WARNINGS $?
 
-%.o: %.c
-	$(CC) -c $<
+hello.exe: hello.obj goodbye.obj
+	$(CC) $(LFLAGS) hello.obj goodbye.obj
 
-clean:
-	-rm -f hello.exe *.o *.class
+clean: ; del /F/Q *.obj hello.exe
 
 rt: clean all
-
-endif	#VSINSTALLDIR

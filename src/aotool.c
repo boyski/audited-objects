@@ -547,30 +547,44 @@ do_action(CCS action, int argc, CS const *argv)
 // actual wall-clock time but the clean really should not count
 // when gathering timing statistics.
 static void
-_make_clean(void)
+_make_clean(int argc, CS const *argv)
 {
+    int i = 0;
     char clean[1024];
-
+    char *pathMF = NULL;
 #if defined(_WIN32)
-    if (!access("NMakefile", R_OK)) {
-	snprintf(clean, sizeof(clean) - 1,
-	    "nmake /nologo /s /f NMakefile clean >%s", DEVNULL);
-    } else if (!access("build.xml", R_OK)) {
-	snprintf(clean, sizeof(clean) - 1, "ant -q clean >%s", DEVNULL);
-    } else {
-	snprintf(clean, sizeof(clean) - 1, "nmake /nologo /s clean >%s",
-	    DEVNULL);
-    }
+    char *mkprog = "nmake /nologo";
 #else	/*_WIN32*/
-    if (!access("Makefile", R_OK) || !access("makefile", R_OK)) {
-	snprintf(clean, sizeof(clean) - 1, "make -s clean >%s", DEVNULL);
-    } else if (!access("build.xml", R_OK)) {
-	snprintf(clean, sizeof(clean) - 1, "ant -q clean >%s", DEVNULL);
-    } else {
-	snprintf(clean, sizeof(clean) - 1, "make -s clean >%s", DEVNULL);
-    }
+    char *mkprog = "make";
 #endif	/*_WIN32*/
 
+    for (i = 0; i < argc - 1; i++) {
+	if (!strcmp("-f", argv[i])) {
+	    pathMF = argv[i + 1];
+	    break;
+#if defined(_WIN32)
+	} else if (!strcmp("/f", argv[i])) {
+	    pathMF = argv[i + 1];
+	    break;
+#endif	/*_WIN32*/
+	}
+    }
+
+    if (pathMF) {
+	snprintf(clean, sizeof(clean) - 1, "%s -s -f %s clean", mkprog, pathMF);
+    } else if (access("Makefile", R_OK) &&
+	    access("makefile", R_OK) &&
+#if !defined(_WIN32)
+	    access("GNUmakefile", R_OK) &&
+#endif	/*_WIN32*/
+	    !access("build.xml", R_OK)) {
+	snprintf(clean, sizeof(clean) - 1, "ant -q clean");
+    } else {
+	snprintf(clean, sizeof(clean) - 1, "%s -s clean", mkprog);
+    }
+
+    strcat(clean, " >");
+    strcat(clean, DEVNULL);
     if (QuietMode) {
 	strcat(clean, " 2>&1");
     } else {
@@ -994,7 +1008,7 @@ main(int argc, CS const *argv)
     argv += bsd_optind;
 
     if (make_clean) {
-	_make_clean();
+	_make_clean(argc, argv);
     }
 
     // The command we've been asked to invoke.

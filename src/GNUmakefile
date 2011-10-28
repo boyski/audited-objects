@@ -81,7 +81,7 @@ INST_PREFIX	:= ${HOME}/${TGTARCH}
 UFLAGS		:= -g
 
 #DFLAGS		:= $(shell getconf LFS_CFLAGS 2>/dev/null || echo $(DEF_DFLAGS))
-DFLAGS		:= -D_REENTRANT -D_LARGEFILE_SOURCE -DTRIO_REPLACE_STDIO
+DFLAGS		:= -D_REENTRANT -DFILE_OFFSET_BITS=64 -DTRIO_REPLACE_STDIO
 
 CFLAGS		 = $(CSTYLE)
 
@@ -194,8 +194,6 @@ OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o git.o http.o \
 		   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
 		   putil.o re.o shop.o unix.o up.o util.o vb.o
 
-CFLAGS		+= -D_LARGEFILE64_SOURCE
-
 CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
 
 AUDITOR		:= libAO.so
@@ -276,7 +274,6 @@ PLDLIBS		:=
 endif
 
 ifdef HPUX
-CFLAGS		+= -D_LARGEFILE64_SOURCE
 PLDLIBS		:= -lm
 endif
 
@@ -284,6 +281,7 @@ ifdef DARWIN
 CFLAGS		+= -fPIC -fno-common # Q: add -dynamic too?
 CFLAGS		+= -arch i386 -arch x86_64
 UFLAGS		:= -gstabs+
+SYSLIBS		:= -L/usr/lib
 SHLIBFLAGS	:= -dynamiclib -flat_namespace -multiply_defined suppress
 SHLIBFLAGS	+= -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
 PLDLIBS		:=

@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_types_h__
 #define INCLUDE_git_types_h__
@@ -54,7 +36,7 @@ GIT_BEGIN_DECL
 #if defined(_MSC_VER)
 
 typedef __int64 git_off_t;
-typedef __time64_t  git_time_t;
+typedef __time64_t git_time_t;
 
 #elif defined(__MINGW32__)
 
@@ -66,7 +48,7 @@ typedef __time64_t git_time_t;
 typedef __haiku_std_int64 git_off_t;
 typedef __haiku_std_int64 git_time_t;
 
-#else  /* POSIX */
+#else /* POSIX */
 
 /*
  * Note: Can't use off_t since if a client program includes <sys/types.h>
@@ -81,15 +63,15 @@ typedef int64_t git_time_t;
 /** Basic type (loose or packed) of any Git object. */
 typedef enum {
 	GIT_OBJ_ANY = -2,		/**< Object can be any of the following */
-	GIT_OBJ_BAD = -1,       /**< Object is invalid. */
-	GIT_OBJ__EXT1 = 0,      /**< Reserved for future use. */
-	GIT_OBJ_COMMIT = 1,     /**< A commit object. */
-	GIT_OBJ_TREE = 2,       /**< A tree (directory listing) object. */
-	GIT_OBJ_BLOB = 3,       /**< A file revision object. */
-	GIT_OBJ_TAG = 4,        /**< An annotated tag object. */
-	GIT_OBJ__EXT2 = 5,      /**< Reserved for future use. */
-	GIT_OBJ_OFS_DELTA = 6,  /**< A delta, base is given by an offset. */
-	GIT_OBJ_REF_DELTA = 7,  /**< A delta, base is given by object id. */
+	GIT_OBJ_BAD = -1,		/**< Object is invalid. */
+	GIT_OBJ__EXT1 = 0,		/**< Reserved for future use. */
+	GIT_OBJ_COMMIT = 1,		/**< A commit object. */
+	GIT_OBJ_TREE = 2,		/**< A tree (directory listing) object. */
+	GIT_OBJ_BLOB = 3,		/**< A file revision object. */
+	GIT_OBJ_TAG = 4,		/**< An annotated tag object. */
+	GIT_OBJ__EXT2 = 5,		/**< Reserved for future use. */
+	GIT_OBJ_OFS_DELTA = 6, /**< A delta, base is given by an offset. */
+	GIT_OBJ_REF_DELTA = 7, /**< A delta, base is given by object id. */
 } git_otype;
 
 /** An open object database handle. */

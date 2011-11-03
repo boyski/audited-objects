@@ -20,8 +20,8 @@ FILES	 := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
 pkg:
 	rm -f rel/$(PKG)
-	cd $(src) && $(MAKE) -s CFG=$(CFG) rt
-	xcopy /Y ao.properties-windows $(src)\.$(TGTARCH)\$(CFG)\ao.properties-sample
+	cd $(src) && $(MAKE) -s $@
+	xcopy /Y etc\ao.properties-windows $(src)\.$(TGTARCH)\$(CFG)\ao.properties-sample
 	del /F/Q/S $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/S/F/I $(src)\pl\AO $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/F $(src)\.$(TGTARCH)\tee.exe $(src)\.$(TGTARCH)\$(CFG)
@@ -71,7 +71,7 @@ endif
 PKGS	:= rel/ao-Linux_i386-${OSVER}.tar.gz rel/ao-Linux_x86_64-${OSVER}.tar.gz
 rel/ao-Linux_i386-${OSVER}.tar.gz: TGTARCH := Linux_i386
 rel/ao-Linux_x86_64-${OSVER}.tar.gz: TGTARCH := Linux_x86_64
-pkg: $(SPKG)
+pkg:
 
 else					## ELSE NOT LINUX
 
@@ -93,9 +93,9 @@ endif
 $(PKGS): $(wildcard $(SRCS))
 	cd $(src) && $(MAKE) -s rt TGTARCH=$(TGTARCH)
 	mkdir -p ${HOME}/${TGTARCH}/etc ${HOME}/${TGTARCH}/man/man1 &&\
-	    cp ao.properties-unix ${HOME}/${TGTARCH}/etc/ao.properties-sample &&\
+	    cp etc/ao.properties-unix ${HOME}/${TGTARCH}/etc/ao.properties-sample &&\
 	    chmod 644 ${HOME}/${TGTARCH}/etc/ao.* &&\
-	    cp ao.mk ${HOME}/${TGTARCH}/etc/ao.mk &&\
+	    cp etc/ao.mk ${HOME}/${TGTARCH}/etc/ao.mk &&\
 	    mkdir -p ${HOME}/${TGTARCH}/man/man1 &&\
 	    pod2man --center="Audited Objects Client" --release="AO" \
 		man/ao.pod ${HOME}/${TGTARCH}/man/man1/ao.1 &&\
@@ -106,6 +106,6 @@ clean:
 	rm -f $(PKGS)
 
 realclean:
-	rm -f rel/*.gz rel/*.zip
+	$(RM) rel/*.gz rel/*.zip
 
 endif	#VSINSTALLDIR

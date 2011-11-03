@@ -162,7 +162,7 @@ $(CPCI): CPCI\CPCI.vcproj CPCI\cpci.cpp
 	msbuild CPCI\CPCI.vcproj /nologo /t:build /p:Configuration=$(CFG)
 
 _relink:
-	-del /q $P\*.exe $P\*.dll
+	-del /q $P\ao.exe $P\*.dll
 
 relink: _relink install
 

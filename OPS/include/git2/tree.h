@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_tree_h__
 #define INCLUDE_git_tree_h__
@@ -285,6 +267,50 @@ GIT_EXTERN(void) git_treebuilder_filter(git_treebuilder *bld, int (*filter)(cons
  * @return GIT_SUCCESS or an error code
  */
 GIT_EXTERN(int) git_treebuilder_write(git_oid *oid, git_repository *repo, git_treebuilder *bld);
+
+/**
+ * Retrieve the tree object containing a tree entry, given
+ * a relative path to this tree entry
+ *
+ * The returned tree is owned by the repository and
+ * should be closed with the `git_object_close` method.
+ *
+ * @param parent_out Pointer where to store the parent tree
+ * @param root A previously loaded tree which will be the root of the relative path
+ * @param treeentry_path Path to the tree entry from which to extract the last tree object
+ * @return GIT_SUCCESS on success; GIT_ENOTFOUND if the path does not lead to an
+ * entry, GIT_EINVALIDPATH or an error code
+ */
+GIT_EXTERN(int) git_tree_frompath(git_tree **parent_out, git_tree *root, const char *treeentry_path);
+
+/** Callback for the tree traversal method */
+typedef int (*git_treewalk_cb)(const char *root, git_tree_entry *entry);
+
+/** Tree traversal modes */
+enum git_treewalk_mode {
+	GIT_TREEWALK_PRE = 0, /* Pre-order */
+	GIT_TREEWALK_POST = 1, /* Post-order */
+};
+
+/**
+ * Traverse the entries in a tree and its subtrees in
+ * post or pre order
+ *
+ * The entries will be traversed in the specified order,
+ * children subtrees will be automatically loaded as required,
+ * and the `callback` will be called once per entry with
+ * the current (relative) root for the entry and the entry
+ * data itself.
+ *
+ * If the callback returns a negative value, the passed entry
+ * will be skiped on the traversal.
+ *
+ * @param tree The tree to walk
+ * @param callback Function to call on each tree entry
+ * @param mode Traversal mode (pre or post-order)
+ * @return GIT_SUCCESS or an error code
+ */
+GIT_EXTERN(int) git_tree_walk(git_tree *walk, git_treewalk_cb callback, int mode);
 
 /** @} */
 GIT_END_DECL

@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_common_h__
 #define INCLUDE_git_common_h__
@@ -29,21 +11,27 @@
 #include <time.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-# define GIT_BEGIN_DECL  extern "C" {
-# define GIT_END_DECL    }
+#ifdef _MSC_VER
+#	include "inttypes.h"
 #else
-  /** Start declarations in C mode */
-# define GIT_BEGIN_DECL  /* empty */
-  /** End declarations in C mode */
-# define GIT_END_DECL    /* empty */
+#	include <inttypes.h>
+#endif
+
+#ifdef __cplusplus
+# define GIT_BEGIN_DECL extern "C" {
+# define GIT_END_DECL	}
+#else
+ /** Start declarations in C mode */
+# define GIT_BEGIN_DECL /* empty */
+ /** End declarations in C mode */
+# define GIT_END_DECL	/* empty */
 #endif
 
 /** Declare a public function exported for application use. */
-#ifdef __GNUC__
+#if __GNUC__ >= 4
 # define GIT_EXTERN(type) extern \
-			  __attribute__((visibility("default"))) \
-			  type
+			 __attribute__((visibility("default"))) \
+			 type
 #elif defined(_MSC_VER)
 # define GIT_EXTERN(type) __declspec(dllexport) type
 #else
@@ -51,11 +39,11 @@
 #endif
 
 /** Declare a public TLS symbol exported for application use. */
-#ifdef __GNUC__
+#if __GNUC__ >= 4
 # define GIT_EXTERN_TLS(type) extern \
-			      __attribute__((visibility("default"))) \
-			      GIT_TLS \
-			      type
+					__attribute__((visibility("default"))) \
+					GIT_TLS \
+					type
 #elif defined(_MSC_VER)
 # define GIT_EXTERN_TLS(type) __declspec(dllexport) GIT_TLS type
 #else
@@ -76,7 +64,7 @@
 # define GIT_FORMAT_PRINTF(a,b) /* empty */
 #endif
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if (defined(_WIN32) || defined(_WIN64)) && !defined(__CYGWIN__)
 #define GIT_WIN32 1
 #endif
 

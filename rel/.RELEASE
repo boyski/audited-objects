@@ -1,0 +1,39 @@
+Checklist of things to do when making a new release of AO.
+
+- Make sure release notes are up to date.
+
+- Change version numbers in App.properties, *.vcproj, and server side.
+
+- Build on all release platforms.
+
+- Run a test cycle.
+
+- Copy binary packages into Eclipse server package.
+
+- Export server as AO.war.
+
+- Wrap the AO.war in a AO-x.y.z.zip file.
+
+- Move both AO.war and AO-x.y.z.zip to the Unix side.
+
+- Push the zipfile up to SF.net using sf-upload script.
+
+- Start a shell on SF using the sf-shell script.
+
+(Now on SF.net server):
+
+=> Cd to ~/ao-files (/home/frs/project/a/au/audited-objects).
+
+=> Extract the .war file and move it to ~/ao-docs (/home/project-web/audited-objects/htdocs/).
+
+=> Cd to ~/ao-docs and unzip the .war file there ("unzip -o -q AO.war").
+
+=> Delete AO.war.
+
+=> Delete any obsolete static content under ~/ao-docs.
+
+(From a local browser):
+
+- Hit SF.net and see how things look.
+
+Finish by updating all version numbers to N+1 !

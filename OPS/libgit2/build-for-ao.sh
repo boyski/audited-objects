@@ -14,5 +14,6 @@ cd ${OS_CPU?}
 cmake -DBUILD_SHARED_LIBS=NO \
     -DCMAKE_OSX_ARCHITECTURES="i386;x86_64" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_FLAGS=-m64 \
     ../repo
 make VERBOSE=1

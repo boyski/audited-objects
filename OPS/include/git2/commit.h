@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_commit_h__
 #define INCLUDE_git_commit_h__
@@ -44,8 +26,8 @@ GIT_BEGIN_DECL
  *
  * @param commit pointer to the looked up commit
  * @param repo the repo to use when locating the commit.
- * @param id identity of the commit to locate.  If the object is
- *        an annotated tag it will be peeled back to the commit.
+ * @param id identity of the commit to locate. If the object is
+ *		an annotated tag it will be peeled back to the commit.
  * @return GIT_SUCCESS or an error code
  */
 GIT_INLINE(int) git_commit_lookup(git_commit **commit, git_repository *repo, const git_oid *id)
@@ -61,8 +43,8 @@ GIT_INLINE(int) git_commit_lookup(git_commit **commit, git_repository *repo, con
  *
  * @param commit pointer to the looked up commit
  * @param repo the repo to use when locating the commit.
- * @param id identity of the commit to locate.  If the object is
- *        an annotated tag it will be peeled back to the commit.
+ * @param id identity of the commit to locate. If the object is
+ *		an annotated tag it will be peeled back to the commit.
  * @param len the length of the short identifier
  * @return GIT_SUCCESS or an error code
  */
@@ -215,7 +197,7 @@ GIT_EXTERN(const git_oid *) git_commit_parent_oid(git_commit *commit, unsigned i
  *	time of this commit
  *
  * @param committer Signature representing the committer and the
- *  commit time of this commit
+ * commit time of this commit
  *
  * @param message_encoding The encoding for the message in the
  * commit, represented with a standard encoding name.

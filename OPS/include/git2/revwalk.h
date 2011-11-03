@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_revwalk_h__
 #define INCLUDE_git_revwalk_h__
@@ -44,28 +26,28 @@ GIT_BEGIN_DECL
  * and subject to change at any time.
  * This is the default sorting for new walkers.
  */
-#define GIT_SORT_NONE         (0)
+#define GIT_SORT_NONE			(0)
 
 /**
  * Sort the repository contents in topological order
  * (parents before children); this sorting mode
  * can be combined with time sorting.
  */
-#define GIT_SORT_TOPOLOGICAL  (1 << 0)
+#define GIT_SORT_TOPOLOGICAL (1 << 0)
 
 /**
  * Sort the repository contents by commit time;
  * this sorting mode can be combined with
  * topological sorting.
  */
-#define GIT_SORT_TIME         (1 << 1)
+#define GIT_SORT_TIME			(1 << 1)
 
 /**
  * Iterate through the repository contents in reverse
  * order; this sorting mode can be combined with
  * any of the above.
  */
-#define GIT_SORT_REVERSE      (1 << 2)
+#define GIT_SORT_REVERSE		(1 << 2)
 
 /**
  * Allocate a new revision walker to iterate through a repo.
@@ -169,7 +151,7 @@ GIT_EXTERN(void) git_revwalk_sorting(git_revwalk *walk, unsigned int sort_mode);
 /**
  * Free a revision walker previously allocated.
  *
- * @param walk traversal handle to close.  If NULL nothing occurs.
+ * @param walk traversal handle to close. If NULL nothing occurs.
  */
 GIT_EXTERN(void) git_revwalk_free(git_revwalk *walk);
 

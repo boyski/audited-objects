@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_config_h__
 #define INCLUDE_git_config_h__
@@ -68,6 +50,18 @@ struct git_config_file {
  *	found. Its path will be stored in `buffer`.
  */
 GIT_EXTERN(int) git_config_find_global(char *global_config_path);
+
+/**
+ * Locate the path to the system configuration file
+ *
+ * If /etc/gitconfig doesn't exist, it will look for
+ * %PROGRAMFILES%\Git\etc\gitconfig.
+
+ * @param system_config_path Buffer of GIT_PATH_MAX length to store the path
+ * @return GIT_SUCCESS if a system configuration file has been
+ *	found. Its path will be stored in `buffer`.
+ */
+GIT_EXTERN(int) git_config_find_system(char *system_config_path);
 
 /**
  * Open the global configuration file
@@ -172,7 +166,7 @@ GIT_EXTERN(void) git_config_free(git_config *cfg);
  * @param out pointer to the variable where the value should be stored
  * @return GIT_SUCCESS or an error code
  */
-GIT_EXTERN(int) git_config_get_int(git_config *cfg, const char *name, int *out);
+GIT_EXTERN(int) git_config_get_int32(git_config *cfg, const char *name, int32_t *out);
 
 /**
  * Get the value of a long integer config variable.
@@ -182,7 +176,7 @@ GIT_EXTERN(int) git_config_get_int(git_config *cfg, const char *name, int *out);
  * @param out pointer to the variable where the value should be stored
  * @return GIT_SUCCESS or an error code
  */
-GIT_EXTERN(int) git_config_get_long(git_config *cfg, const char *name, long int *out);
+GIT_EXTERN(int) git_config_get_int64(git_config *cfg, const char *name, int64_t *out);
 
 /**
  * Get the value of a boolean config variable.
@@ -218,7 +212,7 @@ GIT_EXTERN(int) git_config_get_string(git_config *cfg, const char *name, const c
  * @param value Integer value for the variable
  * @return GIT_SUCCESS or an error code
  */
-GIT_EXTERN(int) git_config_set_int(git_config *cfg, const char *name, int value);
+GIT_EXTERN(int) git_config_set_int32(git_config *cfg, const char *name, int32_t value);
 
 /**
  * Set the value of a long integer config variable.
@@ -228,7 +222,7 @@ GIT_EXTERN(int) git_config_set_int(git_config *cfg, const char *name, int value)
  * @param value Long integer value for the variable
  * @return GIT_SUCCESS or an error code
  */
-GIT_EXTERN(int) git_config_set_long(git_config *cfg, const char *name, long int value);
+GIT_EXTERN(int) git_config_set_int64(git_config *cfg, const char *name, int64_t value);
 
 /**
  * Set the value of a boolean config variable.

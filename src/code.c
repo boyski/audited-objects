@@ -50,9 +50,9 @@
 /// happen to be the same size. This seems exceedingly unlikely,
 /// though I do not have the math skills to come up with a number.
 ///
-/// The current default hash algorithm is CRC32, though it seems
+/// The original default hash algorithm was CRC32, but it seems
 /// to be conventional wisdom that CRC32 is not a great identity
-/// hash because its distribution is not ideal (where good distribution
+/// hash because its distribution is not ideal (where ideal
 /// means it uses all of the 2**32 bit patterns with the same
 /// likelihood and doesn't tend to favor, say, the even numbers or
 /// the positive numbers or the low numbers).

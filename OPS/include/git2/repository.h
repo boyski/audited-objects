@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_repository_h__
 #define INCLUDE_git_repository_h__
@@ -302,26 +284,20 @@ GIT_EXTERN(int) git_repository_is_bare(git_repository *repo);
 /**
  * Retrieve the relevant configuration for a repository
  *
- * By default he returned `git_config` instance contains a single
- * configuration file, the `.gitconfig' file that may be found
- * inside the repository.
- *
- * If the `user_config_path` variable is not NULL, the given config
- * file will be also included in the configuration set. On most UNIX
- * systems, this file may be found on `$HOME/.gitconfig`.
- *
- * If the `system_config_path` variable is not NULL, the given config
- * file will be also included in the configuration set. On most UNIX
- * systems, this file may be found on `$PREFIX/etc/gitconfig`.
+ * If either the `global_config_path` or `system_config_path`
+ * variables are not NULL, the given config files will be also
+ * included in the configuration set. The global configuration file is
+ * located in $HOME/.gitconfig. On most UNIX systems, the system
+ * config file file may be found on `$sysconfdir/gitconfig`.
  *
  * The resulting `git_config` instance will query the files in the following
  * order:
  *
  *	- Repository configuration file
- *	- User configuration file
+ *	- Global configuration file
  *	- System configuration file
  *
- * The method will fail if any of the passed config files cannot be
+ * The method will fail if any of the given config files can't be
  * found or accessed.
  *
  * The returned `git_config` instance is owned by the caller and must
@@ -329,13 +305,29 @@ GIT_EXTERN(int) git_repository_is_bare(git_repository *repo);
  *
  * @param out the repository's configuration
  * @param repo the repository for which to get the config
- * @param user_config_path Path to the user config file
+ * @param system_config_path Path to the global config file
  * @param system_config_path Path to the system-wide config file
  */
+
 GIT_EXTERN(int) git_repository_config(git_config **out,
 	git_repository *repo,
-	const char *user_config_path,
+	const char *global_config_path,
 	const char *system_config_path);
+
+/**
+ * Automatically load the configuration files
+ *
+ * A wrapper around `git_repository_config` that tries to guess where
+ * the global and system config files are located. No error is
+ * reported if either of these files are missing at the guessed
+ * locations.
+ *
+ * @param out the repository's configuration
+ * @param repo the repository for which to get the config
+ */
+GIT_EXTERN(int) git_repository_config_autoload(
+		git_config **out,
+		git_repository *repo);
 
 /** @} */
 GIT_END_DECL

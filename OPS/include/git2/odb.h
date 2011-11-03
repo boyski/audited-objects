@@ -1,26 +1,8 @@
 /*
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2,
- * as published by the Free Software Foundation.
+ * Copyright (C) 2009-2011 the libgit2 contributors
  *
- * In addition to the permissions in the GNU General Public License,
- * the authors give you unlimited permission to link the compiled
- * version of this file into combinations with other programs,
- * and to distribute those combinations without any restriction
- * coming from the use of this file.  (The General Public License
- * restrictions do apply in other respects; for example, they cover
- * modification of the file, and distribution when not linked into
- * a combined executable.)
- *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
 #ifndef INCLUDE_git_odb_h__
 #define INCLUDE_git_odb_h__
@@ -46,7 +28,7 @@ GIT_BEGIN_DECL
  * backend must be manually added using `git_odb_add_backend()`
  *
  * @param out location to store the database pointer, if opened.
- *            Set to NULL if the open failed.
+ *			Set to NULL if the open failed.
  * @return GIT_SUCCESS or an error code
  */
 GIT_EXTERN(int) git_odb_new(git_odb **out);
@@ -63,7 +45,7 @@ GIT_EXTERN(int) git_odb_new(git_odb **out);
  *		contains a 'pack/' folder with the corresponding data
  *
  * @param out location to store the database pointer, if opened.
- *            Set to NULL if the open failed.
+ *			Set to NULL if the open failed.
  * @param objects_dir path of the backends' "objects" directory.
  * @return GIT_SUCCESS or an error code
  */
@@ -108,7 +90,7 @@ GIT_EXTERN(int) git_odb_add_alternate(git_odb *odb, git_odb_backend *backend, in
 /**
  * Close an open object database.
  *
- * @param db database pointer to close.  If NULL no action is taken.
+ * @param db database pointer to close. If NULL no action is taken.
  */
 GIT_EXTERN(void) git_odb_close(git_odb *db);
 

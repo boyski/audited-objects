@@ -20,7 +20,7 @@ FILES	 := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
 pkg:
 	rm -f rel/$(PKG)
-	cd $(src) && $(MAKE) -s $@
+	cd $(src) && $(MAKE) CFG=$(CFG) $@
 	xcopy /Y etc\ao.properties-windows $(src)\.$(TGTARCH)\$(CFG)\ao.properties-sample
 	del /F/Q/S $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/S/F/I $(src)\pl\AO $(src)\.$(TGTARCH)\$(CFG)\AO

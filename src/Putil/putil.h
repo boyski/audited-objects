@@ -1057,7 +1057,7 @@ putil_dirname(CCS path)
     if (!path)
 	return NULL;
 
-    result = (CS)putil_malloc(strlen(path) + 1);
+    result = (CS)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
 
 #ifdef _WIN32
     {
@@ -1066,15 +1066,16 @@ putil_dirname(CCS path)
 	char drive[_MAX_DRIVE], dir[_MAX_DIR];
 
 	strcpy(buf, path);
-	for (ep = endof(buf) - 1; *ep == '\\' || *ep == '/'; ep--)
-		*ep = '\0';
+	for (ep = endof(buf) - 1; *ep == '\\' || *ep == '/'; ep--) {
+	    *ep = '\0';
+	}
 	_splitpath(buf, drive, dir, NULL, NULL);
 	result[0] = '\0';
 	strcat(result, drive);
 	if (*dir) {
 	    strcat(result, dir);
 	} else {
-	    strcat(result, ".");
+	    strcat(result, "\\");
 	}
 	for (ep = endof(result) - 1; *ep == '\\' || *ep == '/'; ep--)
 		*ep = '\0';

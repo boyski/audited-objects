@@ -14,11 +14,17 @@
 # On Windows, defer to msbuild/vcbuild in order to keep the solution current.
 ifdef VSINSTALLDIR
 
-MSBLDCMD	:= msbuild AO.sln /nologo
-install all: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Debug
-install-pkg: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=Release
-clean: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Debug
-clean-pkg: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=Release
+MSBLDCMD	   := msbuild AO.sln /nologo
+
+install all:   CFG := Debug
+install-pkg:   CFG := Release
+clean:         CFG := Debug
+clean-pkg:     CFG := Release
+
+install all: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
+install-pkg: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
+clean: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
+clean-pkg: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
 
 CPUARCH	:= Windows_i386
 TGTARCH	:= $(CPUARCH)
@@ -29,11 +35,11 @@ PKGFILES := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
 pkg: clean-pkg install-pkg
 	$(RM) ..\rel\$(PKG)
-	$(RM) -r .$(TGTARCH)\Release\AO
-	cp ../etc/ao.properties-windows .$(TGTARCH)/Release/ao.properties-sample
-	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\Release\AO
-	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\Release
-	cd .$(TGTARCH)/Release && zip -rD ../../../rel/$(PKG) $(PKGFILES)
+	$(RM) -r .$(TGTARCH)\$(CFG)\AO
+	cp ../etc/ao.properties-windows .$(TGTARCH)/$(CFG)/ao.properties-sample
+	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\$(CFG)\AO
+	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\$(CFG)
+	cd .$(TGTARCH)/$(CFG) && zip -rD ../../../rel/$(PKG) $(PKGFILES)
 
 else
 

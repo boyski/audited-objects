@@ -1,0 +1,356 @@
+=head1 AO Theory
+
+This document attempts to provide insight, at the developer level, into
+how AO works and the reasoning behind various design decisions.  A
+certain understanding of classical build procedures and terminology
+(make, ant, etc) is assumed.
+
+=head2 Auditing Technology
+
+What makes AO possible is the auditing technology which is based on
+"symbol interposition". This means intercepting all calls to particular
+system services, typically system calls, by defining another symbol of
+the same name in a place which is searched earlier.  Thus the audited
+process will find the "interposed" symbol instead of the "real" one.
+The interposed symbol points to a function which will do what we need
+done, such as registering that a given file was opened, and then pass
+the request along to the function pointed at by the "real" symbol. Note
+that although we typically want to use this to monitor system calls,
+there is no requirement that the interposed symbol be that of a system
+call. Any library function may be interposed on.
+
+Interposition is handled differently on Unix and Windows:
+
+=head3 Unix Interposition
+
+Most Unix systems offer native support for interposition via the
+runtime linker, which resolves symbols at process startup time.
+Typically the runtime linker can be configured to preload an additional
+shared library via an environment variable. System V-derived systems
+(such as Solaris) and those which aim for SysV compatibility (such as
+Linux) tend to call this EV "LD_PRELOAD".
+
+The Unix runtime linker runs through all shared libraries in a
+predefined order while resolving symbols. The first match is accepted.
+Since a preloaded library is always placed at the front of the line,
+any symbols defined in it will take precedence over those in a system
+library such as libc.so. The replacement function can then use standard
+dlopen/dlsym semantics to find and pass control to the "real" API.
+
+One important issue here: each shared lib comes with a static
+initializer.  These are run in the same order as symbol resolution is
+done. Therefore, a preloaded library's initializer will be run before
+those of the system libs and thus must not assume the system libraries
+are fully initialized.
+
+=head3 Windows Interposition
+
+Windows interposition is done via a two-part process starting with
+what's known as "DLL Injection" which forces a DLL into the load
+sequence much as LD_PRELOAD does on the Unix side. The DLL thus
+injected into the process space will then turn around and do what's
+known as "API Hooking" during its initialization phase. API Hooking
+says to the system "When you need this symbol, call me instead of the
+system call listed in your table".
+
+DLL injection works by locating the address at which the process will
+begin to execute and replacing the code at that address with code which
+will call LoadLibrary() on a specified DLL.  After this is done, the
+original instructions will be restored and execution will continue as
+if nothing ever happened.
+
+API Hooking is based on ideas described in "Programming
+Applications for Microsoft Windows: Fourth Edition" by Jeffrey
+Richter, specifically in Chapter 22 "DLL Injection and API
+Hooking". AO's DLL injection technique is B<not> based on
+Richter's.
+
+The net result is much the same as on Unix:  a system call is
+intercepted, registered, and then passed along to the "real" routine.
+
+=head2 Unique Use of Interposition in AO
+
+The basic idea of using interposition to intercept file accesses is
+not new or unique to AO. Nor is the notion of file auditing itself.
+Many systems offer multiple ways of auditing file accesses. Most Unix
+products offer built-in process accounting services. They also
+generally come with a tool called truss or strace which can also report
+on file accesses.  On Windows there is FileMon.exe plus others.
+
+But all these other solutions have a different and generally less
+flexible focus. Many of them are system-administration focused;
+they may be able to tell you which files were used by any process
+on the system over a given slice of time, but cannot limit
+themselves to a particular process and its descendants. Or they do
+not record the exact state of the file at the time of access. Or
+they work on only one platform. But the most important limitation
+they all share is that they are "passive".  They are like
+historians; they cannot alter the course of events but can only
+describe it after the fact.
+
+The unique feature of AO is that it intercepts not only the file
+access calls (open, rename, etc.) but the process management calls
+(exec, fork). By giving itself "hooks" into both areas, AO can
+guide and tune the process tree in real time. Consider a program XX
+which reads a set of input files and writes an output file. AO can
+intercept the parent process just as it's about to run XX and
+compare the current state of the input files read by XX with the
+current state of the output file. If the database says that the
+current input files are known to lead to the currently existing
+output file, AO knows the output is "up to date" and can tell the
+parent to skip running XX.  From the user's point of view XX
+will appear to have run in zero time, which is quite a major
+speedup.
+
+This has the effect of injecting make-like semantics into any program.
+Make, remember, has a language in which targets and prerequisites are
+listed explicitly along with the commands needed to update the
+targets, e.g.:
+
+    target: prereq1 prereq2 prereq3
+	command1
+	command2
+
+The net effect of running a program under AO control is to abstract out
+the target and prerequisite lines. AO can reverse-engineer the target
+and prereq sets more reliably than any human can list them. Thus the
+"makefile" format above could be compressed to a simple series of
+commands, e.g. a shell script:
+
+	command1
+	command2
+	command3
+	command4
+	...
+
+AO will look up the prereqs and targets of each command in its internal
+database and make its own decision as to whether the command needs to
+run. Thus you get all the sophistication of makefile tree parsing and
+evaluation but in a finer-grained mode and without the need for
+makefile syntax or manual maintenance of prereqs.
+
+You might wonder "What if, say, command3 above was modified to read a
+different set of input files? Since AO can only make decisions about
+the current run based on the history of prior runs, isn't it possible
+it would make a mistake in that case?" But that gets into another
+unique feature. AO also records the execution of a file, which it
+treats internally as just another read operation. Thus, if command3 is
+updated the input file set will by definition not be unchanged because
+the file containing 'command3' is in its own input set.
+
+
+
+=head2 Path Names
+
+This discussion starts in the realm of epistemology. Consider the
+question "What constitutes a file?"  For instance, is
+"/usr/include/stdio.h" a file or just a name for a place where a file
+could legally exist? If a file containing data exists at /x/y/z at time
+A, and later at time B it exists but with different data, is it a
+different file, or the same file updated? Does it matter if we changed
+the data by opening the original file for write or by unlinking it and
+then writing a new one? If we take the file /x/y/z and rename it to
+/x/y/zz and then place different data at /x/y/z, how many new files
+have been created and what are their names?  If /x/y/z existed at both
+time A and time B with the same data, does that prove it was the same
+file both times? Etc.
+
+From the OS kernel/filesystem perspective, these questions have clear
+answers.  In a (Unix) file system a file is uniquely described by the
+device of the filesystem and its inode within that device. File names
+are more like what we think of as handles, meaningless and subject to
+change. ClearCase and clearmake, being based on the MVFS filesystem,
+have a similarly simple answer:  each element is uniquely described by
+its OID (Object ID). Thus, even if an element is accessed via two
+different paths on two different machines on two different continents,
+ClearCase is untroubled by identity crises.
+
+One can think of this as epistemology or one can think in terms of
+database administration. A relational database has the concept of a
+"primary key", defined (loosely) as an attribute which uniqely
+describes at most one row. A classic though USA-centric example is a
+Social Security number. People may change their names, and two people
+may have the same name, but at least in theory everyone has a unique
+SSN. By making the person's real name be an attribute of the synthetic
+key, the SSN, confusion is avoided.
+
+Being filesystem-independent, AO does not have the luxury of an obvious
+primary key. Realistically, the only thing all filesystems have in
+common is their path-naming strategy. Even this is not quite true if
+you consider Windows, but even on Windows it's generally possible to
+arrange things such that /paths/look/like/this. Of course there may be
+special-case filesystems on strange platforms (old Macs, PDAs, routers,
+toasters, etc) but we limit ourselves to traditional filesystems.
+
+Illustration: Sean is on system 'tolstoy', Lucy is on 'chekhov'. They
+work on the same project. Lucy has built an object and AO is
+considering whether Sean can make use of it. How can we compare
+dependencies? The odds against, say, /usr/include/stdio.h having the
+same device/inode pair reliably across machines are high. Clearly we
+must trust that the path "/usr/include/stdio.h" represents the same
+logical entity on both systems and compare the underlying data streams
+and/or metadata (sizes and/or timestamps) based on that assumption.
+
+=head2 Projects
+
+Back to Sean and Lucy. Assume they're using a copy-based SCM system and
+each has extracted a working fileset to a local disk. Sean put his in
+~sean/stuff but Lucy is out of space in her home directory and has
+placed hers in /usr/extra. How can AO compare their DOs and consider
+recycling?
+
+The only clear solution is to think in terms of relative pathnames.
+Traditionally these are measured relative to the user's current working
+directory but they need not be. In this case we define a boundary point
+somewhere within the directory tree. Anything above (closer to the
+root) than the boundary is considered to be an external or system file;
+everything below it is considered part of the "project". The path from
+the boundary point to the root is called the "base dir" while the
+path from the boundary to the project file is called the
+"project-relative path" or PRP; the key assumption is that these will
+refer to the same logical file entity for both Sean and Lucy.
+
+To take a random example, imagine they're working on the PostgreSQL
+database (open-source projects make useful examples) and compiling the
+file "/usr/extra/postgresql/src/backend/utils/mb/alt.c". Or rather,
+that's what Lucy is seeing; Sean sees
+"/home/sean/stuff/postgresql/src/backend/utils/mb/alt.c".  Considered
+as a PRP, both are using "src/backend/utils/mb/alt.c". The PRP is
+considered the primary key; the base directory is ignored (actually
+it's recorded but not used for anything).
+
+In terms of mechanism, this boundary point can be established in two
+ways. The auditing process searches back up towards the root looking
+for a C<ao.project> file. Unless the boundary point is forcibly
+overridden (rarely a good idea), the directory containing that file is
+considered to be the boundary and all PRPs are measured relative to
+that. If no properties file is found at all, the cwd is considered to
+be the boundary. This, again, is not recommended in production use but
+is often convenient for demos and testing.
+
+Summary: the "project" abstraction is a way of normalizing pathnames
+into a key which allows comparison between versions of "the same" files
+in different places, where sameness requires a certain amount of
+handwaving as above.
+
+The upshot of all this is that files are divided into two sets:
+members and non-members. For members, only the PRPs are recorded.
+Non-members get their full pathname recorded. Now if we go back to Sean
+and Lucy and open "src/backend/utils/mb/alt.c" we see it contains the
+statement "#include <stdio.h>". The build audit confirms that this
+resolves to /usr/include/stdio.h. Now, the object file alt.o depends on
+(at least) a member file stored as "src/backend/utils/mb/alt.c" and a
+non-member "/usr/include/stdio.h".  Sean will not be able to recycle
+Lucy's alt.o unless both match.
+
+=head2 Commands
+
+A Unix kernel thinks in terms of I<processes>. A new process id (pid)
+is issued by every fork system call. That process may exec any number
+of different programs before ending and its pid never changes.
+
+There's a strong analogy between this and the discussion of pathnames
+above. The kernel thinks of processes as the primary key, with the
+program that process is actually running a mere implementation detail.
+But to AO, the process structure doesn't matter; what matters is the
+sequence of command lines executed.
+
+This distinction is forced on us by the fact that Windows and
+Unix have different process models but it matters even on Unix. Here's
+a simple example. Imagine a makefile which knows how to compile a single
+source file into a simple executable. Say it emits the command line
+
+    cc -o foo foo.c
+
+Make works by passing this line to the shell, resulting in the
+following actual command line presented to the OS:
+
+    /bin/sh -c 'cc -o foo foo.c'
+
+Old-fashioned Bourne shells always run commands by doing fork followed
+by exec. Newer shells (bash, ksh, etc) often try to be smarter; they
+see that there's only one task to do so they skip the fork. Similarly,
+some make programs make an effort to skip the shell where possible.
+Thus the B<process structure> can easily diverge depending on
+differences in OS or system shell or make variant or even just
+configuration. However, the B<logical command structure> is unchanged;
+the OS was told to run a compiler with certain flags and we don't need
+to know exactly how it did that.
+
+Of course Windows adds another dimension of difference. And pipelines
+are another complication: given "cmd1 | cmd2 | cmd3", how many forks
+are involved? And in what order are the commands exec-ed, and who waits
+for whom? Etc.
+
+In the same way that with files we ignore inodes and think only in
+terms of paths, here we try to ignore processes and pids and think in
+terms of textual I<commands>, where a I<command> is defined as the
+stringified version of the arguments passed to exec (or Createprocess
+on Windows). In other words the OS keeps track of a I<process tree> but
+AO keeps track of a I<command tree> which is related but not
+identical.
+
+To do this we synthesize a so-called command id or I<cmdid>. It's based
+on the pid; in many cases it may have the same numerical value. The
+difference is that the pid changes with each B<fork> while the cmdid
+changes with each B<exec>.  Again, on Windows there's no distinction
+because each new process is conceptually a fork/exec. On Unix the cmdid
+will equal the pid immediately after each exec; on the child side of
+each fork the pid will change but the cmdid won't. If and when the
+child does an exec, the new command will have pid and cmdid aligned
+again.
+
+=head2 Cancellation and Aggregation
+
+Commands are audited as a I<black box>; AO cares only about inputs (any
+I<pre-existing> files which are read) and outputs (any files which are
+produced or modified by the command). If, for instance, a temp file is
+created, used, and then unlinked within a command we have no interest
+in it.
+
+For this reason, file accesses are not reported as they happen. Instead
+they are kept in a little in-memory database (hash table or similar) as
+the command runs. During exit processing the audit record is simplified
+by deleting any references to files which were later unlinked, and then
+reported. This simplification process is called B<cancellation>.
+
+Unfortunately cancallation is not good enough. Many builds use temp
+files to communicate between processes which run one after the other.
+A typical compiler might be implemented as a control program which
+under the covers runs a preprocessor to create temp file A, then
+runs a front end which reads A and writes intermediate language to
+temp file B. Then a back end program reads B and writes
+assembler code to C, and finally the assembler reads C and writes the
+C<real> output file. The driver program unlinks all temp files as
+soon as they've been consumed.
+
+Similarly, many builds accumulate data in a temp file and then rename
+it to a C<real> target when done. Yacc and lex are often used like
+this:
+
+    yacc foo.y && mv y.tab.h foo.h && mv y.tab.c foo.c
+
+Cancellation can't help to rationalize these situations because the
+create and the unlink happen in different commands. This is where
+B<aggregation> comes in.
+
+A user or project can choose a regular expression (RE) selecting
+commands to be I<aggregated>. When a command matches an aggregation RE,
+it is marked as the I<leader> of an I<audit group> (AG). Its children
+are automatically entered as members of the AG too, and all those
+audits are held (i.e. not delivered to the server) until the leader has
+exited. At this point the entire I<audit group> is merged and treated
+as a single audit. Intra-command simplification similar to cancellation
+can be done within this group and, as above, only files which survive
+this are recorded.
+
+It's important to realize that cancellation and aggregation are best
+thought of as optimizations; in other words it's not a fatal error if a
+temp file is unnecessarily recorded. It simply means that an overhead
+will be paid for uploading it and that the C<bookkeeping> may be a
+little muddier.
+
+=head1 COPYRIGHT
+
+Copyright (c) 2004-2009 Clear Guidance Consulting.  All rights reserved.
+CGC Confidential.

@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  
+  <title>AO INSTALLATION</title><link href="mailto:" />
+  <link href="../../styles/style.css" rel="stylesheet" type="text/css" /></head>
+
+
+<body>
+
+<h1 style="text-align:center;"><a id="ao_installation">AO INSTALLATION</a></h1>
+
+<p>AO comprises a client-side program plus an optional server.
+Manual installation is straightforward. The server should be installed just once on a single
+server machine while the client install is per machine or, if a network file
+system is used, per supported platform. In fact the server may not be required at all;
+some functions, such as Makefile dependency generation, require only a client.</p>
+
+<h2><a id="downloading">DOWNLOADING</a></h2>
+
+<p>Start by <a href="https://sourceforge.net/projects/audited-objects/">downloading the entire product set</a>.
+Or you may skip the server and <a href="../../client/">grab client packages directly</a>.
+If necessary, the client packages may be manually extracted from the <code>AO.war</code> file contained in
+the main distribution (<code>.war</code> is a standard zip format and can be opened by any zip program).
+</p>
+<p></p><hr />
+
+<h2><a id="client_installation">CLIENT INSTALLATION</a></h2>
+
+<h3><a id="unix_clients">UNIX CLIENTS</a></h3>
+
+<p>The <a href="../../client/">client packages</a> are in gzipped tar files named something like</p>
+<pre>        ao-Linux_i386-2.3.2.tar.gz<br />        ao-SunOS_sparc-5.9.tar.gz</pre>
+
+<p>The version number describes the earliest OS release supported. In the special
+case of Linux it refers to the earliest supported version of <em>glibc</em>
+rather than an OS/distro version.</p>
+
+<p>The client install is as simple as extracting the tar file into the
+<em>install-base</em> directory. For instance, for personal use or evaluation
+place it in your home directory:</p>
+<pre>    % cd ~<br />    % gtar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:$HOME/bin</pre>
+
+<p>Or if you prefer to install for general use in /opt/local/bin:</p>
+<pre>    % cd /opt/local<br />    % gtar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:/opt/local/bin</pre>
+
+<p>Etc. This may be done for each client system or just once in a
+globally-mounted location. The important thing is that the <em>ao</em> program
+should be on your PATH in <em>install-base</em>/bin while the library is "just around the
+corner" in <em>install-base</em>/lib with the config files in <em>install-base</em>/etc.
+The two binary files must be executable but need no special privileges.</p>
+
+<p>The client is configured via a hierarchy of <em>properties files</em>. The
+full hierarchy is described in the user documentation but for initial
+installation a sample properties file is provided at
+<em>install-base</em>/etc/ao.properties-sample. Rename this to remove the
+<em>-sample</em>. Thus, following the example above:</p>
+<pre>    % cd <em>install-base</em>/etc<br />    % mv ao.properties-sample ao.properties<br />    <br /></pre>
+
+Once the <i>ao</i> program is on your PATH you should be able
+to audit any program by simply prepending "ao -o- run". E.g.
+<p></p>
+<pre>    % uname<br />    SunOS</pre>
+<pre>    % ao -o - run uname<br />    SunOS<br />    20953,0,20952,kk7bb4.8b5crc,0.bsds,u20,,uname,,-,-,11v4914+5,1gla0x6-1,uname<br />    X,init,0.0,20953,0,20952,0,-,-,11v4914+5,f,?,iar056.0,9948,pkd,,,/sbin/uname
+<br /></pre>
+If the program returns output similar to the above and an exit status of 0, client installation succeeded.
+The &quot;-o&quot; told it to dump the audit to a file instead of sending it to a server and the
+value &quot;-&quot; named that file as standard output. The output itself is rather cryptic but essentially
+the first line describes the audited command itself and the second describes the only file it opened.
+
+<h4><a id="setuid_use">SETUID USE</a></h4>
+
+<p>In order for AO to audit a setuid program the <code>libao.so</code> file
+must be marked as a <em>trusted library</em>. This is handled differently on
+different platforms; e.g. on Linux it must be listed in /etc/ld.so.conf. See
+<i>man ld.so</i> for details. On Solaris see <i>man ld.so.1</i> and <i>man crle</i></p>.
+
+<h3><a id="windows_clients">WINDOWS CLIENTS</a></h3>
+
+<p>The Windows client install is similar except that the zip file should be
+extracted directly into a folder which is on %PATH%. The properties file
+belongs in %HOMEDRIVE%%HOMEPATH%.</p>
+
+<hr />
+
+<h2><a id="server_installation">SERVER INSTALLATION</a></h2>
+
+<p>The AO server is a standard Java web application. It
+<em>should</em> work with any servlet container conforming to <em>Servlet
+API 2.4</em> running under Java 5 or above, but it has only been tested with
+Tomcat (the most widely used free container), and only Tomcat installation is covered here. Specifically, AO has been
+tested with Tomcat 6.x running under Java 5 and Java 6 VMs.
+Other containers have been tried and observed to work at various times.</p>
+
+<p>Also, note that while a servlet container may manage any number of web
+applications, this document describes an arrangement in which AO runs in a
+dedicated Tomcat installation. Sharing AO with other apps in a container is not
+hard but is left as an exercise for expert users.</p>
+
+<p>The server is typically installed on just one machine. Since it is written
+in pure Java, the host may be any system running a Java 5 or newer SDK. The AO
+server runs within a <code>servlet container</code> which in turn runs within a
+Java virtual machine.</p>
+
+<p>For experienced users, the AO server install boils down to (a) install Tomcat,
+(b) copy <code>AO.war</code> into its ./webapps subdirectory and (c) start Tomcat. That's
+all, really. For details, read on.</p>
+
+<h3><a id="installing_the_java_sdk">INSTALLING
+THE JAVA SDK</a></h3>
+
+<p>Tomcat requires Java, and many systems will already have a compatible
+version installed. You will need Java 5 or better. Binaries can be found at <a href="http://java.sun.com.">http://java.sun.com.</a></p>
+
+<h3><a id="installing_tomcat">INSTALLING
+TOMCAT</a></h3>
+
+<p>Tomcat may be obtained from <a href="http://tomcat.apache.org.">http://tomcat.apache.org.</a> Get the latest
+binary version. Since it's pure Java there's just one binary for all platforms;
+however, that build is packaged differently for Unix and Windows. Make sure to
+get the appropriate package for your platform: .zip or .exe for Windows,
+.tar.gz for all others. The primary difference is that the config files may
+have Unix line endings in the tar packages and Windows line endings in the
+.zip/.exe.</p>
+<ul>
+  <li><strong><a id="item_unix">Unix</a></strong><br />
+  </li>
+  <li style="list-style-type: none; list-style-image: none; list-style-position: outside;">You need only extract the Tomcat tar file into
+    its final install location. Actually, it's also necessary to make sure that
+    at least the 'log' and 'work' subdirectories within this area are writeable
+    by the user as which Tomcat will be running. The simplest solution is to
+    <code>chown -R</code> the entire directory tree to be owned by that user,
+    but there are other ways. You may also prefer to use a symbolic link
+    to simplify configuration. For instance:<p></p>
+    <pre>    % cd /opt<br />    % gtar -xzf /tmp/apache-tomcat-6.0.18.tar.gz<br />    % chown -R $LOGNAME apache-tomcat-6.0.18<br />    % ln -s apache-tomcat-6.0.18 tomcat</pre>
+    <p>The directory containing Tomcat (<code>/opt/tomcat</code> here) will be
+    known as <em>AOSERVER_HOME</em> below.</p>
+  </li>
+  <li><strong><a id="item_windows">Windows</a></strong><br />
+  </li>
+  <li style="list-style-type: none; list-style-image: none; list-style-position: outside;">Tomcat for Windows can be installed just as
+    above, using the .zip version of the same package. But it's also available
+    as a <em>tomcat.exe</em> installer which offers the advantages of GUI
+    installation, automatic creation of a service to keep Tomcat running, etc. Whichever
+    format you choose, the instructions provided with Tomcat are simple and
+    clear.</li>
+</ul>
+
+<p>By default Tomcat listens on port 8080. AO is happy to use that port or any
+other. If you need to switch to a different port, edit
+$AOSERVER_HOME/conf/server.xml, find the place which says <em>port="8080"</em> and
+change it. If running, Tomcat must then be restarted.</p>
+
+<p>At this point you should be able to get Tomcat running, using either the
+Windows service or the startup
+scripts in <em>AOSERVER_HOME</em>/bin. Test it by pointing a browser at it on the
+appropriate port - for instance <a href="http://localhost:8080/.">http://localhost:8080/.</a> You should see a
+"Congratulations on Your Successful Installation of Tomcat" page. Techniques
+for starting and stopping Tomcat and troubleshooting are well covered in the
+Tomcat documentation and need not be discussed here.</p>
+
+<p>Stop Tomcat again before proceeding.</p>
+
+<h3><a id="deploying_the_ao_server">DEPLOYING
+THE AO SERVER WEB APP</a></h3>
+
+<p>The AO server is packaged as a <em>Web ARchive</em> or <em>WAR</em> file
+named <strong>AO.war</strong> inside a zipfile. Download it
+from <a href="https://sourceforge.net/projects/audited-objects/">here</a>.
+</p>
+
+<p>Copy <code>AO.war</code> into the <code>$AOSERVER_HOME/webapps</code>
+directory. E.g. if Tomcat is installed in <code>/opt/tomcat</code>, then the
+file should end up at <code>/opt/tomcat/webapps/AO.war</code>.</p>
+
+<h4><a id="starting_the_server__unix_">STARTING THE SERVER (UNIX)</a></h4>
+If you've reached this point you already know a way to start Tomcat. However,
+AO comes with its own startup script which may simplify the process. It's
+packaged within <code>AO.war</code> as a tar file called
+<a href="../../etc/ao-server-unix-startup.tar.gz">ao-server-unix-startup.tar.gz</a> containing the script
+itself plus a separate config file. Place both files in the service-startup
+area appropriate to your platform. In many Unix versions and Linux
+distributions this is <em>/etc/init.d</em>. In others it may be
+<em>/etc/rc.d/init.d</em> or thereabouts. Important: make the script
+executable, and <em>make the config file be owned by the username under which
+the server will run</em>. 
+
+<p>The <em>aoserver</em> file is the main startup script and should need no
+modifications, because all tuneable parameters are set in the config file. In
+particular, JAVA_HOME <em>must</em> be set in <em>aoserver.cfg</em> to point to
+the location of the JDK such that java can be invoked as $JAVA_HOME/bin/java,
+and AOSERVER_HOME must be the location of the Tomcat server such that the path to
+<em>AO.war</em> is <code>$AOSERVER_HOME/webapps/AO.war</code>.</p>
+
+<p><em>Pay special attention to the comment associated with AOSERVER_USER!</em></p>
+
+<p>For an evaluation install the server may be run under your own userid. In
+production, a pseudo-user is the more common technique. A typical
+<em>aoserver.cfg</em> file might look like:</p>
+<pre>    JAVA_HOME=/usr/java<br />    JAVA_OPTS="-server -Xms128M -Xmx512M"<br />    AOSERVER_HOME=/opt/tomcat<br />    AOSERVER_USER=(userid)</pre>
+
+<p>with comments stripped out. Note that <em>(userid)</em> must be replaced
+with your preferred user id.</p>
+
+<p>With the above in place, the server can be started by running</p>
+<pre>    aoserver start</pre>
+
+<p>and stopped via</p>
+<pre>    aoserver stop</pre>
+
+<p>assuming the <em>aoserver</em> script is on your PATH.</p>
+
+<p>It may be instructive to run "pgrep java" (Solaris and Linux)
+<em>before</em> starting aoserver to see what JVMs might already be running.
+Then use it again afterwards to make sure a new JVM has started.</p>
+
+<p>Links may also be placed in the <em>rc2.d</em> and/or <em>rc3.d</em>
+directories to cause the server to start automatically at bootup in the classic
+Unix way. These details may vary with the specific Unix version.
+Bottom line, Tomcat is just another service - you may use whatever
+infrastructure your platform provides for managing services.</p>
+
+<p>When using the <em>aoserver</em> script manually, additional options are
+available. Run <em>aoserver</em> with no arguments to see a help message
+describing these.</p>
+
+<h4><a id="starting_the_server__windows_">STARTING THE SERVER
+(WINDOWS)</a></h4>
+
+<p>It's assumed that the service manager which comes bundled with
+<em>tomcat.exe</em> will be used. There are other ways to set up a service on
+Windows but they are not covered here. The name of the Tomcat 6 service is
+<em>tomcat6</em>; thus it may be stopped with "net stop tomcat6" and and
+started with "net start tomcat6". Alternatively the services panel may be
+used (run "services.msc"); in this GUI, the service is known as <em>Apache
+Tomcat</em>.</p><a id="testing">TESTING</a>
+
+<p>Once the client is installed and the server started, try the following
+command:</p>
+<pre>    ao -s server:port ping</pre>
+
+<p>where <em>server</em> is the name of the server machine and <em>port</em> is
+the port on which the server is listening, 8080 by default. If this command
+echoes back the <code>server:port</code> string, installation was successful.
+For example:</p>
+<pre>    % ao -s localhost:8080 ping<br />    localhost:8080</pre>
+
+<p></p><hr />
+
+<h2><a id="basic_configuration">BASIC
+CONFIGURATION</a></h2>
+
+<p>To avoid having to specify the server string each time, edit the
+<em>ao.properties</em> file you created above, or make a new one in
+<em>$HOME/ao.properties</em> (or <em>%HOMEDRIVE%\%HOMEPATH%\ao.properties</em>
+on Windows), and set the following property:</p>
+<pre>    Server = server:port</pre>
+
+<p>Where <code>server:port</code> is the same string you passed with -s above.
+As previously noted, AO can be configured via a hierarchy of properties files.
+The difference between these two is that the one in the <em>etc</em> directory
+applies to all users of this installation while the one in <em>$HOME</em> is
+personal.</p>
+
+<p>Now you should be able to run simply</p>
+<pre>    ao ping</pre>
+
+<p>and get the same successful response.</p>
+
+<h2><a id="sitespecific_server_configuration__advanced_">SITE-SPECIFIC SERVER
+CONFIGURATION (ADVANCED)</a></h2>
+
+<p>AO has many properties which are set by the client and thus may vary per
+user, per system, or per project. There's another set of properties, however,
+which are belong to the server and represent site policy. These are controlled from the
+server side and can be set only at server startup time.</p>
+
+<p>At startup, the server looks for a <em>system</em> property called
+"AO.Server.Properties" whose value, if present, should be the path to a properties file. If this
+property is set <em>and</em> the file exists, the server reads site properties
+from it. On Unix, for example, and assuming Tomcat is installed to /opt/tomcat,
+you might choose to create the file /opt/tomcat/AO-Server.properties and then
+modify the <em>aoserver.cfg</em> file to pass
+"-DAO.Server.Properties=/opt/tomcat/AO-Server.properties" using the JAVA_OPTS
+variable.</p>
+
+<p>The documented site properties are:</p>
+<ul>
+  <li><strong><a id="item_ao_2econtainer_2eroot">AO.Container.Root</a></strong><br />
+    AO stores file data in a directory called "AO_FILE_CONTAINERS" which by default
+    is placed within the webapp's context directory. On Unix, assuming Tomcat
+    was installed into /opt/tomcat, this would be something like
+    /opt/tomcat/webapps/AO/AO_FILE_CONTAINERS. It may make sense to place these
+    data containers into a different/larger filesystem. This can be done via the
+    property "AO.Container.Root". For instance, setting
+    <code>AO.Container.Root=/tmp</code> would cause container data to end up
+    under /tmp/AO_FILE_CONTAINERS.</li>
+</ul>
+You may also use this file to override other properties, specifically the
+database-related settings in <em>persistence.xml</em>. This is the best way to
+reconfigure the database without having to modify the server's internal files.
+A sample server properties file is provided at <a href="../../etc/AO-Server.properties">Sample AO-Server.properties</a>. 
+
+<h2><a id="enabling_persistence">ENABLING PERSISTENCE</a></h2>
+
+<p>In order to turn on data persistence, first set up site-specific configuration as
+detailed above using the <a href="../../etc/AO-Server.properties">Sample AO-Server.properties</a>.
+Then choose your database (<a href="http://h2database.com">H2</a> is the default).
+If you choose anything other than the default, there may be additional work to get that
+particular database running. Once the database is working, you need to adjust the JDBC URL
+accordingly. For H2, use <i>javax.persistence.jdbc.url = jdbc:h2:DIRECTORY-PATH;create=true</i>
+in order to place the persistent data in <i>DIRECTORY-PATH</i>.
+</p>
+<p><b>NOTE THAT PERSISTENT BEHAVIOR IS NOT STRESS TESTED AND SHOULD BE VIEWED AS A
+PROOF-OF-CONCEPT IMPLEMENTATION FOR THE TIME BEING.</b></p>
+
+<h2><a id="troubleshooting">TROUBLESHOOTING</a></h2>
+
+<p>There is a lot of documentation and troubleshooting help available at <a href="http://java.sun.com">http://java.sun.com</a> for Java and <a href="http://tomcat.apache.org">http://tomcat.apache.org</a> for Tomcat. These
+are your best sources of help for infrastructure problems. Tomcat also
+maintains a set of logfiles in $AOSERVER_HOME/logs.</p>
+
+<h2><a id="tour_of_ao">TOUR OF AO</a></h2>
+
+<p>After installing you may want to continue with the <a href="ao-tour.html">Tour of AO</a> document which walks through a basic "Hello
+World" build scenario.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body></html>

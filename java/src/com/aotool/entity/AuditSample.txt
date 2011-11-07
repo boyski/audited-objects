@@ -1,0 +1,45 @@
+19038,1,19037,kokpya.b7kukw,0.0,u20,,gcc,.,7fon72+4,aford5+14,1tygfnh-2,gcc -c hello.c
+19040,3,19038,kokpya.bvt7o8,0.fu8,u20,,gas,.,aford5+14,1i0fjbi+76,-,/opt/csw/bin/gas --traditional-format -Qy -s -o hello.o /var/tmp//ccm2lqLV.s
+19038,2,19038,kokpya.bagv6g,0.1bwv,u20,,gcc,.,aford5+14,aford5+14,-,gcc -c hello.c
+19039,3,19038,kokpya.beto8o,0.ez6,u20,,cc1,.,aford5+14,1rkoirz+149,-,/opt/csw/gcc4/libexec/gcc/i386-pc-solaris2.10/4.3.3/cc1 -quiet hello.c -quiet -dumpbase hello.c -mtune=generic -auxbase hello -o /var/tmp//ccm2lqLV.s
+X,init,0.0,19040,3,19038,0,aford5+14,1i0fjbi+76,f,?,kahwrg.0,1372436,pnx,,,/opt/csw/bin/gas
+X,init,0.0,19038,2,19038,0,aford5+14,aford5+14,f,?,kjawiv.0,250172,pnx,,,/opt/csw/gcc4/bin/amd64/gcc
+X,init,0.0,19038,1,19037,0,7fon72+4,aford5+14,f,?,jbkb4p.0,5816,pkd,,,/opt/csw/gcc4/bin/gcc
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,kn189n.bvm4wz,14184,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/include-fixed/sys/feature_tests.h
+X,init,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,khlx8d.0,37477656,pnx,,,/opt/csw/gcc4/libexec/gcc/i386-pc-solaris2.10/4.3.3/cc1
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0o.0,2586,plw,,,/usr/include/iso/stdio_c99.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,imxi28.0,10601,plw,,,/usr/include/iso/stdio_iso.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0o.0,2429,plw,,,/usr/include/iso/stdlib_c99.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0o.0,5383,plw,,,/usr/include/iso/stdlib_iso.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0n.0,11853,plw,,,/usr/include/stdio.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,jmhfuj.0,1326,plw,,,/usr/include/stdio_impl.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0n.0,492,plw,,,/usr/include/stdio_tag.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0n.0,9296,plw,,,/usr/include/stdlib.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou0u.0,2690,plw,,,/usr/include/sys/ccompile.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,k7iouq.0,15293,plw,,,/usr/include/sys/isa_defs.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,iaou12.0,3527,plw,,,/usr/include/sys/va_list.h
+R,open,0.0,19039,3,19038,0,aford5+14,1rkoirz+149,f,?,kbj3nz.0,103,pi8,15p471f,,hello.c
+C,fopen64,kokpya.c325yo,19040,3,19038,0,aford5+14,1i0fjbi+76,f,?,kokpya.c66fmo,772,pmc,k7ihzo,,hello.o
+
+19041,1,19037,kokpya.cg0kuw,0.0,u20,,gcc,.,7fon72+4,1mc6jsl+24,11omha9-2,gcc -o hello.exe hello.o
+19042,3,19041,kokpya.cn38ao,0.xid,u20,,ld,.,1mc6jsl+24,1350lng+395,-,/usr/ccs/bin/ld -Y P,/usr/ccs/lib:/usr/lib -Qy -o hello.exe /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/values-Xa.o /opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtbegin.o -L/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3 -L/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/../../.. hello.o -lgcc -lgcc_eh -lc -lgcc -lgcc_eh /opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtend.o /usr/lib/crtn.o
+19041,2,19041,kokpya.civgk8,0.189x,u20,,gcc,.,1mc6jsl+24,1mc6jsl+24,-,gcc -o hello.exe hello.o
+X,init,0.0,19041,2,19041,0,1mc6jsl+24,1mc6jsl+24,f,?,kjawiv.0,250172,pnx,,,/opt/csw/gcc4/bin/amd64/gcc
+X,init,0.0,19041,1,19037,0,7fon72+4,1mc6jsl+24,f,?,jbkb4p.0,5816,pkd,,,/opt/csw/gcc4/bin/gcc
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,khlxi2.0,2040,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtbegin.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,khlxi2.0,1272,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtend.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,khlxi1.0,258444,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/libgcc.a
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,khlxi0.0,187524,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/libgcc_eh.a
+X,init,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,jxzd5l.0,10348,pnx,,,/usr/ccs/bin/ld
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,iaovko.0,1632,plw,,,/usr/lib/crt1.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,iaovko.0,760,plw,,,/usr/lib/crti.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,iaovko.0,528,plw,,,/usr/lib/crtn.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,s,?,k9m6o4.chlfpj,19,vzz,,../../lib/libc.so.1,/usr/lib/libc.so
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,iaqyda.0,972,plw,,,/usr/lib/values-Xa.o
+R,open,0.0,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,kokpya.c66fmo,772,pmc,k7ihzo,,hello.o
+A,open,kokpya.cywkso,19042,3,19041,0,1mc6jsl+24,1350lng+395,f,?,kokpya.dbnlhk,6288,pod,tqa5on,,hello.exe
+
+19037,0,19032,kokpya.ayyx68,0.3bgw,u20,,gmake,.,-,7fon72+4,19dpsr1-1,make
+X,init,0.0,19037,0,19032,0,-,7fon72+4,f,?,izs2ik.0,186860,pnx,,,/opt/csw/bin/gmake
+R,fopen64,0.0,19037,0,19032,0,-,7fon72+4,f,?,kix3l5.0,177,pi8,6qsnfl,,Makefile
+

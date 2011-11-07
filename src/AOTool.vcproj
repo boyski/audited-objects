@@ -45,7 +45,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\OPS\Windows_i386\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;PUTIL_BUILTON=\&quot;Windows $(COMPUTERNAME) $(PROCESSOR_ARCHITECTURE)\&quot;;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;APPLICATION_VERSION=\&quot;1.0.9\&quot;;CURL_STATICLIB;PCRE_STATIC;TRIO_REPLACE_STDIO"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;PUTIL_BUILTON=\&quot;Windows $(COMPUTERNAME) $(PROCESSOR_ARCHITECTURE)\&quot;;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;APPLICATION_VERSION=\&quot;1.0.10\&quot;;CURL_STATICLIB;PCRE_STATIC;TRIO_REPLACE_STDIO"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -133,7 +133,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\OPS\Windows_i386\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;PUTIL_BUILTON=\&quot;Windows $(COMPUTERNAME) $(PROCESSOR_ARCHITECTURE)\&quot;;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;APPLICATION_VERSION=\&quot;1.0.9\&quot;;CURL_STATICLIB;PCRE_STATIC;TRIO_REPLACE_STDIO"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;PUTIL_BUILTON=\&quot;Windows $(COMPUTERNAME) $(PROCESSOR_ARCHITECTURE)\&quot;;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;APPLICATION_VERSION=\&quot;1.0.10\&quot;;CURL_STATICLIB;PCRE_STATIC;TRIO_REPLACE_STDIO"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

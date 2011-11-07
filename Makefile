@@ -1,4 +1,4 @@
-.PHONY: all pkg clean realclean
+.PHONY: all pkg release clean realclean
 
 src	:= src
 
@@ -9,6 +9,8 @@ all: pkg
 # On Windows, build using msbuild/vcbuild in order to keep the solution current.
 ifdef VSINSTALLDIR
 
+rdir	 := java\WebContent\client
+
 CFG	 := Release
 
 CPUARCH	:= Windows_i386
@@ -18,16 +20,18 @@ PKG	 := ao-$(TGTARCH).zip
 
 FILES	 := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
-pkg:
-	rm -f rel/$(PKG)
+pkg release:
+	rm -f $(rdir)/$(PKG)
 	cd $(src) && $(MAKE) CFG=$(CFG) $@
 	xcopy /Y etc\ao.properties-windows $(src)\.$(TGTARCH)\$(CFG)\ao.properties-sample
 	del /F/Q/S $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/S/F/I $(src)\pl\AO $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/F $(src)\.$(TGTARCH)\tee.exe $(src)\.$(TGTARCH)\$(CFG)
-	cd $(src)\.$(TGTARCH)\$(CFG) && zip -rD ..\..\..\rel\$(PKG) $(FILES)
+	cd $(src)\.$(TGTARCH)\$(CFG) && zip -rD ..\..\..\$(rdir)\$(PKG) $(FILES)
 
 else	#VSINSTALLDIR
+
+rdir	 := java/WebContent/client
 
 GTAR	 := gtar --owner=0 --group=0 --mode=u+rw --dereference
 
@@ -46,7 +50,7 @@ SRCS	 := $(src)/*.[ch] \
 CPUARCH		:= $(CPU)
 TGTARCH		?= $(CPUARCH)
 
-SPKG	:= rel/ao-client-src.tar.gz
+SPKG	:= $(rdir)/ao-client-src.tar.gz
 $(SPKG): $(wildcard $(SRCS))
 	$(GTAR) --exclude=win.c --exclude='*/Windows*' \
 		--exclude='/zlib/*' \
@@ -68,19 +72,19 @@ OSVER	:= $(shell /lib64/libc.so.6 | perl -nle 'print((split m%[ ,]+%)[6]); last'
 else
 OSVER	:= $(shell /lib/libc.so.6 | perl -nle 'print((split m%[ ,]+%)[6]); last')
 endif
-PKGS	:= rel/ao-Linux_i386-${OSVER}.tar.gz rel/ao-Linux_x86_64-${OSVER}.tar.gz
-rel/ao-Linux_i386-${OSVER}.tar.gz: TGTARCH := Linux_i386
-rel/ao-Linux_x86_64-${OSVER}.tar.gz: TGTARCH := Linux_x86_64
-pkg:
+PKGS	:= $(rdir)/ao-Linux_i386-${OSVER}.tar.gz $(rdir)/ao-Linux_x86_64-${OSVER}.tar.gz
+$(rdir)/ao-Linux_i386-${OSVER}.tar.gz: TGTARCH := Linux_i386
+$(rdir)/ao-Linux_x86_64-${OSVER}.tar.gz: TGTARCH := Linux_x86_64
+pkg release:
 
 else					## ELSE NOT LINUX
 
 OSVER	:= $(shell uname -r)
-PKGS	:= rel/ao-${TGTARCH}-${OSVER}.tar.gz
+PKGS	:= $(rdir)/ao-${TGTARCH}-${OSVER}.tar.gz
 
 endif					## LINUX
 
-pkg: $(PKGS)
+pkg release: $(PKGS)
 
 FILES	:= lib/libAO.so bin/ao bin/ao2make bin/aoquery lib/perl5/AO \
 	   man/man1/ao.1 etc/ao.properties-sample etc/ao.mk
@@ -106,6 +110,6 @@ clean:
 	rm -f $(PKGS)
 
 realclean:
-	$(RM) rel/*.gz rel/*.zip
+	$(RM) $(rdir)/*.gz $(rdir)/*.zip
 
 endif	#VSINSTALLDIR

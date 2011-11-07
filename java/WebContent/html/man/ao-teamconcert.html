@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO - RATIONAL TEAM CONCERT INTEGRATION</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id=
+"ao__rational_team_concert_integration">AO - RATIONAL TEAM CONCERT
+INTEGRATION</a></h1>
+<p>
+This document discusses methods of integration between AO and
+<a href="http://www.jazz.net">Rational Team Concert</a>, or RTC.
+</p>
+<p>It may become important to have some form of integration between
+AO and Rational Team Concert. This can mean many things and would
+probably lead to a number of subsidiary work items in the end; this
+work item is a general-purpose place holder. It's not clear yet how
+important an integration is, nor to what degree an integration
+could be generalized to other SCM and build environments.</p>
+<p>Begin with the observation that the server side of RTC is a
+standard web application (Jazz.war) running under Tomcat (or
+WebSphere) and persisting to a small list of supported databases
+(Derby, DB2, Oracle, SQL Server). AO is another standard web
+application (AO.war) running under Tomcat (has also been tested
+under JBoss and GlassFish, would very likely work with WebSphere)
+and using JPA 2.0 as its persistence API. JPA 2 will easily support
+all RTC databases as well as many others.</p>
+<p>There are a number of potential levels and types of
+integrations. From least integrated to most:</p>
+<ul>
+<li><a id="item_9080">Sharing a container.
+Simply sticking AO.war into the same directory as Jazz.war allows
+them to share the same container. This has been tested and shown to
+work with Tomcat; just copy AO.war to
+/opt/jazz/server/tomcat/webapps and address it on port 9080
+(default HTTP port for Jazz) and it works. There is no data
+interchange; neither one knows about the other, but there are
+significant advantages to sharing a container and physical
+hardware: one will never be running without the other, stopping the
+container would put them both in a quiescent state and allow them
+to be backed up together, they can share the same disk partition,
+etc.</a><br /></li>
+<li><a id=
+"item_running_jbe_builds_under_control_of_the_ao_client_" id=
+"item_running_jbe_builds_under_control_of_the_ao_client_">Running
+JBE builds under control of the AO client. This has also been
+tested and found workable. It currently requires the build to be of
+the Command Line type so that &quot;ao run&quot; can be prepended to the
+command line. I.e. an Ant build can't use AO with the built-in Ant
+support; it has to fork a new process starting with &quot;ao run ant
+...&quot;. Still works fine but a little more setup work. If the build
+was Command Line in the first place, it's as simple as adding the
+&quot;ao run&quot; to the command line. This still has data silos - AO data
+in the AO DB, Jazz in the Jazz DB.</a><br /></li>
+<li><a id="item_jbe">A potential
+enhancement to the above would be the ability to import auditing
+capability into the current process rather than injecting it into a
+new one. This would allow the JBE (as well as Visual Studio or any
+other IDE) to load the auditing library into its JVM process, run a
+build within that process, and unload the library. This would in
+turn enable, for instance, the built-in Ant support to be used and
+would make the whole integration more seamless though it would not
+actually add new capabilities. Note that there's an alternate
+version of this in which the entire IDE or server is run under AO
+control in a mode where auditing is turned off (in other words
+function calls are still intercepted but just passed along
+untouched). Then, on receipt of a message of some kind full
+auditing is enabled until the build is done. This is partially
+implemented under the name IDE Mode or
+Activation.</a><br /></li>
+<li><a id="item_control">Sharing data
+with the Jazz server and database. In other words, via supported
+APIs we would hook into terms like Jazz &quot;baselines&quot; and
+&quot;snapshots&quot; such that a build could record not only the versions
+of contributing files under Jazz SCM control (which it does
+natively) but also system files and files managed in other SCM
+tools such as SVN or ClearCase. This is probably what most people
+would think of as &quot;integration&quot;.</a><br /></li>
+<li><a id="item_services">Using Jazz
+Storage Services (name??) for files. Jazz exposes an API for
+holding BLOBs. AO could potentially use that API to store file
+containers rather than going it alone.</a><br /></li>
+<li><a id="item_eclipse">Eclipse
+(client side) integration. A perspective or view allowing
+post-mortem navigation and maintenance of builds. Basically the
+equivalent of the AO user actions implemented in an Eclipse view.
+This would presumably be an offshoot of the web GUI work (in fact a
+cheap solution would be to use the built-in Eclipse browser for
+this). This would include report generation (BIRT?), build
+maintenance (labeling, cleanup of old builds), charting,
+etc.</a><br /></li>
+<li><a id=
+"item_full_database_integration_2e_conceivably_there_wou">Full
+database integration. Conceivably there would be a way to extend
+the schema dynamically such that all AO data could live in the same
+database as Jazz data and be queryable via standard Jazz APIs. I
+believe this is prohibited for third-party integrations and thus
+not an option. Listed only for
+completeness.</a><br /></li>
+</ul>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

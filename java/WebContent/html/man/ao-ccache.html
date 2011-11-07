@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  <title>AO COMPARED WITH CCACHE</title>
+  <link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+<h1 style="text-align:center;"><a id="ao_compared_with_ccache">AO COMPARED
+WITH CCACHE</a></h1>
+
+<p>This document informally compares and contrasts AO with the open source tool
+called <a href="http://ccache.samba.org">ccache</a>.</p>
+
+<p>Although "CCACHE" is not an acronym, we sometimes use the upper-case form for
+lexicographic consistency.</p>
+<hr />
+
+<h2><a id="how_ccache_works">HOW CCACHE WORKS</a></h2>
+
+<p>There's no need to explain ccache in detail here since its <a
+href="http://ccache.samba.org">own website</a> does a fine job. Here's the
+top-level summary from that website:</p>
+
+<p><i>
+&quot;ccache is a compiler cache. It speeds up recompilation of C/C++ code by caching
+previous compilations and detecting when the same compilation is being done again.
+This often results in a significant speedup in common compilations.&quot;
+</i></p>
+
+<p>Note that for simplicity we sometimes refer to ccache as a C compiler
+speedup when it really supports a suite of C-like languages such as C++,
+Objective-C, and Objective-C++.</p>
+<hr />
+
+<h2><a id="executive_summary">EXECUTIVE
+SUMMARY</a></h2>
+
+<p>Conceptually, ccache is remarkably simple; it's just a fast C compiler.
+Imagine that some genius rewrote GCC to be half a dozen times faster; it would
+be a tremendous boon to anyone compiling C code and of absolutely no interest
+to anyone else. That's the ccache story in a nutshell. On the other hand AO
+maintains a language-independent, shared database of <i>reuse
+opportunities</i>, along with a suite of other features.</p>
+
+<p>Thus, CCACHE and AO are not <em>directly</em> competitive; AO is a strict
+superset of ccache. If a user needs only the features provided by ccache, it's
+probably the better choice due to its simplicity. If the user needs some of the
+additional features listed below, AO would be the only answer.</p>
+<hr />
+
+<h2><a id="ao_vs_ccache">AO vs CCACHE</a></h2>
+<ul>
+  <li><strong><a id="item_ao_works_with_tools_other_than_c_compilers">AO works with tools
+    other than C compilers</a></strong><br />
+  </li>
+  <p>Because it depends on running the C preprocessor, ccache can only work
+    with C code. AO operates at a much lower level, neither knowing nor caring
+    about the language. It knows only about file-oriented system calls such as
+    open, close, and rename.</p>
+  <li><strong><a id="item_ccache_is_personal_and_local">CCACHE is personal and
+    local</a></strong><br />
+  </li>
+  <p>CCACHE is a personal tool; it keeps its cache in the user's home
+    directory. Thus each user must build up and maintain his/her cache without
+    sharing. In fact a user can only share with him/herself on different
+    machines to the degree that the home directory is shared via a network file
+    system. Although this is a common model within a LAN, it is far less common
+    across any distance. One result of this is that if a global header file
+    changes such that a full rebuild is required, each user must do that
+    rebuild to update their cache.
+    <i>Update: this is apparently no longer true if it ever was, since the
+    ccache website says nowadays "You can also share the cache between users".
+    I do not know how recent or robust this is.</i>
+    AO keeps all data, including file versions, in a central database
+    location. Though it records the author of each build for metrics purposes,
+    it doesn't particularly care who contributed the files. Thus all users
+    contribute to, and benefit from, a shared pool. One effect of the shared
+    cache is that AO is well adapted to use across a WAN. While the laws of
+    physics regarding bandwidth cannot be repealed, AO makes little demand on
+    latency because it is designed to require very few round trips. So as long
+    as the link is fast enough to carry the files, AO should work fine over
+    distance though you though you might want to consider <em>selfish mode</em>
+    (vide infra).</p>
+  <li><strong><a id="item_ao_has__22selfish_22_and__22martyr_22_modes">AO has "selfish" and
+    "martyr" modes</a></strong><br />
+  </li>
+  <p>A user may choose to be <em>selfish</em>, meaning they will be happy to
+    take from the cache but prefer not to contribute to it. This may make
+    sense, for instance, over a slow or asymmetric (such as a cable modem)
+    network link where the cost of uploading files could become prohibitive.
+    There's also a give-without-receiving or <em>martyr</em> mode which may be
+    preferred for nightly builds that run when CPU cycles are free. The nightly
+    build can thus test that from-scratch builds continue to work while
+    altruistically generating objects which selfish developers can use during
+    the day. <i>Update - it appears that ccache has analogues here -
+    CCACHE_READONLY is selfish and CCACHE_RECACHE is altruistic.</i></p>
+  <li><strong><a id="item_ccache_helps_with_compilation_but_not_linking">CCACHE helps with
+    compilation but not linking</a></strong><br />
+  </li>
+  <p>According to the blurb above, CCACHE typically provides a 5-10 times
+    speedup. AO has been observed to speed up some builds by much more.
+    Presumably, at least part of the difference comes from the fact that AO can
+    cache and replay the linking phase (as well as any other tools run by the
+    build) while ccache optimizes only C compilations.</p>
+  <li><strong><a id="item_ao_has_analysis_capability">AO has analysis
+    capability</a></strong><br />
+  </li>
+  <p>CCACHE is strictly a compiler optimizer; it makes a binary go/no go
+    decision as to whether a cached result is still valid. However, it cannot
+    tell you why a given cached result is invalid or, more generally, what has
+    changed between two builds. AO can do those things. If you think you should
+    be getting reuse but aren't, you can ask it what went wrong. This will
+    normally point to a structural problem which can be fixed. Thus AO can help
+    fix the build model to be safer/cleaner/more portable in ways which apply
+    even to unaudited builds.</p>
+  <li><strong><a id="item_ao_can__22qualify_22_a_new_build_system">AO can "qualify" a new
+    build system</a></strong><br />
+  </li>
+  <p>Rolling out a new build machine can be stressful; what if it has a
+    slightly different set of patches or service packs, resulting in different
+    binaries? Even worse is adding a new machine to a build pool, because that
+    can result in binaries which differ depending on which machine they happen
+    to have been built on. AO can solve this problem by spitting out a list of
+    all involved system files with checksums. If the checksums on the new
+    machine match, it's ready. If not, you know exactly where the problem
+  lies.</p>
+  <li><strong><a id="item_ao_offers_centralized_2c_database_2dquality_persis">AO offers
+    centralized, database-quality persistence</a></strong><br />
+  </li>
+  <p>The AO "cache" is kept in one place on a server where it can be backed up
+    and potentially provide a query-able history going back years, with all
+    released binaries suitably labeled and correlated with the source files
+    from which they were derived. CCACHE leaves an inscrutably-named set of files
+    spread across home directories. <i>Of course it would be just as fair to turn that
+    spin around and say that ccache relies on an elegant, simple structure of flat files
+    whereas AO requires a highly complex object model and relational database :-).</i></p>
+  <li><strong><a id="item_ao_can_infer_prerequisites_and_feed_them_back_to_a">AO can infer
+    prerequisites and feed them back to a Makefile</a></strong><br />
+  </li>
+  <p>AO builds up a database containing a record of precisely which files were
+    opened in the course of creating which other files. It's trivial to dump
+    this data back out in Makefile syntax. By including a file containing that
+    output into the original Makefile, you can assure yourself of having
+    absolutely complete dependency information.</p>
+  <li><strong><a id="item_ao_can_make_parallel_builds_more_robust">AO can make parallel
+    builds more robust</a></strong><br />
+  </li>
+  <p>Race conditions are the great enemy of all parallelism. In the context of
+    builds, race conditions are the result of having inadequate dependency
+    information. With AO providing complete dependencies, parallel builds are
+    much less likely to go wrong.</p>
+  <li><strong><a id="item_ao_can_integrate_into_an_scm_system">AO can integrate into an SCM
+    system</a></strong><br />
+  </li>
+  <p>AO contains hooks allowing it to be integrated with source code
+    management or versioning tools. There are two main benefits to such
+    integration: first, instead of knowing only that foo.o depends on the
+    version of foo.c with a checksum of such-and-such, we can map checksums to
+    versions and know that we used foo.c version so-and-so. Second, AO can put
+    arbitrary labels on the generated binaries (actually on their representations
+    in the database). Typically you'd use the same label that was placed on the
+    source files, resulting in a fully-labeled build.</p>
+  <li><strong><a id="item_distributed_parallelism">Distributed Parallelism</a></strong><br />
+  </li>
+  <p>This one is currently an advantage for ccache. Although AO was designed
+    with distributed builds in mind, actual support for this feature is still
+    on the todo list. Meanwhile ccache has a functioning, stable, well-known
+    partner tool <a href="http://distcc.org">DISTCC</a> which distributes C
+    compilations.</p>
+  <li><strong><a     id="item_constant_overhead">Constant Overhead</a></strong><br />
+  </li>
+  <p>AO imposes a certain overhead on commands which it actually runs (as
+    opposed to replaying). A typical penalty for the initial build of a piece
+    of software might be 10%, though it is sometimes more and often
+    much less. CCACHE has overhead too, of course, but its overhead
+    appears to be significantly less.</p>
+  <li><strong><a     id="ccache_is_mature">CCACHE is Mature, AO is Young</a></strong><br />
+  </li>
+    <p>This pretty much speaks for itself, but is also subject to change. 
+    </p>
+</ul>
+<hr />
+
+<h2><a id="deep_thoughts">DEEP THOUGHTS</a></h2>
+
+<p>In summary, it's worth thinking about <em>why</em> and <em>when</em> ccache
+is useful. It's not useful the first time you do a build, nor when many source
+files have changed. As its website says:</p>
+
+<pre>    If you ever run "make clean; make" then you can probably benefit from ccache.</pre>
+
+<p>CCACHE is only useful when building objects you <em>already have</em>. And why
+would someone want to rebuild something they already have? Most commonly
+because they don't fully trust their build system and only feel safe with a
+clean build from scratch.</p>
+
+<p>So why don't people trust their build system? Because it doesn't fully
+capture the dependency graph. Since Makefiles (and similar) tend to require
+hand-coded prerequisite data it's rare for them to be completely and
+demonstrably correct. Using a "makedepend" system gets closer to correctness
+without reaching it, because those tools cannot parse every possible syntax and
+must make assumptions about conditionals and paths which may not be true during
+the actual build.</p>
+
+<p>AO may be able to speed up the "make clean; make" pattern somewhat more than ccache can. More
+notably, though, it can make that pattern less useful in the first place by
+feeding demonstrably correct and complete prerequisite data back to the build
+tool.</p>
+
+<p>Thus, in a perfect world ccache would be unnecessary while AO would still
+offer the benefits above (not that a perfect world is expected any time
+soon).</p>
+<hr />
+
+<h2><a id="actual_timings">ACTUAL TIMINGS</a></h2>
+
+<p>Here are some real-life timing comparisons from a slow system (ccache=2.4, AO=1.0):</p>
+<pre>        <b>bash 3.2</b>:
+        
+        Baseline                250 wallclock seconds
+        CCACHE first pass       331 wallclock seconds
+        CCACHE second pass       85 wallclock seconds
+        AO first pass           282 wallclock seconds
+        AO second pass           27 wallclock seconds</pre>
+
+<p></p>
+<pre>        <b>jikes 1.22</b>:
+        
+        Baseline                847 wallclock seconds
+        CCACHE first pass       869 wallclock seconds
+        CCACHE second pass       50 wallclock seconds
+        AO first pass           877 wallclock seconds
+        AO second pass            9 wallclock seconds</pre>
+
+<p>Both AO and CCACHE perform better with jikes than bash (this is primarily
+because jikes is C++ code, and C++ compilers are much slower than C compilers),
+but AO outperforms CCACHE on both benchmarks once the cache is warm.
+However, this may not mean as much in real life since most of the additional
+AO speedup is in link time, and the hit rate for reuse is often much less for links.
+If link steps can't be elided then performance is more likely to even out.
+CCACHE has its own <a href="http://ccache.samba.org/performance.html">performance metrics</a>
+which may be of interest here.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

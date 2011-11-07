@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=us-ascii">
+<title>AO Abstractions</title>
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;">AO Developer Notes</h1>
+<p style="text-align:center">This is a random collection of notes written for
+developers working on AO internals, not for users.</p>
+<h2><a>Building AO</a></h2>
+<p>The AO client is versioned in Git at sourceforge.net. To grab a read-only
+clone use the following command:
+</p>
+<code>git clone git://audited-objects.git.sourceforge.net/gitroot/audited-objects/audited-objects</code>
+
+<p>and for a person with commit privileges:</p>
+
+<code>git clone ssh://USERNAME@audited-objects.git.sourceforge.net/gitroot/audited-objects/audited-objects</code>
+
+<h2><a id="abstractions">Abstractions</a></h2>
+<p>Let's start with a short overview of the basic AO coding abstractions (the
+same basic model is in use on both client and server sides, though
+many details differ).</p>
+
+<p>AO is concerned with software builds. A build is
+basically a deterministic ordered sequence of commands operating on
+files. At its simplest level, AO keeps track of which
+files were opened by which commands along with their exact state at
+time of open. Thus it's not surprising that the three fundamental AO
+concepts are <i>Builds</i>, <i>Commands</i>, and
+<i>Files</i>. These abstractions are broken into classes as
+follows:</p>
+
+<p>A <i>Command</i> object represents a command line which could
+be executed at any time, while a <i>CommandAction</i> represents
+a single execution of a given <i>Command</i>. In other words the
+relationship between a <i>Command</i> and a
+<i>CommandAction</i> is analogous to that between a class and an
+instance of that class. In real-life
+terms this means that &quot;gcc -c foo.c&quot; is a Command, which is
+inherently singular; if the command is run multiple times, a new
+CommandAction object will be generated each time but they will all
+share the same Command object.</p>
+
+<p>Files are slightly more complicated. At the lowest level we have
+a <i>PathName</i> object which represents a <i>potential</i> file.
+Think of a <i>PathName</i> as an <i>abstract file</i> which may
+or may not exist at any given time, and whose contents may vary
+when it does exist. A <i>PathState</i> contains a
+<i>PathName</i> and represents one actual version of that file;
+it describes a particular file state involving size, date stamp,
+checksum, etc. A <i>PathAction</i> contains a <i>PathState</i>
+and represents an actual <i>use</i> of that version. In other
+words every successful <code>open()</code> system call results in a
+new <i>PathAction</i>.</p>
+
+<p>There can be many <i>PathAction</i>s per <i>PathState</i>
+since a file may be read many times without being changed. However,
+when the action is a write it's likely to change the file's state so
+for writes the relationship between <i>PathAction</i>s and
+<i>PathState</i>s becomes more like one-to-one.</p>
+<p>We can say that CommandActions contain Commands in the same way
+that PathActions contain PathStates.</p>
+<p>It's important to note here that AO sees files differently from
+the way the filesystem sees them. To AO, if you rename &quot;foo&quot; to
+&quot;bar&quot; you've destroyed one file and created another. To the
+filesystem there was only one file which remained unchanged while the
+parent directory was modified.</p>
+<p>Now let's switch and look from the top down. The highest-level
+abstraction in AO is a collection of files called a
+<i>Project</i>. This is very likely to map to what you already
+think of as a project. For instance, IDEs such as Eclipse and
+Visual Studio break code into projects, and the AO project would
+typically comprise the same file set. Fundamentally, an AO
+<i>Project</i> is a coherent code base sharing a common parent
+directory and which builds as a unit.</p>
+
+<p>A <i>Project</i> object will contain a set of Builds, although
+for historical reasons a Build is called a <i>PTX</i> or Project
+Transaction instead. A <i>PTX</i> contains an ordered list of
+<i>CommandAction</i>s, and each <i>CommandAction</i> contains a
+<i>Command</i> and a set of <i>PathAction</i>s. These concepts
+are as described above.</p>
+
+<p>To tie it all together, consider a single AO
+<i>Project</i>. Each build you do within this project under AO
+control generates a new <i>PTX</i> object which contains a
+sequence of <i>CommandAction</i> objects. Each
+<i>CommandAction</i> contains a <i>Command</i> plus a set of
+<i>PathAction</i> objects. <i>PathActions</i> contain references
+to <i>PathStates</i> which in turn have references to
+<i>PathNames</i>. These <i>PathActions</i> are categorized as
+<i>prerequisites</i> or <i>targets</i> depending on whether
+they represent a read or a write action.</p>
+
+<p>Please take note of a subtlety: AO pays no attention to the
+<i>current working directory</i>. This is because not all
+commands are sensitive to CWD; a command such as &quot;/bin/gcc -c -o
+~/src/foo.o ~/src/foo.c&quot; will produce exactly the same output
+regardless of CWD. Since it's impossible to determine textually
+whether a given command cares about CWD, AO ignores it and looks
+for better ways to distinguish commands. Thus a particular Command
+object is treated the same regardless of where it is run.</p>
+
+<h2><a id="client_vs_server">CLIENT VS SERVER</a></h2>
+<p>Though the AO client is written in C and the server in Java, and
+they have no code in common, both sides employ the same basic
+abstractions of Project, PTX, Command/CommandAction, and
+PathName/PathState/PathAction. There is wide variance in details,
+because some methods and attributes are of use only to one or the
+other, but the concepts are the same.</p>
+
+<h2><a id="character_sets">CHARACTER SETS</a></h2>
+<p>The auditor always uses 8-bit character widths and UTF-8
+for both internal representations and transmission over HTTP.
+</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

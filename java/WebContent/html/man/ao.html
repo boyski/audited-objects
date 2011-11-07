@@ -1,0 +1,846 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>AO Client Manual Page</title>
+<link rev="made" href="mailto:" />
+</head>
+
+<body style="background-color: white">
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<ul>
+
+		<li><a href="#definitions">Definitions</a></li>
+	</ul>
+
+	<li><a href="#postmortem_analysis">POST-MORTEM ANALYSIS</a></li>
+	<li><a href="#makefile_generation">MAKEFILE GENERATION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#configuration">CONFIGURATION</a></li>
+	<ul>
+
+		<li><a href="#properties_overview">PROPERTIES OVERVIEW</a></li>
+		<li><a href="#properties_details">PROPERTIES DETAILS</a></li>
+		<li><a href="#cancellation_and_aggregation">CANCELLATION AND AGGREGATION</a></li>
+		<li><a href="#projects">PROJECTS</a></li>
+	</ul>
+
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#limitations">LIMITATIONS</a></li>
+	<ul>
+
+		<li><a href="#heisenbergian_issues">HEISENBERGIAN ISSUES</a></li>
+		<li><a href="#determinism">DETERMINISM</a></li>
+	</ul>
+
+	<li><a href="#files">FILES</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>ao - audit, analyze, and optimize software build procedures</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>ao [&lt;options&gt;] { run &lt;prog&gt; | &lt;action&gt; } [args...]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>The <strong>AO</strong> system <code>injects</code> the capacity for <em>auditing</em>, <em>avoidance</em>,
+and <em>recycling</em> into any <em>build tool</em>. It is a system for
+auditing builds and treating each command within them as a black box,
+recording each file consumed (along with its associated metadata such as
+size/date/checksum/version) as well as each file modified. Contents of all
+modified files may be stored such that the audited command can be
+replayed automatically by simply copying back the output files from the server,
+a process known as <em>recycling</em>.
+<strong>AO</strong> has a number of uses including build analysis, build optimization, and
+server provisioning (i.e. ensuring that the set of input files on a new build
+server is identical to the set on the old machine).</p>
+<p>
+</p>
+<h2><a name="definitions">Definitions</a></h2>
+<dl>
+<dt><strong><a name="item_build_tool">Build Tool</a></strong><br />
+</dt>
+<dd>
+A <strong>build tool</strong> is any program which takes input exclusively from some
+combination of files, command line options, and environment variables,
+and <em>deterministically</em> produces a set of output files.  Deterministic,
+as used here, means that identical inputs are guaranteed to produce
+<em>semantically identical</em>[*] outputs. Though classic build tools such
+as compilers tend to fit these criteria by definition, any program or
+script which does so may be considered a <em>build tool</em>.
+</dd>
+<dd>
+<p>[*] Some build tools are known to insert date or version stamps
+into their output and thus will not create bit-for-bit identical
+output.  These results may still be considered <em>semantically</em>
+identical because they do not affect the behavior of the result.
+AO knows how to ignore embedded datestamps in certain common
+file formats including .zip and .jar files, Windows binaries
+(.exe, .dll, and .obj), and archive files (.a on Unix, .lib on
+Windows).</p>
+</dd>
+<p></p>
+<dt><strong><a name="item_auditing">Auditing</a></strong><br />
+</dt>
+<dd>
+<strong>Auditing</strong> is the act of recording the vital statistics of all
+<em>involved files</em> for a particular invocation of a <em>build tool</em>.
+For an individual program this set may be subdivided into an <em>input</em>
+(read) set and an <em>output</em> (modified) set, while for a scripted sequence of
+programs comprising a typical <em>build tool</em> the output set of one program
+may be part of the input set of a later one. It is axiomatic that
+multiple audited runs of the build tool with the same
+inputs will produce not only identical outputs but identical audits as
+well (with the exception of non-critical metadata like timestamps).
+</dd>
+<dd>
+<p>The audit may optionally include saving a copy of the outputs for
+use in <em>recycling</em> as described below.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item_audited_objects">Audited Objects</a></strong><br />
+</dt>
+<dd>
+Any file created or modified by such an audited, deterministic process is known
+as a <strong>derived object</strong> or <strong>DO</strong>. A <strong>DO</strong> is a plain file like any
+other; the only difference is that the AO database contains all relevant
+information about how it was made, and optionally holds a full copy.
+</dd>
+<p></p>
+<dt><strong><a name="item_recycling">Recycling</a></strong><br />
+</dt>
+<dd>
+<strong>Recycling</strong> is a build optimization technique. Assume the existence of
+a deterministic build tool along with reliable audits of prior builds,
+including DOs, stored in a database. When the build tool is next run under
+AO control, AO can stop just before each program is executed and
+check whether the <em>current</em> state of
+the <em>input set</em> matches that of any previous invocation. If
+there is a match, we know precisely what the <code>output(s)</code> will be and that
+we already have a copy of that data. In this situation, AO may choose to simply copy the
+DOs from the matching previous run into place and exit, pretending the
+program ran to completion though in fact it didn't. These DOs are said to
+have been <code>recycled</code>.
+</dd>
+<p></p>
+<dt><strong><a name="item_avoidance_and_reuse">Avoidance and Reuse</a></strong><br />
+</dt>
+<dd>
+<strong>Avoidance</strong> is a degenerate case of recycling. Once a command has been
+judged eligible for recycling, AO may find that the required output
+files are already present. This can result, for instance, from two
+consecutive builds without a <em>clean</em> step in between. In this case even
+the file copying can be skipped and the command is said to have been
+<code>avoided</code>, while the files in question are said to be <code>reused</code>.
+</dd>
+<dd>
+<p>In summary, a <em>DO</em> copied from the server is said to be <em>recycled</em> whereas
+if the file currently in place is tested, found correct, and simply left
+in place we say it was <em>reused</em>.</p>
+</dd>
+<p></p></dl>
+<p>When a <strong>build tool</strong> is run under control of the <strong>ao</strong> program the above
+capabilities are added to it. Consider two compilations of a simple Hello
+World program using GCC:</p>
+<pre>
+    % gcc -o hello hello.c
+    % gcc -o hello hello.c
+    
+This will simply build the program twice, and the second build should take
+approximately the same time as the first (generally slightly less due
+to caches being warm). However, by prefixing the build steps with
+B&lt;ao run&gt;:</pre>
+<pre>
+    % ao run gcc -o hello hello.c
+    % ao run gcc -o hello hello.c</pre>
+<p>The first build will be <em>audited</em> and copies of its output stored.  It
+will run somewhat slower due to the overhead of auditing.  When it
+comes to the second build, <strong>AO</strong> will discover that the inputs are
+unchanged and will only pretend to run the compiler, actually copying in the
+results of the first build instead. This is typically much faster, often
+by orders of magnitude. Of course in real life clean builds don't usually
+happen twice in a row without <em>anything</em> changing in between, but other
+team members are quite likely to build from the same input versions and
+thus to be in a position to share output files.</p>
+<p>Next, let's do the same thing with a makefile-based software project:</p>
+<pre>
+    % ao run make clean all
+    % ao run make clean all</pre>
+<p>Each of these would normally remove and regenerate all target files but
+with AO in use the second go-round simply <em>recycles</em> the set from the
+first run. The make program has no idea that AO is in use or that the
+second run differs from the first; as far as it knows, it asked for
+certain files to be rebuilt and they were.</p>
+<p>Note that there's no special relationship between <em>ao</em> and <em>make</em>
+here; any build tool would be handled the same way. For instance, any of
+the following command lines would be audited and given the same
+opportunities for build avoidance described above.</p>
+<pre>
+    ao run ant clean jar
+    ao run ./build.sh
+    ao run perl build.pl
+    ao run c++ -o foo *.cpp</pre>
+<p>
+</p>
+<hr />
+<h1><a name="postmortem_analysis">POST-MORTEM ANALYSIS</a></h1>
+<p>In addition to build speedups via recycling, <strong>ao</strong> provides access to
+the shared database in order to allow post-mortem analysis of builds,
+using a set of <em>user actions</em> as noted in the usage message.  A few
+example commands are shown below. The syntax <em>foo/bar</em> means that the
+full action name is <em>foobar</em> but it can be abbreviated as <em>foo</em>.</p>
+<p>The set of post-mortem commands is extensible. A full list of currently
+supported actions can be obtained from the server via <code>ao help</code>, and
+detailed help for a specific action is generally availble with <code>ao
+help I&lt;command&gt;</code>. A very minimal subset is described here:</p>
+<dl>
+<dt><strong><a name="item_ping">ping</a></strong><br />
+</dt>
+<dd>
+The <em>ping</em> command attempts to contact the server. It prints the
+server string in <em>host:port</em> format if found, and prints an error message
+otherwise.
+</dd>
+<p></p>
+<dt><strong><a name="item_lsp_2frojects">lsp/rojects</a></strong><br />
+</dt>
+<dd>
+The <em>lsprojects</em> command, which may be abbreviated to <em>lsp</em>, shows a list
+of known projects.
+</dd>
+<p></p>
+<dt><strong><a name="item_lsb_2fuilds">lsb/uilds</a></strong><br />
+</dt>
+<dd>
+The <em>lsbuilds</em> command, which may be abbreviated as <em>lsb</em>, lists all
+builds which have occurred for the current or specified project.
+Important attributes such as who, when, where, duration, etc. are also
+displayed. If a file is given on the command line, the listing is limited
+to builds which could have produced that file.
+</dd>
+<p></p>
+<dt><strong><a name="item_ls">ls</a></strong><br />
+</dt>
+<dd>
+A full description of the specified build and everything it did is printed. As with the
+Unix utility after which it's named, the <em>ls</em> action has many command line options.
+</dd>
+<p></p></dl>
+<p>
+</p>
+<hr />
+<h1><a name="makefile_generation">MAKEFILE GENERATION</a></h1>
+<p>There are a number of extant programs which attempt to determine which files
+depend on which others (<em>makedepends</em>, <em>gcc -MD</em>, etc). Most of them
+work by parsing the expected input files, assuming they're in a recognized
+language, and attempting to determine what files they will open.
+AO may be used to replace these tools. It can do a better job because it is
+language independent and simply records files the program actually
+opened rather than trying to predict what <em>should</em> happen.</p>
+<p>AO can generate either dependency data to be included in an existing Makefile,
+or a full Makefile. The full-makefile feature can be used to replace a
+creaky old build model with a clean, parallelizable, new system. This is
+an advanced topic and is discussed in a separate document.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<p>The following options are supported <em>for the ao program itself</em>.
+There are actually two sets of options which may appear on an <em>ao</em>
+command line. Typical usage for a build might be:</p>
+<pre>
+    % ao I&lt;ao-options&gt; run program I&lt;program-options&gt;</pre>
+<p>and for a server action:</p>
+<pre>
+    % ao I&lt;ao-options&gt; action I&lt;action-options&gt;</pre>
+<p>Only the <em>ao-options</em>, which affect the behavior of the <em>ao</em> program
+itself, are described here.</p>
+<dl>
+<dt><strong><a name="item__2dh_7c_2d_2dhelp">-h|--help</a></strong><br />
+</dt>
+<dd>
+Prints a short usage message summarizing the supported options.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dh_7c_2d_2dproperties">-H|--properties</a></strong><br />
+</dt>
+<dd>
+Dumps the current state of all documented properties.
+</dd>
+<p></p>
+<dt><strong><a name="item__2da_7c_2d_2dabsolute_2dpaths">-a|--absolute-paths</a></strong><br />
+</dt>
+<dd>
+Cause all output file names to be represented as absolute paths.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dd_7c_2d_2ddownload_2donly">-d|--download-only</a></strong><br />
+</dt>
+<dd>
+Make no modifications to server state but continue to shop for download
+possibilities. Also known as <em>selfish mode</em> (take but don't give).
+</dd>
+<p></p>
+<dt><strong><a name="item__2dmd_7c_2d_2dmake_2ddepends">-MD|--make-depends</a></strong><br />
+</dt>
+<dd>
+Generates full dependency information in Makefile format, in the form of
+per-target Makefile fragments. These can be included in future builds.
+</dd>
+<dd>
+<p>This is actually a '-M' flag with an argument which is the desired
+extension for Makefile fragments. For the benefit of those familiar with
+the GCC -MD flag, it is generally documented as -MD and as a special case
+the 'D' is down-cased to result in a .d extension. You could use, for
+instance, -Mprq to request a .prq extension.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item__2df_7c_2d_2dmake_2dfile">-F|--make-file</a></strong><br />
+</dt>
+<dd>
+Generates a single, self-contained, non-recursive, working Makefile with
+full dependency information. The Makefile is designed for GNU make by default.
+If used in combination with <em>--make-depends</em> the generated file will contain
+only <em>include</em> statements pulling in the dependency fragments.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dl_7c_2d_2dlog_2dfile_logfile">-l|--log-file <em>logfile</em></a></strong><br />
+</dt>
+<dd>
+Save all output to the specified logfile. This logfile is also promoted
+to the server when done and stored with the build it describes.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dl_7c_2d_2dlog_2dfile_2dtemp">-L|--log-file-temp</a></strong><br />
+</dt>
+<dd>
+Similar to <em>--log-file</em> but saves output to a temp file which is removed
+after its contents are saved on the server.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dm_7c_2d_2dmembers_2donly">-m|--members-only</a></strong><br />
+</dt>
+<dd>
+Ignore files which are not project members.
+</dd>
+<p></p>
+<dt><strong><a name="item__2do_7c_2d_2doutput_2dfile">-o|--output-file</a></strong><br />
+</dt>
+<dd>
+Dump audit results into the specified output file.
+<strong>NOTE: this option is special in that it suppresses
+all server contact.</strong>
+</dd>
+<p></p>
+<dt><strong><a name="item__2dq_7c_2d_2dquiet">-q|--quiet</a></strong><br />
+</dt>
+<dd>
+Suppress UPLOAD/DOWNLOAD messages.
+</dd>
+<p></p>
+<dt><strong><a name="item__2ds_7c_2d_2dserver_server_2dstring">-s|--server <em>server-string</em></a></strong><br />
+</dt>
+<dd>
+Specify an alternate server to communicate with. The server string is
+in a composite <em>host:port</em> form, e.g. mervyn:8283.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dt_7c_2d_2dprint_2delapsed">-T|--print-elapsed</a></strong><br />
+</dt>
+<dd>
+Print a summary line with the elapsed time after the command is done.
+</dd>
+<p></p>
+<dt><strong><a name="item__2du_7c_2d_2dupload_2donly">-u|--upload-only</a></strong><br />
+</dt>
+<dd>
+Don't bother shopping for downloads but do upload the audit and all
+derived objects. Also known as <em>martyr mode</em> (give but don't take).
+</dd>
+<p></p>
+<dt><strong><a name="item__2dw_7c_2d_2dwhy">-w|--why</a></strong><br />
+</dt>
+<dd>
+When an object cannot be downloaded and must be built from scratch,
+explain the failure to match.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dx_7c_2d_2dexec_2dverbosity">-x|--exec-verbosity</a></strong><br />
+</dt>
+<dd>
+Print each command line as executed. Similar to the Unix <em>sh -x</em> flag.
+</dd>
+<p></p>
+<dt><strong><a name="item__2dx_7c_2d_2dexecute_2donly">-X|--execute-only</a></strong><br />
+</dt>
+<dd>
+Skip all auditing and simply execute the command. This is useful in
+debugging or benchmarking scenarios as it allows the command line to
+stay unchanged while adding or subtracting auditing. Useful ancillary
+features such as logfile handling and elapsed time summaries remain
+enabled.
+</dd>
+<p></p></dl>
+<p>
+</p>
+<hr />
+<h1><a name="configuration">CONFIGURATION</a></h1>
+<p>
+</p>
+<h2><a name="properties_overview">PROPERTIES OVERVIEW</a></h2>
+<p>The <em>ao</em> program is configured via a set of properties.  Properties
+may be set in .properties files, via the environment, or in some cases
+via command-line flags. Though the <em>ao</em> client is not written in Java,
+its properties files follow the rules of Java properties. In particular
+the format supports either of</p>
+<pre>
+    name = value
+    name:  value</pre>
+<p>The command line flags described in OPTIONS are actually just an alternate way
+to make property settings. In other words the <em>-s</em> flag in this command</p>
+<pre>
+    ao -s localhost:8080 run make</pre>
+<p>is merely a convenient way of overriding the <em>Server</em> property. Most
+command-line flags map directly to a property, though only the more
+commonly-used properties have an associated flag.</p>
+<p>Properties may also be set via the environment. The translation from a
+property name to an environment variable name involves converting to
+upper case, replacing all non-alphanumeric characters with an
+underscore, and prepending ``AO_''. Thus the property <em>Project.Name</em> may
+be overridden with the environment variable <em>AO_PROJECT_NAME</em>.</p>
+<p>Property settings are subject to a precedence order. From highest
+precedence to lowest:</p>
+<pre>
+    Command-line flag
+    Environment
+    Project properties (see PROJECTS below)
+    Personal properties ($HOME/ao.properties or %HOMEPATH%\ao.properties)
+    Site-wide properties (global ao.properties)</pre>
+<p>Property names are not case sensitive. However, the convention is to
+use mixed case with '.' as the word separator, e.g. Server or
+Project.Name.</p>
+<p>Properties are generally either string-, numeric-, or boolean-valued.
+Some string-valued properties specify regular expressions; by convention,
+these have names which end with ``.RE''.</p>
+<p>Special note for regular-expression properties: the regex should <em>not</em>
+be delimited with // or anything else, nor do special characters such
+as \ need to be escaped. Sample setting:</p>
+<pre>
+    Foo.Bar.RE = \.c$</pre>
+<p>This specifies a regular expression which would match all filenames
+ending with ``.c''.</p>
+<p>The set of documented properties and their current values may be seen by running</p>
+<pre>
+    ao --properties
+    
+This also shows the set of files from which properties are being read. A less
+verbose listing may be obtained by adding I&lt;--quiet&gt;.</pre>
+<p>
+</p>
+<h2><a name="properties_details">PROPERTIES DETAILS</a></h2>
+<p>Following is a description of some of the most common property
+settings available to AO users. This list may be incomplete or
+out of date; use ``ao --properties'' to see the definitive set.</p>
+<ul>
+<li><strong><a name="item_paths">Absolute.Paths (Boolean)</a></strong><br />
+</li>
+Causes the paths of member files to be printed in fully-qualified form.
+Normally member files are displayed relative to the project root.
+<p>The following aggregation properties operate as a group. They are
+discussed in more detail below under CANCELLATION AND AGGREGATION.</p>
+<ul>
+<li><strong><a name="item_re">Aggregation.Prog.Strong.RE (Regex)</a></strong><br />
+</li>
+An aggregation pattern applied to the program's basename. This is a
+<em>strong</em> match; an aggregation group formed by a <em>strong</em> pattern
+cannot be disbanded except by a match on a <em>Break</em> pattern.
+<p></p>
+<li><strong>Aggregation.Prog.Weak.RE (Regex)</strong><br />
+</li>
+Similar to <em>Aggregation.Prog.Strong.RE</em> except that the grouping
+is <em>weak</em> or provisional; if a child command matches an
+aggregation pattern then the aggregation group based on the outer
+weak pattern is <em>disbanded</em>.
+<p></p>
+<li><strong>Aggregation.Prog.Break.RE (Regex)</strong><br />
+</li>
+An aggregation pattern applied to the program's basename which forces
+the current aggregation group to be disbanded regardless of its
+strength.
+<p></p>
+<li><strong>Aggregation.Line.Strong.RE (Regex)</strong><br />
+</li>
+Similar to <em>Aggregation.Line.Strong.RE</em> except that the pattern is
+applied to the entire command line rather than the program name.
+<p></p>
+<li><strong>Aggregation.Line.Weak.RE (Regex)</strong><br />
+</li>
+Similar to <em>Aggregation.Line.Weak.RE</em> except that the pattern is
+applied to the entire command line rather than the program name.
+<p></p>
+<li><strong>Aggregation.Line.Break.RE (Regex)</strong><br />
+</li>
+Similar to <em>Aggregation.Line.Break</em> except that the pattern is
+applied to the entire command line rather than the program name.
+<p></p></ul>
+<li><strong><a name="item_only">Audit.Only (Boolean)</a></strong><br />
+</li>
+If true, records only metadata with the server. File contents are
+neither stored nor retrieved.
+<p></p>
+<li><strong><a name="item_dir">Base.Dir (String)</a></strong><br />
+</li>
+Automatically set to the base directory of the current project.
+<em>This property is special because it is not user settable. Instead, it is
+derived from the location of the project config dir, defaulting
+to the current working directory.</em>
+<p></p>
+<li><strong>Download.Only (Boolean)</strong><br />
+</li>
+AKA <em>Selfish Mode</em>. Causes the client to take but not give. In
+other words, matching derived objects may be downloaded but no
+results will be uploaded.
+<p></p>
+<li><strong>Execute.Only (Boolean)</strong><br />
+</li>
+Simply executes the command without any auditing. Primarily useful in
+debugging or benchmarking scenarios.
+<p></p>
+<li><strong><a name="item_file">Log.File (String)</a></strong><br />
+</li>
+Causes the output of the project transaction to be logged to the named
+file, and the result stored on the server side where it can be
+retrieved via the <em>logfile</em> action.
+<p></p>
+<li><strong><a name="item_temp">Log.file.Temp (Boolean)</a></strong><br />
+</li>
+Sets the <strong>Log.File</strong> to a temp file which is removed after its contents
+are uploaded to the server.
+<p></p>
+<li><strong>Output.File (String)</strong><br />
+</li>
+If set, causes <em>raw</em> audit data to be written to the named file,
+suppressing all server communication. Primarily for debugging.
+<p></p>
+<li><strong><a name="item_elapsed">Print.Elapsed (Integer)</a></strong><br />
+</li>
+If nonzero, prints a line summarizing the elapsed time before exiting,
+but only if the elapsed time was greater than the value (in seconds). For
+example, a value of 10 would cause the elapsed time to be shown for any
+command lasting more than 10 seconds.
+<p></p>
+<li><strong><a name="item_name">Project.Name (String)</a></strong><br />
+</li>
+The name by which the current project should be known. Defaults to the
+basename of the <strong>Base.Dir</strong> value.
+<p></p>
+<li><strong><a name="item_strategy">PTX.Strategy (String)</a></strong><br />
+</li>
+Controls how far back in history AO will look for reuse opportunities. The
+format is ``T.L.U.H'' where
+<ul>
+<li><strong><a name="item_t">T</a></strong><br />
+</li>
+is the <em>total maximum</em> number of PTXes to be examined.
+<p></p>
+<li><strong><a name="item_l">L</a></strong><br />
+</li>
+is the maximum number of <em>labeled</em> PTXes to be examined.
+<p></p>
+<li><strong><a name="item_u">U</a></strong><br />
+</li>
+is the maximum number of PTXes <em>by the current user</em> to be examined.
+<p></p>
+<li><strong><a name="item_h">H</a></strong><br />
+</li>
+is the maximum number of PTXes <em>from the current host</em> to be examined.
+<p></p></ul>
+<p>PTXes are ordered from most recent to least and the value -1 means ``no
+limit''. Therefore a string '30,-1,10,15' means ``Consider the most
+recent 10 PTXes made by me, the most recent 15 made on the
+current host, plus an unlimited number of <em>labeled</em> PTXes but not to
+exceed 30 in total.</p>
+<li><strong><a name="item_server">Server (String, Required)</a></strong><br />
+</li>
+Provides the server address in <em>hostname:port</em> format, e.g.
+``localhost:8080''. <strong>This is the only property which does not
+default reasonably; you must set the Server property in order to find a
+server.</strong>
+<p></p>
+<li><strong>Shop.Ignore.Path.RE (Regex)</strong><br />
+</li>
+Supplies a Perl-style regular expression which causes matched files to
+be ignored for shopping. Thus a value like the following would exclude
+all files under /usr/include from shopping consideration.
+<pre>
+    Shop.Ignore.Path.RE = ^/usr/include/</pre>
+<p></p>
+<li><strong>Shop.Members.Only (Boolean)</strong><br />
+</li>
+If set, causes only project member files to be considered during
+shopping. This may be helpful when, for instance, the compiler suite
+may be installed in different places on different machines.  Or when
+you don't care about minor differences in the compiler suite.
+<p></p>
+<li><strong>Upload.Only (Boolean)</strong><br />
+</li>
+	<em>AKA Martyr Mode</em>. Causes the client to give but not take. In
+other words it will contribute its results to the common cause but
+will not partake of reuse itself.
+<p></p>
+<li><strong><a name="item_reads">Upload.Reads (Boolean)</a></strong><br />
+</li>
+If set, causes the contents of <strong>all</strong> involved files to be uploaded.  By
+default, only files <em>written to</em> are uploaded.
+<p></p>
+<li><strong><a name="item_verbosity">Verbosity (String)</a></strong><br />
+</li>
+Determines the verbosity level. Recognized terms include ``OFF'' (for
+no verbosity) and ``STD'' (the default). Run ``ao -v?'' for a full list
+of allowed terms. These may be grouped using comma separators, for
+instance:
+<pre>
+    Verbosity = STD,EXEC</pre>
+<p></p></ul>
+<p>
+</p>
+<h2><a name="cancellation_and_aggregation">CANCELLATION AND AGGREGATION</a></h2>
+<p>AO audits the actions of <em>every single program</em> run within its control.
+This level of granularity is generally more than is wanted.
+A compiler, for instance, may under the covers invoke a number
+of separate programs (preprocessor, optimizer, linker, etc) which
+pass data between themselves in temp files.
+Comparing input sets of these programs from one
+run to the next is often impossible since the names of the intermediate
+temp files change each time, and are removed after use anyway. It's better to treat the
+compiler as a ``black box'' and ignore the details of its implementation.</p>
+<p>More generally, the finest level of granularity desired is that which consists
+of well-defined inputs and outputs. Even more generally, the user should be
+able to customize the granularity. The solution involves two related techniques
+known as ``cancellation'' and ``aggregation''.</p>
+<p>Cancellation is the removal of unnecessary or redundant file audit records <em>within</em>
+a single program. A program might create a file, write to it one or more times,
+read back the results, remove the file and exit. Since the file did not exist at
+entry or exit, the fact that it was created and removed is an implementation detail
+which need not be reported. This is cancellation; each program's audit is subjected
+to cancellation before its results are reported.</p>
+<p>Aggregation is the identification of higher-level clusters of programs to act
+as black boxes, such as the compiler in the example above. Once these clusters
+have been identified and glued together a process similar to cancellation is employed
+to remove file accesses which feature in neither input nor output sets.</p>
+<p>The identification of aggregation clusters is done via regular expressions (REs). It's a
+bit of a black art, though fortunately the default expressions are reasonably stable and
+fine for the average build. On the other hand it may be possible to improve your
+auditing substantially by tweaking the REs for your specific needs. Following is an
+overview:</p>
+<p>First, note that AO keeps track of both the program name and the full command line for
+each command run. We can look at <em>either</em> of these to make aggregation decisions. Thus
+there are two sets of REs, one applied to programs and the other to command lines.</p>
+<p>Consider a make-based build in which make decides to run the command ``gcc -c foo.c''.
+Generally make does not run this command directly; instead it uses the shell so
+that the resulting command is something like <em>/bin/sh -c ``gcc -c foo.c''</em>. These are
+two different programs (sh and gcc) which we want to consider as one. So we write an
+RE to match the <em>program name</em> /bin/sh such that it and gcc (and any subcommands run by gcc)
+are aggregated.</p>
+<p>However, what if this is a ``recursive'' design where make also invokes a child make?
+In this case the resulting command would be <em>/bin/sh -c ``make''</em>. Clearly it would be a bad
+idea to match /bin/sh in the same way here because the entire child make would be aggregated
+into a single unit. This would be far too coarse-grained.</p>
+<p>The solution chosen involved two different kinds of aggregation: <em>strong</em> and <em>weak</em>.
+A strong aggregation is never broken; once a command is chosen for strong aggregation,
+all its children will be part of that unit. A weak aggregation is broken, or
+<em>disbanded</em>, when one of its children matches another aggregation RE. In other words
+a weak aggregation is provisional; it lasts only until a finer-grained aggregation unit
+displaces it.</p>
+<p>The result would be four regular expressions: a strong and a weak for each of program
+and command line. However, this original set has more recently been supplemented by two
+more expressions known as <em>break</em> REs which <em>force</em> the disbanding of an aggregation unit
+(strong or weak) if matched. In the <em>make</em> example above we can use a break RE to ensure
+that a child make is <strong>always</strong> disaggregated.</p>
+<p>The final tally is six regular expressions:</p>
+<pre>
+    Aggregation.Prog.Strong.RE
+    Aggregation.Prog.Weak.RE
+    Aggregation.Prog.Break.RE
+    Aggregation.Line.Strong.RE
+    Aggregation.Line.Weak.RE
+    Aggregation.Line.Break.RE</pre>
+<p>The shipped defaults basically say ``do strong aggregations on compilers, weak
+aggregations on shells, and always break on a child make''. They should work
+reasonably well for make-based compile-and-link builds but it will often be
+possible to tune them for a particular build.
+For instance, if you have a shell script which generates a source file by
+running lots of little shell utilities such as awk, sed, cat, nm, etc it may
+make sense to aggregate that script into an atomic unit for audit purposes. The shipped
+defaults contain an aggregation for ``libtool'' which is a popular shell script of
+this type.</p>
+<p>The process of bundling and disbanding can be observed by setting the ``AG'' verbosity
+bit, e.g. by passing the -vAG flag to <em>ao</em>.</p>
+<p>
+</p>
+<h2><a name="projects">PROJECTS</a></h2>
+<p>AO divides all its work into <em>projects</em>. Among the first things the
+<em>ao</em> program does at startup is attempt to determine its current
+<em>project context</em> by setting the two critical properties
+<em>Base.Dir</em> and <em>Project.Name</em>. The algorithm is described here.</p>
+<p>At startup the AO client walks from the current working directory
+upward toward the filesystem root looking for a configuration
+directory called <code>.ao</code>. Once found, the directory containing
+this config dir is assigned to the Base.Dir property. Next,
+if the config dir contains a file named <code>ao.properties</code>,
+project-specific properties are read in from it.</p>
+<p>The Base.Dir folder is considered the boundary between a
+project and the ``outside world''. Files located within the tree
+defined by this boundary are called ``members'' of the project, and those
+outside it are called ``non-members''. Member files are given a
+<em>project relative pathname</em> or PRP which is their path from the
+Base.Dir directory. Non-members are always referred
+to by their absolute path.</p>
+<p>Note that Base.Dir is never set explicitly. Rather, it is inferred from
+the placement of the project config dir. If no such folder is found,
+<em>ao</em> behaves as if it was found in the CWD, thus making the CWD
+automatically the base directory. This feature is not robust, not recommended
+for production use, and may be removed in future versions. It is, however,
+convenient for testing or demo situations.</p>
+<p>The project properties file may set Project.Name explicitly. Otherwise,
+it defaults to the basename of the Base.Dir value. Note that
+project's config dir need not have any contents; even an empty folder
+will establish both the Base.Dir and Project.Name properties.</p>
+<p>To take a concrete example: imagine building Perl in the Unix directory
+/scratch/src/perl-5.8.8.  You could work without any explicit project config,
+resulting in the following implicit settings:</p>
+<pre>
+    Base.Dir     = /scratch/src/perl-5.8.8
+    Project.Name = perl-5.8.8</pre>
+<p>But what if you were to cd into the ``./utils'' subdirectory and work
+there for a while? Without a fixed base dir, <em>ao</em> would now
+think you were in a different project called ``utils'' and all previous
+analysis and recycling opportunities are lost. The solution is to
+create an empty config dir <em>/scratch/src/perl-5.8.8/.ao</em> to fix
+the boundary explicitly. This would lock in the values above for any
+working directory within the project tree.</p>
+<p>However, perhaps a colleague is also working on perl-5.8.8 but chose to
+place the source in a directory with a different basename,  say
+``/home/colleague/src/perl''. Or maybe someone is working on perl-5.8.9 and wants to
+be able to share the parts that haven't changed. Or you simply don't feel
+that a version number should be part of the project name. For all these
+reasons it's best to set the project name explicitly by adding the following
+to the project properties file:</p>
+<pre>
+    Project.Name = Perl</pre>
+<p>Now the project has a more consistent and publically palatable name.
+Note that this is a somewhat synthetic example which assumes each user
+manages their own project configuration. In real life the entire project,
+including the AO project properties file, will most commonly be under source control
+with different branches for 5.8.8 and 5.8.9. In that case the property
+file will express common project policies and will be the same for all
+participants.</p>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<pre>
+    ao --help</pre>
+<p>Prints the set of options to the client program.</p>
+<pre>
+    ao --properties</pre>
+<p>Prints the current set of defined properties and their values.</p>
+<pre>
+    ao ping</pre>
+<p>Checks for a server and reports its location.</p>
+<pre>
+    ao help</pre>
+<p>Speaks to the server and prints a summary of available user actions.</p>
+<pre>
+    ao run I&lt;command&gt; ...</pre>
+<p>Runs the specified command line with auditing turned on.</p>
+<p>
+</p>
+<hr />
+<h1><a name="limitations">LIMITATIONS</a></h1>
+<p>The AO tool depends on being able to insert its own code into foreign
+programs, which in turn depends on certain semantics of the runtime
+linker. This design has a few minor limitations of which the user
+should be aware:</p>
+<p>
+</p>
+<h2><a name="heisenbergian_issues">HEISENBERGIAN ISSUES</a></h2>
+<p>The layman's formulation of the Heisenberg uncertainty principle is
+that <em>the act of observing an action changes it such that there is no
+longer a way to determine how it would have behaved if unobserved</em>.
+A few analogous caveats apply to AO:</p>
+<ol>
+<li><strong><a name="item_performance">Performance</a></strong><br />
+</li>
+Auditing a program will slow it down somewhat. The effect of the
+auditing per se is small but when server communication latency is
+factored in, the overall impact is usually in the vicinity of 5-20
+percent. Many factors (network bandwidth, size of generated files,
+etc.) can affect this.
+<p></p>
+<li><strong><a name="item_file_descriptors">File Descriptors</a></strong><br />
+</li>
+Each process starts with a certain fixed number of available file
+descriptors. The exact number is OS- and configuration-dependent.
+Because the audit trace is written to a file or socket, an audited
+program may have one less file descriptor available for its own use.
+<p></p></ol>
+<p>
+</p>
+<h2><a name="determinism">DETERMINISM</a></h2>
+<p>The AO design is predicated on the assumption that audited commands
+are <em>deterministic</em>, i.e. that the same command run
+repeatedly with the same file inputs will produce
+the same file outputs each time.  While it is certainly possible to
+audit non-deterministic commands, less-than-useful results are
+likely.  Consider the simple Unix command <code>date &gt; foo</code>; this
+produces different output each time and will result in broken
+recycling behavior.</p>
+<p>In general, datestamps fail the determinism test and should be
+avoided.  However, AO contains special-case code to ignore the embedded
+datestamps in certain common file formats such as archive (.a) files on Unix
+and PE/COFF (.exe, .dll, .lib, and .obj) files on Windows, as well as
+.zip and .jar files on all platforms.</p>
+<p>
+</p>
+<hr />
+<h1><a name="files">FILES</a></h1>
+<pre>
+    $HOME/.ao.properties
+    [Base.Dir]/.ao/ao.properties
+    [Install.Dir]/etc/ao.properties</pre>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright 2002-2011 David Boyce. All rights reserved.</p>
+<p>This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.</p>
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.</p>
+<p>You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</p>
+
+</body>
+
+</html>

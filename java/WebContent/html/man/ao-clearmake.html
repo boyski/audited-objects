@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO COMPARED WITH CLEARMAKE</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id=
+"ao_compared_with_clearmake">AO COMPARED WITH CLEARMAKE</a></h1>
+<p>This document informally compares and contrasts AO with the
+build tools bundled with ClearCase. We will use the term
+<em>clearmake</em> generically to describe the build-side
+capabilities of ClearCase, which more precisely encompass the
+<em>clearmake</em> program along with <em>omake</em> and
+<em>clearaudit</em> plus some <em>cleartool</em> commands such as
+<em>catcr</em> and <em>diffcr</em>. For brevity we may also
+abbreviate <em>clearmake</em> as CM and ClearCase as CC.</p>
+<p>This comparison is not <em>inherently</em> a competitive one.
+There are scenarios where having AO might free a user from needing
+ClearCase, but there are also scenarios where AO can be used within
+ClearCase to mutual benefit. It can even be used to augment the
+capabilities of the clearmake program. So a number of viewpoints
+are offered in differing degrees of competitive and
+cooperative.</p>
+<p>Unlike clearmake, AO is not a make program, is not derived from
+any make program, and does not require the use of a make program.
+Nevertheless, an understanding of make concepts and terms is
+essential to this document. We will discuss the basic make model,
+then how clearmake works, then how AO works, before getting into
+comparisons. Also, the examples and terminology tend to show a Unix
+bias but the basic concepts apply to Windows as well.</p>
+<hr />
+<h1><a id="the_make_paradigm">THE MAKE
+PARADIGM</a></h1>
+<p>The make program is simple and yet greatly misunderstood. This
+is because it is merely a lightweight shell around far more complex
+software. Just as a naive user might have trouble distinguishing
+between Windows and the word processor in which he or she
+spends most of their time, so someone unfamiliar with build technology may be
+unable to separate the role of make from that of the compiler, linker,
+etc. Take a look at a make help forum sometime; many of the
+questions are really compiler or shell or general software
+development issues.</p>
+<p>There are three defining concepts in make: <em>target
+files</em>, <em>prerequisite files</em>, and <em>commands</em>, aka <i>recipes</i>.
+The person writing the makefile decides first what <em>targets</em>
+need to be created. For each <em>target</em>, there is a set of
+<em>prerequisites</em> - files which are used to create that
+<em>target</em>. This set is associated with the <em>target</em>.
+Then the Makefile writer simply needs to list the command (or
+sequence of commands) which must be run to create the
+<em>target</em> from the <em>prerequisites</em>.</p>
+<p>When make is run, it reads the Makefile and, for each
+<em>target</em> listed, looks at the associated
+<em>prerequisites</em> and compares their ages. If any
+<em>prerequisite</em> is newer than the <em>target</em>, the
+<em>commands</em> are executed.</p>
+<p>Make has <strong>no idea</strong> what those commands mean or
+what they do, aside from the implicit promise made by the Makefile
+writer that they will do something to update the targets. It
+may be helpful to think of make as blindly writing the text
+provided as <i>commands</i> to standard output. E.g. the
+following two invocations are identical:</p>
+<pre>
+    % make
+    % make -n | sh -x
+</pre>
+<p>aside from a few subtleties of quoting etc. In other words the
+makefile writer provides a set of lines which are called
+<em>commands</em> but which can really contain arbitrary text. Make
+simply spits out a re-ordered subset of those text lines based on
+which <em>prerequisites</em> have been modified. It actually sends
+these lines to a program identified by the $(SHELL) variable but
+that doesn't matter to make. The buck has been passed; to whom is
+not important.</p>
+<hr />
+<h1><a id="what_ao_and_clearmake_have_in_common">WHAT
+AO AND CLEARMAKE HAVE IN COMMON</a></h1>
+<p>Before contrasting the two, we should be clear on why they're being compared at all,
+i.e. what they do that's similar. Both clearmake and AO (when used as "ao make")
+extend the above paradigm with concepts of <i>build auditing</i> (tracking and
+storing build metadata), automatic <i>build avoidance</i> (deriving dependency
+information on the fly), and <i>winkin</i>. All these are described in more
+detail below; for now, suffice it to say that both clearmake and AO automatically
+detect differences in command scripts and input files and can decide what to do
+next based on those determinations.</p>
+<hr />
+<h1><a id="how_clearmake_works">HOW
+CLEARMAKE WORKS</a></h1>
+<p>There is not space here to fully describe clearmake, and its own
+documentation does a better job anyway. It's assumed that readers
+are either ClearCase users with access to documentation or come
+from a different tradition and simply need the highlights for
+comparison. So we restrict this to a few basic terms and
+concepts.</p>
+<p>Clearmake is based on make but takes advantage of the custom
+filesystem (MVFS, or Multi-Version Filesystem) which is at the
+heart of ClearCase. In particular, clearmake can ask to be alerted
+whenever an MVFS file is opened. Thus, as commands are executed,
+clearmake is apprised of which versions of which files were opened
+by each command. This so-called <em>build audit</em> is recorded in
+its internal database.</p>
+<p>The audit information is often useful in its own right but
+clearmake can put it to a couple of specific uses:</p>
+<ul>
+<li><strong><a id=
+"item_build_avoidance">BUILD AVOIDANCE</a></strong><br /></li>
+<li style="list-style: none">This data eliminates the need for
+explicit listing of prerequisite files. Clearmake can look in its
+database and see what files are needed to create each target, and
+can evaluate them to determine whether the target needs to be
+rebuilt. If a prerequisite file is under ClearCase version control,
+clearmake can record not only its basic info (size, date, etc) but
+its version number. During subsequent builds it can compare
+versions instead of date stamps, which is both more robust and more
+flexible.</li>
+<li><strong><a id=
+"item_winkin">WINKIN</a></strong><br /></li>
+<li style="list-style: none">If a target need to be rebuilt, say
+because the prerequisite file foo.h was updated, clearmake has one
+more trick up its sleeve. It can look in the database and see if
+some other user has built this target using the new version of
+foo.h . If so, and assuming the rest of that user's build audit
+matches the current state, clearmake can simply copy the target
+from the remote user's build and skip the actual compilation (or
+whatever) locally. This is called a wink-in . The process of
+looking for a potential wink-in is called shopping .</li>
+</ul>
+<p>In summary, we can say that clearmake adds three major features
+to base make: <em>auditing</em>, improved <em>build avoidance</em>,
+and <em>winkin</em>. Auditing records a bill of materials for each
+generated file, build avoidance can speed up incremental builds by
+doing a better job than base make of knowing which targets to skip,
+and winkin can speed up even full (non-incremental) builds by
+borrowing prefabricated targets from previous builds.</p>
+<p>ClearCase comes with a separate program called
+<em>clearaudit</em> which provides the same audit facility as
+clearmake but without doing any of the build avoidance or winkin
+shopping. It merely records what files the audited process
+used.</p>
+<hr />
+<h1><a id="how_ao_works">HOW AO WORKS</a></h1>
+<h2><a id="overview">OVERVIEW</a></h2>
+<p>Consider the clearmake situation again: there are two different
+programs, clearaudit and clearmake, which between them provide the
+three key features of <em>auditing</em>, <em>build avoidance</em>,
+and <em>winkin</em>. Both clearaudit and clearmake do
+<em>auditing</em>. But why can't clearaudit do build avoidance and
+winkin? There is no logical reason clearaudit couldn't do these: at
+the beginning of each clearaudited process, it has access to the
+ClearCase database and could optionally wink in the results of a
+matching previous run. The reason clearaudit cannot wink in is
+non-obvious[*].</p>
+<p>Imagine that it could, though, and you could use it with a make
+program of your choice:</p>
+<pre>
+    clearaudit -winkin gmake ...
+</pre>
+<p>or really any program:</p>
+<pre>
+    clearaudit -winkin sh build.sh ...
+</pre>
+<p>This is the approach taken by AO. An experienced ClearCase user
+can think of AO as clearaudit-with-winkin. When a program is run
+under AO control:</p>
+<pre>
+    ao gmake ...
+</pre>
+<p>each build command is audited, the results are stored in a
+database, and previous matches can be winked in or, in AO
+terminology, <em>recycled</em>. We can now say that AO provides two
+(auditing, winkin) of the three major clearmake features while
+leaving the third (build avoidance) to the make program. There are
+ways it can help with build avoidance too; these will be discussed
+below.</p>
+<p>[*] Without actually knowing ClearCase architecture, the
+technical reason is likely to be that clearaudit lacks a way of
+breaking the process tree into discrete &quot;transactions&quot;. The
+abstraction offered by clearmake allows it to treat each target's
+build script as a black box with well-defined inputs and outputs.
+Clearaudit is not given this information. It could still offer
+winkin as an all-or-nothing proposition, though.</p>
+<h2><a id=
+"user_space_vs_kernel_space">USER SPACE VS KERNEL SPACE</a></h2>
+<p>As noted, clearmake depends on MVFS for its auditing capability.
+MVFS is a custom filesystem, which means it must be installed as a
+kernel extension. Installation may thus require a reboot. Perhaps
+more importantly, this has subtle <code>knock-on effects</code>.
+Every process on the system, even those of non-ClearCase users, is
+now running against a nonstandard kernel configuration. A bug in
+MVFS can <code>blue-screen</code> the entire system, taking
+noncombatants with it.</p>
+<p>AO works at a different level, entirely within the user-space
+layer and with no elevated privileges. This means that not only is
+there never an install-related reboot, there need not be an install
+at all since the program can be run from a network share. Thus
+there's no chance of it causing a system panic and no contamination
+of the environment for unrelated processes. In fact it has
+precisely zero effect on the user environment except when
+explicitly invoked. There are both costs and benefits to this
+approach, as seen below.</p>
+<hr />
+<h1><a id="ao_vs_clearmake">AO vs
+CLEARMAKE</a></h1>
+<p>We'll use a game-show-style head-to-head shootout for the comparison.
+Each of the pros and cons below is annotated as a point to AO or
+clearmake (CM). Of course some of these awards may be arguable and
+in any case they're just a rough outline, but it's helpful for framing
+further discussion:</p>
+<ul>
+<li><strong><a id="item_activity">AO Finds
+<strong>All</strong> File Activity (point:
+AO)</a></strong><br /></li>
+<li style="list-style: none">A significant limitation of clearmake
+is that it can only audit MVFS files. Since OS files cannot
+(generally) be in MVFS, this limits the value of the audit. For
+instance, clearmake will not automatically record the state of
+/usr/include/stdio.h should it be used. AO, on the other hand, is
+completely agnostic with respect to the filesystem or location of
+audited files.</li>
+<li><strong><a id="item_promotion">AO Does
+Immediate, Synchronous Promotion (point:
+CM?)</a></strong><br /></li>
+<li style="list-style: none">Clearmake leaves derived object files
+in place and only promotes them (copies them up to the server) if
+and when they're needed elsewhere. The original build is thus
+not slowed by having to upload DO's as created, nor is network
+bandwidth wasted by transferring files which may never be reused.
+AO copies its derived objects to the server as they're created.
+While this is arguably less elegant than clearmake's behavior,
+there are a number of mitigating factors. AO files are compressed
+at upload time, and users can opt to do download-only builds
+(analogous to the express builds feature of clearmake). Uploads can
+optionally be done asynchronously so the build is not waiting for
+them. Perhaps most importantly, network bandwidth and disk space
+are orders of magnitude cheaper than they were when ClearCase was
+developed in the early 1990s. Last, promoting DOs ASAP is safer
+and more robust; clearcase can get into all sorts of trouble when
+trying to shop through views on machines which are down. AO does
+one-stop shopping at the server because that's the only place
+derived objects live.</li>
+<li><strong><a id="item_program">AO Works With
+Your Build Program (point: AO!)</a></strong><br /></li>
+<li style="list-style: none">Clearmake is a large, idiosyncratic
+program which attempts to be compatible with many make variants but
+is 100% compatible with none. Very often, build systems need to be
+rewritten to work with it which is not only costly but results in
+vendor lock-in. And it is a make program, thus being no use for a
+shell/perl/ant/etc script or an MSVC project. AO is 100% compatible
+with any make program, not to mention many non-make programs.</li>
+<li><strong><a id="item_versions">AO Doesn't
+Record Versions (point: CM)</a></strong><br /></li>
+<li style="list-style: none">By being tightly integrated with
+CC, clearmake is able to record actual versions of prerequisites
+(e.g. foo.c@@/main/167). AO, being SCM-system agnostic, cannot be
+so tightly integrated out of the box. It records only the
+standard metadata shared by all files (size, date, owner, etc) plus
+a data hash similar to a CRC or MD5 which is used as a digital
+fingerprint. However, with any SCM system which implements triggers it
+should be possible to develop an adapter mapping AO version data to
+SCM versions. A checkin trigger would calculate the data hash of
+each new version and send the version/hash pair to the AO database
+where it could be correlated with incoming audits. This is detailed
+in the <a href="ao-vcs.html">AO and Version Control</a> document which gives a sample
+implementation for ClearCase.</li>
+<li><strong><a id=
+"item_performance_cost_3a_5_2d20_25_vs_200_25__28point_3">Performance
+Cost: 5-20% vs 200% (point: AO)</a></strong><br /></li>
+<li style="list-style: none">It's generally estimated that an MVFS
+file system, even when well configured and tuned, is two to three
+times slower than a native filesystem. This gives rise to wide
+swings in build times: when a build can be fully winked in it may
+be orders of magnitude faster than a full build in a native
+filesystem but if not, it may be 2 or 3 times slower than the
+equivalent native build. AO provides the same potential speedup but
+the fixed cost of doing an audited vs an unaudited full build
+without winkins is closer to 10%. And of course much of what a
+developer does is other than building: editing, testing, copying
+files around, etc. A CC user pays the MVFS cost for every file
+operation - even dumping core is slower in MVFS. Unit testing can be painful in a custom
+filesystem. Consider a database developer working in a CC dynamic view; the
+database may not work at all when run within MVFS, locking may
+not work right, or it may just be painfully slow, so debugging is
+complicated by the need to move files in and out of the view.
+An AO user pays nothing except when building, and is of course free to do an
+unaudited build if desired.</li>
+<li><strong><a id="item_system">AO Doesn't
+Modify the Host System (point: AO)</a></strong><br /></li>
+<li style="list-style: none">ClearCase is quite intrusive to its
+host system: the kernel is modified, pseudo-users created, daemons
+started, ports opened, etc. This is not only complex to administer,
+it also has security implications and prohibits certain uses. For
+instance, ClearCase is often not allowed on production servers and
+QA testbeds. AO involves no kernel changes, no daemons, and no open
+ports (the server requires an open port but all client connections
+are outbound).</li>
+<li><strong><a id="item_flaws">CM is Strict,
+Finds Makefile Flaws (point: ??)</a></strong><br /></li>
+<li style="list-style: none">When a build system is being ported to
+ClearCase, very often the initial builds fail miserably. This is
+because clearmake is less tolerant of common problems like
+dependency loops which regular make programs may ignore. This
+strictness often causes developers to dislike ClearCase even though
+the flaw is in their own code, but either way the pain is real. AO
+does not force you to clean up in the same way. The relative
+benefits here are in the eye of the beholder.</li>
+<li><strong>CM *May* Record Out-of-Process Activity (point:
+CM??)</strong><br /></li>
+<li style="list-style: none">If a remote shell is used to invoke a
+process on another system,
+AO will not know about any filesystem activity caused by the remote
+process. It is unclear whether clearmake would be told of such
+remote MVFS activity. More
+generally, AO audits the activity of one process tree : the
+original audited program and its descendants, regardless of what
+file system(s) they touch. Clearmake, on the other hand, audits
+activity within one filesystem from the time the original audited
+process is invoked till it ends, which *may* include remote or
+out-of-process activity.</li>
+<li><strong><a id="item_viral">ClearCase is Viral
+(point: AO)</a></strong><br /></li>
+<li style="list-style: none">Even if only some developers on a team
+want or need clearmake, all members of the team must adopt
+ClearCase (and pay license costs) to make that happen. Even for a
+given user, in order to get the benefits of clearmake s/he must
+live within MVFS all day, which means that such activities as
+editing, unit testing, and file archiving must take place in a
+nonstandard (and slow) filesystem. By contrast, AO has no
+consequences unless invoked. If you evaluate it and don't like it,
+you need only stop using it to be back where you were. If some team
+members love it and others don't, each can have what they want. If
+you're fighting a bug of your own and want to remove unneeded
+complexity you can build without AO and come back to it later. If
+you find a bug in AO itself you have the option of suspending use
+until the bug is fixed. And of course, as mentioned above,
+non-build activities (unit testing, editing, file coping) take
+place in an unaltered environment. Bottom line, there is no
+&quot;backout procedure&quot; needed for AO and no &quot;flag day&quot;
+in adopting it.</li>
+</ul>
+<p>This exercise could go on but it has served its purpose by
+raising the main points.</p>
+<hr />
+<h1><a id="uses_within_clearcase">USES
+WITHIN CLEARCASE</a></h1>
+<p>AO can also be complementary with clearmake. There are a few
+different scenarios:</p>
+<h2><a id="copybased_views">COPY-BASED
+VIEWS</a></h2>
+<p>Clearmake auditing and winkin work only within dynamic views.
+But there's no reason clearmake couldn't be used in dynamic views
+and AO in snapshot views. Of course those two sets of users
+wouldn't be sharing DO's, but they could use the same Makefiles.
+E.g. you could use clearmake in GNU-compatibility mode in dynamic
+views and real GNU make under AO control in snapshot views. In fact
+clearmake can itself be used under AO control in non-dynamic views,
+with AO taking over the auditing/winkin job.</p>
+<h2><a id="exported_views">EXPORTED
+VIEWS</a></h2>
+<p>Very similar to the above. If a view is mounted via NFS on a
+system which does not have CC installed, AO can be used in place of
+clearmake. Whatever the compatibility mode clearmake is being used
+in, you can use the <code>real</code> version of that make under AO
+control.</p>
+<h2><a id=
+"filling_in_clearmake_gaps">FILLING IN CLEARMAKE GAPS</a></h2>
+<p>As noted previously, clearmake does not audit non-MVFS files
+automatically (if listed explicitly in the Makefile, clearmake will
+record their status). Believe it or not, you can run clearmake
+under control of AO. Clearmake will ignore non-MVFS files
+automatically, AO can be configured to ignore MVFS files, and
+together they record <strong>all</strong> prerequisites. In this
+mode there is no AO server; AO is operating in client-only mode to
+generate dependency lists which are included by the Makefile.
+Clearmake will see these non-MVFS dependencies and record them in
+the CC database. This is easier to demo than to describe but it did
+work when last tried.</p>
+<h2><a id=
+"use_within_dynamic_views">USE WITHIN DYNAMIC VIEWS</a></h2>
+<p>You might be tempted to consider using AO instead of clearmake
+even in dynamic views. AO has no problem running in a view.
+However, there are problems with running datestamp-based build
+tools in dynamic views due to subleties in the way CC datestamps
+can interact with uncheckouts or changes in the config spec. You
+just don't want to do datestamp-based work in MVFS and AO can't
+change that. On the other hand, if you have a build tool which
+doesn't use datestamps, AO will work fine since it is not itself
+confused by datestamps.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

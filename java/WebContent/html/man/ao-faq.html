@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO FREQUENTLY ASKED QUESTIONS</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<p><a id="__index__"></a></p>
+<h2 style="text-align:center;"><a>AO FREQUENTLY ASKED QUESTIONS</a></h2>
+<ul>
+<li><strong><a id="item_what_is_ao_3f">What is AO?</a></strong></li>
+<li style="list-style: none">AO, or Audited Objects , is a system
+for analyzing and optimizing software builds. Its distinguishing
+feature is that it records all file activity and all commands run,
+and associates opened files with the commands which read from or
+wrote to them.</li>
+<li><strong><a id="item_what_does_ao_compare_to_3f">What Does AO Compare
+With?</a></strong></li>
+<li style="list-style: none">I know of no other tool which does
+exactly what AO does. There are many points of similarity with the
+clearmake component of IBM Rational ClearCase(&trade;) , and
+also with an old open-source configuration management system called
+Vesta. But both of these require use of a related version control
+system and are implemented in the form of a proprietary build tool
+with its own syntax. AO is a more wide-open design; it works with
+any version control system (CVS, SVN, Git, ClearCase, Perforce,
+etc), any file system, and any build technology (make, ant, cook,
+jam, perl, custom shell script, etc). The <a href=
+"ao-clearmake.html">AO vs Clearmake</a> document compares those two
+tools in more detail. There's also a certain similarity with a tool
+called <a href="http://ccache.samba.org/">ccache</a>; this
+comparison is elaborated in the <a href="ao-ccache.html">AO vs
+ccache</a> document.</li>
+<li><strong><a id=
+"item_how_does_ao_differ_from_other_auditing_tools_3f">How Does AO
+Differ From Other Auditing Tools?</a></strong></li>
+<li style="list-style: none">There are many tools which can
+determine which files were opened by which program (truss on
+Solaris, strace on a number of Unix systems, FileMon on Windows,
+standard kernel auditing on most Unix systems, etc). What value
+does AO add over these? The short answer is dynamic auditing .
+These other tools do static auditing; a command is run and the set
+of opened files is written to stdout or saved in a file for later
+analysis. This is useful for debugging but little else. AO's
+auditing is dynamic in the sense that decisions can be made - code
+paths can be changed - on the fly based on the information
+collected to date. This allows AO to, say, upload a file's contents
+as soon as it's written, or choose to reuse an existing file and
+skip a build step.</li>
+
+<li><strong><a id="item_is_ao_open_source_3f">Is AO Open
+Source?</a></strong></li>
+<li style="list-style: none">Yes, it is <a href="../../COPYRIGHT.html">released under the GPL</a>.
+There's one exception; because a part of the Windows client is
+under a more restrictive license (freely distributable in binary
+but not in source form), the Windows client is not fully open.
+At some point the offending component may be rewritten but
+that hasn't happened yet.</li>
+
+<li><strong><a id="item_where_is_the_source_3f">Where Is The Source Code?</a></strong></li>
+<li style="list-style: none">The AO server and client codebases are logically
+separate but both are present in the same <a href="https://github.com/boyski/audited-objects">Git repository</a>
+which is made available via <a href="https://github.com/">GitHub</a>.
+GitHub supports downloading the source as a zip file as well as cloning via Git.</li>
+
+<li><strong><a id="item_are_binaries_available_3f">Are Binary Builds Available?</a></strong></li>
+<li style="list-style: none">Because the AO client depends on a number of third-party libraries,
+it takes some effort to set up an environment to build it from source. Therefore,
+<a href="../../client/index.html">binary builds for some platforms</a> are made available.
+Those third-party libraries are also checked into the repository in binary form
+for the same platforms, making it easier to build your own AO client. If you want
+to build newer versions of the libraries, or need to build on a new platform, use the <i>build-for-ao.sh</i>
+scripts which live under the OPS dir.</li>
+
+<li><strong><a id="item_what_platforms_does_ao_support_3f">What Platforms Does AO
+Support?</a></strong></li>
+<li style="list-style: none">Client binaries are
+built and tested for the following platforms. The Windows
+client is less mature than the others, both in the sense of having
+had less testing and because integration with standard Windows
+build models (IDEs, mostly) is TBD.</li>
+<ul>
+<li><strong><a id="item_linux_2fx86">Linux/X86</a></strong></li>
+<li style="list-style: none">Linux systems running on Intel 32-bit
+hardware and using glibc (the GNU C library).</li>
+<li><strong><a id="item_linux_2fx86_64">Linux/X86_64</a></strong></li>
+<li style="list-style: none">Linux systems running on Intel 64-bit
+hardware and using glibc (the GNU C library).</li>
+<li><strong><a id="item_solaris_2fx86">Solaris/X86</a></strong></li>
+<li style="list-style: none">Solaris version 10 and above running
+on Intel hardware.</li>
+<li><strong><a id="item_osx">Mac OS X</a></strong></li>
+<li style="list-style: none">Mac OS X 1.7 and above.</li>
+<li><strong><a id="item_windows">Windows</a></strong></li>
+<li style="list-style: none">Windows XP and above.</li>
+</ul>
+<p>AO has been built at various times on other platforms
+such as Solaris Sparc, FreeBSD, and HP-UX but those ports
+are not maintained.</p>
+
+<li><strong><a id="item_network">How Well Does
+AO Work Over a Wide-Area Network (WAN)?</a></strong></li>
+
+<p>The two primary constraints of any network app are
+<em>bandwidth</em> and <em>latency</em>. All networking protocols
+are sensitive to bandwidth; those which involve round-trip,
+synchronous communication are sensitive to latency too.</p>
+<p>AO is designed to depend very little on synchronous
+communication and thus latency should have little effect on its
+performance. With regard to bandwidth, AO is subject to the same
+laws of physics as anyone else. In other words, it should be no
+faster and no slower than other tools moving similar data over a
+similar network. AO does compression of data sent over the wire.
+Also, because AO uses standard HTTP, the full arsenal of HTTP tools
+is available to help. For instance, though untried, it may be that
+a caching proxy would improve performance in the same way and to
+the same degree it does for browsers. Similarly, WAN acceleration
+tools such as those made by Certeon, Riverbed, etc may provide
+significant benefits, but again this is untested.</p>
+<p>AO supports an <em>audit-only</em> mode in which it records file
+activity data without copying the files themselves. Bandwidth
+should have a minimal effect on this mode. When AO is asked to
+upload or download built files, bandwidth can become a limiting
+factor. There are a number of optimizations designed to speed up AO
+in low-bandwidth environments and a few others which are planned
+but not yet implemented.</p>
+
+<li><strong><a id=
+"item_can_ao_handle_parallel_and_distributed_builds_3f">Can AO
+Handle Parallel and Distributed Builds?</a></strong></li>
+
+Good question! (yes, this is code for &quot;long, hand-waving answer
+coming up&quot;).
+<p>First, it's important to understand that AO does not
+<strong>provide</strong> either capability. It audits whatever your
+process does; if your process is parallel and/or distributed, the
+goal would be to audit that correctly, but in no case will AO ever
+add these capabilities directly (though its ability to derive
+dependency information makes parallelism much more reliable).</p>
+<p>The good news: I've kept these ideas in mind during development
+and have made every effort to avoid creating an
+<em>architectural</em> limitation which would break
+parallel/distributed functionality. For instance, inter-process
+communication within the client is done with sockets instead of
+pipes in order to allow messages to cross system boundaries.</p>
+<p>The bad news: I have rarely tested parallel, and never tested
+distributed. Thus I'd have to say that both are unsupported for
+now, and while parallelism appears to work fine, distributed is
+quite unlikely to work as is. It should be possible to make both
+work reliably, however, and parallelism probably does already.</p>
+<p>Now let's consider the two separately. Parallelism is a simple
+thing to handle for AO; it need only be free of race conditions.
+I've tried to eliminate those and may even have succeeded, so with
+luck AO will work with parallel builds out of the box. Worst case,
+there will be a few race condition bugs to fix but no architectural
+changes should be required.</p>
+<p>Auditing distributed processes is more difficult and will need
+some additional coding. The AO client architecture involves a
+<em>monitor</em> process which listens for <em>audit reports</em>
+from subprocesses. The monitor then collates this information and
+ships it off to the server. In other words it acts as a middle-man
+between auditor and server. In order to do distributed auditing we'd
+have to decide whether there will be one monitor process on the
+&quot;original&quot; host listening for all audit reports, or one per host
+listening only to local reports. Once this decision is made it will
+need to be coded.</p>
+<p>The single-monitor design is simpler, more elegant, and probably
+the right choice. However, it implies a requirement that the distributed
+work take place within a single shared (e.g. NFS) filesystem. This
+is because files are accessed by both auditor and monitor; if they
+are looking at different copies of files then nothing will work
+right. In other words the single-monitor design cannot cope with a
+build model which copies files to a local filesystem (using rsync
+or similar) and operates always on local copies. However, the
+number of robust, production-quality build models which work this
+ways seems likely to be small if not zero.</p>
+<p>Another (hypothetical) concern involves latency and performance
+of caches within a networked file system. Since NFS et al make
+extensive use of caching to improve performance, and given that
+both auditor and monitor may open or stat the same file at around
+the same time, there's a theoretical risk that somebody's view of a
+file may be stale. And this may become a tug of war vs performance;
+if you make the caches large to improve build speed you increase
+the risk of skew; if you make the caches small things will work
+better but slower. However, all this is theoretical and documented
+only to clarify the discussion around an eventual implementation.</p>
+<p>Summary: <em>distributed builds</em> will take some analysis, design,
+coding, and testing before they can work but there's no
+architectural reason it can't be done. <em>Parallel builds</em> should
+work out of the box but will be unsupported until a test
+harness can be developed.</p>
+
+<li><strong><a id="item_does_ao_support_my_ide_3f">Does AO Support My
+IDE?</a></strong></li>
+
+Not explicitly, in the sense that no work has been done to
+develop a specific integration for any Integrated Development
+Environment, or IDE. However, that doesn't mean AO cannot be used
+within an IDE. See <a href="ao-ide.html">AO and IDEs</a> for a
+discussion of the possibilities.
+
+<li><strong><a id="item_does_ao_work_with_cross_2dcompilers_3f">
+Does AO Work With Cross-Compilers?</a></strong></li>
+
+Yes. More precisely, it neither knows nor cares whether the command
+being run is a compiler at all, nor what the internal format of its
+target files might mean. Whether you're producing Linux binaries on
+Linux or Windows binaries on Linux (or HTML files on Windows) AO
+treats them all just the same; it's happy to audit any command
+which is deterministic and file-based.
+
+<li><strong><a id="item_does_ao_work_with_java_builds_3f">
+Does AO Work With Java Builds?</a></strong></li>
+
+Yes and no. The auditing part works just fine; a JVM is just another process
+which makes system calls and AO can audit it like any other. The problem
+that remains is one of granularity. A typical native-code build proceeds
+in multiple processes; a new compiler process is forked for each compilation
+and the same with links, etc. A typical Java build, however, proceeds in
+the single process space of the JVM and compilation units are handled in
+threads.
+
+Unfortunately it's very hard to distinguish threads in an audit. Different
+platforms handle thread-ids differently (some allocate them in ascending order,
+others randomize them). More importantly, an exec system call has a command line
+which carries some semantics and can be mapped to a process id so we have some
+idea what task that process is carrying out. Threads have no associated command line
+or anything similar. Therefore, when looking at the audit of a threaded process like
+a JVM, we see a bunch of threads; we can distinguish them without trouble, and
+determine which file accesses were made by which thread, but we have no way of
+mapping or organizing them by semantic <i>task</i>. The net result is that recycling
+files from a Java build is hobbled because, given a particular thread in the current
+execution, we can't determine which thread in the previous execution did the same job.
+
+This is not to say that recycling doesn't work with Java builds; it does. But the
+granularity is at the process, not thread, level which means that recycling is an
+all-or-nothing affair. If no source files have changed you can reuse someone else's
+build in its entirety, but if anything at all has changed then the whole set is
+invalidated for recycling. There may be some brilliant solution but I haven't found it
+yet.
+
+<li><strong><a id=
+"item_why_can_27t_i_use_ao_in_a_temp_directory_3f">Why Can't I Use
+AO in a Temp Directory?</a></strong></li>
+
+Since AO contains code to ignore temp files, it will not function
+correctly when the build itself takes place in a temp directory
+(defined to be any path containing the string &quot;/tmp/&quot; or the
+values of the $TMPDIR environment variable on Unix or %TEMP% on
+Windows). Therefore, to avoid very mysterious behavior, it simply
+refuses to run if the current working directory is within a known
+temp directory.
+<p></p>
+<li><strong><a id="project_relative" >How Can AO Be Unable To See a File That I Can See?</a></strong></li>
+<p></p>
+Most people are familiar with two ways of addressing a file: <i>absolute pathnames</i>
+and <i>relative pathnames</i>, where the latter are interpreted with respect to the
+current working directory. AO adds another style of relative addressing: the
+<i>project relative pathname</i>, or <b>PRP</b>. These are interpreted with respect
+to the <i>project's base directory</i> rather than the current working directory. Obviously,
+if your CWD is the same as the base dir then this will not become an issue but otherwise
+it can result in confusion. Let's say your project has a <code>src</code> subdirectory
+containing a file named <code>foo.cxx</code>, and assume you've cd-ed into the src dir.
+AO will still report this file as <code>src/foo.cxx</code> but opening it by that name will
+fail because its path relative to the CWD is <code>./foo.cxx</code>. Similarly, when passing this file
+to an AO query it may be necessary to refer to it by its PRP. This can be confusing, but it's
+necessary that each project file have a unique canonical name and the PRP is it. To avoid confusion,
+either use absolute paths (which are always acceptable) or work from the project base directory.
+
+<li><strong><a id="item_how_does_ao_work_3f">How Does AO Work?</a></strong></li>
+
+Most other file-auditing programs hook into the kernel layer at
+some level. AO is different; it works entirely within so-called
+&quot;user space&quot; which is what allows it to be
+filesystem-independent. AO uses a technique known as &quot;DLL
+Injection&quot;, whereby it forces its own DLL (dynamically linked
+library) into each process space. This DLL, in turn, intercepts
+calls to the kernel layer <em>before they reach the kernel
+layer</em> and records the ones it's interested in. In fact it can
+do more than record, it can supplement or skip or completely
+replace the intercepted function call.
+<p>The terms &quot;DLL&quot; and &quot;DLL Injection&quot; come from Windows but
+Unix implements very similar concepts under different names
+(&quot;shared libraries&quot;); the basic technique is largely the same on
+either platform. On Unix it's usually controlled by the environment
+variable LD_PRELOAD.</p>
+
+</ul>
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

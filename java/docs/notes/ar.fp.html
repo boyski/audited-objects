@@ -1,0 +1,677 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html;charset=ISO-8859-1">
+<TITLE>ar(FP)</TITLE>
+</HEAD>
+<BODY topmargin=0 marginheight=0 style="margin-top: 0;" ><!-- Begin DocView navigation toolbar -->
+<!--htdig_noindex-->
+<table
+class=dvtb
+style="padding: 0;"
+>
+<tr valign=top class=dvtb>
+<td class=dvdb>
+<table class=dvtb>
+<tr class=dvtb>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/en/index.html" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+DOC HOME
+</a></td>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/en/Navpages/sitemap.html" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+SITE MAP
+</a></td>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/cgi-bin/manform?lang=en" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+MAN PAGES
+</a></td>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/cgi-bin/infocat?lang=en" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+GNU INFO
+</a></td>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/cgi-bin/search?lang=en" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+SEARCH
+</a></td>
+<td class=dvtb align=center  style="background: #2059A6;">
+<a href="/en/Navpages/printmap.html" class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;">
+PRINT BOOK
+</a></td>
+</tr>
+</table>
+</td>
+<td class=dvtb align="left" width=100%>
+<table
+class=dvtb
+
+>
+<tr class=dvtb valign="top">
+<td class=dvtb  style="background: #2059A6;" align=center width=100%>
+<a class="dvtb" style="font-size: 80%; font-family: verdana,helvetica,arial; font-weight: bold; color: #FFFFFF; background: #2059A6;" >
+&nbsp;
+</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+<!--/htdig_noindex-->
+<!-- End DocView navigation toolbar -->
+
+<H1>ar(FP)</H1>
+<HR>
+<B>ar --
+<!--Meta NM "ar"-->
+archive file format
+</B>
+<!--Meta DN "archive file format"-->
+<P>
+<H2>Syntax</H2>
+<PRE>#include &lt;ar.h&gt;
+</PRE>
+<H2>Description</H2>
+The archive command
+<A HREF="../html.CP/ar.CP.html"><B>ar</B>(CP)</A>
+combines several files into one.
+Archives are used mainly as libraries to be searched by the link editor
+<A HREF="../html.CP/ld.CP.html"><B>ld</B>(CP)</A>.
+<P>
+Each archive begins with a unique string identifier called
+an archive magic string.
+<PRE>   #define  ARMAG   "!&lt;arch&gt;\n"  /* magic string */
+   #define  SARMAG  8            /* length of magic string */
+</PRE>
+<P>
+Following the archive magic string are the archive file members.
+Each file member is preceded by a file member header
+which is of the following format:
+<PRE>   #define  ARFMAG    "`\n"      /* header trailer string */
+   <P>
+   struct  ar_hdr                /* file member header */
+   {
+       char    ar_name[16];      /* '/' terminated file member name */
+       char    ar_date[12];      /* file member date */
+       char    ar_uid[6];        /* file member user identification */
+       char    ar_gid[6];        /* file member group identification */
+       char    ar_mode[8];       /* file member mode (octal) */
+       char    ar_size[10];      /* file member size */
+       char    ar_fmag[2];       /* header trailer string */
+   };
+</PRE>
+<P>
+All information in the file member headers is in printable
+ASCII format.
+The numeric information contained in the headers is stored as decimal numbers
+(except for
+<B>ar_mode</B>,
+which is in octal).
+Thus, if the archive contains printable files, the archive itself is printable.
+<P>
+If the file member name fits,
+the <B>ar_name</B> member contains the name directly,
+and is terminated by a slash (<B>/</B>) and
+padded with blanks on the right.
+If the member's name does not fit,
+<B>ar_name</B> contains a slash (<B>/</B>)
+followed by a decimal representation of the name's offset
+in the archive string table described below.
+<P>
+The <B>ar_date</B> field is
+the modification date of the file at the time of its insertion
+into the archive.
+Common format archives can be moved from system to system
+as long as the portable archive command
+<B>ar</B> is used.
+<P>
+Each archive file member begins on an even byte boundary;
+a newline is inserted between files if necessary.
+Nevertheless, the size given reflects the
+actual size of the file exclusive of padding.
+<P>
+Notice there is no provision for empty areas in an archive file.
+<P>
+Each archive that contains object files (see
+<A HREF="a.out.FP.html"><B>a.out</B>(FP)</A>)
+includes an archive symbol table.
+This symbol table is used by the link editor
+<B>ld</B>
+to determine which
+archive members must be loaded during the link edit process.
+The archive symbol table (if it exists) is always the first file in the
+archive (but is never listed)
+and is automatically created and/or updated by
+<B>ar</B>.
+<P>
+The archive symbol table has a zero length name (that is,
+<B>ar_name[0]</B> is <B>'/'</B>),
+<B>ar_name[1]=='\0'</B>, and so on).
+All ``words'' in this symbol table have four bytes, using the
+machine-independent encoding shown below.
+(All machines use the encoding described here for the symbol table,
+even if the machine's ``natural'' byte order is different.)
+<NOSCRIPT><BR>[If this table is unreadable, a preformatted table follows]<BR></NOSCRIPT>
+<P><TABLE>
+<TR VALIGN=top><TH ALIGN=LEFT>
+&nbsp;
+</TH><TH ALIGN=LEFT>
+0
+</TH><TH ALIGN=LEFT>
+1
+</TH><TH ALIGN=LEFT>
+2
+</TH><TH ALIGN=LEFT>
+3
+</TH></TR>
+
+<TR VALIGN=top><TD>
+</TD><TD align="center">
+01
+</TD><TD align="center">
+02
+</TD><TD align="center">
+03
+</TD><TD align="center">
+04
+</TD></TR>
+
+</TABLE>
+<NOSCRIPT>
+<PRE>
+ ---------------------------------
+ |          +----+----+----+-----+
+ +----------+----+----+----+-----+
+ |          |0   |1   |2   |3    |
+ +----------+----+----+----+-----+
+ |0x01020304|01  |02  |03  |04   |
+ +----------+----+----+----+-----+
+ |          +----+----+----+-----+
+ +----------+----+----+----+-----+
+</PRE>
+</NOSCRIPT>
+<P>
+The contents of the symbol table are as follows:
+<OL>
+<P>
+<LI>
+The number of symbols.
+Length: 4 bytes.
+<P>
+<LI>
+The array of offsets, one per symbol, into the archive file.
+Length: 4&nbsp;bytes&nbsp;*&nbsp;``the number of symbols''.
+<P>
+<LI>
+The name string table.
+Length:
+<B>ar_size</B>
+- 4 bytes * (``the number of symbols'' + 1).
+</OL>
+<P>
+As an example, the following symbol table defines 4 symbols.
+The archive member at file offset 114 defines
+<B>name</B>
+and
+<B>object</B>.
+The archive member at file offset 426 defines
+<B>function</B>
+and a second version of
+<B>name</B>.
+<NOSCRIPT><BR>[If this table is unreadable, a preformatted table follows]<BR></NOSCRIPT>
+<P><TABLE>
+<TR VALIGN=top><TH ALIGN=LEFT>
+Offset
+</TH><TH ALIGN=LEFT>
++0
+</TH><TH ALIGN=LEFT>
++1
+</TH><TH ALIGN=LEFT>
++2
+</TH><TH ALIGN=LEFT>
++3
+</TH><TH ALIGN=LEFT>
+&nbsp;
+</TH><TH ALIGN=LEFT>
+&nbsp;
+</TH></TR>
+
+<TR VALIGN=top><TD align="right">
+0
+</TD><TD align="center" COLSPAN="4">
+4
+</TD><TD>
+4 offset entries
+</TD><TD>
+4
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+114
+</TD><TD align="center" COLSPAN="4">
+<B>name</B>
+</TD><TD>
+8
+</TD><TD>
+114
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+<B>object</B>
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD><TD>
+12
+</TD><TD>
+426
+</TD><TD>
+<B>function</B>
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+16
+</TD><TD align="center" COLSPAN="4">
+426
+</TD><TD>
+<B>name</B>
+</TD><TD>
+20
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+n
+</TD><TD align="center">
+a
+</TD><TD align="center">
+m
+</TD><TD align="center">
+e
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+24
+</TD><TD align="center">
+\0
+</TD><TD align="center">
+o
+</TD><TD align="center">
+b
+</TD><TD align="center">
+j
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+28
+</TD><TD align="center">
+e
+</TD><TD align="center">
+c
+</TD><TD align="center">
+t
+</TD><TD align="center">
+\0
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+32
+</TD><TD align="center">
+f
+</TD><TD align="center">
+u
+</TD><TD align="center">
+n
+</TD><TD align="center">
+c
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+36
+</TD><TD align="center">
+t
+</TD><TD align="center">
+i
+</TD><TD align="center">
+o
+</TD><TD align="center">
+n
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+40
+</TD><TD align="center">
+\0
+</TD><TD align="center">
+n
+</TD><TD align="center">
+a
+</TD><TD align="center">
+m
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+<TR VALIGN=top><TD align="char">
+44
+</TD><TD align="center">
+e
+</TD><TD align="center">
+\0
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD><TD>
+&nbsp;
+</TD></TR>
+
+</TABLE>
+<NOSCRIPT>
+<PRE>
+ +-------+----+----+----+----+------------------+---+
+ |Offset | +0 | +1 | +2 | +3 |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |     0 |         4         | 4 offset entries |   |
+ +-------+-------------------+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |    4  |       114         | name             |   |
+ +-------+-------------------+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |    8  |       114         | object           |   |
+ +-------+-------------------+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |   12  |       426         | function         |   |
+ +-------+-------------------+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |   16  |       426         | name             |   |
+ +-------+-------------------+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  20   | n  | a  | m  | e  |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  24   | \0 | o  | b  | j  |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  28   | e  | c  | t  | \0 |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  32   | f  | u  | n  | c  |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  36   | t  | i  | o  | n  |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  40   | \0 | n  | a  | m  |                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |       +----+----+----+----+                  |   |
+ +-------+----+----+----+----+------------------+---+
+ |  44   | e  | \0 |    |    |                  |   |
+ +-------+----+----+----+----+------------------+---+
+</PRE>
+</NOSCRIPT>
+<P>
+The number of symbols and the array of offsets are managed with
+<A HREF="../html.S/sputl.S.html"><B>sgetl</B>(S)</A>
+and
+<A HREF="../html.S/sputl.S.html"><B>sputl</B>(S)</A>.
+The string table contains exactly as many null terminated strings
+as there are elements in the offsets array.
+Each offset from the array is associated with the corresponding
+name from the string table (in order).
+The names in the string table are all the defined global symbols
+found in the common object files in the archive.
+Each offset is the location of the archive header for the associated symbol.
+<P>
+If some archive member's name is more than 15 bytes long,
+a special archive member contains a table
+of file names, each followed by a slash and a newline.
+This string table member, if present, will precede all
+``normal'' archive members.
+The special archive symbol table is not a ``normal''
+member, and must be first if it exists.
+The
+<B>ar_name</B>
+entry of the string table's member header holds a zero length name
+<B>ar_name[0]=='/'</B>,
+followed by one trailing slash
+(<B>ar_name[1]=='/'</B>),
+followed by blanks
+(<B>ar_name[2]=='&nbsp;'</B>, and so on).
+Offsets into the string table begin at zero.
+Example
+<B>ar_name</B>
+values for short and long file names appear below.
+<BR>
+<NOSCRIPT><BR>[If this table is unreadable, a preformatted table follows]<BR></NOSCRIPT>
+<P><TABLE>
+<TR VALIGN=top><TH ALIGN=LEFT>
+Offset
+</TH><TH ALIGN=LEFT>
++0
+</TH><TH ALIGN=LEFT>
++1
+</TH><TH ALIGN=LEFT>
++2
+</TH><TH ALIGN=LEFT>
++3
+</TH><TH ALIGN=LEFT>
++4
+</TH><TH ALIGN=LEFT>
++5
+</TH><TH ALIGN=LEFT>
++6
+</TH><TH ALIGN=LEFT>
++7
+</TH><TH ALIGN=LEFT>
++8
+</TH><TH ALIGN=LEFT>
++9
+</TH></TR>
+
+<TR VALIGN=top><TD align="right">
+0
+</TD><TD align="center">
+<B>f</B>
+</TD><TD align="center">
+<B>i</B>
+</TD><TD align="center">
+<B>l</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>&nbsp;_&nbsp;</B>
+</TD><TD align="center">
+<B>n</B>
+</TD><TD align="center">
+<B>a</B>
+</TD><TD align="center">
+<B>m</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>&nbsp;_&nbsp;</B>
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+10
+</TD><TD align="center">
+<B>s</B>
+</TD><TD align="center">
+<B>a</B>
+</TD><TD align="center">
+<B>m</B>
+</TD><TD align="center">
+<B>p</B>
+</TD><TD align="center">
+<B>l</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>/</B>
+</TD><TD align="center">
+<B>\n</B>
+</TD><TD align="center">
+<B>l</B>
+</TD><TD align="center">
+<B>o</B>
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+20
+</TD><TD align="center">
+<B>n</B>
+</TD><TD align="center">
+<B>g</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>r</B>
+</TD><TD align="center">
+<B>f</B>
+</TD><TD align="center">
+<B>i</B>
+</TD><TD align="center">
+<B>l</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>n</B>
+</TD><TD align="center">
+<B>a</B>
+</TD></TR>
+<TR VALIGN=top><TD align="right">
+30
+</TD><TD align="center">
+<B>m</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>x</B>
+</TD><TD align="center">
+<B>a</B>
+</TD><TD align="center">
+<B>m</B>
+</TD><TD align="center">
+<B>p</B>
+</TD><TD align="center">
+<B>l</B>
+</TD><TD align="center">
+<B>e</B>
+</TD><TD align="center">
+<B>/</B>
+</TD><TD align="center">
+<B>\n</B>
+</TD></TR>
+<TR VALIGN=top><TD align="center" COLSPAN="4">
+Member Name
+</TD><TD align="center" COLSPAN="3">
+ar_name
+</TD><TD align="center" COLSPAN="4">
+Note
+</TD></TR>
+<TR VALIGN=top><TD COLSPAN="4">
+short-name
+</TD><TD COLSPAN="3">
+<B>short-name/</B>
+</TD><TD COLSPAN="4">
+Not in string table
+</TD></TR>
+<TR VALIGN=top><TD COLSPAN="4">
+file_name_sample
+</TD><TD COLSPAN="3">
+<B>/0</B>
+</TD><TD COLSPAN="4">
+Offset 0 in string table
+</TD></TR>
+<TR VALIGN=top><TD COLSPAN="4">
+longerfilenamexample
+</TD><TD COLSPAN="3">
+<B>/18</B>
+</TD><TD COLSPAN="4">
+Offset 18 in string table
+</TD></TR>
+
+</TABLE>
+<NOSCRIPT>
+<PRE>
+ Offset  | +0   | +1   | +2   | +3   | +4   | +5   | +6   | +7   | +8   | +9
+       0 |  f   |  i   |  l   |  e   |  _   |  n   |  a   |  m   |  e   |  _
+         +------+------+------+------+------+------+------+------+------+------
+      10 |  s   |  a   |  m   |  p   |  l   |  e   |  /   |  \n  |  l   |  o
+         +------+------+------+------+------+------+------+------+------+------
+      20 |  n   |  g   |  e   |  r   |  f   |  i   |  l   |  e   |  n   |  a
+         +------+------+------+------+------+------+------+------+------+------
+      30 |  m   |  e   |  x   |  a   |  m   |  p   |  l   |  e   |  /   |  \n
+         Member Name          |      ar_name       |           Note
+ short-name                   | short-name/        | Not in string table
+ file_name_sample             | /0                 | Offset 0 in string table
+ longerfilenamexample         | /18                | Offset 18 in string table
+</PRE>
+</NOSCRIPT>
+<H2>Warning</H2>
+<P>
+Archives created by some older versions of <B>ar</B>
+have a different format for storing files with long filenames.
+These old format archives can be read by
+the current version of <B>ar</B>
+and will be converted to the format described here
+when they are updated by <B>ar</B>.
+<P>
+<A HREF="../html.CP/strip.CP.html"><B>strip</B>(CP)</A>
+will remove all archive symbol entries from the header.
+The archive symbol entries must be restored via the
+<B>-ts</B>
+options of the
+<B>ar</B>
+command before the archive can be used with the link editor
+<B>ld</B>.
+<H2>See also</H2>
+<A HREF="a.out.FP.html"><B>a.out</B>(FP)</A>,
+<A HREF="../html.CP/ar.CP.html"><B>ar</B>(CP)</A>,
+<A HREF="../html.CP/ld.CP.html"><B>ld</B>(CP)</A>,
+<A HREF="../html.S/sputl.S.html"><B>sputl</B>(S)</A>,
+<A HREF="../html.CP/strip.CP.html"><B>strip</B>(CP)</A>
+<H2>Standards conformance</H2>
+<A HREF="ar.FP.html"><I>ar</I>(FP)</A>
+is not part of any
+currently supported standard;
+it was developed by UNIX System Laboratories, Inc.
+and is currently maintained by The SCO Group.
+<!-- NAVBEGIN -->
+<HR>
+<I>
+<SMALL>
+&#169; 2003 File Formats for Programming (FP)
+<BR>
+SCO OpenServer Release 5.0.7 -- 11 February 2003
+<BR>
+</SMALL>
+</I>
+<!-- NAVEND -->
+</BODY></HTML>

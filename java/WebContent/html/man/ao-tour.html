@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>A TOUR THROUGH THE BASICS OF AUDITED OBJECTS</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id=
+"a_tour_through_the_basics_of_audited_objects">A TOUR THROUGH THE
+BASICS OF AUDITED OBJECTS</a></h1>
+<p>This document shows how a simple Hello World project can be
+built under AO control and how to extract metadata derived by it.
+It assumes you have already followed the installation procedures
+detailed in the <em>ao-install</em> document and that the server is
+running.</p>
+<h2>Initial Setup</h2>
+<p>Within the AO package is a sub-package called
+<a href="../../demo/demo.tar.gz">demo.tar.gz</a>.
+Extract that to a location of your choice[*],
+resulting in a new directory called <em>demo</em>. Under that is
+another directory called <em>hello</em> which contains a tiny
+&quot;hello world&quot; application. In a shell prompt, cd into this directory.</p>
+<p>[*] <b>But not under /tmp or /var/tmp! Since AO contains code
+to ignore temp files, it will not function correctly when the
+project itself is located in a temp directory (defined to be any
+path containing the string &quot;/tmp/&quot;).</b></p>
+<h2><a id=
+"testing_the_flat_build">TESTING THE &quot;FLAT&quot; BUILD</a></h2>
+<p>The first task is to demonstrate that the standalone
+(&quot;flat&quot;) build works. On Unix try &quot;make clean; make&quot; or on
+Windows with Visual Studio[*] &quot;nmake -f NMakefile clean all&quot;:</p>
+<pre>
+    % make clean
+    rm -f hello hello.exe hello.o*
+    % make
+    gcc -c hello.c
+    gcc -o hello.exe hello.o
+</pre>
+<pre>
+    % ./hello.exe
+    Hello, World
+</pre>
+<p>As you can see this is quite a simple application and build
+model.</p>
+<p>[*] When using Visual Studio, all builds must take place in a
+Visual Studio-enabled console window. This is one of the VS menu
+options.</p>
+<h2><a id=
+"first_ao_build__to_generate_dependency_data">FIRST AO BUILD, TO
+GENERATE DEPENDENCY DATA</a></h2>
+<p>Notice that the hello app contains a directory called
+<em>.ao</em>. This is the only place where per-project
+configuration is kept. It's a good idea to create this directory at
+the root of each AO project, <em>even if it's empty</em>, because
+its presence &quot;anchors&quot; the project, telling AO where the project
+is rooted and thus helping it normalize pathnames. In this case the
+directory is not quite empty - we've chosen to customize the
+project name by setting</p>
+<pre>
+    Project.Name = HelloWorld
+</pre>
+<p>in a properties file. The default project name is that of its
+root directory; thus without this setting the project would be
+named &quot;hello&quot;.</p>
+<p>Now we can test dependency generation by simply prepending a few
+words to the command line:</p>
+<pre>
+    % make clean
+    % ao -MD -o@ run make
+    gcc -c hello.c
+    gcc -o hello.exe hello.o
+</pre>
+<p>The output is the same but here we have requested an audited
+build and asked that the audit data be written out in makefile
+syntax as dependency information. Take a look at <i>hello.o.d</i> to
+see this. These files could subsequently be included within the
+Makefile to provide it with complete dependency information.</p>
+<h2><a id=
+"using_ao_to_generate_a_new_makefile">USING AO TO GENERATE A NEW
+MAKEFILE</a></h2>
+<p>With a slight modification of the above:</p>
+<pre>
+    % make clean
+    % ao -F Makefile.new -o@ run make
+</pre>
+<p>we can generate not just dependencies but a complete new
+Makefile. You may test that the generated Makefile works via
+something like:</p>
+<pre>
+    % make -f Makefile.new clean all
+</pre>
+<p>Some users may find this is all they need from <em>AO</em> and
+can stop here, with no need to ever use the server.</p>
+<h2><a id=
+"first_ao_build_using_the_server">INITIAL AO BUILD USING THE
+SERVER</a></h2>
+<p>The &quot;<code>-o@</code>&quot; flag above suppressed all server
+interaction, but from here on a working server is required. Test
+for it by running:</p>
+<pre>
+    % ao ping
+    localhost:8080
+</pre>
+<p>
+You should get back a <code>server:port</code> string as shown above. If not,
+make sure the server is running and that the local Server property
+is configured to point to it. The current property settings can be
+checked via:
+</p>
+<pre>    % ao -H -q
+</pre>
+<p>AO will talk to a configured server automatically once we stop
+telling it not to:</p>
+<pre>
+    % make clean
+    % ao run make
+    gcc -c hello.c
+    ao: UPLOADING hello.o
+    ao: ARCHIVING hello.o
+    gcc -o hello.exe hello.o
+    ao: UPLOADING hello.exe
+    ao: ARCHIVING hello.exe
+</pre>
+<p>Notice that the output is the same as before with the addition
+of some UPLOADING and ARCHIVING messages. UPLOADING messages come
+from the client program while the ARCHIVING lines are responses
+from the server; together they say that the client uploaded copies
+of two output files to the server and that the server saved
+(archived) those copies.</p>
+<p>Note that since <em>make</em> is such a common build tool
+<em>ao</em> accepts <code>ao make</code> as a shorthand for
+<code>ao run make</code>.</p>
+<h2><a id=
+"second_ao_build_using_the_server">RECYCLING AO BUILD USING THE
+SERVER</a></h2>
+<p>At this point the server database is primed with information
+about commands and file states and the relationships between them.
+Let's do a second build. We can also use this opportunity to show
+the <code>ao make</code> shorthand. And for convenience we will
+fold the clean step into a single &quot;round trip&quot; build:</p>
+<pre>
+    % ao make clean all
+    rm -f hello hello.exe hello.o*
+    gcc -c hello.c
+    ao: DOWNLOADING hello.o@@20100704153239
+    gcc -o hello.exe hello.o
+    ao: DOWNLOADING hello.exe@@20100704153239
+</pre>
+<p>What happened here is that the compiler and linker did not
+actually run; instead, AO intercepted them at startup, determined
+that it could reuse the results of the previous build, downloaded
+those files, and skipped the actual compile and link steps. The
+parent program (make) continues to <em>believe</em> that the
+programs ran; from its perspective nothing is different.</p>
+<p>If either the command line or any of the input files had changed,
+AO would have skipped this optimization and proceeded with an actual rebuild,
+and of course uploaded the new result.</p>
+<p>It may be hard to see any speedup with such a tiny build since
+the effective build time is close to zero anyway, but on larger
+builds this can produce substantial improvements in build time.</p>
+<h2><a id="post_mortem_analysis">POST
+MORTEM ANALYSIS</a></h2>
+<p>OK, so now a couple of builds have been recorded. What can we
+learn about them? First we run the &quot;lsbuilds&quot; action:</p>
+<pre>
+    % ao lsbuilds
+    PTX            ? DURATION UP    DOWN  USER     HOST       LABEL
+    20100704153239 + 00:00:00 2     0     dsb      centos5   
+    20100704153319 + 00:00:00 0     2     dsb      centos5
+</pre>
+<p>The first column is the <em>Project Transaction</em>, or PTX,
+id. This is just a unique key to identify the build. The X column
+indicates build success (+) or failure (-). Duration is measured to
+the granularity of seconds. The user who ran both builds was
+&quot;dsb&quot;, they were both run on the machine &quot;centos5&quot;, and no
+label has been applied. We can now apply labels:</p>
+<pre>
+    % ao label --id 20100704153239 UP
+    % ao label --id 20100704153319 DOWN
+</pre>
+<p>and see them:</p>
+<pre>
+    % ao lsbuilds
+    PTX            ? DURATION UP    DOWN  USER     HOST       LABEL
+    20100704153239 + 00:00:00 2     0     dsb      centos5    UP
+    20100704153319 + 00:00:00 0     2     dsb      centos5    DOWN
+</pre>
+<p>Labels simply function as a more mnemonic alias for a PTX id.
+Typically these would correspond to <em>labels</em> on
+version-controlled source files.</p>
+<p>Now we can dig a little deeper and ask what happened during a
+build:</p>
+<pre>
+    % ao ls --commands --extended-names
+    * make clean all
+      /usr/bin/make@@DOWN
+      Makefile@@DOWN
+</pre>
+<pre>
+    * /bin/sh -c rm -f hello.exe hello.o*
+      /usr/bin/sh@@DOWN
+      /usr/bin/rm@@DOWN
+    - hello.exe
+    - hello.o
+</pre>
+<pre>
+    * gcc -c hello.c
+      (RECYCLED)
+</pre>
+<pre>
+    * gcc -o hello.exe hello.o
+      (RECYCLED)
+</pre>
+<p>First, note that when no PTX is specified to a post-mortem
+action AO defaults to the most recent one. Therefore this ended up
+asking about the second build, the one which downloaded everything.
+It shows that four commands were run (make, rm, gcc, and gcc
+again). The latter two were short-circuited as shown by the
+(RECYCLED) notation. The make program was allowed to run because
+it's the control program, and rm ran because it only
+<em>removed</em> files, an action which cannot be optimized
+away.</p>
+<p>Below each command is listed the set of files it touched. These
+sets are quite small here because these commands didn't do much;
+the recycled commands did nothing at all, the make program opened
+its Makefile, and rm touched two files (to remove them, as
+indicated by the '-'). Note that all programs will show their own
+executable as a file read.</p>
+<p>Last, try using the same command to look into the behavior of
+the first build. This will show a lot more data since the first
+build did a lot more:</p>
+<pre>
+    % ao ls --commands --id UP
+</pre>
+<p>Also try some of the other flags such as <code>--long</code></p>
+<pre>
+    % ao ls --commands --id UP --long
+</pre>
+<p>Note that &quot;<code>ao ls --help</code>&quot; will show all supported options.</p>
+<h2><a id=
+"steadystate_build_behavior">STEADY-STATE BUILD BEHAVIOR</a></h2>
+<p>Of course nobody makes a practice of building the same code
+twice just to see it go faster the second time. In real life files
+change occasionally and incremental builds are done after those
+changes. So let's make a trivial change to the source file and do
+another build:</p>
+<pre>
+    echo "" &gt;&gt; hello.c
+</pre>
+<pre>
+    % make clean
+    % ao make
+    gcc -c hello.c
+    ao: UPLOADING hello.o
+    gcc -o hello.exe hello.o
+    ao: DOWNLOADING hello.exe@@20100704153239
+</pre>
+<p>These new results (one upload, one download) are quite
+illuminating. First, the compile (gcc -c) line had to be run
+because AO detected that one of the input files was different.
+Since the change turned out to be semantically irrelevant, however,
+the resulting hello.o was identical to its predecessor. The
+client, which does not maintain state, had no way of knowing this
+and sent it to the server anyway (thus the UPLOADING message). The
+server, which does maintain state, recognized it as a redundant
+version and threw it away so there was no ARCHIVING message this
+time.</p>
+<p>Next we come to the link step. As far as <em>make</em> knows, it
+has rebuilt hello.o and thus needs to relink with the new version.
+This is the best make can do since it maintains no state either.
+AO, however, can and does figure out that the &quot;new&quot; hello.o is in
+fact unchanged and knows that it can swap in the previous
+executable. In short, the bogus change to the source file knocked
+things off track for a little while but order was then
+restored.</p>
+<p>This example illustrates some of the subtleties involved in
+using AO and <em>make</em> together. They are both <em>build
+avoidance</em> tools; each has its idea of what needs to be done
+and what can be skipped. Perhaps surprisingly, the relationship is
+actually a healthy symbiotic one, though you may sometimes have to
+think carefully to understand why things happened the way they did.
+But then, careful thinking is in the job description.</p>
+<p>The next section shows how AO could be used as the only
+<em>build avoidance</em> tool.</p>
+<h2><a id=
+"nonmakebased_work">NON-MAKE-BASED WORK</a></h2>
+<p>The same 'hello' directory contains a Java/Ant version of the
+Hello World program. We can run through the same sequence using
+Ant:</p>
+<pre>
+    % ant -q clean
+    % ao run ant
+    Buildfile: build.xml
+</pre>
+<pre>
+    compile:
+    [javac] Compiling 1 source file
+</pre>
+<pre>
+    BUILD SUCCESSFUL
+    ao: UPLOADING Hello.class
+    ao: ARCHIVING Hello.class
+</pre>
+<pre>
+    % ant -q clean
+    % ao run ant
+    ao: DOWNLOADING Hello.class@@20100525141218
+</pre>
+<p>In fact there's also a shell script to do the same build:</p>
+<pre>
+    % sh build.sh
+    + gcc -c hello.c
+    + gcc -o hello.exe hello.o
+</pre>
+<p>So what happens when this is run under AO? Try running the script twice under AO control:</p>
+<pre>
+    % ao run sh build.sh
+    (output varies depending on prior state)
+
+    % ao run sh build.sh
+    ao: REUSING hello.o@@20081206164038
+    ao: REUSING hello.exe@@20081206164038
+</pre>
+<p>Pretty much the same thing, except that it says REUSING instead
+of DOWNLOADING. That happened only because this time we did not do
+the equivalent of &quot;make clean&quot; to remove the previous versions,
+so AO realized that the right files were already in place
+allowing it to skip the download too. If we clean up manually we'll
+be back to the original behavior:</p>
+<pre>
+    % rm -f hello.o hello.exe
+
+    % ao run sh build.sh 
+    + gcc -c hello.c
+    ao: DOWNLOADING hello.o@@20081206164038
+    + gcc -o hello.exe hello.o
+    ao: DOWNLOADING hello.exe@@20081206164038
+</pre>
+<p>AO can even be used with an individual command:</p>
+<pre>
+    % ao run gcc -c hello.c
+    ao: UPLOADING hello.o
+    ao: ARCHIVING hello.o
+</pre>
+<pre>
+    % ao run gcc -c hello.c
+    ao: REUSING hello.o@@20081206164522
+</pre>
+<h2><a id="vcs_integration">VCS
+INTEGRATION</a></h2>
+<p>AO should be easy to integrate with any version control system
+(VCS) capable of running triggers (aka hooks). The idea is to set
+up a trigger script to map between AO metadata and VCS versions,
+with the result being that AO can report <em>versions</em> of
+source files rather than simple metadata. See the separate <a href=
+"ao-vcs.html">AO and Version Control</a> document for details.</p>
+<h2><a id="summary">SUMMARY</a></h2>
+<p>AO is not an enhancement to <em>make</em> or to any other build
+tool; it works with any deterministic program by sampling its
+inputs and outputs, recording that metadata, and playing it back
+upon request.</p>
+<p>You can run nearly any program under AO control by prepending
+&quot;ao run&quot; to its command line. There are a number of post-mortem
+commands which may then be used; a list of these is available via
+&quot;ao help&quot;, and detailed usage messages via &quot;ao help foo&quot; or
+&quot;ao foo -h&quot;.</p>
+<p>There are many more features of AO and a number of other
+documents which describe them. The purpose of this document is
+simply to get you started.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

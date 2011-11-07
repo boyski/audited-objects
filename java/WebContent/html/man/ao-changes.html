@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  <title>AO - CHANGE LOG</title>
+  <link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+<div class="wrapper">
+<h2 style="text-align:center;">AO CHANGE LOG</h2>
+
+<p></p><hr />
+<p><h5>1.0.10 (Nov 9, 2011):</h5></p>
+<ul>
+  <li>Moved Java server into Git repository.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.9 (Oct 1, 2011):</h5></p>
+<ul>
+  <li>Cleanup pass over documentation.</li>
+  <li>Switched to use of libgit2 for SHA-1 calculations, retired OpenSSL/libcrypto.</li>
+  <li>Updated jar files in server.</li>
+  <li>Work around Ubuntu $LIB bug by using $LD_LIBRARY_PATH to find auditor on Linux.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.8 (July 5, 2011):</h5></p>
+<ul>
+  <li>This is a fairly minor release, with a couple of smaller bugfixes and some
+  cleanup and streamlining of code.
+  </li>
+  <li>Added an <i>aoquery</i> script for digging details out of an audit file manually.</li>
+  <li>Brought back Mac OS X support. The Mac binaries are "fat" in that they contain both
+  32- and 64-bit code (for Intel only - no PPC support).</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.7 (March 10, 2011):</h5></p>
+<ul>
+  <li>Major textual simplification of client code: Windows-style "tchar" macros,
+  which are designed to allow code to be built for single-byte or Unicode multi-byte,
+  character sets, were removed. There is no likelihood of the client ever needing to be
+  built for Unicode. Meanwhile this feature had not been exercised for years and
+  was certainly broken, and of course it was non-obvious to Unix people and a pain to
+  keep up. So, removed. Not a functional change, just a massive text edit.
+  </li>
+  <li>Major bugfix for Linux. Previous versions worked on 32-bit <b>or</b>
+  64-bit Linux but were unable to function in an environment of mixed
+  32- and 64-bit processes, which is increasingly a common situation.
+  This is also known as a "multilib" installation. Anyway, I finally
+  found out how to support multilib and implemented it in this release.
+  Starting from 1.0.7, you can choose the 32- or 64-bit binary package but
+  each package contains both 32- and 64-bit auditors; the only difference
+  between them is the bit width of the "ao" driver program.
+  </li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.6:</h5></p>
+<ul>
+  <li>Updated third-party jars (H2).</li>
+  <li>Finished moving client code into Git.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.5:</h5></p>
+<ul>
+  <li>Version 1.0.5 contains a major reworking of the auto-dependency generation code.
+  It required changing the -M and -F flags non-compatibly but I doubt anyone was using them
+  the old way since they weren't too useful. In the new model, simply adding <i>-M</i>
+  (a la gcc) will cause AO to create "dependency fragments", one per target, with a .d extension.
+  Adding a <i>-F foo.mk</i> flag will cause AO to also generate a wrapper makefile which
+  includes all those fragments. Thus, you can either take responsibility for including the fragments
+  directly in your own Makefiles, or you can create the wrapper file and include just that, possibly
+  by using the GNU Make MAKEFILES environment variable. The net result is that
+  "MAKEFILES=`pwd`/foo.mk ao -M -F foo.mk make" should both create and use a set of generated
+  dependency files without any modification of the existing Makefiles. There are other ways; see
+  the <a href="ao-howto.html">HOWTO</a> and <a href="ao-tour.html">Tour</a> documents.
+  <li>The Unix auditor library has been renamed from <i>libao.so</i> to <i>libAO.so</i>. This was
+  done partly for consistency with the Windows client and partly to avoid possible confusion
+  with a different "libao" library (http://www.xiph.org/ao/), an audio library which was once dead
+  but then resuscitated. The old libao.so file shouldn't break anything but could cause confusion
+  in future so it's best to remove it manually.
+  </li>
+  </li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.4:</h5></p>
+<ul>
+  <li>Removed the Solaris/sparc binary. This can easily be
+  reconstituted if there's a call for it but for now we will save the disk space and
+  build time and concentrate on more modern platforms.</li>
+  <li>Now building the Linux 64-bit binary on an older system for better
+  compatibility. Both 32- and 64-bit Linux versions now require glibc 2.3.2 or better.
+  </li>
+  <li>Updated some third-party jars to latest (EclipseLink, H2, log4j, etc).</li>
+  <li>Made some minor recycling optimizations.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.3:</h5></p>
+<ul>
+  <li>Improved aggregation properties to better handle different compiler installation styles,
+  particularly for g++ and specifically to fix a problem exposed by Ubuntu packaging.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.2:</h5></p>
+<ul>
+  <li>Added a new client binary for 64-bit Linux.</li>
+  <li>Fixed some Linux incompatibilities with Ubuntu variants.</li>
+  <li>Changed default project name strategy to remove any trailing "-version".</li>
+  <li>Reworked clients to link with libcrypto. This was done to make it structurally
+  easier to experiment with alternate identity hash algorithms (e.g. SHA1) and also
+  to rely on more standard, and more regularly maintained, libraries.
+  Removed the older individual libraries like libsha2 and libvmac.</li>
+ <li>Upgraded the embedded DB to H2 1.2.141 (from 1.2.140).</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0.1:</h5></p>
+<ul>
+  <li>Enhanced the "lsbuilds" action to search for PTXes which may have generated a specified file.</li>
+  <li>Moved logfiles to a subdir called "_LOGFILES_"</li>
+  <li>Persist command lines to a CLOB instead of a VARCHAR to avoid overflows.</li>
+  <li>Upgraded embedded DB to H2 1.2.140 (from 1.2.139).</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0:</h5></p>
+<ul>
+  <li>Fixed some JavaDoc warnings.</li>
+  <li>Changed the printing of additional license info so it works as static content.</li>
+  <li>Ongoing documentation improvements.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0 RC5:</h5></p>
+<ul>
+  <li>Changed the long name of the -d flag to -d/ata-compare, and fixed its
+  format to show date stamps where data codes are not available.</li>
+  <li>Added a new "diff" action for comparing PTXes.</li>
+  <li>Server source code cleanup to normalize case.</li>
+</ul>
+
+<p></p><hr />
+<p><h5>1.0 RC4:</h5></p>
+<ul>
+  <li>Upgraded third-party jar (H2).</li>
+  <li>Added a new standard -d/ata-only flag for actions.</li>
+  <li>Tweaked format of "ao stat" output to be consistent with "ao ls -d".</li>
+  <li>Fixed wildcarding in Windows client.</li>
+  <li>Client source cleanup - simplify Win32 and tchar.h porting hacks.</li>
+</ul>
+
+<p></p>
+<hr />
+
+<p><h5>1.0 RC3:</h5></p>
+<ul>
+  <li>Ongoing documentation improvements based on user feedback.</li>
+  <li>Fixed client to handle unrecognized property settings through the
+    environment more gracefully.</li>
+    <li>Dialed down default logging verbosity for public consumption. Also removed appender for separate AOServer.log file.</li>
+    <li>Removed overlapping strcpy from client code for POSIX conformance.</li>
+</ul>
+
+<p></p>
+<hr />
+
+<p><h5>1.0 RC2:</h5></p>
+<ul>
+  <li>Functionally identical to 1.0 RC1 with updates to documentation and
+    cosmetic improvements to sample Unix startup script.</li>
+</ul>
+
+<p></p>
+<hr />
+
+<p><h5>1.0 RC1:</h5></p>
+<ul>
+  <li>Initial Release Candidate</li>
+</ul>
+
+<div class="push"></div>
+</div>
+
+<div class="footer">
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and license terms</a>.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>Tuning Make For AO</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h2 style="text-align:center;"><a id="tuning_make_for_ao">Tuning Make For AO</a></h2>
+<p>This is a set of informal notes on things you may consider doing
+to optimize your <i>make-based</i> build for AO.</p>
+
+<h2><a id="conventions">Conventions</a></h2>
+<p>Examples given here will tend to be Linux- and
+bash-centric. The concepts, however, are directly
+applicable (except where noted) to other (Windows, csh, etc)
+environments.</p>
+<p>It's assumed that you are at least somewhat
+familiar with the operation of the standard <em>make</em> utility.
+</p>
+
+<h2><a id="combining_scripts">Combining Script Lines</a></h2>
+<p>Probably the most important tip is to put related operations
+under control of a single <i>aggregated</i> master process. Consider the
+following simple Makefile:</p>
+<pre>
+    foo:
+            gen_data &gt; tmp_foo
+            mv -f tmp_foo foo
+</pre>
+<p>This is a very common idiom: build a file under a temporary
+name (<code>tmp_foo</code>) and move it to its final location
+only when done. There's nothing wrong with this method per se, but
+complications arise when it's handled in two separate lines as above.
+Typically <em>make</em> will implement them as two unrelated processes.
+In other words Make will generally take the first line above and
+pass it to the shell, e.g.:</p>
+<pre>
+    /bin/sh -c "gen_data &gt; tmp_foo"
+</pre>
+<p>Then, assuming the command returned successfully, it will do the
+same with the second line:</p>
+<pre>
+    /bin/sh -c "mv -f tmp_foo foo"
+</pre>
+
+<p>It's important to remember here that AO audits
+<strong>processes</strong>. Each process - along with any
+subprocesses with which it might be aggregated - is treated as a &quot;black
+box&quot; or <em>audit unit</em>. Thus while from <em>make's</em>
+perspective these lines form a single logically-coherent <em>build
+script</em> AKA <em>recipe</em>, to AO they are two different <em>audit units</em>.
+In other words,<i>make</i> knows that these lines are part of the
+same recipe but AO has no way to find that out because it doesn't
+read makefile syntax.</p>
+
+<p>As a result, the first line will result in a file called
+<code>tmp_foo</code> being recorded as a target. The second will
+record the fact that <code>tmp_foo</code> was renamed. This is not
+wrong but it is sub-optimal. On a subsequent recycling build
+these actions will be played back correctly but inefficiently,
+because (a) the <em>mv</em> operation must be run and (b) what the
+database records is different from our intuitive understanding of
+what was really done and why. Even worse, if the recipe ended by
+removing <code>tmp_foo</code>, a recycling build would save a copy
+of it and download it only to remove it immediately. And if a new makefile
+is generated from this data it will have <code>tmp_foo</code> as a
+target. Ideally we'd prefer AO to understand that this is an atomic
+sequence producing only <code>foo</code>.</p>
+
+<p>Ironically, the problem would be worse if the code was better:</p>
+<pre>
+    foo:
+            gen_data &gt; tmp_foo.$$$$
+            mv -f tmp_foo.$$$$ foo
+</pre>        
+<p>The temp file is now uniqified by adding a pid, which is more robust, but
+this will simply cause uniquely-named files to pile up in the AO database.</p>
+
+<p>Though these are not show-stopper problems, they slow down the audit,
+add noise to the database, and obfuscate our view of what's really taking
+place. Fortunately they can all be fixed by a slight modification of
+the build script:</p>
+
+<pre>
+    foo:
+            gen_data &gt; tmp_foo &amp;&amp;\
+            mv -f tmp_foo foo
+</pre>
+
+<p>Here we've combined the two commands to run under a single shell
+process. Not only is this cleaner and more efficient when using AO,
+it's cleaner and more efficient <em>when not using AO</em> too;
+it's just a better way to do things. In fact, consider this
+paragraph from the RATIONALE section of the POSIX <em>make</em>
+document:</p>
+
+<pre>
+    The default in some advanced versions of make is to group all the
+    command lines for a target and execute them using a single shell
+    invocation; the System V method is to pass each line individually
+    to a separate shell. The single-shell method has the advantages in
+    performance and the lack of a requirement for many continued
+    lines.  However, converting to this newer method has caused
+    portability problems with many historical makefiles, so the
+    behavior with the POSIX makefile is specified to be the same as
+    that of System V. It is suggested that the special target .ONESHELL
+    be used as an implementation extension to achieve the single-shell
+    grouping for a target or group of targets.
+</pre>
+
+<p>Here, POSIX is acknowledging that having <em>make</em> run the
+entire build script under control of a single shell process would
+have been a better design but accepts that it's too late to change
+the default, while recommending a way to get the more efficient
+behavior. With luck your make program may actually support
+<em>.ONESHELL</em>. If not, you can achieve the same result by
+combining logically related commands manually as shown above
+and end up with a better Makefile anyway.</p>
+
+<p>The AO-specific advantage of combining scripts is that it can
+audit a create-and-rename as a single unit. AO can then determine
+that <code>tmp_foo</code> was just an intermediate file and choose
+not to record it.</p>
+
+<p>Perhaps the most common example of this pattern is something
+like:</p>
+<pre>
+    foo.o: foo.c
+            @rm -f $@
+            $(CC) -c $(CFLAGS) $@
+</pre>
+<p>This <em>build script</em> wants to make sure the old object is
+out of the way before creating the new one. Combining these two
+commands into one shell invocation can speed up the build
+measurably. This requires only the addition of 4 characters:</p>
+<pre>
+    foo.o: foo.c
+            @rm -f $@ &amp;&amp;\
+            $(CC) -c $(CFLAGS) $@
+</pre>
+<p>Here's another, more pernicious variation on the same theme:</p>
+<pre>
+    foo:
+        echo "first line"   &gt; foo
+        echo "second line" &gt;&gt; foo
+        echo "third line"  &gt;&gt; foo
+        echo "fourth line" &gt;&gt; foo
+</pre>
+<p>There are many builds which create entire source files
+incrementally in this fashion (the GCC build is one). Again, AO can
+handle this but not optimally. It will see that a one-line file
+<code>foo</code> was created and will upload it. It will then
+record and upload the two-line version of <code>foo</code> and so
+on. When recycling it will go get the one-line version, then the
+two-line version, etc. The result will be correct but each
+intermediate file must pass over the network only to be replaced as
+soon as it arrives. This can be solved by joining lines as above,
+or you could move the logic into a separate script and aggregate on
+that, e.g.</p>
+<pre>
+    foo:
+                script_to_generate_foo
+</pre>
+<p>while adding <code>/script_to_generate_foo/</code> to the aggregation
+pattern.</p>
+
+<p>As long as all the file appends take place under control of
+<em>one</em> shell process AO will be able to record an atomic
+creation of <code>foo</code> in its final form. As noted above,
+this is almost always a better design anyway. Most <em>make</em>
+experts would say that long scripts don't belong in Makefiles,
+though open-source projects, where Makefile are often generated by
+a configure script, may be granted an exemption.</p>
+<p>In summary: (1) combine related shell processes into a single
+shell process and (2) make sure the aggregation patterns match it
+as an atomic audit unit.</p>
+
+<h2><a id="use__oneshell__with_gnu_make_3_82_">Use .ONESHELL: with GNU Make
+3.82+</a></h2>
+
+<p>It should be noted that support for the .ONESHELL pseudo-target
+mentioned above is present in GNU Make 3.82 and above. So if your
+make program doesn't already support .ONESHELL, consider upgrading
+to GNU Make version 3.82+.</p>
+<p>In fact .ONESHELL mode is so important to AO that it contains
+code to automatically turn it on for GNU make in a way that's silently
+ignored by older GNU make and non-GNU make versions.
+Therefore, you should not <i>need</i> to do anything to get .ONESHELL
+behavior when using AO with GNU Make 3.82+.
+However, it's a good idea to always embed the .ONESHELL special
+target literally in new Makefiles anyway - whether you have 3.82+
+or not - for consistency. It will be silently ignored by any <i>make</i>
+which doesn't support it, and it's a generally better style.
+</p>
+
+<h2><a>Generating Makefiles</a></h2>
+<p>AO can be used to generate Makefile data in one of two
+different ways. The first is to spit out dependency files, similar to what
+<i>makedepend</i> or <i>gcc -MD</i> would create. The second is to generate an
+entire new and complete Makefile as a way to bootstrap yourself out of a broken
+build system. These are treated separately below.
+</p>
+<p>Before going on it's important to understand that the tool that generates
+make data is a standalone Perl script called <i>ao2make</i> which reads
+the audit format of AO and converts it to make syntax. Although there is some convenience
+machinery to run both processes together, not all ao2make options are exposed this way
+so for advanced uses it may make more sense for the AO client to write its output to
+an intermediate file from which ao2make can then read. This also means that improvements
+to make-data-generation are relatively easy as it requires "only" Perl skills.
+</p>
+<h3>Auto-Dependency Generation</h3>
+<p>This is designed to be as easy as possible since it's the most lightweight use of AO.
+It makes no use of the AO server and requires only the client install. Running your
+under control of the AO client with the -MD flag will cause it to generate
+a <code>targetfile.d</code> file for every <code>targetfile</code>:
+</p>
+<pre>
+
+    % ao -MD make ...
+
+</pre>
+<p>This presupposes that you do NOT have a server set up and configured. If you do, and in
+particular if the client has a <i>Server</i> property set, then you may want to add a <code>-o@</code>
+flag to suppress server interaction. There is no incompatibility between makefile generation and
+server interaction; you may talk to the server for recycling opportunities AND generate prereqs at
+the same time, but it may be easier to get started with one or the other.
+</p>
+<p> As a convenience, if you add the --make-file flag to the above:
+</p>
+<pre>
+
+    % ao -MD --make-file Prereqs.mk make ...
+
+</pre>
+<p>the named file will be created with an include statement for each .d file.
+</p>
+
+<p></p>
+<h3>Generating New Makefiles From Old</h3>
+<p>
+This will be demonstrated using the two-stage process described above. First, we do a
+full build using the old Makefile and save the audit output to Foo.ao:
+</p>
+<pre>
+
+    % make clean
+    % ao -o Foo.ao make ...
+
+</pre>
+<p>
+It's important that this be a full build so that all targets and prereqs are represented
+in the .ao file. Now we can generate a Makefile from the audit data:
+</p>
+<pre>
+
+    % ao2make -MF Makefile.new -full -pdump Foo.ao
+
+</pre>
+<p>This will read Foo.ao and generate Makefile.new. If things go well you should be able
+to use it right away:
+</p>
+<pre>
+
+    % make -f Makefile.new clean
+    % make -f Makefile.new
+
+</pre>
+<p>The generated Makefile is written for GNU Make. Since it contains full dependency info, it
+should be "parallel-safe" which you can test with -j4 or so.
+</p>
+<p>It's impossible to generate a Makefile as good as what a human can write. For instance, a human
+can use pattern rules to avoid repetition, and can insert mechanisms to support alternate build types
+(debug, profiled, etc) and platforms. However, very often a build system gets so mature that it's
+hard to improve it gradually, and impossible to rebuild from scratch. AO can generate a clean, working,
+non-recursive, parallel-safe Makefile which can then be fine tuned by hand.
+</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

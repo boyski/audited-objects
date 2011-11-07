@@ -47,5 +47,8 @@ Thumbs.db
 *~
 .*.swp
 *.pbxuser
-*.user
 *.mode1v3
+*.suo
+*.ncb
+*.sln.cache
+*.user

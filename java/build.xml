@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="AO" default="release" basedir=".">
+
+	<!-- General purpose build properties -->
+	<property file="ant.properties" />
+
+	<property name="App.Name" value="AO" />
+	<property name="App.War" value="${App.Name}.war" />
+	<property name="Web.Content.Dir" value="WebContent" />
+	<property name="Doc.Dir" value="docs" />
+	<property name="Src.Dir" value="src" />
+	<property name="Java.Dir" value="${Src.Dir}/java" />
+	<property name="Html.Dir" value="${Web.Content.Dir}/html" />
+	<property name="Html.Man.Dir" value="${Html.Dir}/man" />
+	<property name="Html.Style.Sheet" value="/AO/html/styles/style.css" />
+	<property name="Web.Inf.Dir" value="${Web.Content.Dir}/WEB-INF" />
+	<property name="Lib.Dir" value="${Web.Inf.Dir}/lib" />
+	<property name="Classes.Dir" value="${Web.Inf.Dir}/classes" />
+	<property name="Docs.Zip" value="${Web.Content.Dir}/DOCS.zip" />
+
+	<path id="compile.classpath">
+		<!-- Include all elements that Tomcat exposes to applications -->
+		<pathelement location="${catalina.home}/common/classes" />
+		<fileset dir="${Lib.Dir}">
+			<include name="*.jar" />
+		</fileset>
+		<pathelement location="${catalina.home}/shared/classes" />
+		<fileset dir="${catalina.home}/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${Classes.Dir}" />
+		<delete dir="${Html.Dir}" />
+		<delete file="${App.War}" />
+		<delete file="${Lib.Dir}/AO.jar" />
+		<delete>
+			<fileset dir="${basedir}" includes="**/*.tmp" />
+		</delete>
+	</target>
+
+	<target name="realclean" depends="clean" />
+
+	<target name="compile" depends="clean" description="Compile Java sources">
+		<mkdir dir="${Classes.Dir}" />
+		<javac srcdir="${Java.Dir}" destdir="${Classes.Dir}" target="1.5" debug="${compile.debug}" deprecation="${compile.deprecation}" optimize="${compile.optimize}">
+			<classpath refid="compile.classpath" />
+		</javac>
+		<copy todir="${Classes.Dir}">
+			<fileset dir="${Java.Dir}" includes="**/*.properties" />
+			<fileset dir="${Java.Dir}" includes="**/*.xml" />
+		</copy>
+	</target>
+
+	<target name="release" depends="compile" description="Generate a releaseable non-obfuscated WAR">
+		<delete>
+			<fileset dir="." includes="*.war*" />
+		</delete>
+		<jar destfile="${App.War}" basedir="." filesonly="true" duplicate="add" includes="${Web.Content.Dir}/**,${Html.Dir}/**" excludes="**/*.war,**/AO.jar,.*/**,${Web.Content.Dir}/**">
+			<zipfileset dir="${Web.Content.Dir}" prefix="">
+				<include name="**" />
+			</zipfileset>
+		</jar>
+	</target>
+
+	<target name="src" depends="compile,html" description="Generate a non-obfuscated WAR with full sources included">
+		<delete>
+			<fileset dir="." includes="*.war*" />
+		</delete>
+		<jar destfile="${App.War}" basedir="." filesonly="true" duplicate="add" includes="${Web.Content.Dir}/**,${Html.Dir}/**,${Src.Dir}/**" excludes="**/*.war,**/AO.jar,${Classes.Dir}/**">
+			<zipfileset dir="${Web.Content.Dir}" prefix="">
+				<include name="**" />
+			</zipfileset>
+		</jar>
+	</target>
+
+	<target name="bldenv" depends="src" />
+
+	<target name="javadoc">
+		<javadoc access="public" author="true" classpathref="compile.classpath" destdir="${Doc.Dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.5" sourcepath="${Java.Dir}" splitindex="true" use="true" version="true" />
+	</target>
+
+	<target name="html" description="Generate static HTML for server side">
+		<mkdir dir="${Html.Dir}" />
+		<mkdir dir="${Html.Man.Dir}" />
+		<exec executable="perl" failonerror="true">
+			<arg value="-S" />
+			<arg value="pod2html" />
+			<arg value="--title=AO Client Manual Page" />
+			<arg value="--infile=${Doc.Dir}/man/ao.pod" />
+			<arg value="--outfile=${Html.Man.Dir}/ao.html" />
+		</exec>
+		<delete>
+			<fileset dir="${Html.Man.Dir}" includes="**/pod2*" />
+			<fileset dir="${Doc.Dir}" includes="**/pod2*" />
+			<fileset dir="." includes="*.tmp" />
+		</delete>
+	</target>
+
+	<target name="install" description="Update war file in Unix server">
+		<copy file="${App.War}" todir="${user.home}" />
+	</target>
+
+	<target name="test" depends="clean,release,install" description="Rebuild and replace local WAR file">
+	</target>
+
+	<target name="restart" description="Stop Unix server and start with clean state">
+		<exec executable="/etc/init.d/aoserver">
+			<arg line="dbclean restart" />
+		</exec>
+	</target>
+
+</project>

@@ -1,0 +1,55 @@
+Henry Townsend <henry.towns...@not.here> writes:
+> Paul Pluzhnikov wrote:
+>> Henry Townsend <henry.towns...@not.here> writes:
+
+>>> My understanding is that they do have shared libraries but
+>>> that symbol resolution is already done by the time the runtime linker
+>>> fires up.
+
+Perhaps I read too much into "symbol resolution already done" part.
+
+What happens is that the (static) linker records in the executable
+the name of the shared object from which the definition is supposed
+to come at runtime. For example:
+
+  $ echo 'int main() { printf("hello\n"); return 0; }' > junk.c &&
+    cc junk.c && dump -Tv ./a.out | grep printf
+  [2]     0x00000000    undef      IMP     DS EXTref   libc.a(shr.o) printf
+
+The runtime loader will still need to look up the address of printf
+in libc.a(shr.o) [which really names an AIX shared library], and
+put that address into the AIX equivalent of the PLT.
+
+This differs from other UNIXes in that the library name is "fixed"
+at (static) link time, so the runtime loader doesn't need to search
+anything except the libc.a(shr.o)
+
+> Request for clarification: are you saying this can be done for
+> default-linked AIX binaries or only for the new "deferred linked" ones?
+
+When a binary is "deferred linked", the static linker records a
+special ".." import name:
+
+  $ cc -c junk.c && ld -G -o junk.so junk.o -bexpall -bnoentry &&
+    dump -Tv ./a.out | grep printf
+  [1]     0x00000000    undef      IMP     DS EXTref              .. printf
+
+This tells the runtime loader that a definition of printf will need
+to be searched for in any available "load module" (which I think
+is exactly equivalent to what other UNIX runtime loaders would do).
+
+So, to interpose the "default-linked" binary, your interposer must
+be named shr.o and be part of libc.a archive (and, as I said
+before, must provide all other symbols that anything imports from
+libc.a(shr.o)); but to interpose the "deferred-linked" symbol your
+interposer could be named anything (and provide only the interposed
+symbol), but it must somehow be loaded before the module it
+interposes for.
+
+Another twist is that AIX executables are re-linkable, so you could
+simply relink a.out with interposer.so before libc.a and your
+interposer will be called. But this will affect only the relinked
+binary; if you want to interpose all calls to e.g. printf, then you
+must relink all object modules that import printf.
+
+Cheers, 

@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>AO Demo Package</title>
+<link href="../styles/style.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div class="wrapper">
+<p>
+Users new to AO should always start with the <a href="demo.tar.gz">Demo Package</a>.
+Note that this is not part of the AO tool proper and is provided for
+test and demo purposes only. Warning: line endings
+on a few files, in particular .bat scripts, may need to be adjusted for Windows.
+</p>
+<p>
+The&quot;hello&quot; subdirectory of the demo package contains a simple&quot;Hello World&quot; program.
+This is the simplest demo and generally should be tried first. It is what's
+used in the <a href="../html/man/ao-tour.html">Tour of AO</a> document.
+It's provided with both a Makefile and a build.sh script for Unix build purposes,
+as well as a NMakefile (e.g.&quot;nmake -f NMakefile&quot;) and a build.bat script for
+Windows. Finally, there's a Java version which may be built with Ant.
+Any of these build tools may be used with AO; in fact that's the point of the HelloWorld demo.
+</p>
+<hr>
+<p>
+Open-source applications are an ideal way to exercise AO, and I use many for testing.
+Here is a partial list of some open source packages I've used AO with. These would be
+good candidates with which to try out AO.
+</p>
+<table border="1">
+<tr>
+<td>PCRE</td>
+<td><a href="http://www.pcre.org/">Perl Compatible Regular Expressions</a></td>
+</tr>
+<tr>
+<td>Jikes</td>
+<td><a href="http://jikes.sourceforge.net/">Jikes Java Compiler</a></td>
+</tr>
+<tr>
+<td>HSQLDB</td>
+<td><a href="http://hsqldb.org/">100% Java Database</a></td>
+</tr>
+<tr>
+<td>GNU Make</td>
+<td><a href="http://www.gnu.org/software/make/">GNU Make</a></td>
+</tr>
+<tr>
+<td>Bash</td>
+<td><a href="http://www.gnu.org/software/bash/">The BASH Shell</a></td>
+</tr>
+<tr>
+<td>GNU Core Utils</td>
+<td><a href="http://www.gnu.org/software/coreutils/">GNU Core Utils</a></td>
+</tr>
+</table>
+<p>
+Each of these will have its own configuration instructions but for Unix most
+are of the common "./configure; make" variety. Building for Windows is usually
+more complex; see individual package documentation.
+</p>
+<p>
+Note that open source software is a particularly hostile environment for AO, for
+reasons elaborated below. For us this makes it an ideal test platform, and for you
+it means that <i>AO will generally perform better with your own builds than it does
+with open source</i>. This conclusion may seem a bit surprising, so
+<a href="../html/man/ao-buildmodels.html">supporting arguments</a> are provided.
+There's also a document on <a href="../html/man/ao-tuning.html">tuning a build for AO</a>
+which covers related topics.
+</p>
+<div class="push"></div>
+</div>
+<div class="footer">
+AO is supplied under the following <a href=
+"../COPYRIGHT.html">copyright and license terms</a>.
+</div>
+</body>
+</html>

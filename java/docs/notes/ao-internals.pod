@@ -1,0 +1,251 @@
+=head1 Internals of the AO System
+
+This is a completely informal set of notes on how AO works.  It is as
+much for my benefit as anyone else's because I keep looking into the
+code and saying "What the *&#$ is THAT doing there?".
+
+=head1 OVERVIEW
+
+AO is divided naturally into a client side and a server side. The
+server side is 100% pure java and runs anywhere. The client side is
+written in mostly portable C.
+
+The client side can be subdivided into an I<audit library> and an
+I<audit monitor>. The monitor is quite portable and has been ported to
+various Unix flavors plus Windows.  The audit library relies on
+platform-specific semantics so there are entirely separate versions for
+Windows and Unix. The Windows version uses APIs not available prior to
+Windows 2000. The Unix version is believed to be portable to all modern
+Unix variants, including MacOSX, except for AIX.  The existing Unix
+audit library will not work on AIX; it's possible that a variant
+specific to AIX could be developed but that has not been investigated.
+
+=head2 AUDIT LIBRARY
+
+The audit library works only for executables which use the shared
+version of the C library (libc.so) on Unix, which is I<almost> all
+programs nowadays, or system32.dll on Windows which again is basically
+every program.
+
+The library is used under control of the audit monitor. When the
+monitor executes a program it forces the library into that program's
+runtime linking sequence using the LD_PRELOAD environment variable or
+equivalent. The library then intercepts and records any system calls it
+cares to monitor by acting as a wrapper around them. The library also
+passes itself on to sub-processes in a virus-like way, so all children
+of the audited program will also be audited.
+
+=head3 Output
+
+At one time the audit lib supported a I<raw mode> in which it printed
+out the details of every monitored system call at the instant it took
+place. That's the simplest and lowest-level method but I eventually took
+that out because it wasn't used.
+
+The better technique is to record each event in an in-memory data
+structure (currently a binary tree though it could be a hash) and
+output an edited version of events at I<program end time> (see below).
+
+=head4 Capturing Program End
+
+The concept of I<program end time> needs some elaboration. It is the
+moment when a I<program> ceases to run (or more precisely, the instant
+just before that). This is different from I<process end time>. At least
+on Unix when an exec() occurs there is a new B<program> running within
+the old B<process>.  Therefore, a I<program> can be said to end when it
+exits B<OR> when it execs a new program. There are a few other
+scenarios such as aborting on a signal but these are treated as
+abnormal conditions and not tracked.
+
+Therefore, we need to hook not only file-access system calls such as
+open() but also the exit() and exec() families in order to gain control
+at I<program end time>.
+
+A special situation arises when a program I<fork()s>. After the fork
+(and before any potential exec) there are two identical copies of the
+file-access database. In order to prevent redundant output we must also
+intercept fork() and do some fancy stepping to make sure only one copy
+of the data survives.
+
+=head4 Cooking the Books
+
+Before dumping the database, an attempt is made to weave known events
+into a more coherent story. For instance, suppose file AA is written
+and then renamed to BB within the same process The raw audit would show
+both events but viewing the process as a black box the net effect is
+simply that file BB was created. Similarly, if a file is read, then
+written, then renamed, then unlinked, we could report all that but in
+fact the unlink cancels out all the other activity and nothing needs to
+be reported about that file.
+
+It's B<very> important to note that the above editing can B<only> be
+done on a per-program basis. I.e. each program has its own little
+database of file activity and none knows about the others.  Consider
+the following script:
+
+    #!/bin/sh
+    touch hw
+    mv hw hello
+
+The echo and mv commands occupy different process slots. The audit of
+I<touch> will report that file C<hw> was created and that of I<mv> will
+report a rename to C<hello>, but they have no chance to compare notes.
+The I<audit monitor>, however, will be in a position to analyze these
+actions in a broader context and cohere them later on.
+
+=head4 Output File
+
+The audit data is sent either to stderr or to a file descriptor
+connected to the audit monitor (currently a socket but could be a named
+pipe etc).  Each file access is recorded (subject to the above caveats)
+along with the pid within which it took place. Each access is also
+assigned a I<sequence number> within its process (i.e. file ops are
+numbered from the beginning of the process) as well as a I<depth> (the
+number of exec() system calls between the audit monitor and the current
+program). The combination of these allows us to determine the order in
+which events took place.
+
+Of course you might ask, what about programs which don't run
+synchronously? Certainly, if you have process A with asynchronous
+children B and C, and if process B writes file X and C removes it, it's
+conceivable (depending on the internal logic of A, B, and C) that it
+will be written-then-removed in run 1 and removed-then-written in run
+2.  But, bottom line, we assume deterministic behavior. The contract
+is: if you behave deterministically we'll produce a deterministic
+audit. GIGO.
+
+=head1 PROGRAMMING NOTES
+
+=head2 THREADING
+
+AO makes no particular use of threading on its own. On the other hand
+the auditing library must be very careful to be B<thread safe> because
+the host process often will be threaded.
+
+The monitor is deliberately not threaded for simplicity.  Therefore,
+while the auditor code must be careful to be thread-safe, the monitor
+need not worry about it. Of course there's a large amount of shared
+code between the two which must all be thread-aware.
+
+In the future, the auditor might become more aware of threading in
+order to catch thread-init and thread-exit events. This would allow
+auditing and recycling at the granularity of, say, .class files in a javac
+compilation.
+
+=head2 AUDITING LIMITATIONS
+
+=over 4
+
+=item 1. Non-File-Related Activity
+
+The auditing technology assumes that audited programs are
+I<translators>, i.e. that they read files as input and produce files as
+output.  Non-file activity cannot be reliably audited nor played back.
+For instance, imagine a build script which produces a set of files and
+sends an email when done. The file generation can be recorded reliably
+and subsequently replayed but the email, which at a low level is
+implemented by opening a pipe or socket and writing data to it, will
+not.
+
+I<Workaround: A program which does not create any files is always run
+and always recorded (i.e. is never elided due to recycling). Thus,
+breaking the email sender into a separate script will solve the
+problem.>
+
+=item 2. Setuid Programs
+
+Most operating systems which have the concept of set-userid restrict
+the injection of untrusted foreign code into setuid programs for
+obvious reasons of security. Typically only libraries residing in
+certain C<trusted> directories may be mapped in. Therefore, by default,
+AO may be unable to audit setuid programs. However, this is generally
+easy to deal with at install time; the OS simply needs to be told to
+trust the auditing library.
+
+I<Solution: Either the auditing library should be installed to an
+existing trusted directory or the directory to which it is installed
+should be marked as trusted.  Mechanisms differ by OS. On Solaris see
+the man pages for ld.so.1(1) and crle(1). On Linux, see ld.so(8).>
+
+=item 3. Statically Linked Programs on Unix
+
+To be auditable, a program must be linked dynamically I<with the C
+library>. A program linked against a static C library cannot be
+audited. AO detects such static executables and gives an "unable to
+audit" warning.  Fortunately such executables are impossible on Windows
+and quite rare (and becoming more so) on Unix. In fact some systems no
+longer support static linking against libc.
+
+Some platforms have a minimal set of statically-linked binaries in case
+of emergency, e.g. if the shared C library is damaged. But these are
+usually kept in an out-of-the-way location such as /sbin or
+/usr/sbin/static and are functionally identical to programs found
+elsewhere on PATH.
+
+There is no problem with programs linked statically with other libraries.
+Only the C library is required to be linked dynamically.
+
+I<Workaround: find or build a dynamically linked version of the
+program.>
+
+=item 4. Unix System Calls Which Circumvent the C Library
+
+Most Unix implementations have a C<syscall()> function which traps
+directly to a system call by number. To use this it's necessary to
+write inline assembly code, to hardwire the number of your system call,
+to manipulate the program's stack manually, etc. In other words it's an
+extremely low-level interface and quite rarely used. However, for the
+sake of completeness it should be noted that files opened via
+C<syscall()> instead of the documented stub in the C library will not
+be recorded.
+
+=item 5. Function Calls Made via User-Defined Symbols
+
+If, on Unix, a program uses the runtime-linker API to make its own 
+symbols for standard functions, th resulting call can not be audited.
+For instance:
+
+	int (*my_open)() = dlsym(handle, "open");
+	int fd = my_open("foo", O_RDONLY);
+
+However, there is no reason for an application to go to this trouble
+and AO is not a "security" tool - in other words it's not expected tgar
+anyone would go out of their way to beat auditing and if they do, they
+will succeed.  Such programs are not the target audience.
+
+=item 6. Files Opened by the System
+
+AO audits files manipulated explicitly by the I<program>; it ignores
+files used by the I<system> in support of the program.  For example,
+consider a program which needs to look up information about a user (the
+typical Unix API for this is C<getpwnam()>).  In some situations the
+data will come from a distributed database such as LDAP or NIS; other
+times it will come from /etc/passwd. In neither case will a file access
+be recorded because the operation is handled under the covers by the
+system.
+
+I<Workaround: this is considered a Good Thing (TM).>
+
+=item 7. Nonstandard C Library Configurations
+
+It's possible to build and use a non-standard C library. For instance,
+one could technically build GNU libc (aka glibc) on Solaris and link a
+program with it. When AO is built on platform X it's configured to work
+with the C library shipped with platform X. Others are unsupported and
+will probably not work right.
+
+=item 8. Out-Of-Process Activity
+
+Imagine that somewhere in the build sequence a message ("Do XYZ") is
+sent via a socket to a daemon process potentially running on a
+different system. Whatever XYZ does will not be audited. This is
+basically what remote shells (rsh, ssh) do. So be careful of remote
+shell activity. The remote shell could be told to create a new audit
+session at the remote end, of course.
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (c) 2004-2009 Clear Guidance Consulting.  All rights reserved.
+CGC Confidential.

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO Synopsis</title>
+<link href="../styles/style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div class="wrapper">
+<h2>AO SYNOPSIS</h2>
+<p>Audited Objects (AO) is a tool for the analysis and optimization
+of automated software processes such as builds <a href=
+"#footnote1">[1]</a>. When a build process is run under AO control,
+each command executed is recorded in a central database along with
+a record of each file opened by that command and its state
+(checksum/size/timestamp) as of that instant. A full copy of each
+<em>modified</em> file is stored in the database as well.</p>
+<p>AO also provides a suite of tools for analyzing this data once
+collected. There are many uses for this
+information, including but not limited to:</p>
+
+<h4><a href="man/ao-howto.html#dependency_generation">Generating a &quot;perfect&quot;
+set of dependency information for existing Makefiles, thus enabling safe parallel builds.</a></h4>
+
+Most make-based build systems are unreliable because they don't
+fully capture all prerequisites. Even <a href="http://mad-scientist.net/make/autodep.html">dependency
+generators</a> such as <i>makedepend</i> generally address only compilation steps and cannot account
+for changes in libraries and utilities, not to mention tasks other than compilation and linking or
+compiling unusual languages. The
+result is that most Makefiles aren't trusted to run in parallel because they aren't &quot;thread-safe&quot;.
+Having a <i>complete</i> map of which files depend on which
+can go a long way towards making a build robust enough that incremental and parallel builds
+are trusted as a matter of course.
+
+<h4><a href="man/ao-howto.html#regenerating_makefiles">Regenerating a clean, correct new
+Makefile (or other format) from a creaky old build system.</a></h4>
+
+Upgrading or replacing an existing build system is a dark art, and the
+risk of breaking something usually makes people hesitant to do anything aggressive. But since
+AO has access to the complete set of targets, prerequisites, and
+command lines, it can generate a new Makefile known to be
+correct and complete from a record of the old build (and generating any other format is a simple
+matter of scripting). As with most code generators there are
+certain things it doesn't do well - pattern rules, for instance,
+and alternate build styles such as debug, profiled, etc. These can
+often be added manually, however, and thus AO can be quite helpful
+in replacing a shaky old build system with a reliable new one.
+
+<h4><a href="man/ao-howto.html#comparing_build_servers">Qualifying a new build server by showing it to be functionally
+identical to the current one.</a></h4>
+
+Replacing a slow old build server with a faster new one can be
+scary because it's hard to be sure they're identically configured.
+AO can list the differences, right down to OS patches. Once it says
+both are running the same commands in the same order on the same
+set of input files, you can be sure they'll produce the same
+outputs.
+
+<h4><a href="man/ao-howto.html#finding_old_build">Determining which build generated a particular file
+for the purpose of making a patch.</a></h4>
+
+It's common practice to lay an SCM label across all versioned files
+for each release. But that doesn't mean that, two years later, you
+can find a machine where you know the compiler is the same and the
+OS is patched to the same level. AO can alert you to these
+differences.
+
+<h4><a href="man/ao-howto.html#build_avoidance">Speeding up builds by copying in files built by other team
+members from identical input conditions.</a></h4>
+
+Since build processes are by definition deterministic, it follows
+that multiple invocations of the same command on the same set of
+input files will produce identical output files. Therefore, since
+AO (optionally) stores all generated files in its database, it can
+step in when it sees that a user is about to build a file it
+already has and silently skip the redundant command, copying in the
+existing output files instead. This is called recycling and it can
+speed up builds significantly.
+
+<h4><a href="man/ao-howto.html#listing_source_files">Determining the exact set of source files needed for a build,
+to avoid having to extract an entire subtree.</a></h4>
+
+Most builds begin by extracting or refreshing the required set of
+files from source control. The typical strategy is to grab all
+files under a particular subdirectory, recursively. But this may
+include thousands of files (documentation, images, etc) which are
+not needed at build time, and this can be a significant drag on
+round trip build time. Since AO knows the complete list of which
+files will be used, it's easy to script up something which will
+grab only those.
+
+<h4><a href="http://www.nbc.com/saturday-night-live/video/clips/shimmer-floor-wax/1056743/">Makes A Great Dessert Topping!</a></h4>
+
+Or a floor wax ...
+
+<p></p>
+<div class="push"></div>
+</div>
+<div class="footer">
+<div>
+<a id="footnote1">[1]</a>
+<em>Although the most common use case may be software builds,
+AO works with any process which is both deterministic and file-based
+(meaning that both input and output consist of file data).
+Basically, if a process can be usefully automated it can be
+usefully audited with AO.</em>
+</div></div>
+
+<footer>AO is supplied under the following <a href="../COPYRIGHT.html">copyright and license terms</a>.</footer>
+
+</body>
+</html>

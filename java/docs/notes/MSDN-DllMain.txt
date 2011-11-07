@@ -1,0 +1,10 @@
+Quote from MSDN:
+
+<I>The entry-point function [DllMain] should perform only simple initialization or termination tasks. It must not call the LoadLibrary or LoadLibraryEx function (or a function that calls these functions), because this may create dependency loops in the DLL load order. This can result in a DLL being used before the system has executed its initialization code. Similarly, the entry-point function must not call the FreeLibrary function (or a function that calls FreeLibrary), because this can result in a DLL being used after the system has executed its termination code.
+
+It is safe to call other functions in Kernel32.dll, because this DLL is guaranteed to be loaded in the process address space when the entry-point function is called. It is common for the entry-point function to create synchronization objects such as critical sections and mutexes, and use TLS. Do not call the registry functions, because they are located in Advapi32.dll. If you are dynamically linking with the C run-time library, do not call malloc; instead, call HeapAlloc.
+
+Calling imported functions other than those located in Kernel32.dll may result in problems that are difficult to diagnose. For example, calling User, Shell, and COM functions can cause access violation errors, because some functions in their DLLs call LoadLibrary to load other system components. Conversely, calling those functions during termination can cause access violation errors because the corresponding component may already have been unloaded or uninitialized.
+
+Because DLL notifications are serialized, entry-point functions should not attempt to communicate with other threads or processes. Deadlocks may occur as a result.</I>
+

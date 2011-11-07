@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" id="WebApp_ID" version="2.5">
+
+  <display-name>AO Server</display-name>
+  <description>Audited Objects Web Application Server</description>
+  
+  <!-- Version - checked for conformity with client version -->
+  <context-param>
+    <param-name>APPLICATION_VERSION</param-name>
+    <param-value>1.0.10</param-value>
+  </context-param>
+  
+  <!-- May be needed depending on chosen database -->
+  <context-param>
+    <param-name>AO.Needs.Synthetic.Database.Locks</param-name>
+    <param-value>false</param-value>
+  </context-param>
+  
+  <!-- Set a reasonable, container-independent default-default timeout which may still be overridden by the client -->
+  <session-config>
+    <session-timeout>30</session-timeout>
+  </session-config>
+
+  <!-- LISTENER FOR APPLICATION START AND STOP -->
+
+  <listener>
+    <listener-class>com.aotool.web.listener.StartStopListener</listener-class>
+  </listener>
+  
+  <!-- LISTENER FOR SESSION (PTX) BEGIN AND END -->
+  
+  <listener>
+    <listener-class>com.aotool.web.listener.SessionListener</listener-class>
+  </listener>
+
+  <!-- MAPPINGS FOR STRUCTURAL SERVLETS -->
+
+  <servlet>
+    <servlet-name>Session</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Session</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Session</servlet-name>
+    <url-pattern>/SESSION</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>Start</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Start</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Start</servlet-name>
+    <url-pattern>/START</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>RoadMap</servlet-name>
+    <servlet-class>com.aotool.web.servlet.RoadMap</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>RoadMap</servlet-name>
+    <url-pattern>/ROADMAP</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>Audit</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Audit</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Audit</servlet-name>
+    <url-pattern>/AUDIT</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>Upload</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Upload</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Upload</servlet-name>
+    <url-pattern>/UPLOAD</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>Download</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Download</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Download</servlet-name>
+    <url-pattern>/DOWNLOAD</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>End</servlet-name>
+    <servlet-class>com.aotool.web.servlet.End</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>End</servlet-name>
+    <url-pattern>/END</url-pattern>
+  </servlet-mapping>
+
+  <!-- The client thinks of this as an action but it's implemented differently -->
+  <servlet>
+    <servlet-name>Ping</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Ping</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Ping</servlet-name>
+    <url-pattern>/action/ping</url-pattern>
+  </servlet-mapping>
+
+  <!-- The client thinks of this as an action but it's implemented differently -->
+  <servlet>
+    <servlet-name>Lab</servlet-name>
+    <servlet-class>com.aotool.web.servlet.Lab</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Lab</servlet-name>
+    <url-pattern>/LAB</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>Lab</servlet-name>
+    <url-pattern>/action/lab</url-pattern>
+  </servlet-mapping>
+
+  <!-- MAPPING FOR GENERIC ACTION SERVLET -->
+
+  <servlet>
+    <servlet-name>redirector</servlet-name>
+    <servlet-class>com.aotool.action.Redirector</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>redirector</servlet-name>
+    <url-pattern>/action/*</url-pattern>
+  </servlet-mapping>
+  
+  <!-- CONFIGURATION FOR HTML CONTENT -->
+
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+  
+</web-app>

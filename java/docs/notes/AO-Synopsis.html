@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html
+xmlns="http://www.w3.org/1999/xhtml"> <head> <title>AO Synopsis</title>
+</head> <body>
+
+<p>
+<b>Audited Objects</b> (AO) is a tool for the <i>analysis</i> and
+<i>optimization</i> of software builds. When any build process is run under AO
+control, every command executed is recorded in a central database along
+with a record of each file opened by that command and its state
+(size/date/checksum) at the time. Additionally, a full copy of each
+<i>modified</i> file is stored.
+</p>
+
+<p>
+Once this data is collected, AO provides a suite of tools for analyzing it.
+In particular, given a binary file built under AO control (even one
+sent in from the field) an AO user can determine the <i>complete</i>
+set of input files which contributed to it, including source files,
+build scripts, compilers, header files, libraries, etc.  In the
+case of source files which are version controlled, the versions of
+each contributor can be determined as well. There are many uses for
+this information, too many to elaborate here, but the obvious one
+is to recreate the environment in which a binary file was built for
+the purpose of making a patch.
+</p>
+
+<p>
+AO also allows for <i>build-optimization-by-sharing</i>. Imagine a team
+of developers including Alex, Claire, and Jeffrey. One day Alex
+changes a global header file, necessitating a full rebuild for
+anyone working on the latest branch. Claire is the first to update
+her source files and learn this; she starts a build and goes to
+lunch. A little later Jeffrey updates his sources and starts his
+own build. AO will immediately discover that Claire has already
+built the same objects; it knows that since the input set is
+identical and the commands are identical, the results must also be
+the same so it simply serves Claire's results from its database
+into Jeffrey's workspace. These shared output files are said to be
+<i>recycled</i>.
+</p>
+
+<p>
+From the perspective of Jeffrey (and anyone building after him)
+everything works just as before - the same commands were run and the
+correct output produced, but it all happened nearly
+instantaneously.  The scenario described here is the best case; in
+a more normal steady-state use case developers will share build
+artifacts back and forth, and most builds will involve some mixture of
+recycled and new objects.
+</p>
+
+<p>
+A recommended way to make use of this feature is to run nightly
+builds under AO control, such that when developers arrive in the
+morning the objects they'll need are likely to be waiting in a warm
+cache. Thus, you could think of AO as a DVR for builds; record them
+as they happen in the middle of the night, then play them back -
+skipping the boring parts - when you find it more convenient,
+during the day (the analogy is imperfect but still useful).
+</p>
+
+
+<p>
+Notes:
+</p>
+
+<ul>
+<li>
+Although the obvious use case is software builds, AO can be used in
+any process which is both <i>deterministic</i> and <i>file-based</i>
+(meaning that both input and output consist of file data).
+</li>
+<li>
+AO is not a build tool itself a la <i>make</i>. It can be used
+with any deterministic command, a category which includes but
+is not limited to <i>make</i> programs.
+</li>
+<li>
+AO is not limited to local-area network use; as long as bandwidth is
+sufficient it can be used by distributed teams as well.
+</li>
+</ul>
+
+
+</body> </html>

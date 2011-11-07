@@ -7,24 +7,26 @@
 ############################################################################
 
 .PHONY: all debug release install i clean cleantargets realclean \
-	roundtrip rt fi relink manpages htmlpages tags pkg
+	roundtrip rt fi relink manpages htmlpages tags release
 
 .SUFFIXES:
 
 # On Windows, defer to msbuild/vcbuild in order to keep the solution current.
 ifdef VSINSTALLDIR
 
+rdir	 := java\WebContent\client
+
 MSBLDCMD	   := msbuild AO.sln /nologo
 
-install all:   CFG := Debug
-install-pkg:   CFG := Release
-clean:         CFG := Debug
-clean-pkg:     CFG := Release
+install all:       CFG := Debug
+install-release:   CFG := Release
+clean:             CFG := Debug
+clean-release:     CFG := Release
 
-install all: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
-install-pkg: ;	$(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
-clean: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
-clean-pkg: ;	$(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
+install all: ;     $(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
+install-release: ; $(MSBLDCMD) /v:n /t:build /p:Configuration=$(CFG)
+clean: ;           $(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
+clean-release: ;   $(MSBLDCMD) /v:m /t:clean /p:Configuration=$(CFG)
 
 CPUARCH	:= Windows_i386
 TGTARCH	:= $(CPUARCH)
@@ -33,13 +35,13 @@ PKG	 := ao-$(TGTARCH).zip
 
 PKGFILES := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
-pkg: clean-pkg install-pkg
-	$(RM) ..\rel\$(PKG)
+release: clean-release install-release
+	$(RM) ..\$(rdir)\$(PKG)
 	$(RM) -r .$(TGTARCH)\$(CFG)\AO
 	cp ../etc/ao.properties-windows .$(TGTARCH)/$(CFG)/ao.properties-sample
 	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\$(CFG)
-	cd .$(TGTARCH)/$(CFG) && zip -rD ../../../rel/$(PKG) $(PKGFILES)
+	cd .$(TGTARCH)/$(CFG) && zip -rD ../../../$(rdir)/$(PKG) $(PKGFILES)
 
 else
 
@@ -393,8 +395,8 @@ relink: cleantargets install
 
 install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)
 
-pkg:
-	$(MAKE) --no-print-directory CPUARCH=$(OS_CPU) -f Makefile.pkg pkg
+release:
+	$(MAKE) --no-print-directory CPUARCH=$(OS_CPU) -f GNUmakefile.pkg release
 
 endif
 

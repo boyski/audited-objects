@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+<title>AO HOWTO GUIDES</title>
+
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align: center;"><a id="ao_howto_guides">AO HOWTO GUIDES</a></h1>
+<p>This is a collection of short "how-to" documents for some of
+the more common
+things you may want to do with AO. These will generally hit only the
+high points and should
+be supplemented by the full documentation.</p>
+<p></p>
+<ul>
+    <li><a href="#dependency_generation">Dependency Generation</a></li>
+    <li><a href="#regenerating_makefiles">Generating New Makefiles From Old</a></li>
+    <li><a href="#comparing_build_servers">Comparing Old and New Build Servers</a></li>
+    <li><a href="#finding_old_build">Finding the Build Which Generated a Particular File</a></li>
+    <li><a href="#build_avoidance">Build Avoidance</a></li>
+    <li><a href="#listing_source_files">Enumerating Exactly Which Sources Are Required</a></li>
+</ul>
+<p></p>
+<hr />
+<h4><a id="dependency_generation">Dependency Generation</a></h4>
+<p>
+There are a number of <a href="http://mad-scientist.net/make/autodep.html">dependency
+generation schemes</a> out there, but most are restricted to a particular language
+or compiler suite, and require extensive surgery to the build system.
+The following shows how to use AO to generate complete dependency data without modifying
+the existing build tooling at all (other than adding the call to AO itself and an include
+statement for the generated data):</p>
+
+<p>First, show that we're building a typical &quot;Hello World&quot; program:</p>
+<pre>&#37;pwd
+/var/AO/Linux_i386/hello
+&#37; make
+gcc -c hello.c
+gcc -o hello.exe hello.o
+</pre>
+
+<p>Next do a <i>make clean</i> to make sure this will be a full build:</p>
+<pre>&#37; make clean
+rm -f hello.exe hello.o Hello.class
+</pre>
+
+<p>Then run the build under AO, using -MD to request dependency data (and -o@ to suppress
+interaction with a server if one is configured):</p>
+<pre>&#37; ao -o@ -MD -Wm,--members-only make
++ perl -S ao2make --members-only -base="/var/AO/Linux_i386/hello" -
+gcc -c hello.c
+gcc -o hello.exe hello.o
+</pre>
+
+<p>This shows that a Perl script was run to process the audit data. The -Wm flag can be used to
+pass any flag through to this script; here we used it to request that only member files be listed.
+The result is a set of .d files, one per target. Let's take a look at them:
+</p>
+<pre>
+&#37; cat hello.o.d
+BASE_DIR                ?= /var/AO/Linux_i386/hello
+
+${BASE_DIR}/hello.o: \
+  ${BASE_DIR}/hello.c \
+  
+&#37; cat hello.exe.d
+BASE_DIR                ?= /var/AO/Linux_i386/hello
+
+${BASE_DIR}/hello.exe: \
+  ${BASE_DIR}/hello.o \
+  
+</pre>
+<p>
+Without the -members-only flag this would have shown system headers
+and compiler files too.
+</p>
+
+<p>Finally, add an include of these files to the Makefile:
+<code>&#37; echo "-include $(wildcard *.d)" &gt;&gt; Makefile
+
+</code>
+The leading dash makes the include optional so the build will not fail
+if they're missing. With GNU make this can also be handled without modifying
+the Makefile at all by use of the MAKEFILES environment variable.
+</p>
+
+<hr />
+
+<h4><a id="regenerating_makefiles">Generating New Makefiles From Old</a></h4>
+<p>Generating a new, usable Makefile from an existing build is similar to
+<a href="#dependency_generation">dependency generation</a>, but now the file
+contains the required command lines too:
+</p>
+<pre>&#37; make clean
+rm -f hello.exe hello.o Hello.class
+
+&#37; ao -F &#37;p.mk -Wm,-p -o@ make
++ perl -S ao2make -MF=HelloWorld.mk -full -p -base "/var/AO/Linux_i386/hello" -
+gcc -c hello.c
+gcc -o hello.exe hello.o
++ make -r -q -p
+
+&#37; make -f HelloWorld.mk clean all
+Cleaning all targets ...
+cd /var/AO/Linux_i386/hello &amp;&amp; gcc -c hello.c
+cd /var/AO/Linux_i386/hello &amp;&amp; gcc -o hello.exe hello.o
+
+&#37; ./hello.exe
+Hello, World
+
+</pre>
+
+<p>Note that the <b><code>&#37;p</code></b> was replaced with the project name above.</p>
+<hr />
+
+<h4><a id="comparing_build_servers">Comparing Old And New Build Servers</a></h4>
+<p>
+The trick here is to do a build on  server <b>A</b> and another on server <b>B</b>, then compare them:
+</p>
+<pre>&#37; make clean; ao -u make                    (build on server <b>A</b>)
+rm -f hello.exe hello.o Hello.class
+gcc -c hello.c
+ao: UPLOADING hello.o
+gcc -o hello.exe hello.o
+ao: UPLOADING hello.exe
+</pre>
+<p></p>
+<pre>&#37; make clean; ao -u make                    (build on server <b>B</b>)
+rm -f hello.exe hello.o Hello.class
+gcc -c hello.c
+ao: UPLOADING hello.o
+gcc -o hello.exe hello.o
+ao: UPLOADING hello.exe
+</pre>
+<p></p>
+<pre>&#37; ao lsbuilds --short
+20100721020243
+20100721020258
+</pre>
+<p></p>
+<pre>&#37; ao diff -i 20100721020243 -i 20100721020258
+</pre>
+
+<hr />
+
+
+<h4><a id="finding_old_build">Finding an Old Build From One Of Its Generated Files</a></h4>
+<p>Just pass a file or list of files to the <i>lsbuilds</i> action:</p>
+<p></p>
+<pre>&#37; ao lsbuilds foobar
+</pre>
+<p></p>
+<p>This will sample the local file(s) and filter out all PTXes which did <i>not</i>
+generate the identical version of that file.
+In some cases multiple builds may generate identical files; listing
+additional files on the command line will filter out more builds, such that the
+resulting list is the set of PTXes which generated <i>all</i> of those files.
+</p>
+<p>Note that AO can be asked to upload the contents of files opened for read as well
+as for write. This will be slower, and will soak up more network bandwidth, but it
+means you have a reference copy of <i>every</i> file used in the build.
+This may be desirable, or even required, in certain high-reliability archival situations.
+</p>
+
+<hr />
+
+<h4><a id="build_avoidance">Build Avoidance</a></h4>
+<p>This is probably the simplest use case:</p>
+
+<p></p>
+<pre>&#37; make clean
+rm -f hello.exe hello.o Hello.class
+</pre>
+
+<p></p>
+<pre>&#37; ao make
+gcc -c hello.c
+ao: UPLOADING hello.o
+gcc -o hello.exe hello.o
+ao: UPLOADING hello.exe
+</pre>
+
+<p></p>
+<pre>&#37; make clean
+rm -f hello.exe hello.o Hello.class
+</pre>
+
+<p></p>
+<pre>&#37; ao make
+gcc -c hello.c
+ao: DOWNLOADING hello.o@@20100719174330
+gcc -o hello.exe hello.o
+ao: DOWNLOADING hello.exe@@20100719174330
+</pre>
+
+<p></p>
+<pre>&#37; ao lsbuilds
+PTX            ? DURATION UP    DOWN  USER     HOST       LABEL
+20100719174330 + 00:00:00 2     0     dsb      centos5   
+20100719174339 + 00:00:00 0     2     dsb      centos5   
+</pre>
+
+<p>Note that if either the command line or any of the input files changes,
+AO will refuse to let the corresponding output files be recycled</p>
+
+<hr />
+
+<h4><a id="listing_source_files">Listing Source Files</a></h4>
+<p>Continuing on from the previous example:</p>
+<p></p>
+<pre>&#37; ao ls -i 20100719174330 -S -m -s
+Makefile
+hello.c
+</pre>
+<p>Shows that the only files <i>required</i> to build Hello World are the <code>hello.c</code>
+source file and the <code>Makefile</code>, and that therefore only these would have to be extracted
+from source control.</p>
+
+<hr />
+
+<footer>
+<p>AO is supplied under the following <a href="../../COPYRIGHT.html">copyright
+and license terms</a>. </p>
+</footer>
+</body></html>

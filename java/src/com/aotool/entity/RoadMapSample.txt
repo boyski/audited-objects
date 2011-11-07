@@ -1,0 +1,47 @@
+# KNOWN PTXES, MAPPED TO INDICES
+X X0=20090818131137
+# KNOWN PATHSTATES, MAPPED TO INDICES
+S0 f,?,kix3l5.0,177,pi8,6qsnfl,,Makefile
+S1 f,?,izs2ik.0,186860,pnx,,,/opt/csw/bin/gmake
+S2 s,?,k9m6o4.chlfpj,19,vzz,,../../lib/libc.so.1,/usr/lib/libc.so
+S3 f,?,kokpze.bfv5s,772,pmc,k7ihzo,,hello.o
+S4 f,?,iaovko.0,528,plw,,,/usr/lib/crtn.o
+S5 f,?,kjawiv.0,250172,pnx,,,/opt/csw/gcc4/bin/amd64/gcc
+S6 f,?,jbkb4p.0,5816,pkd,,,/opt/csw/gcc4/bin/gcc
+S7 f,?,khlxi0.0,187524,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/libgcc_eh.a
+S8 f,?,jxzd5l.0,10348,pnx,,,/usr/ccs/bin/ld
+S9 f,?,iaovko.0,760,plw,,,/usr/lib/crti.o
+S10 f,?,khlxi1.0,258444,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/libgcc.a
+S11 f,?,khlxi2.0,2040,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtbegin.o
+S12 f,?,khlxi2.0,1272,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/crtend.o
+S13 f,?,iaqyda.0,972,plw,,,/usr/lib/values-Xa.o
+S14 f,?,iaovko.0,1632,plw,,,/usr/lib/crt1.o
+S15 f,?,kokpze.19mqw0,6288,pod,tqa5on,,hello.exe
+S16 f,?,kahwrg.0,1372436,pnx,,,/opt/csw/bin/gas
+S17 f,?,iaou0u.0,2690,plw,,,/usr/include/sys/ccompile.h
+S18 f,?,iaou0n.0,9296,plw,,,/usr/include/stdlib.h
+S19 f,?,iaou0o.0,2586,plw,,,/usr/include/iso/stdio_c99.h
+S20 f,?,k7iouq.0,15293,plw,,,/usr/include/sys/isa_defs.h
+S21 f,?,khlx8d.0,37477656,pnx,,,/opt/csw/gcc4/libexec/gcc/i386-pc-solaris2.10/4.3.3/cc1
+S22 f,?,iaou12.0,3527,plw,,,/usr/include/sys/va_list.h
+S23 f,?,kbj3nz.0,103,pi8,15p471f,,hello.c
+S24 f,?,iaou0n.0,11853,plw,,,/usr/include/stdio.h
+S25 f,?,jmhfuj.0,1326,plw,,,/usr/include/stdio_impl.h
+S26 f,?,kn189n.bvm4wz,14184,plw,,,/opt/csw/gcc4/lib/gcc/i386-pc-solaris2.10/4.3.3/include-fixed/sys/feature_tests.h
+S27 f,?,iaou0o.0,2429,plw,,,/usr/include/iso/stdlib_c99.h
+S28 f,?,imxi28.0,10601,plw,,,/usr/include/iso/stdio_iso.h
+S29 f,?,iaou0o.0,5383,plw,,,/usr/include/iso/stdlib_iso.h
+S30 f,?,iaou0n.0,492,plw,,,/usr/include/stdio_tag.h
+# MAPPINGS BETWEEN PATHSTATES AND COMMANDS
+# (PCCODE,PATHCODE,HAS_TGT,AGG,KIDS,DURATION,RWD)
+make C0
+C0 -,19dpsr1-1,false,false,+,0,.,7fon72+4
+<C0 S0+S1,X0
+gcc -o hello.exe hello.o C1
+C1 7fon72+4,11omha9-2,true,true,-,0,.,1mc6jsl+24
+<C1 S2+S3+S4+S5+S6+S7+S8+S9+S10+S11+S12+S13+S14,X0
+>C1 S15,X0
+gcc -c hello.c C2
+C2 7fon72+4,1tygfnh-2,true,true,-,0,.,aford5+14
+<C2 S16+S17+S18+S19+S20+S21+S22+S5+S6+S23+S24+S25+S26+S27+S28+S29+S30,X0
+>C2 S3,X0

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>OPEN SOURCE VS PROPRIETARY SOFTWARE BUILD MODELS</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h2 style="text-align:center;"><a id=
+"open_source_vs_proprietary_software_build_models">OPEN SOURCE VS
+PROPRIETARY SOFTWARE BUILD MODELS</a></h2>
+<p>This document discusses the structural and philosophical
+differences between the build models of open source software and of
+commercial and/or proprietary software.</p>
+<p>Broadly speaking there are two software build philosophies which
+may be characterized as &quot;build once, run many&quot; (BORM) and &quot;build
+many, run once&quot; (BMRO). Consider the requirements for an open
+source package such as Perl or gcc; it must build on an extremely
+wide variety of target platforms, some dating back decades. The
+developers may not have access to all supported platforms. Support
+for obsolete platforms is rarely withdrawn, and in fact it often
+must be buildable on platforms which did not exist at the time of
+release.</p>
+<p>It must also be easily built by people who are not expert with
+that product and perhaps not with software development at all. The
+major goal is to get it built <em>one time</em> on just about any
+platform by hook or by crook; once built and installed, that binary
+may be used for years before being updated. A
+corollary of this is that nobody cares how long the build takes,
+since it runs just the one time. Another is that aggressive optimization of
+the final product is usually sacrificed in the interest of
+portability, and another is that any ugly hack is tolerable. This is
+the <em>BORM</em> philosophy, and the great majority of open-source
+tools subscribe to it.</p>
+
+<p>When a software business is building its own product, however, the
+incentives are reversed. The build may be run many times per day by
+multiple users as part of an agile methodology, or at least there may
+be a nightly build. Developers may rebuild nearly every time
+they change a source file. Meanwhile, the software is typically
+targeted at a tightly controlled set of supported platforms, all
+of which are accessible to build maintainers, and support for old
+systems is removed (&quot;sunsetted&quot;) on a regular basis. Expertise on
+how the build works is generally in-house, and the organization
+finds a significant advantage both in speeding up the build and in
+optimizing the delivered binaries. The results of each
+nightly/integration build are typically run through some sort of
+test cycle, after which bug reports are filed or closed, and the
+cycle repeats. The great majority of generated bits are thrown away
+after the testing cycle. This is the <em>BMRO</em> model as widely
+used in proprietary, for-profit software development shops.</p>
+<p>There are two additional obstructions to good build practice in
+open source code. First is the compatibility risk factor: imagine
+that a mysterious, even ugly, construct is found to have been
+present in the build tooling for years. Nobody remembers why
+it's there and it's impossible to prove that it's not a workaround
+to an obscure problem on an old platform which may still be in use
+somewhere, since no one site has access to all potential platforms.
+So the decision generally is to leave it alone no matter how ugly.
+Second is the fun factor: people work on open source code to please
+themselves, because they want to invent something cool or to add a
+feature for which they have a personal use. Developers do not
+usually flock to an OSS project in order to streamline the build
+model. In most cases they're not using agile methodologies, which
+place a premium on fast build turnaround. None of this is to say
+that OSS programmers don't care about quality; they do, but they
+rarely have a vested interest in <em>build</em> quality.</p>
+
+<p>In summary, open source (BORM) packages are generally willing to
+tolerate a great deal of inefficiency in their builds in return for
+better support of boundary cases like weird platforms or naive
+users, while proprietary SW organizations can and do legislate
+those cases out of existence in order to optimize the rest.
+A good example is the &quot;libtool&quot;
+program used by many OSS packages to generate libraries by
+dynamically determining which flags to pass to the linker. In a
+randomly chosen test (PCRE) it was found that one invocation of
+libtool ran the sed utility <strong>71 times</strong>, grep
+<strong>20 times</strong>, and overall required a total of
+<strong>117 child processes</strong> to build a simple shared
+library! This may make sense for supporting unknown, exotic
+platforms but a BMRO organization is generally better advised to
+determine the ideal set of compiler/linker/etc flags for their
+target platforms and simply use them. Not only does this save
+perhaps an order of magnitude on process overhead but it tends to
+result in better-optimized and better-understood deliverables.</p>
+
+<p>Since AO has a constant overhead per audited process, BORM
+models which invoke dozens or even hundreds of shell utilities per
+generated file make it work extra hard and hurt its perceived
+performance. This makes BORM models a great stress test for AO,
+while BMRO models will generally be a more comfortable fit and should
+run more efficiently with AO.</p>
+<p>See the <a href="ao-tuning.html">AO Tuning</a> document for
+thoughts on how to tune a build process.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

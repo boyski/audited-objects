@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO AND INTEGRATED DEVELOPMENT ENVIRONMENTS</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id=
+"ao_and_integrated_development_environments">AO AND INTEGRATED
+DEVELOPMENT ENVIRONMENTS</a></h1>
+<p>AO is easily added to a traditional command-line build by simply
+prepending &quot;ao run&quot; to the command line. But what about
+Integrated Development Environments (IDEs) with a graphical
+<strong>Build</strong> button? Depending on the IDE there are a few
+possible answers.</p>
+<h2><a id="tweak_config_file">TWEAK CONFIG
+FILE</a></h2>
+<p>Some IDEs may have a config file or registry entry which
+specifies the command to run when the <strong>Build</strong> is
+pressed. These should be easy; change it to prepend the <em>ao</em>
+command. There's no need to add flags here; since all options to
+<em>ao</em> simply set property values, any <em>ao</em>
+configuration can be done via property files.</p>
+<h2><a id="ide_mode">IDE MODE</a></h2>
+<p>However, some IDEs may not make such a setting available. For
+these, there is an experimental, speculative <code>IDE mode</code>.
+Here, the entire IDE is run under <em>ao</em> control and a special
+property is set which specifies a regular expression. AO inhabits
+the IDE like a beneficial virus, doing nothing but monitoring
+sub-process creation. When the IDE spawns a command which matches
+the regular expression, however, AO springs into action and audits
+just that process subtree. This work is experimental and
+undocumented; contact us if you'd like to help test it.</p>
+<h2><a id="sol">S.O.L. MODE</a></h2>
+<p>Unfortunately, some IDEs may start the build without an
+accompanying new process. For instance, the <em>make</em> algorithm
+is simple enough and well enough known that the IDE may choose to
+<code>inline</code> its own dependency tree walker. Compile and
+link operations will almost always be in a separate process space
+but the control process may be within the IDE. This situation has
+not yet been addressed; if and when it is encountered we may look
+into a solution.</p>
+<hr />
+<h1><a id="summary">SUMMARY</a></h1>
+<p>No IDE has yet been tested with AO, and each IDE is different.
+The above are ideas which may pay off with certain IDEs. There is
+little doubt that some IDEs will be a challenge to integrate, or
+that others will expose AO bugs. Improvement is ongoing.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,795 @@
+=head1 NAME
+
+ao - audit, analyze, and optimize software build procedures
+
+=head1 SYNOPSIS
+
+ao [<options>] { run <prog> | <action> } [args...]
+
+=head1 DESCRIPTION
+
+The B<AO> system C<injects> the capacity for I<auditing>, I<avoidance>,
+and I<recycling> into any I<build tool>. It is a system for
+auditing builds and treating each command within them as a black box,
+recording each file consumed (along with its associated metadata such as
+size/date/checksum/version) as well as each file modified. Contents of all
+modified files may be stored such that the audited command can be
+replayed automatically by simply copying back the output files from the server,
+a process known as I<recycling>.
+B<AO> has a number of uses including build analysis, build optimization, and
+server provisioning (i.e. ensuring that the set of input files on a new build
+server is identical to the set on the old machine).
+
+=head2 Definitions
+
+=over 4
+
+=item Build Tool
+
+A B<build tool> is any program which takes input exclusively from some
+combination of files, command line options, and environment variables,
+and I<deterministically> produces a set of output files.  Deterministic,
+as used here, means that identical inputs are guaranteed to produce
+I<semantically identical>[*] outputs. Though classic build tools such
+as compilers tend to fit these criteria by definition, any program or
+script which does so may be considered a I<build tool>.
+
+[*] Some build tools are known to insert date or version stamps
+into their output and thus will not create bit-for-bit identical
+output.  These results may still be considered I<semantically>
+identical because they do not affect the behavior of the result.
+AO knows how to ignore embedded datestamps in certain common
+file formats including .zip and .jar files, Windows binaries
+(.exe, .dll, and .obj), and archive files (.a on Unix, .lib on
+Windows).
+
+=item Auditing
+
+B<Auditing> is the act of recording the vital statistics of all
+I<involved files> for a particular invocation of a I<build tool>.
+For an individual program this set may be subdivided into an I<input>
+(read) set and an I<output> (modified) set, while for a scripted sequence of
+programs comprising a typical I<build tool> the output set of one program
+may be part of the input set of a later one. It is axiomatic that
+multiple audited runs of the build tool with the same
+inputs will produce not only identical outputs but identical audits as
+well (with the exception of non-critical metadata like timestamps).
+
+The audit may optionally include saving a copy of the outputs for
+use in I<recycling> as described below.
+
+=item Audited Objects
+
+Any file created or modified by such an audited, deterministic process is known
+as a B<derived object> or B<DO>. A B<DO> is a plain file like any
+other; the only difference is that the AO database contains all relevant
+information about how it was made, and optionally holds a full copy.
+
+=item Recycling
+
+B<Recycling> is a build optimization technique. Assume the existence of
+a deterministic build tool along with reliable audits of prior builds,
+including DOs, stored in a database. When the build tool is next run under
+AO control, AO can stop just before each program is executed and
+check whether the I<current> state of
+the I<input set> matches that of any previous invocation. If
+there is a match, we know precisely what the output(s) will be and that
+we already have a copy of that data. In this situation, AO may choose to simply copy the
+DOs from the matching previous run into place and exit, pretending the
+program ran to completion though in fact it didn't. These DOs are said to
+have been C<recycled>.
+
+=item Avoidance and Reuse
+
+B<Avoidance> is a degenerate case of recycling. Once a command has been
+judged eligible for recycling, AO may find that the required output
+files are already present. This can result, for instance, from two
+consecutive builds without a I<clean> step in between. In this case even
+the file copying can be skipped and the command is said to have been
+C<avoided>, while the files in question are said to be C<reused>.
+
+In summary, a I<DO> copied from the server is said to be I<recycled> whereas
+if the file currently in place is tested, found correct, and simply left
+in place we say it was I<reused>.
+
+=back
+
+When a B<build tool> is run under control of the B<ao> program the above
+capabilities are added to it. Consider two compilations of a simple Hello
+World program using GCC:
+
+    % gcc -o hello hello.c
+    % gcc -o hello hello.c
+    
+This will simply build the program twice, and the second build should take
+approximately the same time as the first (generally slightly less due
+to caches being warm). However, by prefixing the build steps with
+B<ao run>:
+
+    % ao run gcc -o hello hello.c
+    % ao run gcc -o hello hello.c
+
+The first build will be I<audited> and copies of its output stored.  It
+will run somewhat slower due to the overhead of auditing.  When it
+comes to the second build, B<AO> will discover that the inputs are
+unchanged and will only pretend to run the compiler, actually copying in the
+results of the first build instead. This is typically much faster, often
+by orders of magnitude. Of course in real life clean builds don't usually
+happen twice in a row without I<anything> changing in between, but other
+team members are quite likely to build from the same input versions and
+thus to be in a position to share output files.
+
+Next, let's do the same thing with a makefile-based software project:
+
+    % ao run make clean all
+    % ao run make clean all
+
+Each of these would normally remove and regenerate all target files but
+with AO in use the second go-round simply I<recycles> the set from the
+first run. The make program has no idea that AO is in use or that the
+second run differs from the first; as far as it knows, it asked for
+certain files to be rebuilt and they were.
+
+Note that there's no special relationship between I<ao> and I<make>
+here; any build tool would be handled the same way. For instance, any of
+the following command lines would be audited and given the same
+opportunities for build avoidance described above.
+
+    ao run ant clean jar
+    ao run ./build.sh
+    ao run perl build.pl
+    ao run c++ -o foo *.cpp
+
+=head1 POST-MORTEM ANALYSIS
+
+In addition to build speedups via recycling, B<ao> provides access to
+the shared database in order to allow post-mortem analysis of builds,
+using a set of I<user actions> as noted in the usage message.  A few
+example commands are shown below. The syntax I<foo/bar> means that the
+full action name is I<foobar> but it can be abbreviated as I<foo>.
+
+The set of post-mortem commands is extensible. A full list of currently
+supported actions can be obtained from the server via C<ao help>, and
+detailed help for a specific action is generally availble with C<ao
+help I<command>>. A very minimal subset is described here:
+
+=over 4
+
+=item ping
+
+The I<ping> command attempts to contact the server. It prints the
+server string in I<host:port> format if found, and prints an error message
+otherwise.
+
+=item lsp/rojects
+
+The I<lsprojects> command, which may be abbreviated to I<lsp>, shows a list
+of known projects.
+
+=item lsb/uilds
+
+The I<lsbuilds> command, which may be abbreviated as I<lsb>, lists all
+builds which have occurred for the current or specified project.
+Important attributes such as who, when, where, duration, etc. are also
+displayed. If a file is given on the command line, the listing is limited
+to builds which could have produced that file.
+
+=item ls
+
+A full description of the specified build and everything it did is printed. As with the
+Unix utility after which it's named, the I<ls> action has many command line options.
+
+=back
+
+=head1 MAKEFILE GENERATION
+
+There are a number of extant programs which attempt to determine which files
+depend on which others (I<makedepends>, I<gcc -MD>, etc). Most of them
+work by parsing the expected input files, assuming they're in a recognized
+language, and attempting to determine what files they will open.
+AO may be used to replace these tools. It can do a better job because it is
+language independent and simply records files the program actually
+opened rather than trying to predict what I<should> happen.
+
+AO can generate either dependency data to be included in an existing Makefile,
+or a full Makefile. The full-makefile feature can be used to replace a
+creaky old build model with a clean, parallelizable, new system. This is
+an advanced topic and is discussed in a separate document.
+
+=head1 OPTIONS
+
+The following options are supported I<for the ao program itself>.
+There are actually two sets of options which may appear on an I<ao>
+command line. Typical usage for a build might be:
+
+    % ao I<ao-options> run program I<program-options>
+
+and for a server action:
+
+    % ao I<ao-options> action I<action-options>
+
+Only the I<ao-options>, which affect the behavior of the I<ao> program
+itself, are described here.
+
+=over 4
+
+=item -h|--help
+
+Prints a short usage message summarizing the supported options.
+
+=item -H|--properties
+
+Dumps the current state of all documented properties.
+
+=item -a|--absolute-paths
+
+Cause all output file names to be represented as absolute paths.
+
+=item -d|--download-only
+
+Make no modifications to server state but continue to shop for download
+possibilities. Also known as I<selfish mode> (take but don't give).
+
+=item -MD|--make-depends
+
+Generates full dependency information in Makefile format, in the form of
+per-target Makefile fragments. These can be included in future builds.
+
+This is actually a '-M' flag with an argument which is the desired
+extension for Makefile fragments. For the benefit of those familiar with
+the GCC -MD flag, it is generally documented as -MD and as a special case
+the 'D' is down-cased to result in a .d extension. You could use, for
+instance, -Mprq to request a .prq extension.
+
+=item -F|--make-file
+
+Generates a single, self-contained, non-recursive, working Makefile with
+full dependency information. The Makefile is designed for GNU make by default.
+If used in combination with I<--make-depends> the generated file will contain
+only I<include> statements pulling in the dependency fragments.
+
+=item -l|--log-file I<logfile>
+
+Save all output to the specified logfile. This logfile is also promoted
+to the server when done and stored with the build it describes.
+
+=item -L|--log-file-temp
+
+Similar to I<--log-file> but saves output to a temp file which is removed
+after its contents are saved on the server.
+
+=item -m|--members-only
+
+Ignore files which are not project members.
+
+=item -o|--output-file
+
+Dump audit results into the specified output file.
+B<NOTE: this option is special in that it suppresses
+all server contact.>
+
+=item -q|--quiet
+
+Suppress UPLOAD/DOWNLOAD messages.
+
+=item -s|--server I<server-string>
+
+Specify an alternate server to communicate with. The server string is
+in a composite I<host:port> form, e.g. mervyn:8283.
+
+=item -T|--print-elapsed
+
+Print a summary line with the elapsed time after the command is done.
+
+=item -u|--upload-only
+
+Don't bother shopping for downloads but do upload the audit and all
+derived objects. Also known as I<martyr mode> (give but don't take).
+
+=item -w|--why
+
+When an object cannot be downloaded and must be built from scratch,
+explain the failure to match.
+
+=item -x|--exec-verbosity
+
+Print each command line as executed. Similar to the Unix I<sh -x> flag.
+
+=item -X|--execute-only
+
+Skip all auditing and simply execute the command. This is useful in
+debugging or benchmarking scenarios as it allows the command line to
+stay unchanged while adding or subtracting auditing. Useful ancillary
+features such as logfile handling and elapsed time summaries remain
+enabled.
+
+=back
+
+=head1 CONFIGURATION
+
+=head2 PROPERTIES OVERVIEW
+
+The I<ao> program is configured via a set of properties.  Properties
+may be set in .properties files, via the environment, or in some cases
+via command-line flags. Though the I<ao> client is not written in Java,
+its properties files follow the rules of Java properties. In particular
+the format supports either of
+
+    name = value
+    name:  value
+
+The command line flags described in OPTIONS are actually just an alternate way
+to make property settings. In other words the I<-s> flag in this command
+
+    ao -s localhost:8080 run make
+
+is merely a convenient way of overriding the I<Server> property. Most
+command-line flags map directly to a property, though only the more
+commonly-used properties have an associated flag.
+
+Properties may also be set via the environment. The translation from a
+property name to an environment variable name involves converting to
+upper case, replacing all non-alphanumeric characters with an
+underscore, and prepending "AO_". Thus the property I<Project.Name> may
+be overridden with the environment variable I<AO_PROJECT_NAME>.
+
+Property settings are subject to a precedence order. From highest
+precedence to lowest:
+
+    Command-line flag
+    Environment
+    Project properties (see PROJECTS below)
+    Personal properties ($HOME/ao.properties or %HOMEPATH%\ao.properties)
+    Site-wide properties (global ao.properties)
+
+Property names are not case sensitive. However, the convention is to
+use mixed case with '.' as the word separator, e.g. Server or
+Project.Name.
+
+Properties are generally either string-, numeric-, or boolean-valued.
+Some string-valued properties specify regular expressions; by convention,
+these have names which end with ".RE".
+
+Special note for regular-expression properties: the regex should I<not>
+be delimited with // or anything else, nor do special characters such
+as \ need to be escaped. Sample setting:
+
+    Foo.Bar.RE = \.c$
+
+This specifies a regular expression which would match all filenames
+ending with ".c".
+
+The set of documented properties and their current values may be seen by running
+
+    ao --properties
+    
+This also shows the set of files from which properties are being read. A less
+verbose listing may be obtained by adding I<--quiet>.
+
+=head2 PROPERTIES DETAILS
+
+Following is a description of some of the most common property
+settings available to AO users. This list may be incomplete or
+out of date; use "ao --properties" to see the definitive set.
+
+=over 4
+
+=item * Absolute.Paths (Boolean)
+
+Causes the paths of member files to be printed in fully-qualified form.
+Normally member files are displayed relative to the project root.
+
+The following aggregation properties operate as a group. They are
+discussed in more detail below under CANCELLATION AND AGGREGATION.
+
+=over 4
+
+=item * Aggregation.Prog.Strong.RE (Regex)
+
+An aggregation pattern applied to the program's basename. This is a
+I<strong> match; an aggregation group formed by a I<strong> pattern
+cannot be disbanded except by a match on a I<Break> pattern.
+
+=item * Aggregation.Prog.Weak.RE (Regex)
+
+Similar to I<Aggregation.Prog.Strong.RE> except that the grouping
+is I<weak> or provisional; if a child command matches an
+aggregation pattern then the aggregation group based on the outer
+weak pattern is I<disbanded>.
+
+=item * Aggregation.Prog.Break.RE (Regex)
+
+An aggregation pattern applied to the program's basename which forces
+the current aggregation group to be disbanded regardless of its
+strength.
+
+=item * Aggregation.Line.Strong.RE (Regex)
+
+Similar to I<Aggregation.Line.Strong.RE> except that the pattern is
+applied to the entire command line rather than the program name.
+
+=item * Aggregation.Line.Weak.RE (Regex)
+
+Similar to I<Aggregation.Line.Weak.RE> except that the pattern is
+applied to the entire command line rather than the program name.
+
+=item * Aggregation.Line.Break.RE (Regex)
+
+Similar to I<Aggregation.Line.Break> except that the pattern is
+applied to the entire command line rather than the program name.
+
+=back
+
+=item * Audit.Only (Boolean)
+
+If true, records only metadata with the server. File contents are
+neither stored nor retrieved.
+
+=item * Base.Dir (String)
+
+Automatically set to the base directory of the current project.
+I<This property is special because it is not user settable. Instead, it is
+derived from the location of the project config dir, defaulting
+to the current working directory.>
+
+=item * Download.Only (Boolean)
+
+AKA I<Selfish Mode>. Causes the client to take but not give. In
+other words, matching derived objects may be downloaded but no
+results will be uploaded.
+
+=item * Execute.Only (Boolean)
+
+Simply executes the command without any auditing. Primarily useful in
+debugging or benchmarking scenarios.
+
+=item * Log.File (String)
+
+Causes the output of the project transaction to be logged to the named
+file, and the result stored on the server side where it can be
+retrieved via the I<logfile> action.
+
+=item * Log.file.Temp (Boolean)
+
+Sets the B<Log.File> to a temp file which is removed after its contents
+are uploaded to the server.
+
+=item * Output.File (String)
+
+If set, causes I<raw> audit data to be written to the named file,
+suppressing all server communication. Primarily for debugging.
+
+=item * Print.Elapsed (Integer)
+
+If nonzero, prints a line summarizing the elapsed time before exiting,
+but only if the elapsed time was greater than the value (in seconds). For
+example, a value of 10 would cause the elapsed time to be shown for any
+command lasting more than 10 seconds.
+
+=item * Project.Name (String)
+
+The name by which the current project should be known. Defaults to the
+basename of the B<Base.Dir> value.
+
+=item * PTX.Strategy (String)
+
+Controls how far back in history AO will look for reuse opportunities. The
+format is "T.L.U.H" where
+
+=over 4
+
+=item * T
+
+is the I<total maximum> number of PTXes to be examined.
+
+=item * L
+
+is the maximum number of I<labeled> PTXes to be examined.
+
+=item * U
+
+is the maximum number of PTXes I<by the current user> to be examined.
+
+=item * H
+
+is the maximum number of PTXes I<from the current host> to be examined.
+
+=back
+
+PTXes are ordered from most recent to least and the value -1 means "no
+limit". Therefore a string '30,-1,10,15' means "Consider the most
+recent 10 PTXes made by me, the most recent 15 made on the
+current host, plus an unlimited number of I<labeled> PTXes but not to
+exceed 30 in total.
+
+=item * Server (String, Required)
+
+Provides the server address in I<hostname:port> format, e.g.
+"localhost:8080". B<This is the only property which does not
+default reasonably; you must set the Server property in order to find a
+server.>
+
+=item * Shop.Ignore.Path.RE (Regex)
+
+Supplies a Perl-style regular expression which causes matched files to
+be ignored for shopping. Thus a value like the following would exclude
+all files under /usr/include from shopping consideration.
+
+    Shop.Ignore.Path.RE = ^/usr/include/
+
+=item * Shop.Members.Only (Boolean)
+
+If set, causes only project member files to be considered during
+shopping. This may be helpful when, for instance, the compiler suite
+may be installed in different places on different machines.  Or when
+you don't care about minor differences in the compiler suite.
+
+=item * Upload.Only (Boolean)
+
+AKA I<Martyr Mode>. Causes the client to give but not take. In
+other words it will contribute its results to the common cause but
+will not partake of reuse itself.
+
+=item * Upload.Reads (Boolean)
+
+If set, causes the contents of B<all> involved files to be uploaded.  By
+default, only files I<written to> are uploaded.
+
+=item * Verbosity (String)
+
+Determines the verbosity level. Recognized terms include "OFF" (for
+no verbosity) and "STD" (the default). Run "ao -v?" for a full list
+of allowed terms. These may be grouped using comma separators, for
+instance:
+
+    Verbosity = STD,EXEC
+
+=back
+
+=head2 CANCELLATION AND AGGREGATION
+
+AO audits the actions of I<every single program> run within its control.
+This level of granularity is generally more than is wanted.
+A compiler, for instance, may under the covers invoke a number
+of separate programs (preprocessor, optimizer, linker, etc) which
+pass data between themselves in temp files.
+Comparing input sets of these programs from one
+run to the next is often impossible since the names of the intermediate
+temp files change each time, and are removed after use anyway. It's better to treat the
+compiler as a "black box" and ignore the details of its implementation.
+
+More generally, the finest level of granularity desired is that which consists
+of well-defined inputs and outputs. Even more generally, the user should be
+able to customize the granularity. The solution involves two related techniques
+known as "cancellation" and "aggregation".
+
+Cancellation is the removal of unnecessary or redundant file audit records I<within>
+a single program. A program might create a file, write to it one or more times,
+read back the results, remove the file and exit. Since the file did not exist at
+entry or exit, the fact that it was created and removed is an implementation detail
+which need not be reported. This is cancellation; each program's audit is subjected
+to cancellation before its results are reported.
+
+Aggregation is the identification of higher-level clusters of programs to act
+as black boxes, such as the compiler in the example above. Once these clusters
+have been identified and glued together a process similar to cancellation is employed
+to remove file accesses which feature in neither input nor output sets.
+
+The identification of aggregation clusters is done via regular expressions (REs). It's a
+bit of a black art, though fortunately the default expressions are reasonably stable and
+fine for the average build. On the other hand it may be possible to improve your
+auditing substantially by tweaking the REs for your specific needs. Following is an
+overview:
+
+First, note that AO keeps track of both the program name and the full command line for
+each command run. We can look at I<either> of these to make aggregation decisions. Thus
+there are two sets of REs, one applied to programs and the other to command lines.
+
+Consider a make-based build in which make decides to run the command "gcc -c foo.c".
+Generally make does not run this command directly; instead it uses the shell so
+that the resulting command is something like I</bin/sh -c "gcc -c foo.c">. These are
+two different programs (sh and gcc) which we want to consider as one. So we write an
+RE to match the I<program name> /bin/sh such that it and gcc (and any subcommands run by gcc)
+are aggregated.
+
+However, what if this is a "recursive" design where make also invokes a child make?
+In this case the resulting command would be I</bin/sh -c "make">. Clearly it would be a bad
+idea to match /bin/sh in the same way here because the entire child make would be aggregated
+into a single unit. This would be far too coarse-grained.
+
+The solution chosen involved two different kinds of aggregation: I<strong> and I<weak>.
+A strong aggregation is never broken; once a command is chosen for strong aggregation,
+all its children will be part of that unit. A weak aggregation is broken, or
+I<disbanded>, when one of its children matches another aggregation RE. In other words
+a weak aggregation is provisional; it lasts only until a finer-grained aggregation unit
+displaces it.
+
+The result would be four regular expressions: a strong and a weak for each of program
+and command line. However, this original set has more recently been supplemented by two
+more expressions known as I<break> REs which I<force> the disbanding of an aggregation unit
+(strong or weak) if matched. In the I<make> example above we can use a break RE to ensure
+that a child make is B<always> disaggregated.
+
+The final tally is six regular expressions:
+
+    Aggregation.Prog.Strong.RE
+    Aggregation.Prog.Weak.RE
+    Aggregation.Prog.Break.RE
+    Aggregation.Line.Strong.RE
+    Aggregation.Line.Weak.RE
+    Aggregation.Line.Break.RE
+
+The shipped defaults basically say "do strong aggregations on compilers, weak
+aggregations on shells, and always break on a child make". They should work
+reasonably well for make-based compile-and-link builds but it will often be
+possible to tune them for a particular build.
+For instance, if you have a shell script which generates a source file by
+running lots of little shell utilities such as awk, sed, cat, nm, etc it may
+make sense to aggregate that script into an atomic unit for audit purposes. The shipped
+defaults contain an aggregation for "libtool" which is a popular shell script of
+this type.
+
+The process of bundling and disbanding can be observed by setting the "AG" verbosity
+bit, e.g. by passing the -vAG flag to I<ao>.
+
+=head2 PROJECTS
+
+AO divides all its work into I<projects>. Among the first things the
+I<ao> program does at startup is attempt to determine its current
+I<project context> by setting the two critical properties
+I<Base.Dir> and I<Project.Name>. The algorithm is described here.
+
+At startup the AO client walks from the current working directory
+upward toward the filesystem root looking for a configuration
+directory called C<.ao>. Once found, the directory containing
+this config dir is assigned to the Base.Dir property. Next,
+if the config dir contains a file named C<ao.properties>,
+project-specific properties are read in from it.
+
+The Base.Dir folder is considered the boundary between a
+project and the "outside world". Files located within the tree
+defined by this boundary are called "members" of the project, and those
+outside it are called "non-members". Member files are given a
+I<project relative pathname> or PRP which is their path from the
+Base.Dir directory. Non-members are always referred
+to by their absolute path.
+
+Note that Base.Dir is never set explicitly. Rather, it is inferred from
+the placement of the project config dir. If no such folder is found,
+I<ao> behaves as if it was found in the CWD, thus making the CWD
+automatically the base directory. This feature is not robust, not recommended
+for production use, and may be removed in future versions. It is, however,
+convenient for testing or demo situations.
+
+The project properties file may set Project.Name explicitly. Otherwise,
+it defaults to the basename of the Base.Dir value. Note that
+project's config dir need not have any contents; even an empty folder
+will establish both the Base.Dir and Project.Name properties.
+
+To take a concrete example: imagine building Perl in the Unix directory
+/scratch/src/perl-5.8.8.  You could work without any explicit project config,
+resulting in the following implicit settings:
+
+    Base.Dir     = /scratch/src/perl-5.8.8
+    Project.Name = perl-5.8.8
+
+But what if you were to cd into the "./utils" subdirectory and work
+there for a while? Without a fixed base dir, I<ao> would now
+think you were in a different project called "utils" and all previous
+analysis and recycling opportunities are lost. The solution is to
+create an empty config dir I</scratch/src/perl-5.8.8/.ao> to fix
+the boundary explicitly. This would lock in the values above for any
+working directory within the project tree.
+
+However, perhaps a colleague is also working on perl-5.8.8 but chose to
+place the source in a directory with a different basename,  say
+"/home/colleague/src/perl". Or maybe someone is working on perl-5.8.9 and wants to
+be able to share the parts that haven't changed. Or you simply don't feel
+that a version number should be part of the project name. For all these
+reasons it's best to set the project name explicitly by adding the following
+to the project properties file:
+
+    Project.Name = Perl
+
+Now the project has a more consistent and publically palatable name.
+Note that this is a somewhat synthetic example which assumes each user
+manages their own project configuration. In real life the entire project,
+including the AO project properties file, will most commonly be under source control
+with different branches for 5.8.8 and 5.8.9. In that case the property
+file will express common project policies and will be the same for all
+participants.
+
+=head1 EXAMPLES
+
+    ao --help
+
+Prints the set of options to the client program.
+
+    ao --properties
+
+Prints the current set of defined properties and their values.
+
+    ao ping
+
+Checks for a server and reports its location.
+
+    ao help
+
+Speaks to the server and prints a summary of available user actions.
+
+    ao run I<command> ...
+
+Runs the specified command line with auditing turned on.
+
+=head1 LIMITATIONS
+
+The AO tool depends on being able to insert its own code into foreign
+programs, which in turn depends on certain semantics of the runtime
+linker. This design has a few minor limitations of which the user
+should be aware:
+
+=head2 HEISENBERGIAN ISSUES
+
+The layman's formulation of the Heisenberg uncertainty principle is
+that I<the act of observing an action changes it such that there is no
+longer a way to determine how it would have behaved if unobserved>.
+A few analogous caveats apply to AO:
+
+=over 4
+
+=item 1. Performance
+
+Auditing a program will slow it down somewhat. The effect of the
+auditing per se is small but when server communication latency is
+factored in, the overall impact is usually in the vicinity of 5-20
+percent. Many factors (network bandwidth, size of generated files,
+etc.) can affect this.
+
+=item 2. File Descriptors
+
+Each process starts with a certain fixed number of available file
+descriptors. The exact number is OS- and configuration-dependent.
+Because the audit trace is written to a file or socket, an audited
+program may have one less file descriptor available for its own use.
+
+=back
+
+=head2 DETERMINISM
+
+The AO design is predicated on the assumption that audited commands
+are I<deterministic>, i.e. that the same command run
+repeatedly with the same file inputs will produce
+the same file outputs each time.  While it is certainly possible to
+audit non-deterministic commands, less-than-useful results are
+likely.  Consider the simple Unix command C<date E<gt> foo>; this
+produces different output each time and will result in broken
+recycling behavior.
+
+In general, datestamps fail the determinism test and should be
+avoided.  However, AO contains special-case code to ignore the embedded
+datestamps in certain common file formats such as archive (.a) files on Unix
+and PE/COFF (.exe, .dll, .lib, and .obj) files on Windows, as well as
+.zip and .jar files on all platforms.
+
+=head1 FILES
+
+    $HOME/.ao.properties
+    [Base.Dir]/.ao/ao.properties
+    [Install.Dir]/etc/ao.properties
+
+=head1 COPYRIGHT
+
+Copyright 2002-2011 David Boyce. All rights reserved.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.

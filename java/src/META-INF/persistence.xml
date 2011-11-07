@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="1.0" xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_1_0.xsd">
+
+  <persistence-unit name="AODB" transaction-type="RESOURCE_LOCAL">
+
+    <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+    <class>com.aotool.entity.Project</class>
+    <class>com.aotool.entity.Ptx</class>
+    <class>com.aotool.entity.PathAction</class>
+    <class>com.aotool.entity.PathState</class>
+    <class>com.aotool.entity.PathName</class>
+    <class>com.aotool.entity.CommandAction</class>
+    <class>com.aotool.entity.Command</class>
+    <class>com.aotool.entity.Moment</class>
+    <class>com.aotool.entity.Duration</class>
+
+    <properties>
+    
+      <!--
+      IT'S BEST NOT TO MODIFY THESE PROPERTIES HERE. BETTER TO OVERRIDE THEM USING A
+      LOCAL PROPERTIES FILE POINTED TO BY THE 'AO.Server.Properties' SYSTEM PROPERTY.
+      SEE THE INSTALL DOCUMENT FOR DETAILS.
+      -->
+    
+      <!--  Values specific to the RDBMS in use -->
+      
+      <!-- H2 -->
+      <property name="javax.persistence.target-database" value="H2"/>
+      <property name="javax.persistence.jdbc.user" value="sa"/>
+      <property name="javax.persistence.jdbc.password" value="sa"/>
+      <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:AODB/H2;create=true"/>
+      
+      <!-- HSQLDB:
+      <property name="javax.persistence.target-database" value="HSQL"/>
+      <property name="javax.persistence.jdbc.user" value="sa"/>
+      <property name="javax.persistence.jdbc.password" value=""/>
+      <property name="javax.persistence.jdbc.driver" value="org.hsqldb.jdbcDriver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:hsqldb:mem:AODB/HSQL;create=true"/>
+      -->
+           
+      <!-- DERBY:
+      <property name="javax.persistence.target-database" value="Derby"/>
+      <property name="javax.persistence.jdbc.user" value="app"/>
+      <property name="javax.persistence.jdbc.password" value="app"/>
+      <property name="javax.persistence.jdbc.driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:derby:AODB/DERBY;create=true"/>
+      -->
+      
+      <!-- MYSQL:
+      <property name="javax.persistence.target-database" value="MySQL"/>
+      <property name="javax.persistence.jdbc.user" value="root"/>
+      <property name="javax.persistence.jdbc.password" value="<password>"/>
+      <property name="javax.persistence.jdbc.driver" value="com.mysql.jdbc.Driver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/AODB?createDatabaseIfNotExist=true"/>
+      -->
+
+      <!-- EclipseLink JPA Extensions for JDBC Connection Pooling -->
+      <property name="eclipselink.jdbc.read-connections.min" value="1"/>
+      <property name="eclipselink.jdbc.write-connections.min" value="1"/>
+            
+      <!-- Some DBs (postgresql) are picky about column name case -->
+      <property name="eclipselink.jdbc.uppercase-columns" value="true"/>
+
+      <!-- EclipseLink should create the database schema automatically -->
+      <property name="eclipselink.ddl-generation.output-mode" value="database" />
+      <property name="eclipselink.ddl-generation" value="create-tables"/>
+      
+      <!-- Logging options: OFF,SEVERE,WARNING,INFO,CONFIG,FINE,FINER,FINEST,ALL -->
+      <property name="eclipselink.logging.level" value="INFO" />
+      <!-- <property name="eclipselink.logging.file" value="jpa.log" /> -->
+    </properties>
+
+  </persistence-unit>
+</persistence>

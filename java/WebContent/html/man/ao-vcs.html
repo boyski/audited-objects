@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>AO - VERSION CONTROL SYSTEM INTEGRATION</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id=
+"ao__version_control_system_integration">AO - VERSION CONTROL
+SYSTEM INTEGRATION</a></h1>
+<pre>
+This document discusses methods of integration between AO and version
+control systems.
+</pre>
+<p>Fundamentally, SCM/versioning tools tend to distinguish file
+states with concepts like version numbers, labels, and other
+abstract, value-added metadata. By contrast - at least out of the
+box - AO thinks in terms of more low-level standard metadata such
+as file size, date, and checksum. There are, however, ways of
+bridging the gap for any VCS which implements a <em>trigger</em>
+mechanism.</p>
+<p>Triggers are programs registered to be automatically run (or
+&quot;fired&quot;) whenever a particular action takes place. Most
+versioning tools implement triggering on at least such basic
+operations as checkin and checkout. Checkin triggers are often used
+to validate or test the new file, to check that a comment has been
+supplied, or implement other site policies.</p>
+<p>Triggers may in some cases be subdivided into pre- and post-
+types. I.e. a pre-checkin trigger is run before checkin while the
+post- variant would be run after.</p>
+<p>The AO features which support VCS integration are the
+<em>namestate</em> and <em>label</em> actions. As the name implies,
+<em>namestate</em> gives a name to a particular path state. The
+name can be any text string but the most obvious use would be the
+VCS version, thus associating AO's checksum-based understanding
+with the VCS tool's version abstraction.</p>
+<p>The <em>label</em> command operates at a higher level; a label
+applies to an entire PTX (aka build). Again, it can be any text
+string but the most common use case would be to use the same label
+which was applied to the source files prior to the build, thus
+providing a tight link between sources and the deliverables derived
+from them.</p>
+<h2><a id=
+"clearcase_checkinpost_trigger">ClearCase Checkin-Post
+Trigger</a></h2>
+<p>Here is an example trigger definition for ClearCase. The idea is
+that each time a file is checked in, this trigger fires and sends a
+record to the AO database which associates the version
+(CLEARCASE_ID_STR) with the checksum of the checked-in version.
+From then on, AO will always refer to that file state by its
+version rather than its checksum.</p>
+<pre>
+    cleartool mktrtype -element -all -postop checkin\
+        -c "Map version names between CC and AO"\
+        -execunix 'ao namestate -p + -f $CLEARCASE_ID_STR $CLEARCASE_PN'\
+        -execwin  "ao namestate -p + -f %CLEARCASE_ID_STR% %CLEARCASE_PN%"\
+        ao_name_state
+</pre>
+<p>For SCM systems other than ClearCase the syntax will of course differ but the basic principle is the same;
+you want each checkin to fire a trigger which in turn runs &quot;namestate&quot;.</p>
+<p><b>NOTE: Unfortunately, the "namestate" command is not currently working and the above is on hold until it's fixed.</b></p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

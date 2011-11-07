@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii" />
+<title>Tuning a Build Environment for AO</title>
+<link href="mailto:" />
+<link href="../../styles/style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<h1 style="text-align:center;"><a id="tuning_a_build_environment_for_ao">Tuning a Build Environment for
+AO</a></h1>
+<p>This is a set of informal notes on things you may consider doing
+to make your tools work better with AO. Whether your build uses <i>make</i>
+or not, you should read the <a href="ao-make.html">ao-make</a> document
+because it discusses important related concepts, in particular the importance
+of optimized aggregation.</p>
+
+<h2><a id="network_file_systems">Network File Systems</a></h2>
+<p>AO needs access to the metadata of each file used, as it is
+used. This is generally done via the <code>stat()</code> system
+call family on Unix and GetFile{Attributes,Size,Type}() on Windows.
+At least with traditional Unix NFS, these system calls are
+substantially slower than on native/local file systems because they
+tend to require round-trip network traffic. This in turn causes AO
+to work more slowly on NFS-mounted file data.</p>
+<p>I'm always looking for ways of reducing the number of stat calls in
+AO. In the meantime, if AO is not as fast as desired over NFS, consider
+running it in a local file system. There may also be ways of tuning
+NFS to speed up and/or cache stat calls, and newer NFS versions may
+do a better job. This area is still being researched.</p>
+
+<footer>
+AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and
+license terms</a>.
+</footer>
+
+</body>
+</html>

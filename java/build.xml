@@ -88,7 +88,7 @@
 			<arg value="-S" />
 			<arg value="pod2html" />
 			<arg value="--title=AO Client Manual Page" />
-			<arg value="--infile=${Doc.Dir}/man/ao.pod" />
+			<arg value="--infile=${Web.Content.Dir}/../../man/ao.pod" />
 			<arg value="--outfile=${Html.Man.Dir}/ao.html" />
 		</exec>
 		<delete>

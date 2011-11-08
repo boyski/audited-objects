@@ -110,9 +110,9 @@ B<ao run>:
     % ao run gcc -o hello hello.c
 
 The first build will be I<audited> and copies of its output stored.  It
-will run marginally slower due to the overhead of auditing.  When it
+will run somewhat slower due to the overhead of auditing.  When it
 comes to the second build, B<AO> will discover that the inputs are
-unchanged and will only pretend to run the compiler, copying in the
+unchanged and will only pretend to run the compiler, actually copying in the
 results of the first build instead. This is typically much faster, often
 by orders of magnitude. Of course in real life clean builds don't usually
 happen twice in a row without I<anything> changing in between, but other
@@ -146,11 +146,11 @@ In addition to build speedups via recycling, B<ao> provides access to
 the shared database in order to allow post-mortem analysis of builds,
 using a set of I<user actions> as noted in the usage message.  A few
 example commands are shown below. The syntax I<foo/bar> means that the
-full command name is I<foobar> but it can be abbreviated as I<foo>.
+full action name is I<foobar> but it can be abbreviated as I<foo>.
 
 The set of post-mortem commands is extensible. A full list of currently
-supported commands can be obtained from the server via C<ao help>, and
-detailed help for a specific command is generally availble with C<ao
+supported actions can be obtained from the server via C<ao help>, and
+detailed help for a specific action is generally availble with C<ao
 help I<command>>. A very minimal subset is described here:
 
 =over 4
@@ -171,16 +171,13 @@ of known projects.
 The I<lsbuilds> command, which may be abbreviated as I<lsb>, lists all
 builds which have occurred for the current or specified project.
 Important attributes such as who, when, where, duration, etc. are also
-displayed.
+displayed. If a file is given on the command line, the listing is limited
+to builds which could have produced that file.
 
-=item mkdeps
+=item ls
 
-The list of targets and their prerequisites are printed in a format
-suitable for inclusion by a makefile (see below).
-
-=item get I<object> ...
-
-Retrieves the specified derived I<object>s from the server.
+A full description of the specified build and everything it did is printed. As with the
+Unix utility after which it's named, the I<ls> action has many command line options.
 
 =back
 
@@ -233,15 +230,23 @@ Cause all output file names to be represented as absolute paths.
 Make no modifications to server state but continue to shop for download
 possibilities. Also known as I<selfish mode> (take but don't give).
 
-=item -f|--make-file
+=item -MD|--make-depends
 
-Generates full dependency information in Makefile format. This can be
-included in future builds.
+Generates full dependency information in Makefile format, in the form of
+per-target Makefile fragments. These can be included in future builds.
 
-=item -F|--make-file-full
+This is actually a '-M' flag with an argument which is the desired
+extension for Makefile fragments. For the benefit of those familiar with
+the GCC -MD flag, it is generally documented as -MD and as a special case
+the 'D' is down-cased to result in a .d extension. You could use, for
+instance, -Mprq to request a .prq extension.
 
-Generates a single full, non-recursive, working Makefile with full
-dependency information. The Makefile may require GNU make features.
+=item -F|--make-file
+
+Generates a single, self-contained, non-recursive, working Makefile with
+full dependency information. The Makefile is designed for GNU make by default.
+If used in combination with I<--make-depends> the generated file will contain
+only I<include> statements pulling in the dependency fragments.
 
 =item -l|--log-file I<logfile>
 
@@ -313,14 +318,14 @@ the format supports either of
     name = value
     name:  value
 
-The command line flags described above are actually just an alternate way
+The command line flags described in OPTIONS are actually just an alternate way
 to make property settings. In other words the I<-s> flag in this command
 
     ao -s localhost:8080 run make
 
 is merely a convenient way of overriding the I<Server> property. Most
-command-line flags map directly to a property, though not all properties
-have an associated flag.
+command-line flags map directly to a property, though only the more
+commonly-used properties have an associated flag.
 
 Properties may also be set via the environment. The translation from a
 property name to an environment variable name involves converting to
@@ -349,16 +354,17 @@ Special note for regular-expression properties: the regex should I<not>
 be delimited with // or anything else, nor do special characters such
 as \ need to be escaped. Sample setting:
 
-    Foo.Path.RE = \.c$
+    Foo.Bar.RE = \.c$
 
-specifies a regular expression which would match all filenames
+This specifies a regular expression which would match all filenames
 ending with ".c".
 
 The set of documented properties and their current values may be seen by running
 
     ao --properties
     
-This also shows the set of files from which properties are being read.
+This also shows the set of files from which properties are being read. A less
+verbose listing may be obtained by adding I<--quiet>.
 
 =head2 PROPERTIES DETAILS
 
@@ -500,7 +506,7 @@ exceed 30 in total.
 
 Provides the server address in I<hostname:port> format, e.g.
 "localhost:8080". B<This is the only property which does not
-default reasonably; you must set a Server in order to find a
+default reasonably; you must set the Server property in order to find a
 server.>
 
 =item * Shop.Ignore.Path.RE (Regex)
@@ -509,7 +515,7 @@ Supplies a Perl-style regular expression which causes matched files to
 be ignored for shopping. Thus a value like the following would exclude
 all files under /usr/include from shopping consideration.
 
-    Shop.Ignore.Path = ^/usr/include/
+    Shop.Ignore.Path.RE = ^/usr/include/
 
 =item * Shop.Members.Only (Boolean)
 
@@ -561,8 +567,8 @@ Cancellation is the removal of unnecessary or redundant file audit records I<wit
 a single program. A program might create a file, write to it one or more times,
 read back the results, remove the file and exit. Since the file did not exist at
 entry or exit, the fact that it was created and removed is an implementation detail
-which need not be reported. This is cancellation; each audit is subjected to cancellation
-before its results are reported.
+which need not be reported. This is cancellation; each program's audit is subjected
+to cancellation before its results are reported.
 
 Aggregation is the identification of higher-level clusters of programs to act
 as black boxes, such as the compiler in the example above. Once these clusters
@@ -572,7 +578,7 @@ to remove file accesses which feature in neither input nor output sets.
 The identification of aggregation clusters is done via regular expressions (REs). It's a
 bit of a black art, though fortunately the default expressions are reasonably stable and
 fine for the average build. On the other hand it may be possible to improve your
-auditing substantially by tweaking the REs for your specific needs. Follwing is an
+auditing substantially by tweaking the REs for your specific needs. Following is an
 overview:
 
 First, note that AO keeps track of both the program name and the full command line for
@@ -643,8 +649,9 @@ project-specific properties are read in from it.
 The Base.Dir folder is considered the boundary between a
 project and the "outside world". Files located within the tree
 defined by this boundary are called "members" of the project, and those
-outside it are called "non-members". All member files are given a
-I<project relative pathname> or PRP. Non-members are always referred
+outside it are called "non-members". Member files are given a
+I<project relative pathname> or PRP which is their path from the
+Base.Dir directory. Non-members are always referred
 to by their absolute path.
 
 Note that Base.Dir is never set explicitly. Rather, it is inferred from
@@ -655,38 +662,39 @@ for production use, and may be removed in future versions. It is, however,
 convenient for testing or demo situations.
 
 The project properties file may set Project.Name explicitly. Otherwise,
-Project.Name defaults to be the basename of the Base.Dir value). Note that
+it defaults to the basename of the Base.Dir value. Note that
 project's config dir need not have any contents; even an empty folder
 will establish both the Base.Dir and Project.Name properties.
 
-For example, imagine building Perl in the Unix directory
-/scratch/src/perl-5.8.8.  You could work without a project config at all,
+To take a concrete example: imagine building Perl in the Unix directory
+/scratch/src/perl-5.8.8.  You could work without any explicit project config,
 resulting in the following implicit settings:
 
     Base.Dir     = /scratch/src/perl-5.8.8
     Project.Name = perl-5.8.8
 
 But what if you were to cd into the "./utils" subdirectory and work
-on only that part for a while? Without a fixed base dir, I<ao> would now
+there for a while? Without a fixed base dir, I<ao> would now
 think you were in a different project called "utils" and all previous
 analysis and recycling opportunities are lost. The solution is to
 create an empty config dir I</scratch/src/perl-5.8.8/.ao> to fix
-the boundary explicitly. This will lock in the values above for any
+the boundary explicitly. This would lock in the values above for any
 working directory within the project tree.
 
 However, perhaps a colleague is also working on perl-5.8.8 but chose to
-extract the source to a directory with a different basename,  say
-"/var/tmp/perl". Or maybe someone is working on perl-5.8.9 and wants to
+place the source in a directory with a different basename,  say
+"/home/colleague/src/perl". Or maybe someone is working on perl-5.8.9 and wants to
 be able to share the parts that haven't changed. Or you simply don't feel
-that a version number should be part of the project name. So you may
-prefer to add the following to the project properties file:
+that a version number should be part of the project name. For all these
+reasons it's best to set the project name explicitly by adding the following
+to the project properties file:
 
     Project.Name = Perl
 
 Now the project has a more consistent and publically palatable name.
 Note that this is a somewhat synthetic example which assumes each user
 manages their own project configuration. In real life the entire project,
-including the project properties file, will most commonly be under source control
+including the AO project properties file, will most commonly be under source control
 with different branches for 5.8.8 and 5.8.9. In that case the property
 file will express common project policies and will be the same for all
 participants.
@@ -749,18 +757,19 @@ program may have one less file descriptor available for its own use.
 =head2 DETERMINISM
 
 The AO design is predicated on the assumption that audited commands
-are I<deterministic>, i.e. that if the same command is run
-repeatedly in the same directory with the same file inputs, it will
-produce the same file outputs.  While it is certainly possible to
+are I<deterministic>, i.e. that the same command run
+repeatedly with the same file inputs will produce
+the same file outputs each time.  While it is certainly possible to
 audit non-deterministic commands, less-than-useful results are
 likely.  Consider the simple Unix command C<date E<gt> foo>; this
 produces different output each time and will result in broken
 recycling behavior.
 
 In general, datestamps fail the determinism test and should be
-avoided.  However, AO contains special-case code to ignore embedded
-datestamps in certain common file formats such as archive files on Unix
-and PE/COFF (.exe, .dll, .lib, and .obj) files on Windows.
+avoided.  However, AO contains special-case code to ignore the embedded
+datestamps in certain common file formats such as archive (.a) files on Unix
+and PE/COFF (.exe, .dll, .lib, and .obj) files on Windows, as well as
+.zip and .jar files on all platforms.
 
 =head1 FILES
 
@@ -770,7 +779,7 @@ and PE/COFF (.exe, .dll, .lib, and .obj) files on Windows.
 
 =head1 COPYRIGHT
 
-Copyright 2002-2010 David Boyce. All rights reserved.
+Copyright 2002-2011 David Boyce. All rights reserved.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

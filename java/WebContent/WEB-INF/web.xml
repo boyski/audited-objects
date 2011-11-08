@@ -7,7 +7,7 @@
   <!-- Version - checked for conformity with client version -->
   <context-param>
     <param-name>APPLICATION_VERSION</param-name>
-    <param-value>1.0.10</param-value>
+    <param-value>1.0.11</param-value>
   </context-param>
   
   <!-- May be needed depending on chosen database -->

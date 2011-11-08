@@ -30,6 +30,8 @@ Checklist of things to do when making a new release x.y.z of AO.
 
 => Delete any obsolete static content under ~/ao-docs.
 
+=> End the sf shell with "shutdown".
+
 (From a local browser):
 
 - Hit SF.net and see how things look.

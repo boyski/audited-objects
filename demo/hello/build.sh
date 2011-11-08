@@ -2,4 +2,5 @@
 
 set -x
 gcc -c hello.c
-gcc -o hello.exe hello.o
+gcc -c goodbye.c
+gcc -o hello.exe hello.o goodbye.o

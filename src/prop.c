@@ -505,7 +505,7 @@ static struct {
 	"Special modifiable EV holding the parent cmd code",
 	NULL,
 	PROP_FLAG_INTERNAL | PROP_FLAG_EXPORT,
-	64,	// Buffer big enough for SHA-256 hash.
+	64,	// Buffer big enough for SHA-1 hash plus metadata.
 	P_PCCODE,
     },
     {

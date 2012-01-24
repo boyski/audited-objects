@@ -195,7 +195,7 @@ util_unmap_file(unsigned char *fdata, uint64_t extent)
 #if defined(_WIN32)
 // Documented below.
 CS
-util_requote(CS const *argv)
+util_requote_argv(CS const *argv)
 {
     CS word, cmdline, ptr;
     int quote, i;
@@ -270,7 +270,7 @@ util_requote(CS const *argv)
 /// @param[in] argv     An array of string
 /// @return a malloc-ed string suitable for passing to the shell
 CS
-util_requote(CS const *argv)
+util_requote_argv(CS const *argv)
 {
     char *word, *cmdline, *ptr;
     int quote, i;

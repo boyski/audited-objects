@@ -123,19 +123,19 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     if (prgpath[0]) {
 	if (endswith(prgpath, ".exe")) {
 	    path = argv[0] = (const CS)prgpath;
-	    cmdline = util_requote(argv);
+	    cmdline = util_requote_argv(argv);
 	} else {
 	    CS cmd, p;
 
 	    // Can't CreateProcess a script - we need an explicit shell.
-	    p = util_requote(argv);
+	    p = util_requote_argv(argv);
 	    cmd = putil_getenv("COMSPEC");
 	    (void)trio_asprintf(&cmdline, "%s /c %s", cmd, p);
 	    putil_free(p);
 	    path = cmd;
 	}
     } else {
-	cmdline = util_requote(argv);
+	cmdline = util_requote_argv(argv);
     }
 
     // If a logfile is requested, fork a "tee" and connect

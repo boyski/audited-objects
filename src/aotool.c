@@ -607,6 +607,7 @@ main(int argc, CS const *argv)
     CCS action;
     CCS pager = NULL;
     CS dscript = NULL;
+    CS script = NULL;
     int proplevel = -1;
     int no_server = 0;
     int make_clean = 0;
@@ -698,6 +699,7 @@ main(int argc, CS const *argv)
 	    {"restart",		no_argument,	   NULL, LF('R','L')},
 	    {"server",		required_argument, NULL, 's'},
 	    {"strict",		no_argument,	   NULL, 'S'},
+	    {"script",		required_argument, NULL, LF('s','c')},
 	    {"print-elapsed",	no_argument,	   NULL, 't'},
 	    {"print-elapsed-x",	no_argument,	   NULL, 'T'}, // TODO compatibility,remove
 	    {"upload-only",	no_argument,	   NULL, 'u'},
@@ -889,6 +891,10 @@ main(int argc, CS const *argv)
 		prop_put_ulong(P_STRICT, 1);
 		prop_put_ulong(P_STRICT_DOWNLOAD, 1);
 		prop_put_ulong(P_STRICT_UPLOAD, 1);
+		break;
+
+	    case LF('s', 'c'):
+		script = bsd_optarg;
 		break;
 
 	    case 'T':
@@ -1141,7 +1147,10 @@ main(int argc, CS const *argv)
     }
 
     if (streq(action, "run")) {
-	CCS cwd, rmap, logprop, logfile = NULL;
+	CCS cwd = NULL;
+	CCS logfile = NULL;
+	CCS rmap;
+	CCS logprop;
 
 	if (!argv || !*argv) {
 	    _usage(1);
@@ -1159,7 +1168,6 @@ main(int argc, CS const *argv)
 	    if (util_is_tmp(cwd) && !prop_is_true(P_EXECUTE_ONLY)) {
 		putil_die("illegal tmp working directory: %s", cwd);
 	    }
-	    putil_free(cwd);
 	} else {
 	    putil_syserr(2, "util_get_cwd()");
 	}
@@ -1229,6 +1237,52 @@ main(int argc, CS const *argv)
 	    }
 	}
 
+	if (script) {
+	    FILE *fp;
+
+	    if (!(fp = fopen(script, "w"))) {
+		putil_syserr(2, script);
+	    } else {
+#if !defined(_WIN32)
+		extern char **environ;		// Win32 declares this in stdlib.h
+#endif
+		char **envp;
+
+		for (envp = environ; *envp; envp++) {
+		    char *ep, *t;
+
+		    ep = *envp;
+		    if (!strncmp(ep, "DISPLAY=",	8) ||
+			    !strncmp(ep, "HOME=",	5) ||
+			    !strncmp(ep, "MAIL=",	5) ||
+			    !strncmp(ep, "LOGNAME=",	8) ||
+			    !strncmp(ep, "PS1=",	4) ||
+			    !strncmp(ep, "PWD=",	4) ||
+			    !strncmp(ep, "OLDPWD=",	7) ||
+			    !strncmp(ep, "SHLVL=",	6) ||
+			    !strncmp(ep, "SSH_",	4) ||
+			    !strncmp(ep, "TERM=",	5) ||
+			    !strncmp(ep, "TERMINFO=",	9) ||
+			    !strncmp(ep, "USER=",	5) ||
+			    !strncmp(ep, "XDG_",	4) ||
+			    !strncmp(ep, "AO_",		3) ||
+			    *ep == '_') {
+			continue;
+		    }
+
+		    fprintf(fp, "export ");
+		    for (t = ep; *t && *t != '='; t++) {
+			fputc(*t, fp);
+		    }
+		    fputc(*t++, fp);
+		    fprintf(fp, "'%s'\n", t);
+		}
+		fprintf(fp, "\n");
+		fprintf(fp, "cd '%s' && exec %s\n", cwd, util_requote_argv(argv));
+		(void)fclose(fp);
+	    }
+	}
+
 	// For systems supporting DTrace: run the cmd with the specified
 	// dtrace script.
 	if (dscript) {
@@ -1239,7 +1293,7 @@ main(int argc, CS const *argv)
 	    dargv[1] = "-s";
 	    dargv[2] = dscript;
 	    dargv[3] = "-c";
-	    dargv[4] = util_requote(argv);
+	    dargv[4] = util_requote_argv(argv);
 	    dargv[5] = NULL;
 	    argv = dargv;
 	    fprintf(stderr, "+ dtrace -s %s -c '%s'\n", dscript, argv[4]);
@@ -1266,6 +1320,8 @@ main(int argc, CS const *argv)
 	if (prop_is_true(P_LOG_FILE_TEMP)) {
 	    unlink(prop_get_str(P_LOG_FILE));
 	}
+
+	putil_free(cwd);
     } else if (streq(action, "roadmap")) {
 	// Useful while testing roadmaps. May be dispensed with later.
 	prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
@@ -1320,7 +1376,7 @@ main(int argc, CS const *argv)
 	} else {
 	    CCS cmdline;
 
-	    cmdline = util_requote(argv);
+	    cmdline = util_requote_argv(argv);
 	    ca_set_line(ca, cmdline);
 	    putil_free(cmdline);
 	    rc = shop(ca, NULL, gflag);

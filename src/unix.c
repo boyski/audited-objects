@@ -225,7 +225,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    CCS cmdline;
 	    time_t now;
 
-	    cmdline = util_requote(argv);
+	    cmdline = util_requote_argv(argv);
 	    fprintf(vb_get_stream(), "+ %s\n", cmdline);
 	    putil_free(cmdline);
 	    time(&now);

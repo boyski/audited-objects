@@ -1252,22 +1252,29 @@ main(int argc, CS const *argv)
 		    char *ep, *t;
 
 		    ep = *envp;
-		    if (!strncmp(ep, "DISPLAY=",	8) ||
+
+		    if (!strncmp(ep, "AO_=",		3) ||
+			    !strncmp(ep, "DISPLAY",	8) ||
 			    !strncmp(ep, "HOME=",	5) ||
-			    !strncmp(ep, "MAIL=",	5) ||
+			    !strncmp(ep, "HOST",	4) ||
+			    !strncmp(ep, "KDE",		3) ||
 			    !strncmp(ep, "LOGNAME=",	8) ||
+			    !strncmp(ep, "MAIL=",	5) ||
+			    !strncmp(ep, "OLDPWD=",	7) ||
 			    !strncmp(ep, "PS1=",	4) ||
 			    !strncmp(ep, "PWD=",	4) ||
-			    !strncmp(ep, "OLDPWD=",	7) ||
+			    !strncmp(ep, "QT",		2) ||
 			    !strncmp(ep, "SHLVL=",	6) ||
 			    !strncmp(ep, "SSH_",	4) ||
+			    !strncmp(ep, "STY=",	4) ||
 			    !strncmp(ep, "TERM=",	5) ||
+			    !strncmp(ep, "TERMCAP=",	8) ||
 			    !strncmp(ep, "TERMINFO=",	9) ||
 			    !strncmp(ep, "USER=",	5) ||
+			    !strncmp(ep, "WINDOW=",	7) ||
 			    !strncmp(ep, "XDG_",	4) ||
-			    !strncmp(ep, "AO_",		3) ||
 			    *ep == '_') {
-			continue;
+			fprintf(fp, ": ");
 		    }
 
 		    fprintf(fp, "export ");

@@ -1,16 +1,19 @@
-########################################################
-## Use: nmake [Release | Debug]
-##      (default is Debug)
+####################################################################
+## THIS IS NOT THE UNIX MAKEFILE - IT'S FOR USE BY
+## MS NMAKE ON WINDOWS. THE UNIX VERSION IS IN 'GNUmakefile'.
+# Usage: nmake [Release | Debug]
+#      (default is Debug)
+####################################################################
 
 ## THIS FILE IS NOT NECESSARILY UP TO DATE. Although it worked fine when last
-## checked, I tend to use the solution file, largely because this forces
+## checked I tend to use the solution file, largely because this forces
 ## the solution to be kept up to date. The GNUmakefile has a clause to
 ## support this, so if you have GNU make installed for Windows you can just
 ## run "make". Whereas if you want to use this file, use "nmake".
 ## In all cases this must be done in a VC-enabled shell.
 
 ## Note: not all the compiler flags here are carefully thought out and
-## and analyzed - some were just copied random other projects.
+## and analyzed - some were just copied from random other projects.
 ## There may be room for improvement there.
 ## In general you should assume flags are present as a result of flailing
 ## rather than exhaustive research.

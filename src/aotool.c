@@ -1253,6 +1253,9 @@ main(int argc, CS const *argv)
 		for (envp = environ; *envp; envp++) {
 		    char *t;
 
+		    if (**envp == '_')
+			continue;
+
 		    fputs(": export ", fp);
 		    for (t = *envp; *t && *t != '='; t++) {
 			fputc(*t, fp);
@@ -1262,7 +1265,7 @@ main(int argc, CS const *argv)
 		}
 		fprintf(fp, "\ncd '%s' && exec %s\n", cwd, util_requote_argv(argv));
 		(void)fclose(fp);
-		vb_printf(VB_STD, "script for rebuild written to '%s'", script);
+		vb_printf(VB_STD, "rebuild script written to '%s'", script);
 	    }
 	}
 

@@ -1248,45 +1248,21 @@ main(int argc, CS const *argv)
 #endif
 		char **envp;
 
+		fprintf(fp, "# Original environment settings commented out by default:\n\n");
+
 		for (envp = environ; *envp; envp++) {
-		    char *ep, *t;
+		    char *t;
 
-		    ep = *envp;
-
-		    if (!strncmp(ep, "AO_=",		3) ||
-			    !strncmp(ep, "DISPLAY",	8) ||
-			    !strncmp(ep, "HOME=",	5) ||
-			    !strncmp(ep, "HOST",	4) ||
-			    !strncmp(ep, "KDE",		3) ||
-			    !strncmp(ep, "LOGNAME=",	8) ||
-			    !strncmp(ep, "MAIL=",	5) ||
-			    !strncmp(ep, "OLDPWD=",	7) ||
-			    !strncmp(ep, "PS1=",	4) ||
-			    !strncmp(ep, "PWD=",	4) ||
-			    !strncmp(ep, "QT",		2) ||
-			    !strncmp(ep, "SHLVL=",	6) ||
-			    !strncmp(ep, "SSH_",	4) ||
-			    !strncmp(ep, "STY=",	4) ||
-			    !strncmp(ep, "TERM=",	5) ||
-			    !strncmp(ep, "TERMCAP=",	8) ||
-			    !strncmp(ep, "TERMINFO=",	9) ||
-			    !strncmp(ep, "USER=",	5) ||
-			    !strncmp(ep, "WINDOW=",	7) ||
-			    !strncmp(ep, "XDG_",	4) ||
-			    *ep == '_') {
-			fprintf(fp, ": ");
-		    }
-
-		    fprintf(fp, "export ");
-		    for (t = ep; *t && *t != '='; t++) {
+		    fputs(": export ", fp);
+		    for (t = *envp; *t && *t != '='; t++) {
 			fputc(*t, fp);
 		    }
 		    fputc(*t++, fp);
 		    fprintf(fp, "'%s'\n", t);
 		}
-		fprintf(fp, "\n");
-		fprintf(fp, "cd '%s' && exec %s\n", cwd, util_requote_argv(argv));
+		fprintf(fp, "\ncd '%s' && exec %s\n", cwd, util_requote_argv(argv));
 		(void)fclose(fp);
+		vb_printf(VB_STD, "script for rebuild written to '%s'", script);
 	    }
 	}
 

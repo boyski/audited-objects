@@ -433,10 +433,8 @@ execve_wrapper(const char *call,
 	// properties re-exported to it. The envp starts at (pblock+1).
 
 	plen = prop_new_env_block_sizeA(envp);
-
 	pblock = (char **)alloca(plen);
 	memset(pblock, 0, plen);
-
 	(void)prop_custom_envA(pblock, envp);
 
 	// If the host process assembles a custom environment which

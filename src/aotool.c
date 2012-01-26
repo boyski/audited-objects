@@ -1237,20 +1237,29 @@ main(int argc, CS const *argv)
 	    }
 	}
 
+#if defined(_WIN32)
+	/* TODO */
+#else
 	if (script) {
 	    FILE *fp;
 
 	    if (!(fp = fopen(script, "w"))) {
 		putil_syserr(2, script);
 	    } else {
-#if !defined(_WIN32)
 		extern char **environ;		// Win32 declares this in stdlib.h
-#endif
+		size_t plen;
+		char **pblock;
 		char **envp;
 
 		fprintf(fp, "# Original environment settings commented out by default:\n\n");
 
-		for (envp = environ; *envp; envp++) {
+		// This is just to get a sorted environment list.
+		plen = prop_new_env_block_sizeA(environ);
+		pblock = (char **)alloca(plen);
+		memset(pblock, 0, plen);
+		(void)prop_custom_envA(pblock, environ);
+
+		for (envp = pblock + 1; *envp; envp++) {
 		    char *t;
 
 		    if (**envp == '_')
@@ -1268,6 +1277,7 @@ main(int argc, CS const *argv)
 		vb_printf(VB_STD, "rebuild script written to '%s'", script);
 	    }
 	}
+#endif
 
 	// For systems supporting DTrace: run the cmd with the specified
 	// dtrace script.

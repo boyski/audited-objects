@@ -25,7 +25,6 @@
 // Exclude rarely-used stuff from Windows headers
 #define WIN32_LEAN_AND_MEAN
 
-#include <tchar.h>
 #include <windows.h>
 #include <WindowsX.h>
 
@@ -219,7 +218,7 @@ _ignore_path(const char *path)
     int rc = false;
 
     // Apparently MS builders keep "BuildLog.htm" open with a lock
-    // till the bitter end of the process, such that we can't
+    // till the bitter end of the process such that we can't
     // even derive the data code. Simplest fix is to ignore it which
     // is probably the right thing anyway. Similar for "index.dat"
     // files. *&%# Windows. These are handled via IgnorePathRE.

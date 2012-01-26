@@ -418,7 +418,7 @@ _audit_open(void)
 	// other situations too. We step carefully here to avoid
 	// falling into the CreateFile hook.
 	for (fd = -1, i = 0; fd == -1 && i < 10; i++) {
-	    if (!(tfn = _ttempnam(NULL, "ao."))) {
+	    if (!(tfn = _tempnam(NULL, "ao."))) {
 		putil_syserr(2, "tempnam()");
 	    }
 	    fh = CreateFileA_real(tfn,

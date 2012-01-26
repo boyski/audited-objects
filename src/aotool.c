@@ -1257,7 +1257,8 @@ main(int argc, CS const *argv)
 		memset(pblock, 0, plen);
 		(void)prop_custom_envA(pblock, environ);
 
-		fprintf(fp, "# Original environment settings commented out by default:\n");
+		fprintf(fp, "#!/bin/sh\n\n");
+		fprintf(fp, "# Original environment settings (commented out by default):\n");
 		for (envp = pblock + 1; *envp; envp++) {
 		    char *t;
 
@@ -1272,6 +1273,7 @@ main(int argc, CS const *argv)
 		    fprintf(fp, "'%s'\n", t);
 		}
 		fprintf(fp, "\ncd '%s' && exec %s\n", cwd, util_requote_argv(argv));
+		(void)fchmod(fileno(fp), 0755);
 		(void)fclose(fp);
 		vb_printf(VB_STD, "rebuild script written to '%s'", script);
 	    }

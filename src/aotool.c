@@ -1251,14 +1251,13 @@ main(int argc, CS const *argv)
 		char **pblock;
 		char **envp;
 
-		fprintf(fp, "# Original environment settings commented out by default:\n\n");
-
 		// This is just to get a sorted environment list.
 		plen = prop_new_env_block_sizeA(environ);
 		pblock = (char **)alloca(plen);
 		memset(pblock, 0, plen);
 		(void)prop_custom_envA(pblock, environ);
 
+		fprintf(fp, "# Original environment settings commented out by default:\n");
 		for (envp = pblock + 1; *envp; envp++) {
 		    char *t;
 

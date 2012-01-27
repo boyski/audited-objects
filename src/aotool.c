@@ -1250,6 +1250,7 @@ main(int argc, CS const *argv)
 		size_t plen;
 		char **pblock;
 		char **envp;
+		struct utsname sysdata;
 
 		// This is just to get a sorted environment list.
 		plen = prop_new_env_block_sizeA(environ);
@@ -1258,7 +1259,14 @@ main(int argc, CS const *argv)
 		(void)prop_custom_envA(pblock, environ);
 
 		fprintf(fp, "#!/bin/sh\n\n");
-		fprintf(fp, "# Original environment settings (commented out by default):\n");
+
+		if (!putil_uname(&sysdata)) {
+		    fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
+			sysdata.sysname, sysdata.nodename, sysdata.release,
+			sysdata.version, sysdata.machine);
+		}
+
+		fprintf(fp, "# Original environment settings:\n");
 		for (envp = pblock + 1; *envp; envp++) {
 		    char *t;
 
@@ -1272,7 +1280,10 @@ main(int argc, CS const *argv)
 		    fputc(*t++, fp);
 		    fprintf(fp, "'%s'\n", t);
 		}
-		fprintf(fp, "\ncd '%s' && exec %s\n", cwd, util_requote_argv(argv));
+		fprintf(fp, "\nset -x\n");
+		fprintf(fp, "cd '%s' || exit 2\n", cwd);
+		fprintf(fp, "exec %s\n", util_requote_argv(argv));
+
 		(void)fchmod(fileno(fp), 0755);
 		(void)fclose(fp);
 		vb_printf(VB_STD, "rebuild script written to '%s'", script);

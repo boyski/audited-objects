@@ -607,7 +607,7 @@ main(int argc, CS const *argv)
     CCS action;
     CCS pager = NULL;
     CS dscript = NULL;
-    CS script = NULL;
+    CS redo_script = NULL;
     int proplevel = -1;
     int no_server = 0;
     int make_clean = 0;
@@ -894,7 +894,7 @@ main(int argc, CS const *argv)
 		break;
 
 	    case LF('s', 'c'):
-		script = bsd_optarg;
+		redo_script = bsd_optarg;
 		break;
 
 	    case 'T':
@@ -1240,11 +1240,11 @@ main(int argc, CS const *argv)
 #if defined(_WIN32)
 	/* TODO */
 #else
-	if (script) {
+	if (redo_script) {
 	    FILE *fp;
 
-	    if (!(fp = fopen(script, "w"))) {
-		putil_syserr(2, script);
+	    if (!(fp = fopen(redo_script, "w"))) {
+		putil_syserr(2, redo_script);
 	    } else {
 		extern char **environ;		// Win32 declares this in stdlib.h
 		size_t plen;
@@ -1280,13 +1280,12 @@ main(int argc, CS const *argv)
 		    fputc(*t++, fp);
 		    fprintf(fp, "'%s'\n", t);
 		}
-		fprintf(fp, "\nset -x\n");
 		fprintf(fp, "cd '%s' || exit 2\n", cwd);
 		fprintf(fp, "exec %s\n", util_requote_argv(argv));
 
 		(void)fchmod(fileno(fp), 0755);
 		(void)fclose(fp);
-		vb_printf(VB_STD, "rebuild script written to '%s'", script);
+		vb_printf(VB_STD, "redo script written to '%s'", redo_script);
 	    }
 	}
 #endif

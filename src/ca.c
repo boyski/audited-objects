@@ -92,6 +92,7 @@ struct cmd_audit_s {
     int ca_closed;		///< boolean - has this CA seen EOA?
     int ca_processed;		///< boolean - has this CA been fully handled?
     CCS ca_subs;		///< aggregated subcmds
+    CCS ca_freetext;		///< free-form text "comment"
 } cmd_audit_s;
 
 /// Constructor for CmdKey class. A CmdKey is a small object which
@@ -253,7 +254,7 @@ ca_newFromCSVString(CCS csv)
 {
     CS linebuf, original;
     CCS cmdid, depth, pcmdid, starttime, duration, prog, host;
-    CCS recycled, rwd, pccode, ccode, pathcode;
+    CCS recycled, freetext, rwd, pccode, ccode, pathcode;
     ca_o ca;
 
     // It would be nice if we could use sscanf here but it won't work
@@ -273,6 +274,7 @@ ca_newFromCSVString(CCS csv)
 	    !(duration   = util_strsep(&linebuf, FS1)) ||
 	    !(host       = util_strsep(&linebuf, FS1)) ||
 	    !(recycled   = util_strsep(&linebuf, FS1)) ||
+	    !(freetext   = util_strsep(&linebuf, FS1)) ||
 	    !(prog       = util_strsep(&linebuf, FS1)) ||
 	    !(rwd        = util_strsep(&linebuf, FS1)) ||
 	    !(pccode     = util_strsep(&linebuf, FS1)) ||
@@ -298,6 +300,7 @@ ca_newFromCSVString(CCS csv)
     ca_set_prog(ca, prog);
     ca_set_host(ca, host);
     ca_set_recycled(ca, recycled);
+    ca_set_freetext(ca, freetext);
     ca_set_rwd(ca, rwd);
     ca_set_pccode(ca, pccode);
     ca_set_pathcode(ca, pathcode);
@@ -935,10 +938,13 @@ CCS
 ca_format_header(ca_o ca)
 {
     CS hdr, p;
+    CCS freetext;
     char started[MOMENT_BUFMAX];
     int ret;
 
     (void)moment_format(ca->ca_starttime, started, charlen(started));
+
+    freetext = ca->ca_freetext ? ca->ca_freetext : "";
 
     // *INDENT-OFF*
     ret = asprintf(&hdr,
@@ -949,12 +955,14 @@ ca_format_header(ca_o ca)
 			  "%lu%s"			// 5  - DURATION
 			  "%s%s"			// 6  - HOST
 			  "%s%s"			// 7  - RECYCLED
-			  "%s%s"			// 8  - PROG
-			  "%s%s"			// 9  - RWD
-			  "%s%s"			// 10 - PCCODE
-			  "%s%s"			// 11 - CCODE
-			  "%s%s"			// 12 - PATHCODE
-			  "%s@",			// 13 - CMDLINE
+			  "%s%s"			// 8  - FREETEXT
+			  // Divider - CommandAction above, Command below
+			  "%s%s"			// 9  - PROG
+			  "%s%s"			// 10 - RWD
+			  "%s%s"			// 11 - PCCODE
+			  "%s%s"			// 12 - CCODE
+			  "%s%s"			// 13 - PATHCODE
+			  "%s@",			// 14 - CMDLINE
 	ca->ca_cmdid, FS1,
 	ca->ca_depth, FS1,
 	ca->ca_pcmdid, FS1,
@@ -962,6 +970,8 @@ ca_format_header(ca_o ca)
 	ca->ca_duration, FS1,
 	ca->ca_host ? ca->ca_host : "?", FS1,
 	ca->ca_recycled ? ca->ca_recycled : "", FS1,
+	freetext, FS1,
+	// Divider - CommandAction above, Command below
 	ca->ca_prog, FS1,
 	ca->ca_rwd ? ca->ca_rwd : ".", FS1,
 	ca_get_pccode(ca), FS1,
@@ -974,10 +984,11 @@ ca_format_header(ca_o ca)
 	putil_syserr(2, NULL);
     }
 
-    // Since a CSV line must be a SINGLE line, we cannot tolerate embedded
-    // newlines and have to replace them with a conventional token.
+    // Since a CSV line must be a SINGLE line, it cannot tolerate embedded
+    // newlines and we must replace them with a conventional token.
     // This should be a rare occurrence so we don't worry too much
     // about efficiency here.
+    // TODO - why not just use our existing util_encode() for this?
     if (strchr(hdr, '\n')) {
 	CS nhdr, o, n;
 
@@ -995,8 +1006,9 @@ ca_format_header(ca_o ca)
     }
 
     // We know this is present because we put it there.
-    p = strrchr(hdr, '@');
-    *p = '\n';
+    if ((p = strrchr(hdr, '@'))) {
+	*p = '\n';
+    }
 
     return hdr;
 }
@@ -1278,6 +1290,7 @@ GEN_SETTER_GETTER_DEFN(ca, duration, unsigned long)
 GEN_SETTER_GETTER_DEFN_STR(ca, prog, CCS, NULL)
 GEN_SETTER_GETTER_DEFN_STR(ca, host, CCS, NULL)
 GEN_SETTER_GETTER_DEFN_STR(ca, recycled, CCS, NULL)
+GEN_SETTER_GETTER_DEFN_STR(ca, freetext, CCS, NULL)
 GEN_SETTER_GETTER_DEFN_STR(ca, rwd, CCS, NULL)
 // Would it make sense to replace the ccode/pccode tandem
 // with pathcode/pccode? It would be more elegant and compact if so.
@@ -1365,6 +1378,7 @@ ca_destroy(ca_o ca)
     putil_free(ca->ca_ccode);
     putil_free(ca->ca_pathcode);
     putil_free(ca->ca_subs);
+    putil_free(ca->ca_freetext);
     putil_free(ca->ca_line);
     memset(ca, 0, sizeof(*ca));
     putil_free(ca);

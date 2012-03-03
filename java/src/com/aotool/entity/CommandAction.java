@@ -357,7 +357,7 @@ public class CommandAction implements Serializable, Cloneable, Comparable<Object
     public static class Builder {
 
         /** The number of fields the CSV line is split into. */
-        private static final int NUMBER_OF_CMDACTION_FIELDS = 7;
+        public static final int NUMBER_OF_CMDACTION_FIELDS = 8;
 
         /** The CSV line. */
         private final String csv;
@@ -394,13 +394,14 @@ public class CommandAction implements Serializable, Cloneable, Comparable<Object
             final String[] fields = csv.split(Constants.FS1, NUMBER_OF_CMDACTION_FIELDS);
             if (fields.length == NUMBER_OF_CMDACTION_FIELDS) {
                 int field = 0;
-                ca.processID = Integer.valueOf(field++);
-                ca.depth = Integer.valueOf(field++);
-                ca.parentProcessID = Integer.valueOf(field++);
+                ca.processID = Integer.valueOf(field++); // 1
+                ca.depth = Integer.valueOf(field++); // 2
+                ca.parentProcessID = Integer.valueOf(field++); // 3
                 ca.startTime = new Moment(fields[field++]); // 4
                 ca.duration = new Duration(fields[field++]); // 5
-                field++; // Field 6 (host) is not currently needed on the server
+                field++; // Field 6 (host) is not currently used on the server
                 ca.recycled = fields[field++]; // 7
+                field++; // Field 8 (freetext) is not currently used on the server
             } else {
                 throw new IllegalArgumentException(Messages.getString("CommandAction.0")); //$NON-NLS-1$
             }

@@ -940,7 +940,7 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
     ssp->cdbp = ShopCDB;
     ssp->ca = ca;
     ssp->ptx_dict = _shop_ptx_init();
-    ssp->ignore_path_re = re_init__(P_SHOP_IGNORE_PATH_RE);
+    ssp->ignore_path_re = re_init_prop__(P_SHOP_IGNORE_PATH_RE);
 
     // First, grab the set of PTXes and store them away.
     if (cdb_findinit(&cdbf, ssp->cdbp, PTX_PREFIX, strlen(PTX_PREFIX)) >= 0) {

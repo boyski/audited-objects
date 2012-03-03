@@ -1218,10 +1218,10 @@ util_strsep(char **stringp, const char *delim)
 }
 
 /// A partial URL-encoding function which encodes only a subset of
-/// characters normally treated by a URL encoder. Currently only ','
-/// and '%' are encoded. The comma is encoded to allow a string to
-/// be used in a CSV format without breaking it, and the percent sign
-/// is encoded because any URL encoder must do so.
+/// characters normally treated by a URL encoder. Currently only [,%]
+/// plus newline are encoded. Commas and newlines are encoded to allow
+/// a string to be used in a CSV format without breaking it, and the
+/// percent sign is encoded because any URL encoder must do so.
 /// @param instring    the string to be encoded
 /// @return an allocated, minimally encoded string which should be freed
 CS
@@ -1234,7 +1234,7 @@ util_encode_minimal(CCS instring)
     outstring = (CS)putil_malloc(inlen);
 
     for (i = j = 0; i < inlen; i++) {
-	if (instring[i] == '%' || instring[i] == ',') {
+	if (instring[i] == '%' || instring[i] == ',' || instring[i] == '\n') {
 	    outlen += 2 * CHARSIZE;
 	    outstring = (CS)putil_realloc(outstring, outlen);
 	    snprintf(&outstring[j], 4, "%%%02X", instring[i]);

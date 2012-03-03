@@ -41,26 +41,41 @@
 #define OVECCNT					30
 /** @endcond static*/
 
-/* Documented in the header to avoid triggering some doxygen bug. */
+/* Documented in the header to avoid triggering some doxygen problem. */
 void *
-re_init__(prop_e prop)
+re_init__(CCS name, CCS restr)
 {
-    char *restr;
-    pcre *re = NULL;
-
-    if ((restr = (char *)prop_get_str(prop)) && *restr && !ISSPACE(*restr)) {
-	const char *error;
-	int erroffset;
-	int opts = PCRE_UTF8;
+    pcre *re;
+    const char *error;
+    int erroffset;
+    int opts = PCRE_UTF8;
 
 #if defined(_WIN32)
-	opts |= PCRE_CASELESS;
+    opts |= PCRE_CASELESS;
 #endif	/*_WIN32*/
+
+    vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
+
+    if (!(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
+	putil_warn("compilation of RE '%s' failed at offset %d: %s",
+		   name, erroffset, error);
+    }
+
+    return re;
+}
+
+/* Documented in the header to avoid triggering some doxygen problem. */
+void *
+re_init_prop__(prop_e prop)
+{
+    char *restr;
+
+    if ((restr = (char *)prop_get_str(prop)) && *restr && !ISSPACE(*restr)) {
 
 	/*
 	 * Allow REs to be specified as e.g. m%regexp%, partly because
 	 * it looks natural to Perl users and partly to make leading and
-	 * trailing whitespace possible. However, do NOT treat /regexp
+	 * trailing whitespace possible. However, do NOT treat /regexp/
 	 * specially because that could confuse users trying to match
 	 * paths containing (say) the 5 characters "/tmp/".
 	 */
@@ -75,18 +90,13 @@ re_init__(prop_e prop)
 	    }
 	}
 
-	vb_printf(VB_RE, "COMPILING %s='%s'", prop_to_name(prop), restr);
-
-	if (!(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
-	    putil_warn("compilation of RE '%s' failed at offset %d: %s",
-		       prop_get_str(prop), erroffset, error);
-	}
+	return re_init__(prop_to_name(prop), restr);
+    } else {
+	return NULL;
     }
-
-    return re;
 }
 
-/* Documented in the header to avoid triggering some doxygen bug. */
+/* Documented in the header to avoid triggering some doxygen problem. */
 CCS
 re_match__(void *re, CCS str)
 {
@@ -111,7 +121,7 @@ re_match__(void *re, CCS str)
     }
 }
 
-/* Documented in the header to avoid triggering some doxygen bug. */
+/* Documented in the header to avoid triggering some doxygen problem. */
 void
 re_fini__(void **re)
 {

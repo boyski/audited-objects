@@ -42,9 +42,11 @@ extern int moment_is_set(moment_s);
 extern int moment_get_systime(moment_s *);
 extern int moment_set_mtime(moment_s *, CCS);
 extern int moment_cmp(moment_s, moment_s, moment_s *);
+extern int moment_since(moment_s, moment_s *);
 extern unsigned long moment_duration(moment_s, moment_s);
 extern int moment_parse(moment_s *, CCS);
 extern CCS moment_format(moment_s, CS, size_t);
+extern CCS moment_format_tv(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
 extern CCS moment_format_id(moment_s *);
 

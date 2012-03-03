@@ -29,6 +29,16 @@
 // you add a new interposition, and may not be an option on every
 // platform.
 
+/// Compiles the supplied regular expression and returns
+/// the compiled form ready for passing to re_match__().
+/// The name is strictly for debug/informational purposes.
+/// NOTE: the extraneous underscores are to prevent conflict with
+/// existing APIs.
+/// @param[in] name     an informative name for this regex
+/// @param[in] restr    a string containing a regular expression
+/// @return a compiled regular expression or NULL
+extern void *re_init__(CCS name, CCS restr);
+
 /// Reads a regular expression from the specified property and returns
 /// the compiled form ready for passing to re_match__(). If the property
 /// has no value, or its value is a zero-length string, or begins
@@ -39,7 +49,7 @@
 /// existing APIs.
 /// @param[in] prop     a property representing a regular expression
 /// @return a compiled regular expression or NULL
-extern void *re_init__(prop_e prop);
+extern void *re_init_prop__(prop_e prop);
 
 /// Matches the provided regular expression against the provided string.
 /// Returns the matched substring or NULL on no match. If either

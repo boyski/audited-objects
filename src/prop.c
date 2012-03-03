@@ -712,6 +712,15 @@ static struct {
 	P_SYNCHRONOUS_TRANSFERS,
     },
     {
+	"Track.Env.RE",
+	NULL,
+	"Regular expression matching environment variables to show in audit",
+	NULL,
+	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
+	0,
+	P_TRACK_ENV_RE,
+    },
+    {
 	"Uncompressed.Transfers",
 	NULL,
 	"Boolean - handle compression/decompression on server",

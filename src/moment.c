@@ -206,6 +206,19 @@ moment_cmp(moment_s left, moment_s right, moment_s *delta)
     }
 }
 
+/// Fills in a Moment describing the time since the supplied Moment.
+/// @param[in] delta  pointer to a moment_s which receives the delta
+/// @param[in] since  a moment_s representing the starting time
+/// @return the duration in milliseconds
+int
+moment_since(moment_s since, moment_s *delta)
+{
+    moment_s now;
+
+    moment_get_systime(&now);
+    return moment_cmp(now, since, delta);
+}
+
 /// Subtracts a starting Moment from an ending Moment to derive the
 /// duration of an event.
 /// @param[in] ended    a moment_s representing the ending time
@@ -264,6 +277,19 @@ moment_format(moment_s moment, CS buf, size_t bufmax)
     (void)util_format_to_radix(CSV_RADIX, nsecbuf, charlen(nsecbuf),
 	moment.ntv_nsec);
     snprintf(buf, bufmax, "%s.%s", secbuf, nsecbuf);
+    return buf;
+}
+
+/// Formats a Moment into a sec:usec string format.
+/// @param[in] moment   the moment struct to be formatted
+/// @param[out] buf     a buffer to hold the formatted string
+/// @param[in] bufmax   the size of the passed-in buffer
+/// @return the formatted string
+CCS
+moment_format_tv(moment_s moment, CS buf, size_t bufmax)
+{
+    buf[0] = '\0';
+    snprintf(buf, bufmax, "%lld.%ld", moment.ntv_sec, moment.ntv_nsec / 1000);
     return buf;
 }
 

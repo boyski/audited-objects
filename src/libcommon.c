@@ -802,6 +802,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 {
     unsigned long pid;
     CCS rwd;
+    CCS str;
     CCS pccode = NULL;
 
     // For a reason I don't understand, and would have to read
@@ -863,7 +864,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     if (!_auditor_isActive()) {
 	void *re;
 
-	if ((re = re_init__(P_ACTIVATION_PROG_RE))) {
+	if ((re = re_init_prop__(P_ACTIVATION_PROG_RE))) {
 	    if (re_match__(re, exe)) {
 		vb_printf(VB_OFF, "ACTIVATED ON [%ld] '%s'", pid, exe);
 		auditor_setActive();
@@ -873,6 +874,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 		vb_printf(VB_OFF, "INACTIVATED ON [%ld] '%s'", pid, exe);
 		return pid;
 	    }
+	    re_fini__(&re);
 	} else {
 	    vb_printf(VB_OFF, "ACTIVE ON [%ld] '%s'", pid, exe);
 	    _auditor_setActiveByDefault();
@@ -916,6 +918,60 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 	ca_set_host(CurrentCA, hostbuf);
     }
 
+    // If requested, and if the current program matches the RE,
+    // record the current environment in the freetext field.
+    if ((str = prop_get_str(P_TRACK_ENV_RE))) {
+	void *prog_re, *evar_re;
+	CS p;
+
+	if ((p = strrchr(str, ':'))) {
+	    *p = '\0';
+	    prog_re = re_init__("TRACK_ENV_PROG", str);
+	    evar_re = re_init__("TRACK_ENV_EVAR", p + 1);
+	    *p = ':';
+	} else {
+	    prog_re = re_init__("TRACK_ENV_PROG", str);
+	    evar_re = NULL;
+	}
+
+	if (re_match__(prog_re, ca_get_prog(CurrentCA))) {
+	    CS eblock, encoded;
+	    size_t elen;
+	    char **envp;
+	    CS end;
+
+	    for (envp = environ, elen = 1; *envp; envp++) {
+		elen += strlen(*envp) + 1;
+	    }
+
+	    eblock = (CS)putil_malloc(elen);
+
+	    for (envp = environ, end = eblock; *envp && elen > 0; envp++) {
+		if (!strstr(*envp, "TRACK_ENV")) {
+		    if (!evar_re || re_match__(evar_re, *envp)) {
+			int n;
+
+			n = snprintf(end, elen, "%s\n", *envp);
+			end += n;
+			elen -= n;
+		    }
+		}
+	    }
+
+	    encoded = util_encode_minimal(eblock);
+	    putil_free(eblock);
+	    ca_set_freetext(CurrentCA, encoded);
+	    putil_free(encoded);
+	}
+
+	if (prog_re) {
+	    re_fini__(&prog_re);
+	}
+	if (evar_re) {
+	    re_fini__(&evar_re);
+	}
+    }
+
     ca_set_line(CurrentCA, cmdstr);
 
     // Retrieve the grandparent and parent cmd codes from the
@@ -945,13 +1001,13 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     _pa_record(call, putil_getexecpath(), NULL, -1, OP_EXEC);
 
     // Potential instruction from the user to ignore certain files.
-    IgnorePathRE = re_init__(P_AUDIT_IGNORE_PATH_RE);
+    IgnorePathRE = re_init_prop__(P_AUDIT_IGNORE_PATH_RE);
 
     // Potential instruction from the user to ignore certain programs.
-    IgnoreProgRE = re_init__(P_AUDIT_IGNORE_PROG_RE);
+    IgnoreProgRE = re_init_prop__(P_AUDIT_IGNORE_PROG_RE);
 
     // Potential instruction from the user to limit legal write ops.
-    AllowedWritePathRE = re_init__(P_ALLOWED_WRITE_PATH_RE);
+    AllowedWritePathRE = re_init_prop__(P_ALLOWED_WRITE_PATH_RE);
 
     return pid;
 }

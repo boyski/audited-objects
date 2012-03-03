@@ -69,12 +69,12 @@ mon_init(void)
 	}
     }
 
-    line_break_re = re_init__(P_AGGREGATION_LINE_BREAK_RE);
-    prog_break_re = re_init__(P_AGGREGATION_PROG_BREAK_RE);
-    line_strong_re = re_init__(P_AGGREGATION_LINE_STRONG_RE);
-    prog_strong_re = re_init__(P_AGGREGATION_PROG_STRONG_RE);
-    line_weak_re = re_init__(P_AGGREGATION_LINE_WEAK_RE);
-    prog_weak_re = re_init__(P_AGGREGATION_PROG_WEAK_RE);
+    line_break_re = re_init_prop__(P_AGGREGATION_LINE_BREAK_RE);
+    prog_break_re = re_init_prop__(P_AGGREGATION_PROG_BREAK_RE);
+    line_strong_re = re_init_prop__(P_AGGREGATION_LINE_STRONG_RE);
+    prog_strong_re = re_init_prop__(P_AGGREGATION_PROG_STRONG_RE);
+    line_weak_re = re_init_prop__(P_AGGREGATION_LINE_WEAK_RE);
+    prog_weak_re = re_init_prop__(P_AGGREGATION_PROG_WEAK_RE);
 
     if (prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
 	prop_unset(P_ROADMAPFILE, 0);

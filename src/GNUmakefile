@@ -33,14 +33,13 @@ TGTARCH	:= $(CPUARCH)
 
 PKG	 := ao-$(TGTARCH).zip
 
-PKGFILES := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
+PKGFILES := ao.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
 release: clean-release install-release
 	$(RM) ..\$(rdir)\$(PKG)
 	$(RM) -r .$(TGTARCH)\$(CFG)\AO
 	cp ../etc/ao.properties-windows .$(TGTARCH)/$(CFG)/ao.properties-sample
 	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\$(CFG)\AO
-	xcopy /Y/F .$(TGTARCH)\tee.exe .$(TGTARCH)\$(CFG)
 	cd .$(TGTARCH)/$(CFG) && zip -rD ../../../$(rdir)/$(PKG) $(PKGFILES)
 
 else
@@ -79,7 +78,7 @@ OPS		:= ../OPS
 CC		:= gcc
 ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
 #ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
-CSTYLE		:= -Wall -W $(ANAL)
+CSTYLE		:= -Wall -W -Werror $(ANAL)
 SHLIBFLAGS	:= -shared
 INST_PREFIX	:= ${HOME}/${TGTARCH}
 
@@ -200,7 +199,7 @@ endif
 
 OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o git.o http.o \
 		   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
-		   putil.o re.o shop.o unix.o up.o util.o vb.o
+		   putil.o re.o shop.o tee.o unix.o up.o util.o vb.o
 
 CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
 

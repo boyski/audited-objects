@@ -5,7 +5,7 @@ use strict;
 use File::Basename;
 
 use constant MSWIN => $^O =~ /MSWin32|Windows_NT/i ? 1 : 0;
-use constant CA_FIELDNUM => 13;
+use constant CA_FIELDNUM => 14;
 
 sub new {
     my $proto = shift;
@@ -14,9 +14,9 @@ sub new {
 
     my $csv = shift;
     my @fields = split(',', $csv, CA_FIELDNUM);
-    $self->{CA_PROG} = $fields[7];
-    $self->{CA_RWD} = $fields[8];
-    $self->{CA_LINE} = $fields[12];
+    $self->{CA_PROG} = $fields[8];
+    $self->{CA_RWD} = $fields[9];
+    $self->{CA_LINE} = $fields[13];
     $self->{CA_TARGETS} = {};
     $self->{CA_PREREQS} = {};
 

@@ -18,7 +18,7 @@ TGTARCH	:= $(CPUARCH)
 
 PKG	 := ao-$(TGTARCH).zip
 
-FILES	 := ao.exe tee.exe LibAO.dll CPCI.dll ao.properties-sample # AO
+FILES	 := ao.exe LibAO.dll CPCI.dll ao.properties-sample # AO
 
 pkg release:
 	rm -f $(rdir)/$(PKG)
@@ -26,7 +26,6 @@ pkg release:
 	xcopy /Y etc\ao.properties-windows $(src)\.$(TGTARCH)\$(CFG)\ao.properties-sample
 	del /F/Q/S $(src)\.$(TGTARCH)\$(CFG)\AO
 	xcopy /Y/S/F/I $(src)\pl\AO $(src)\.$(TGTARCH)\$(CFG)\AO
-	xcopy /Y/F $(src)\.$(TGTARCH)\tee.exe $(src)\.$(TGTARCH)\$(CFG)
 	cd $(src)\.$(TGTARCH)\$(CFG) && zip -rD ..\..\..\$(rdir)\$(PKG) $(FILES)
 
 else	#VSINSTALLDIR

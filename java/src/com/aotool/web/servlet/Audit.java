@@ -156,7 +156,7 @@ public final class Audit extends AOServlet {
                     // Since the CA and CMD data share a single CSV
                     // line, we need to break them apart to feed to
                     // constructors.
-                    int divider = findDivider(buf, 7);
+                    int divider = findDivider(buf, CommandAction.Builder.NUMBER_OF_CMDACTION_FIELDS);
                     String cabuf = buf.substring(0, divider);
                     String cmdbuf = buf.substring(divider + 1);
 

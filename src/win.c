@@ -150,14 +150,16 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		putil_syserr(2, logfile);
 	    }
 	} else {
-	    char *tcmd;
+	    const char *ev = "__AO_TEE_INTO";
+	    char *envstr;
 
-	    if (asprintf(&tcmd, "tee %s", logfile) >= 0) {
-		if (!(logfp = popen(tcmd, "w"))) {
-		    putil_syserr(2, logfile);
-		}
-		putil_free(tcmd);
+	    asprintf(&envstr, "%s=%s", ev, logfile);
+	    putil_putenv(envstr);
+	    if (!(logfp = popen(exe, "w"))) {
+		putil_syserr(2, exe);
 	    }
+	    putil_unsetenv(ev);
+	    putil_free(envstr);
 	}
 
 	if (logfp) {

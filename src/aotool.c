@@ -36,6 +36,7 @@
 #include "PREFS.h"
 #include "PROP.h"
 #include "SHOP.h"
+#include "TEE.h"
 #include "UW.h"
 
 #include "cdb.h"
@@ -47,6 +48,10 @@
 #include "About/about.c"	// NOTE: including a .c file!
 
 #include "bsd_getopt.h"
+
+#if !defined(_WIN32) && !defined(BSD)
+#include <alloca.h>
+#endif	/*_WIN32*/
 
 /// @cond static
 #define ROADMAP_DEFAULT_NAME		"roadmap.cdb"
@@ -619,6 +624,13 @@ main(int argc, CS const *argv)
 	putil_die("unable to determine path to argv[0]\n");
     }
 
+    // Special case - this program can turn into a "tee"
+    // if requested.
+    if ((action = putil_getenv("__AO_TEE_INTO"))) {
+	// Does not return!
+	tee_into(action);
+    }
+
 #if defined(_WIN32)
     if (putil_getenv("DEBUGBREAK")) {
 	DebugBreak();
@@ -654,6 +666,13 @@ main(int argc, CS const *argv)
 
     // Default this to on; make auditing is tough without it.
     prop_override_true(P_MAKE_ONESHELL);
+
+    // TODO - this is just for porting purposes so we can see if
+    // AO is treated as BLODA. Remove if and when a successful
+    // port is made.
+#if defined(__CYGWIN__)
+    putil_putenv("CYGWIN=detect_bloda");
+#endif
 
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse

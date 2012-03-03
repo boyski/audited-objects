@@ -37,7 +37,6 @@ INSTALL		= C:\Windows
 
 AOTOOL		= $P\ao.exe
 LIBAO		= $P\LibAO.dll
-TEE		= $P\tee.exe
 AO2MAKE		= pl\ao2make
 
 ## Debug
@@ -125,6 +124,7 @@ OBJS	=\
 	$P\putil.obj\
 	$P\re.obj\
 	$P\shop.obj\
+	$P\tee.obj\
 	$P\up.obj\
 	$P\util.obj\
 	$P\vb.obj\
@@ -138,7 +138,6 @@ OBJS	=\
  
 install: all
 	copy $(AOTOOL)  $(INSTALL)
-	copy $(TEE)     $(INSTALL)
 	copy $(LIBAO)   $(INSTALL)
 	copy $(AO2MAKE) $(INSTALL)
 	copy $P\$(CFG)\CPCI.dll $(INSTALL)

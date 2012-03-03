@@ -202,7 +202,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	} else {
 	    char *tcmd;
 
-	    if (asprintf(&tcmd, "tee %s", logfile) >= 0) {
+	    if (asprintf(&tcmd, "__AO_TEE_INTO=%s %s", logfile, exe) >= 0) {
 		if (!(logfp = popen(tcmd, "w"))) {
 		    putil_syserr(2, logfile);
 		}

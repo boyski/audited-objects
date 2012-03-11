@@ -918,23 +918,25 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 	ca_set_host(CurrentCA, hostbuf);
     }
 
-    // If requested, and if the current program matches the RE,
+    ca_set_line(CurrentCA, cmdstr);
+
+    // If requested, and if the RE matches the current command,
     // record the current environment in the freetext field.
     if ((str = prop_get_str(P_TRACK_ENV_RE))) {
-	void *prog_re, *evar_re;
+	void *cmd_re, *var_re;
 	CS p;
 
 	if ((p = strrchr(str, ':'))) {
 	    *p = '\0';
-	    prog_re = re_init__("TRACK_ENV_PROG", str);
-	    evar_re = re_init__("TRACK_ENV_EVAR", p + 1);
+	    cmd_re = re_init__("TRACK_ENV_PROG", str);
+	    var_re = re_init__("TRACK_ENV_EVAR", p + 1);
 	    *p = ':';
 	} else {
-	    prog_re = re_init__("TRACK_ENV_PROG", str);
-	    evar_re = NULL;
+	    cmd_re = re_init__("TRACK_ENV_PROG", str);
+	    var_re = NULL;
 	}
 
-	if (re_match__(prog_re, ca_get_prog(CurrentCA))) {
+	if (re_match__(cmd_re, cmdstr)) {
 	    CS eblock, encoded;
 	    size_t elen;
 	    char **envp;
@@ -948,7 +950,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
 	    for (envp = environ, end = eblock; *envp && elen > 0; envp++) {
 		if (!strstr(*envp, "TRACK_ENV")) {
-		    if (!evar_re || re_match__(evar_re, *envp)) {
+		    if (!var_re || re_match__(var_re, *envp)) {
 			int n;
 
 			n = snprintf(end, elen, "%s\n", *envp);
@@ -964,15 +966,13 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 	    putil_free(encoded);
 	}
 
-	if (prog_re) {
-	    re_fini__(&prog_re);
+	if (cmd_re) {
+	    re_fini__(&cmd_re);
 	}
-	if (evar_re) {
-	    re_fini__(&evar_re);
+	if (var_re) {
+	    re_fini__(&var_re);
 	}
     }
-
-    ca_set_line(CurrentCA, cmdstr);
 
     // Retrieve the grandparent and parent cmd codes from the
     // environment and place them in the current object. Commands near

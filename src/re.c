@@ -45,7 +45,7 @@
 void *
 re_init__(CCS name, CCS restr)
 {
-    pcre *re;
+    pcre *re = NULL;
     const char *error;
     int erroffset;
     int opts = PCRE_UTF8;
@@ -56,7 +56,7 @@ re_init__(CCS name, CCS restr)
 
     vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
 
-    if (!(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
+    if (*restr && !(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
 	putil_warn("compilation of RE '%s' failed at offset %d: %s",
 		   name, erroffset, error);
     }

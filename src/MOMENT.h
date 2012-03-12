@@ -46,8 +46,9 @@ extern int moment_since(moment_s, moment_s *);
 extern unsigned long moment_duration(moment_s, moment_s);
 extern int moment_parse(moment_s *, CCS);
 extern CCS moment_format(moment_s, CS, size_t);
-extern CCS moment_format_tv(moment_s, CS, size_t);
+extern CCS moment_format_milli(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
 extern CCS moment_format_id(moment_s *);
+extern void moment_millisleep(int millis);
 
 #endif				/*MOMENT_H */

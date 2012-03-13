@@ -280,16 +280,16 @@ moment_format(moment_s moment, CS buf, size_t bufmax)
     return buf;
 }
 
-/// Formats a Moment into a sec:usec string format.
+/// Formats a Moment into a sec:millisec string format.
 /// @param[in] moment   the moment struct to be formatted
 /// @param[out] buf     a buffer to hold the formatted string
 /// @param[in] bufmax   the size of the passed-in buffer
 /// @return the formatted string
 CCS
-moment_format_tv(moment_s moment, CS buf, size_t bufmax)
+moment_format_milli(moment_s moment, CS buf, size_t bufmax)
 {
     buf[0] = '\0';
-    snprintf(buf, bufmax, "%lld.%ld", moment.ntv_sec, moment.ntv_nsec / 1000);
+    snprintf(buf, bufmax, "%lld.%03ld", moment.ntv_sec, moment.ntv_nsec / NANOS_PER_MILLI);
     return buf;
 }
 
@@ -348,4 +348,21 @@ moment_format_id(moment_s *mp)
     }
 
     return putil_strdup(buf);
+}
+
+/// Sleeps for the specified number of milliseconds, barring signals.
+/// @param[in] millis   The number of milliseconds to sleep
+void
+moment_millisleep(int millis)
+{
+#if defined(_WIN32)
+    Sleep(millis);
+#else				/*!_WIN32 */
+    struct timespec tspec;
+
+    tspec.tv_sec = millis / MILLIS_PER_SECOND;
+    tspec.tv_nsec = (millis % MILLIS_PER_SECOND) * NANOS_PER_MILLI;
+    //vb_printf(VB_OFF, "SLEEPING %d.%ld", tspec.tv_sec, tspec.tv_nsec);
+    (void)nanosleep(&tspec, NULL);
+#endif				/*!_WIN32 */
 }

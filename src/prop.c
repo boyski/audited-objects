@@ -428,6 +428,15 @@ static struct {
 	P_LOG_FILE_TEMP,
     },
     {
+	"Log.Time.Stamp",
+	NULL,
+	"Prepend a timestamp to each line of logfile",
+	PROP_FALSE,
+	PROP_FLAG_PUBLIC,
+	0,
+	P_LOG_TIME_STAMP,
+    },
+    {
 	"Make.Depends",
 	NULL,
 	"Dump makefile dependency info to .d files",

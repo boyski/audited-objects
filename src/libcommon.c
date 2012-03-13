@@ -282,6 +282,7 @@ static void
 _socket_open(SOCKET *sockp, CCS call)
 {
     struct sockaddr_in dest_addr;
+    int tries;
 
     if (*sockp != INVALID_SOCKET) {
 	return;
@@ -303,8 +304,10 @@ _socket_open(SOCKET *sockp, CCS call)
 	putil_syserr(2, host_port);
     }
 
-    while ((connect(*sockp, (struct sockaddr *)&dest_addr,
-		    sizeof(struct sockaddr)) == -1)) {
+    for (tries = 0;
+	    connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr)) == -1;
+	    tries++) {
+	char host_port[256];
 
 #if defined(_WIN32)
 	if (WSAGetLastError() == WSAETIMEDOUT) {
@@ -319,11 +322,18 @@ _socket_open(SOCKET *sockp, CCS call)
 	}
 #endif	/*_WIN32*/
 
-	char host_port[256];
-
 	snprintf(host_port, charlen(host_port), "connect(%s:%lu)",
 		   prop_get_str(P_CLIENT_HOST), prop_get_ulong(P_CLIENT_PORT));
-	putil_syserr(2, host_port);
+
+	// TODO - this retry business is needed only until the TIME_WAIT
+	// flood problem in parallel builds is solved.
+	if (tries > 30) {
+	    putil_syserr(2, host_port);
+	} else {
+	    vb_printf(VB_TMP, "RETRY %s in %lu [%dms]",
+		host_port, (unsigned long)getpid(), tries * 100);
+	    moment_millisleep(tries * 100);
+	}
     }
 }
 
@@ -391,7 +401,7 @@ _audit_open(void)
 		if (fd == -1) {
 		    char *obuf;
 
-		    asprintf(&obuf, "%s.%ld", ofile, (unsigned long)getpid());
+		    asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
 		    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
 		    if (fd == -1) {
 			putil_syserr(2, obuf);

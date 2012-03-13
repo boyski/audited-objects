@@ -150,16 +150,16 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		putil_syserr(2, logfile);
 	    }
 	} else {
-	    const char *ev = "__AO_TEE_INTO";
-	    char *envstr;
+	    char *tcmd, *tsf;
 
-	    asprintf(&envstr, "%s=%s", ev, logfile);
-	    putil_putenv(envstr);
-	    if (!(logfp = popen(exe, "w"))) {
-		putil_syserr(2, exe);
+	    tsf = prop_is_true(P_LOG_TIME_STAMP) ? " --log-time-stamp" : "";
+	    if (asprintf(&tcmd, "%s --log-file \"%s\" --log-tee%s",
+		    exe, logfile, tsf) >= 0) {
+		if (!(logfp = popen(tcmd, "w"))) {
+		    putil_syserr(2, logfile);
+		}
+		putil_free(tcmd);
 	    }
-	    putil_unsetenv(ev);
-	    putil_free(envstr);
 	}
 
 	if (logfp) {

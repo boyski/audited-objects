@@ -21,6 +21,7 @@
 #include "AO.h"
 
 #include "MOMENT.h"
+#include "PROP.h"
 #include "TEE.h"
 
 void
@@ -35,8 +36,7 @@ tee_into(const char *into)
     ssize_t i;
     int timestamp_prefix = 0;
 
-    if (*into == ':') {
-	into++;
+    if (prop_is_true(P_LOG_TIME_STAMP)) {
 	timestamp_prefix = 1;
 	moment_get_systime(&start);
     }
@@ -65,7 +65,7 @@ tee_into(const char *into)
 
 	if (timestamp_prefix) {
 	    moment_since(start, &delta);
-	    (void)moment_format_tv(delta, tstamp, charlen(tstamp));
+	    (void)moment_format_milli(delta, tstamp, charlen(tstamp));
 	}
 
 	for (i = 0; i < nread; i++) {

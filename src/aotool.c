@@ -616,19 +616,13 @@ main(int argc, CS const *argv)
     int proplevel = -1;
     int no_server = 0;
     int make_clean = 0;
+    int tee = 0;
     int rc = 0;
 
     // Figure out the full path to the current executable program.
     // Should be done asap, before anything happens to argv.
     if (!(exe = putil_getexecpath())) {
 	putil_die("unable to determine path to argv[0]\n");
-    }
-
-    // Special case - this program can turn into a "tee"
-    // if requested.
-    if ((action = putil_getenv("__AO_TEE_INTO"))) {
-	// Does not return!
-	tee_into(action);
     }
 
 #if defined(_WIN32)
@@ -703,6 +697,8 @@ main(int argc, CS const *argv)
 	    {"identity-hash",	required_argument, NULL, 'I'},
 	    {"log-file",	required_argument, NULL, 'l'},
 	    {"log-file-temp",	no_argument,	   NULL, 'L'},
+	    {"log-tee",		no_argument,	   NULL, LF('L','T')},
+	    {"log-time-stamp",	no_argument,	   NULL, LF('L','S')},
 	    {"make-depends",	optional_argument, NULL, 'M'},
 	    {"mem-debug",	optional_argument, NULL, LF('D','M')},
 	    {"members-only",	no_argument,	   NULL, 'm'},
@@ -720,7 +716,6 @@ main(int argc, CS const *argv)
 	    {"strict",		no_argument,	   NULL, 'S'},
 	    {"script",		required_argument, NULL, LF('s','c')},
 	    {"print-elapsed",	no_argument,	   NULL, 't'},
-	    {"print-elapsed-x",	no_argument,	   NULL, 'T'}, // TODO compatibility,remove
 	    {"upload-only",	no_argument,	   NULL, 'u'},
 	    {"uncompressed-transfers",no_argument, NULL, 'U'},
 	    {"verbosity",	optional_argument, NULL, 'v'},
@@ -817,11 +812,26 @@ main(int argc, CS const *argv)
 		}
 		break;
 
+	    case LF('L', 'T'):
+		tee = 1;
+		break;
+
+	    case LF('L', 'S'):
+		prop_override_ulong(P_LOG_TIME_STAMP, 1);
+		break;
+
 	    case 'l':
 		{
 		    CS lbuf;
 
-		    if ((lbuf = putil_realpath(bsd_optarg, 1))) {
+		    if (*bsd_optarg == ':') {
+			prop_override_ulong(P_LOG_TIME_STAMP, 1);
+			bsd_optarg++;
+		    }
+
+		    if (putil_is_absolute(bsd_optarg)) {
+			prop_override_str(P_LOG_FILE, bsd_optarg);
+		    } else if ((lbuf = putil_realpath(bsd_optarg, 1))) {
 			prop_override_str(P_LOG_FILE, lbuf);
 			putil_free(lbuf);
 		    } else {
@@ -916,7 +926,6 @@ main(int argc, CS const *argv)
 		redo_script = bsd_optarg;
 		break;
 
-	    case 'T':
 	    case 't':
 		prop_unset(P_PRINT_ELAPSED, 1);
 		prop_put_str(P_PRINT_ELAPSED, "-1");
@@ -1031,6 +1040,12 @@ main(int argc, CS const *argv)
     }
     argc -= bsd_optind;
     argv += bsd_optind;
+
+    // Special case - this program can turn into a "tee"
+    // if requested. DOES NOT RETURN!
+    if (tee) {
+	tee_into(prop_get_str(P_LOG_FILE));
+    }
 
     if (make_clean) {
 	_make_clean(argc, argv);

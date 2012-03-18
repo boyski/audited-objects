@@ -1084,7 +1084,7 @@ _http_action_connect(char **uptr, CS const *argv, int statfiles)
 
     // The server must be told how to format paths (/ or \).
     http_add_param(uptr, HTTP_CLIENT_PLATFORM_PARAM,
-			prop_get_str(P_CLIENT_PLATFORM));
+			prop_get_str(P_MONITOR_PLATFORM));
 
     // Add any other generic params the server may be interested in ...
 

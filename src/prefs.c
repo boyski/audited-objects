@@ -277,9 +277,9 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     {
 	char *term;
 	if ((term = putil_getenv("TERM")) && strstr(term, "cygwin")) {
-	    prop_put_str(P_CLIENT_PLATFORM, "c");
+	    prop_put_str(P_MONITOR_PLATFORM, "c");
 	} else {
-	    prop_put_str(P_CLIENT_PLATFORM, "w");
+	    prop_put_str(P_MONITOR_PLATFORM, "w");
 	}
     }
 #endif	/*!_WIN32 */

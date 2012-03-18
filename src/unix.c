@@ -173,16 +173,22 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int reuseaddr = 1;
     struct timeval master_timeout, timeout;
     int64_t session_timeout, last_heartbeat, heartbeat_interval;
-    int listener;
-    int sockmin = 3, sockmax;
+    int sockmin = 3, sockmax = 0;
+    int *listeners;
+    unsigned long ports;
+    fd_set listen_fds;
     fd_set master_read_fds;
     int sret;
     char *pdir;
     char *shlibdir = NULL;
     int sync_pipe[2];
     int wstat = 0;
+    unsigned int i;
 
     path = argv[0];
+
+    ports = prop_get_ulong(P_MONITOR_LISTENERS);
+    listeners = putil_malloc(ports * sizeof(int));
 
     // If a logfile is requested, fork a "tee" and connect
     // stdout and stderr to it. This requires that we trust
@@ -263,7 +269,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // expicitly in the server's web.xml file. This allows us to
     // assume that default via HTTP_SESSION_TIMEOUT_SECS_DEFAULT.
 
-    master_timeout.tv_sec = prop_get_ulong(P_CLIENT_TIMEOUT_SECS);
+    master_timeout.tv_sec = prop_get_ulong(P_MONITOR_TIMEOUT_SECS);
     master_timeout.tv_usec = 0;
     session_timeout = prop_get_ulong(P_SESSION_TIMEOUT_SECS);
     if (session_timeout) {
@@ -299,43 +305,47 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	putil_syserr(2, "pipe(sync_pipe)");
     }
 
-    listener = socket(PF_INET, SOCK_STREAM, 0);
-    if (listener == INVALID_SOCKET) {
-	putil_syserr(2, "socket");
-    }
+    {
+	struct sockaddr_in addr;
+	socklen_t addrlen;
+	char *portstr;
+	size_t len;
+	u_short port;
 
-    // Apparently this will not cause TIME_WAIT to go away but it
-    // does keep it from hurting us.
-    if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR,
-		   &reuseaddr, sizeof(reuseaddr)) == SOCKET_ERROR) {
-	putil_syserr(2, "SO_REUSEADDR");
-    }
+	// Max digits needed to represent a 32-bit value plus ':' is 11.
+	len = ports * 11;
+	portstr = putil_calloc(len, 1);
 
-    // Starting with the default base port, search upwards till we find
-    // one that's unused. This allows for multiple builds on the same
-    // system and also protects against port collisions with other tools.
-    // Alternative is to call bind() with the port set to IPPORT_ANY,
-    // and the OS will find an unused port and bind it. Then call
-    // getsockname() to find out what port was assigned.
-    while (1) {
-	struct sockaddr_in myaddr;
-	u_short pport;
+	for (i = 0; i < ports; i++) {
+	    if ((listeners[i] = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		putil_syserr(2, "socket()");
+	    }
 
-	memset(&myaddr, 0, sizeof(myaddr));
-	myaddr.sin_family = PF_INET;
-	myaddr.sin_addr.s_addr = INADDR_ANY;
-	pport = (u_short)prop_get_ulong(P_CLIENT_PORT);
-	myaddr.sin_port = htons(pport);
+	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
+			   &reuseaddr, sizeof(reuseaddr)) == SOCKET_ERROR) {
+		putil_syserr(2, "SO_REUSEADDR");
+	    }
 
-	if (!bind(listener, (struct sockaddr *)&myaddr, sizeof(myaddr))) {
-	    break;
+	    addrlen = sizeof(addr);
+	    memset(&addr, 0, addrlen);
+	    addr.sin_family = PF_INET;
+	    addr.sin_addr.s_addr = INADDR_ANY;
+	    addr.sin_port = htons(0);
+
+	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen)) {
+		putil_syserr(2, "bind()");
+	    }
+
+	    if (getsockname(listeners[i], (struct sockaddr *)&addr, &addrlen)) {
+		putil_syserr(2, "getsockname");
+	    }
+
+	    port = ntohs(addr.sin_port);
+	    snprintf(endof(portstr), len - strlen(portstr), "%u:", port);
 	}
 
-	if (errno == EADDRINUSE) {
-	    prop_override_ulong(P_CLIENT_PORT, pport + 1);
-	} else {
-	    putil_syserr(2, "bind");
-	}
+	prop_override_str(P_MONITOR_PORT, portstr);
+	putil_free(portstr);
     }
 
     if ((childpid = fork()) < 0) {
@@ -350,7 +360,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	 *****************************************************************/
 
 	// Not needed on child side.
-	close(listener);
+	for (i = 0; i < ports; i++) {
+	    fcntl(listeners[i], F_SETFD, fcntl(listeners[i], F_GETFD) | FD_CLOEXEC);
+	}
 
 	// We must wait till the parent has established its socket
 	// before letting the build run. Otherwise we might try to
@@ -371,17 +383,17 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	// Give an error if we were unable to exec at all.
 	putil_die("%s: %s", path, strerror(errno));
 
-	// The parent will be blocking on the listening socket and needs
+	// The parent will be blocking on the first listening socket and needs
 	// to hear from us on exec error. Send a special code telling
 	// it to shut down gracefully.
-	if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
 	    putil_syserr(2, "socket()");
 	}
 
 	memset(&dest_addr, 0, sizeof(dest_addr));
 	dest_addr.sin_family = PF_INET;
-	dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_CLIENT_HOST));
-	dest_addr.sin_port = htons(prop_get_ulong(P_CLIENT_PORT));
+	dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_MONITOR_HOST));
+	dest_addr.sin_port = htons(strtoul(prop_get_str(P_MONITOR_PORT), NULL, 0));
 
 	if ((connect(nfd, (struct sockaddr *)&dest_addr,
 		     sizeof(struct sockaddr))) == -1) {
@@ -413,10 +425,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // and HTTP connections to the server.
     _maximize_fds();
 
-    if (listen(listener, 10) == SOCKET_ERROR) {
-	putil_syserr(2, "listen");
-    }
-
     // Perform any one-time initializations related to the monitor.
     mon_init();
 
@@ -426,17 +434,28 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	putil_syserr(2, "pipe(done_pipe)");
     }
 
-    // Clear the master fdset.
     FD_ZERO(&master_read_fds);
+    FD_ZERO(&listen_fds);
 
-    // Add the listener socket to the master set.
-    FD_SET(listener, &master_read_fds);
-
-    // Also add the read end of the self pipe to the master set.
+    // Add the read end of the self pipe to the master set.
     FD_SET(done_pipe[0], &master_read_fds);
+    sockmax = done_pipe[0];
 
-    // Keep track of the highest-numbered current socket.
-    sockmax = (listener > done_pipe[0]) ? listener : done_pipe[0];
+    for (i = 0; i < ports; i++) {
+	// Set up these sockets as listeners.
+	if (listen(listeners[i], SOMAXCONN) == SOCKET_ERROR) {
+	    putil_syserr(2, "listen");
+	}
+
+	// Add the listening sockets to the master set.
+	FD_SET(listeners[i], &master_read_fds);
+
+	// And to the listener set
+	FD_SET(listeners[i], &listen_fds);
+
+	// Keep track of the highest-numbered live socket.
+	sockmax = (listeners[i] > sockmax) ? listeners[i] : sockmax;
+    }
 
     // Alert the child that we're ready to roll.
     close(sync_pipe[0]);
@@ -487,23 +506,30 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    }
 	}
 
-	if (FD_ISSET(listener, &read_fds)) {
-	    SOCKET newfd;
+	for (i = 0; i < ports; i++) {
+	    int found = 0;
 
-	    // Accept a new connection.
-	    if ((newfd = accept(listener, NULL, NULL)) == INVALID_SOCKET) {
-		putil_syserr(2, "accept");
+	    if (FD_ISSET(listeners[i], &read_fds)) {
+		SOCKET newfd;
+
+		// Accept a new connection.
+		if ((newfd = accept(listeners[i], NULL, NULL)) == INVALID_SOCKET) {
+		    putil_syserr(2, "accept");
+		}
+
+		// Add it to the master set
+		FD_SET(newfd, &master_read_fds);
+
+		// Keep track of the highest numbered socket
+		if (newfd > sockmax) {
+		    sockmax = newfd;
+		}
+
+		found++;
 	    }
 
-	    // Add it to the master set
-	    FD_SET(newfd, &master_read_fds);
-
-	    // Keep track of the highest numbered socket
-	    if (newfd > sockmax) {
-		sockmax = newfd;
-	    }
-
-	    continue;
+	    if (found)
+		continue;
 	}
 
 	// This can be turned on with a signal.
@@ -516,7 +542,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	for (fd = sockmin; fd <= sockmax; fd++) {
 	    CS buffer, buftmp, line;
 
-	    if (fd == listener || !FD_ISSET(fd, &read_fds)) {
+	    if (FD_ISSET(fd, &listen_fds) || !FD_ISSET(fd, &read_fds)) {
 		continue;
 	    }
 
@@ -621,8 +647,10 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     mon_fini();
 
-    if (close(listener) == SOCKET_ERROR) {
-	putil_syserr(0, "close(listener)");
+    for (i = 0; i < ports; i++) {
+	if (close(listeners[i]) == SOCKET_ERROR) {
+	    putil_syserr(0, "close(socket)");
+	}
     }
 
     util_socket_lib_fini();

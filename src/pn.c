@@ -203,7 +203,7 @@ pn_verbosity(pn_o pn, CCS verb, CCS ext)
 	    tpath = putil_strdup(pn_get_rel(pn));
 	}
 
-	if ((plat = prop_get_str(P_CLIENT_PLATFORM)) && *plat == 'w') {
+	if ((plat = prop_get_str(P_MONITOR_PLATFORM)) && *plat == 'w') {
 	    char *p;
 
 	    for (p = tpath; *p; p++) {

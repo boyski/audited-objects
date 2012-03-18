@@ -91,8 +91,11 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     struct timeval master_timeout, timeout;
     int64_t last_heartbeat, heartbeat_interval;
     long session_timeout;
-    SOCKET listener;
-    SOCKET asock, sockmin = 0, sockmax;
+    SOCKET asock, sockmin = 0, sockmax = 0;
+    SOCKET listeners[LISTENERS];
+    SOCKET *listeners;
+    unsigned long ports;
+    fd_set listen_fds;
     fd_set master_read_fds;
     int sret;
     char prgpath[MAX_PATH];
@@ -103,12 +106,16 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     HINSTANCE auditor_handle;
     INJECTOR LDPInjectW;
     DWORD wfso;
+    unsigned int i;
 
     memset(&pi, 0, sizeof(pi));
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
 
     path = argv[0];
+
+    ports = prop_get_ulong(P_MONITOR_LISTENERS);
+    listeners = putil_malloc(ports * sizeof(int));
 
     // Try in advance to find the executable we're going to run.
     // Partly to see if it's an exe or a script and partly
@@ -230,7 +237,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // expicitly in the server's web.xml file. This allows us to
     // assume that default via HTTP_SESSION_TIMEOUT_SECS_DEFAULT.
 
-    master_timeout.tv_sec = prop_get_ulong(P_CLIENT_TIMEOUT_SECS);
+    master_timeout.tv_sec = prop_get_ulong(P_MONITOR_TIMEOUT_SECS);
     master_timeout.tv_usec = 0;
     session_timeout = prop_get_ulong(P_SESSION_TIMEOUT_SECS);
     if (session_timeout) {
@@ -245,47 +252,48 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // This is really only required on Windows.
     util_socket_lib_init();
 
-    listener = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, 0);
-    if (listener == INVALID_SOCKET) {
-	putil_win32err(2, WSAGetLastError(), "socket()");
-    }
+    {
+	struct sockaddr_in addr;
+	socklen_t addrlen;
+	char *portstr;
+	size_t len;
+	u_short port;
 
-    // Apparently this will not cause TIME_WAIT to go away but it
-    // does keep it from hurting us.
-    if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR,
-		   (const char *)&reuseaddr,
-		   sizeof(reuseaddr)) == SOCKET_ERROR) {
-	putil_win32err(2, WSAGetLastError(), "SO_REUSEADDR");
-    }
+	// Max digits needed to represent a 32-bit value plus ':' is 11.
+	len = ports * 11;
+	portstr = putil_calloc(len, 1);
 
-    // Starting with the default base port, search upwards till we find
-    // an unused port. This allows for multiple builds on the same machine
-    // and also protects against port collisions with other tools.
-    // Alternative is to call bind() with the port set to IPPORT_ANY,
-    // and the OS will find an unused port and bind it. Then call
-    // getsockname() to find out what port was assigned.
-    while (1) {
-	struct sockaddr_in myaddr;
-	u_short pport;
-	int last;
+	for (i = 0; i < ports; i++) {
+	    if ((listeners[i] = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, 0)) == INVALID_SOCKET) {
+		putil_win32err(2, WSAGetLastError(), "socket()");
+	    }
 
-	memset(&myaddr, 0, sizeof(myaddr));
-	myaddr.sin_family = PF_INET;
-	myaddr.sin_addr.s_addr = INADDR_ANY;
-	pport = (u_short)prop_get_ulong(P_CLIENT_PORT);
-	myaddr.sin_port = htons(pport);
+	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
+			   (const char *)&reuseaddr,
+			   sizeof(reuseaddr)) == SOCKET_ERROR) {
+		putil_win32err(2, WSAGetLastError(), "SO_REUSEADDR");
+	    }
 
-	if (bind(listener, (struct sockaddr *)&myaddr,
-		 sizeof(myaddr)) != SOCKET_ERROR) {
-	    break;
+	    addrlen = sizeof(addr);
+	    memset(&addr, 0, addrlen);
+	    addr.sin_family = PF_INET;
+	    addr.sin_addr.s_addr = INADDR_ANY;
+	    addr.sin_port = htons(0);
+
+	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen) != SOCKET_ERROR) {
+		putil_syserr(2, "bind()");
+	    }
+
+	    if (getsockname(listeners[i], (struct sockaddr *)&addr, &addrlen)) {
+		putil_syserr(2, "getsockname");
+	    }
+
+	    port = ntohs(addr.sin_port);
+	    snprintf(endof(portstr), len - strlen(portstr), "%u:", port);
 	}
 
-	last = WSAGetLastError();
-	if (last == WSAEADDRINUSE) {
-	    prop_override_ulong(P_CLIENT_PORT, pport + 1);
-	} else {
-	    putil_win32err(2, last, "bind");
-	}
+	prop_override_str(P_MONITOR_PORT, portstr);
+	putil_free(portstr);
     }
 
     last_heartbeat = time(NULL);
@@ -346,21 +354,27 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     childpid = pi.dwProcessId;
 
-    if (listen(listener, SOMAXCONN) == SOCKET_ERROR) {
-	putil_win32err(2, WSAGetLastError(), "listen");
-    }
-
     // Perform any one-time initializations related to upload.
     mon_init();
 
-    // Clear the master fd set.
     FD_ZERO(&master_read_fds);
+    FD_ZERO(&listen_fds);
 
-    // Add the listener to the master set.
-    FD_SET(listener, &master_read_fds);
+    for (i = 0; i < ports; i++) {
+	// Set up these sockets as listeners.
+	if (listen(listeners[i], SOMAXCONN) == SOCKET_ERROR) {
+	    putil_win32err(2, WSAGetLastError(), "listen");
+	}
 
-    // Keep track of the biggest file descriptor
-    sockmax = listener;
+	// Add the listening sockets to the master set.
+	FD_SET(listeners[i], &master_read_fds);
+
+	// And to the listener set
+	FD_SET(listeners[i], &listen_fds);
+
+	// Keep track of the highest-numbered live socket.
+	sockmax = (listeners[i] > sockmax) ? listeners[i] : sockmax;
+    }
 
     // The select loop.
     // Some network gurus argue that select should never be used
@@ -409,23 +423,30 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    }
 	}
 
-	if (FD_ISSET(listener, &read_fds)) {
-	    SOCKET newfd;
+	for (i = 0; i < ports; i++) {
+	    int found = 0;
 
-	    // Accept a new connection.
-	    if ((newfd = accept(listener, NULL, NULL)) == INVALID_SOCKET) {
-		putil_win32err(2, WSAGetLastError(), "accept");
+	    if (FD_ISSET(listeners[i], &read_fds)) {
+		SOCKET newfd;
+
+		// Accept a new connection.
+		if ((newfd = accept(listeners[i], NULL, NULL)) == INVALID_SOCKET) {
+		    putil_win32err(2, WSAGetLastError(), "accept");
+		}
+
+		// Add it to the master set
+		FD_SET(newfd, &master_read_fds);
+
+		// Keep track of the highest numbered socket
+		if (newfd > sockmax) {
+		    sockmax = newfd;
+		}
+
+		found++;
 	    }
 
-	    // Add it to the master set
-	    FD_SET(newfd, &master_read_fds);
-
-	    // Keep track of the highest numbered socket
-	    if (newfd > sockmax) {
-		sockmax = newfd;
-	    }
-
-	    continue;
+	    if (found)
+		continue;
 	}
 
 	// Run through existing connections looking for data.
@@ -435,7 +456,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	for (asock = sockmin; asock <= sockmax; asock++) {
 	    CS buffer, buftmp, line;
 
-	    if (asock == listener || !FD_ISSET(asock, &read_fds)) {
+	    if (FD_ISSET(asock, &listen_fds) || !FD_ISSET(asock, &read_fds)) {
 		continue;
 	    }
 
@@ -546,8 +567,10 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     mon_fini();
 
-    if (closesocket(listener) == SOCKET_ERROR) {
-	putil_win32err(0, GetLastError(), "closesocket()");
+    for (i = 0; i < ports; i++) {
+	if (closesocket(listeners[i]) == SOCKET_ERROR) {
+	    putil_win32err(0, GetLastError(), "closesocket()");
+	}
     }
 
     util_socket_lib_fini();

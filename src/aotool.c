@@ -775,7 +775,7 @@ main(int argc, CS const *argv)
 		break;
 
 	    case LF('C', 'P'):
-		prop_override_str(P_CLIENT_PLATFORM, bsd_optarg);
+		prop_override_str(P_MONITOR_PLATFORM, bsd_optarg);
 		break;
 
 	    // Undocumented - used to debug downloads without modifying state.

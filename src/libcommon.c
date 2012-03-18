@@ -282,7 +282,14 @@ static void
 _socket_open(SOCKET *sockp, CCS call)
 {
     struct sockaddr_in dest_addr;
+    const char *host;
+    const char *portstr;
+    char *nextport;
+    u_short port;
+    char host_port[256] = "???";
     int tries;
+
+    UNUSED(call);
 
     if (*sockp != INVALID_SOCKET) {
 	return;
@@ -290,24 +297,31 @@ _socket_open(SOCKET *sockp, CCS call)
 
     util_socket_lib_init();
 
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.sin_family = PF_INET;
-    dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_CLIENT_HOST));
-    dest_addr.sin_port = htons((u_short)prop_get_ulong(P_CLIENT_PORT));
-
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-	char host_port[256];
-
-	snprintf(host_port, charlen(host_port), "socket(%s:%lu) [%s]",
-		   prop_get_str(P_CLIENT_HOST), prop_get_ulong(P_CLIENT_PORT),
-		   call);
-	putil_syserr(2, host_port);
+	putil_syserr(2, "socket");
     }
 
-    for (tries = 0;
-	    connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr)) == -1;
-	    tries++) {
-	char host_port[256];
+    host = prop_get_str(P_MONITOR_HOST);
+    portstr = prop_get_str(P_MONITOR_PORT);
+
+    for (tries = 0; portstr && *portstr; tries++) {
+	port = (u_short)strtoul(portstr, &nextport, 0);
+	portstr = nextport + 1;
+	snprintf(host_port, charlen(host_port), "%s:%u", host, port);
+
+	if (tries) {
+	    vb_printf(VB_MON, "Retrying on %s in %lu",
+		host_port, (unsigned long)getpid());
+	}
+
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	dest_addr.sin_family = PF_INET;
+	dest_addr.sin_addr.s_addr = inet_addr(host);
+	dest_addr.sin_port = htons(port);
+
+	if (!connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) {
+	    return;
+	}
 
 #if defined(_WIN32)
 	if (WSAGetLastError() == WSAETIMEDOUT) {
@@ -318,23 +332,12 @@ _socket_open(SOCKET *sockp, CCS call)
 	    vb_printf(VB_STD, "RETRY CONNECT");
 	    continue;
 	} else if (errno == EISCONN) {
-	    break;
+	    return;
 	}
 #endif	/*_WIN32*/
-
-	snprintf(host_port, charlen(host_port), "connect(%s:%lu)",
-		   prop_get_str(P_CLIENT_HOST), prop_get_ulong(P_CLIENT_PORT));
-
-	// TODO - this retry business is needed only until the TIME_WAIT
-	// flood problem in parallel builds is solved.
-	if (tries > 30) {
-	    putil_syserr(2, host_port);
-	} else {
-	    vb_printf(VB_TMP, "RETRY %s in %lu [%dms]",
-		host_port, (unsigned long)getpid(), tries * 100);
-	    moment_millisleep(tries * 100);
-	}
     }
+
+    putil_syserr(2, host_port);
 }
 
 // Internal service routine.

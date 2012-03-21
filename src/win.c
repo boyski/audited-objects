@@ -92,7 +92,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int64_t last_heartbeat, heartbeat_interval;
     long session_timeout;
     SOCKET asock, sockmin = 0, sockmax = 0;
-    SOCKET listeners[LISTENERS];
     SOCKET *listeners;
     unsigned long ports;
     fd_set listen_fds;

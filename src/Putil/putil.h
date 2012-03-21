@@ -201,6 +201,7 @@ typedef unsigned long ULONG64;
 
 // Hacks for Win32 CRT
 #if defined(_WIN32) && !defined(__GNUC__)
+typedef int		socklen_t;
 typedef unsigned long	mode_t;
 typedef long		pid_t;
 typedef long		ssize_t;

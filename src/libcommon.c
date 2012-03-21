@@ -937,15 +937,18 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // record the current environment in the freetext field.
     if ((str = prop_get_str(P_TRACK_ENV_RE))) {
 	void *cmd_re, *var_re;
-	CS p;
 
-	if ((p = strrchr(str, ':'))) {
+	if (strrchr(str, ':')) {
+	    CS tstr, p;
+
+	    tstr = putil_strdup(str);
+	    p = strrchr(tstr, ':');
 	    *p = '\0';
-	    cmd_re = re_init__("TRACK_ENV_PROG", str);
-	    var_re = re_init__("TRACK_ENV_EVAR", p + 1);
-	    *p = ':';
+	    cmd_re = re_init__("TRACK_ENV_CMD", tstr);
+	    var_re = re_init__("TRACK_ENV_VAR", p + 1);
+	    putil_free(tstr);
 	} else {
-	    cmd_re = re_init__("TRACK_ENV_PROG", str);
+	    cmd_re = re_init__("TRACK_ENV_CMD", str);
 	    var_re = NULL;
 	}
 

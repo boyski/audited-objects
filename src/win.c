@@ -279,7 +279,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    addr.sin_addr.s_addr = INADDR_ANY;
 	    addr.sin_port = htons(0);
 
-	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen) != SOCKET_ERROR) {
+	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen) == SOCKET_ERROR) {
 		putil_syserr(2, "bind()");
 	    }
 
@@ -307,8 +307,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     // According to an article in MSDN, searching PATH for DLLs is
     // by far the most expensive part of loading them. So we go to
-    // some trouble to search the path once and work only with
-    // the fully qualified pathname from there on.
+    // some trouble to search the path for the auditor DLL once and
+    // work only with the fully qualified pathname from there on.
     if (!GetModuleFileName(auditor_handle, dllpath, charlen(dllpath))) {
 	putil_win32err(2, GetLastError(), "GetModuleFileName");
     }

@@ -943,10 +943,28 @@ util_hash_fun_default(const void *key)
 int
 util_is_tmp(CCS path)
 {
+    static const char *basedir;
+    size_t baselen;
+    int rc = 0;
 #if defined(_WIN32)
     // This does not use TCHARs because we assume UTF-8.
     static char szTempPathLong[MAX_PATH], szTempPathShort[MAX_PATH];
+#endif
 
+    if (! basedir) {
+	if ((basedir = prop_get_str(P_BASE_DIR))) {
+	    baselen = strlen(basedir);
+	}
+    }
+
+    // If the path is under the project's basedir, assume it
+    // cannot be a temp file; this allows builds to be done in
+    // a directory like, say, /var/tmp/foo/bar.
+    if (basedir && !strncmp(basedir, path, baselen)) {
+	return 0;
+    }
+
+#if defined(_WIN32)
     if (!szTempPathLong[0]) {
 	// Record the official temp-file location so we can ignore
 	// files there. This tends to be returned as a short pathname
@@ -971,19 +989,21 @@ util_is_tmp(CCS path)
     }
 
     if (!strnicmp(path, szTempPathLong, strlen(szTempPathLong))) {
-	return 1;
+	rc = 1;
     } else if (!strnicmp(path, szTempPathShort, strlen(szTempPathShort))) {
-	return 1;
+	rc = 1;
     } else if (!stricmp(endof(path) - 4, ".tmp")) {
-	return 1;
+	rc = 1;
     } else {
-	return 0;
+	rc = 0;
     }
 #else				/*!_WIN32 */
-    return strstr(path, "/tmp/") ||
+    rc = strstr(path, "/tmp/") ||
 	!util_pathcmp(endof(path) - 4, "/tmp") ||
 	!util_pathcmp(endof(path) - 4, ".tmp");
 #endif				/*!_WIN32 */
+
+    return rc;
 }
 
 // Internal service routine.

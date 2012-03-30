@@ -1190,6 +1190,10 @@ main(int argc, CS const *argv)
 	    _usage(1);
 	}
 
+	if (!(cwd = util_get_cwd())) {
+	    putil_syserr(2, "getcwd()");
+	}
+
 	// The auditor ignores anything it considers to be a temp
 	// file, which can cause terribly confusing behavior if
 	// run on a project rooted in (say) /tmp. It's a natural
@@ -1198,12 +1202,10 @@ main(int argc, CS const *argv)
 	// out why it's behaving strangely. To help avoid this
 	// we disallow the auditor from running when the CWD is
 	// one we consider a repository for temp files.
-	if ((cwd = util_get_cwd())) {
-	    if (util_is_tmp(cwd) && !prop_is_true(P_EXECUTE_ONLY)) {
+	if (strlen(cwd) >= 4 && !util_pathcmp(endof(cwd) - 4, "/tmp")) {
+	    if (!prop_is_true(P_EXECUTE_ONLY)) {
 		putil_die("illegal tmp working directory: %s", cwd);
 	    }
-	} else {
-	    putil_syserr(2, "util_get_cwd()");
 	}
 
 	// These values are pre-exported to reserve env-block space.

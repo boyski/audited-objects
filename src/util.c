@@ -33,6 +33,7 @@
 #include <winsock2.h>
 #include <sys/utime.h>
 #else				/*!_WIN32 */
+#include <dlfcn.h>
 #include <grp.h>
 #include <pwd.h>
 #include <strings.h>
@@ -1405,4 +1406,27 @@ util_unescape(const char *string, int length, int *olen)
 	/* store output size */
 	*olen = strindex;
     return ns;
+}
+
+/// This is a replacement for tempnam(3), only used because
+/// the *&%#$ GNU linker insists on warning about tempnam.
+/// @param[in] dir   Directory - see tempnam(3)
+/// @param[in] pfx   Prefix - see tempnam(3)
+/// @return a malloc-ed string
+char *
+util_tempnam(const char *dir, const char *pfx)
+{
+#if defined(_WIN32)
+    return _tempnam(dir, pfx);
+#else				/*!_WIN32 */
+    char *(*fcn)();
+    char *err;
+
+    (void)dlerror();
+    if (!(fcn = (char *(*)())dlsym(RTLD_DEFAULT, "tempnam")) && (err = dlerror())) {
+	putil_syserr(2, err);
+    }
+
+    return fcn(dir, pfx);
+#endif				/*!_WIN32 */
 }

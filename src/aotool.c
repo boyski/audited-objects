@@ -1251,7 +1251,7 @@ main(int argc, CS const *argv)
 		}
 	    }
 	} else if (prop_has_value(P_SERVER)) {
-	    rmap = tempnam(NULL, "rmap.");
+	    rmap = util_tempnam(NULL, "rmap.");
 	    prop_put_str(P_ROADMAPFILE, rmap);
 	    putil_free(rmap);
 	}

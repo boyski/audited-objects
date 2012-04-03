@@ -73,5 +73,6 @@ extern char *util_strsep(char **, const char *);
 extern CS util_encode_minimal(CCS);
 extern unsigned char *util_gzip_buffer(CCS name, unsigned const char *, uint64_t, uint64_t *);
 extern char *util_unescape(const char *, int, int *);
+extern char *util_tempnam(const char *, const char *);
 
 #endif				/*UTIL_H */

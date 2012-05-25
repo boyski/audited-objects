@@ -641,7 +641,6 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    rc = MON_ERR;
 	}
     } else if (ISALPHA(buf[0])) {
-	CCS path;
 	pa_o pa;
 	hnode_t *hnp;
 
@@ -650,8 +649,6 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	// De-serialize the PA line into an object.
 	pa = pa_newFromCSVString(buf);
 	assert(pa);
-
-	path = pa_get_abs(pa);
 
 	// Any file that's written should be marked for upload.
 	// And optionally files which are only read too.

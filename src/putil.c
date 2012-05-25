@@ -15,9 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Must be above putil stuff.
-#include "trio.h"
-
 // This simply drags in the functions defined in the header and causes them
 // to be exported for use by other object modules.
 #define PUTIL_DECLARE_FUNCTIONS_GLOBAL

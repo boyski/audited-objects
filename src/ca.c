@@ -521,12 +521,10 @@ ca_coalesce(ca_o ca)
 
     for (dnpr = dict_first(dict_raw); dnpr;) {
 	pa_o raw_pa, ckd_pa;
-	op_e raw_op, ckd_op;
 
 	next = dict_next(dict_raw, dnpr);
 
 	raw_pa = (pa_o)dnode_getkey(dnpr);
-	raw_op = pa_get_op(raw_pa);
 
 	_ca_verbosity_pa(raw_pa, ca, "COALESCING");
 
@@ -535,7 +533,6 @@ ca_coalesce(ca_o ca)
 	    int keep_cooked = 0;
 
 	    ckd_pa = (pa_o)dnode_getkey(dnpc);
-	    ckd_op = pa_get_op(ckd_pa);
 
 	    if (!pa_is_read(raw_pa) && !pa_is_read(ckd_pa)) {
 		moment_s raw_timestamp, ckd_timestamp;

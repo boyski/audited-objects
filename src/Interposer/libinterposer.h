@@ -253,7 +253,6 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
     extern char **environ;
     char **env;
     size_t solen;
-    int found = 0;
 
     solen = strlen(so);
 
@@ -295,9 +294,7 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 	    // on whoever decided LD_PRELOAD* was a space-separated list.
 	    for (lib = strtok(ldpath, " :"); lib; lib = strtok(NULL, " :")) {
 		e = strchr(lib, '\0');
-		if (streq(e - solen, so)) {
-		    found = 1;
-		} else {
+		if (!streq(e - solen, so)) {
 		    strcat(nbuf, lib);
 		    strcat(nbuf, " ");
 		}

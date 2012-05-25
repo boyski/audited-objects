@@ -22,9 +22,6 @@
 /// there was ever an AIX auditor it would presumably need yet
 /// another source file.
 
-// Must be above putil stuff.
-//#include "trio.h"
-
 /// @cond static
 // Make sure we do this before bringing in AO.h because that defaults
 // to declaring these functions non-static.

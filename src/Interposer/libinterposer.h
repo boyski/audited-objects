@@ -35,11 +35,11 @@ extern "C" {
  * LD_PRELOAD_32 and LD_PRELOAD_64. However, we must *tolerate* an
  * inherited LD_PRELOAD. Thus the technique is that whatever comes in
  * on LD_PRELOAD goes out on *both* LD_PRELOAD_32 and LD_PRELOAD_64.
- * Anything we add ourselves goes directly onto the 32/64 EVs.
+ * Anything we add ourselves goes only into the 32/64 EVs.
  * However, in order to coexist with other Unix platforms which don't
  * use LD_PRELOAD_{32,64}, we must continue to publish a vanilla
  * LD_PRELOAD which is just a copy of LD_PRELOAD_32; it will be a
- * no-op on Solaris and the only useful LD_* EV elsewhere.
+ * no-op on Solaris and the only useful LD_* variant elsewhere.
  *   Another Solaris complication: the 32-bit auditing library is always
  * found directly in a lib dir, e.g. ".../lib" while the 64-bit
  * version is in a subdir of that called ".../lib/64". Note that this
@@ -60,14 +60,10 @@ extern "C" {
  * Linux does NOT implement LD_PRELOAD_32 and LD_PRELOAD_64.
  * Note the slight difference in convention: Linux uses "lib" and "lib64"
  * for shared libraries while Solaris uses "lib" and "lib/64".
- *   However, it gets more complex on Linux due to different strategies
- * of different distros. In particular Ubuntu appears to believe in
- * purity, i.e. they do not support multilib (mixed 32- and 64-bit)
- * systems; Ubuntu 64-bit builds link /lib64 to /lib and fill /lib
- * with 64-bit binaries. This would be fine but for some inscrutable
- * reason they also disable the $LIB token. So we have a special case;
- * when /lib64 is a link to /lib we assume a pure 64-bit OS and replace
- * our use of '$LIB' with '/lib64'.
+ *   However, it gets more complex on Linux due to differing strategies
+ * between distros. In particular Ubuntu appears to not support $LIB.
+ * Whether this is a bug or a design choice is not clear but it's a
+ * PITA. Fortunately there's a workaround involving LD_LIBRARY_PATH.
  *   Meanwhile, on Mac OSX the equivalent var is DYLD_INSERT_LIBRARIES
  * and it only works in the presence of DYLD_FORCE_FLAT_NAMESPACE.
  *   On HP-UX 11* the following may be needed for LD_PRELOAD to work:
@@ -157,7 +153,7 @@ libinterposer_preload_on(const char *so, const char *base)
      * an alternate strategy of setting up LD_LIBRARY_PATH to search
      * for the auditor in both 32- and 64-bit dirs.
      * At the moment, for simplicity, this is done across the board
-     * on Linux but it's really required on for Ubuntu, so we could
+     * on Linux but it's really required only for Ubuntu, so we could
      * go back to using $LIB on distros where it works if need be.
      */
 

@@ -715,9 +715,10 @@ util_find_fsname(CCS path, CS buf, size_t len)
 /// @param[in] flags    flags to pass on to send()
 /// @return the number of bytes sent
 ssize_t
-util_send_all(SOCKET fd, const void *buf, ssize_t len, int flags)
+util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
 {
-    ssize_t n, total;
+    ssize_t n;
+    size_t total;
 
     for (total = 0; total < len;) {
 	n = send(fd, (const char *)buf + total, len - total, flags);

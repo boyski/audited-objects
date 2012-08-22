@@ -84,7 +84,7 @@ _down_hdrs_to_path_state(void *vptr, size_t size, size_t nitems, void *userp)
 int
 down_load(ps_o ps)
 {
-    CCS relpath, abspath;
+    CCS abspath;
     char *url;
     char *tgtdir;
     CCS psbuf;
@@ -95,7 +95,6 @@ down_load(ps_o ps)
 
     rc = 0;
 
-    relpath = ps_get_rel(ps);
     abspath = ps_get_abs(ps);
 
     // In case the parent dir of the target doesn't exist, try to create it.

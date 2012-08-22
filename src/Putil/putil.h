@@ -401,8 +401,10 @@ PUTIL_API void putil_win32errW_(CCS, int, int, DWORD, LPCWSTR);
 PUTIL_API void putil_syserrW_(CCS, int, int, WCHAR *);
 PUTIL_API CCS putil_tmpdir(CS, DWORD);
 PUTIL_API CCS DIRSEP(void);
+PUTIL_API CCS PATHSEP(void);
 #else	/*_WIN32*/
 #define DIRSEP()	"/"
+#define PATHSEP()	":"
 PUTIL_API CCS putil_tmpdir(CS, size_t);
 PUTIL_API CCS putil_readlink(CCS);
 #endif	/*_WIN32*/
@@ -540,18 +542,41 @@ putil_strict_error(int level)
 PUTIL_CLASS CCS
 DIRSEP(void)
 {
-    static CCS sep;
+    static CCS dirsep;
 
-    if (!sep) {
-	sep = "\\";
+    if (!dirsep) {
+	dirsep = "\\";
 	// This test was suggested for Cygwin but seems to have a good
 	// hope of translating to other emulation environments. Of course
 	// we could also define our own EV which would be dispositive.
 	if (getenv("TERM")) {
-	    sep = "/";
+	    dirsep = "/";
 	}
     }
-    return sep;
+    return dirsep;
+}
+#endif	/*!_WIN32*/
+
+/////////////////////////////////////////////////////////////////////////////
+
+// This is a function on Windows so it can return ":" in a Unix
+// emulation environment - such as Cygwin - and ";" otherwise.
+#if defined(_WIN32)
+PUTIL_CLASS CCS
+PATHSEP(void)
+{
+    static CCS pathsep;
+
+    if (!pathsep) {
+	pathsep = ";";
+	// This test was suggested for Cygwin but seems to have a good
+	// hope of translating to other emulation environments. Of course
+	// we could also define our own EV which would be dispositive.
+	if (getenv("TERM")) {
+	    pathsep = ":";
+	}
+    }
+    return pathsep;
 }
 #endif	/*!_WIN32*/
 

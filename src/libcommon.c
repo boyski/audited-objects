@@ -103,10 +103,6 @@ static enum {
 /// A flag to _audit_end() indicating that we're about to exit.
 #define EXITING			1
 
-/// Convenience macro - send entire buffer, abort if unable to.
-#define SEND(sock,buf,len)						\
-    if (util_send_all(sock, buf, len, 0) < 0) { putil_syserr(2, "send"); }
-
 static void _audit_end(CCS, int, long);
 
 /// Un-exported API to ask whether the auditor is globally active.
@@ -279,7 +275,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 // code is designed to be easily converted to use a single socket
 // in the event the change is someday made.
 static void
-_socket_open(SOCKET *sockp, CCS call)
+_monitor_open(SOCKET *sockp, CCS call)
 {
     struct sockaddr_in dest_addr;
     const char *host;
@@ -292,6 +288,7 @@ _socket_open(SOCKET *sockp, CCS call)
     UNUSED(call);
 
     if (*sockp != INVALID_SOCKET) {
+	vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
 	return;
     }
 
@@ -320,6 +317,7 @@ _socket_open(SOCKET *sockp, CCS call)
 	dest_addr.sin_port = htons(port);
 
 	if (!connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) {
+	    vb_printf(VB_MON, "OPENED: SOCKET %d", *sockp);
 	    return;
 	}
 
@@ -332,6 +330,7 @@ _socket_open(SOCKET *sockp, CCS call)
 	    vb_printf(VB_STD, "RETRY CONNECT");
 	    continue;
 	} else if (errno == EISCONN) {
+	    vb_printf(VB_MON, "CONNECTED: SOCKET %d", *sockp);
 	    return;
 	}
 #endif	/*_WIN32*/
@@ -342,8 +341,61 @@ _socket_open(SOCKET *sockp, CCS call)
 
 // Internal service routine.
 static void
-_socket_close(SOCKET *sockp, int exiting)
+_monitor_send(SOCKET *sockp, const void *buf, size_t len)
 {
+    vb_printf(VB_MON, "SENDING TO: SOCKET %d", *sockp);
+    if (util_send_all(*sockp, buf, len, 0) < 0) {
+	putil_syserr(2, "send");
+    }
+}
+
+// Internal service routine.
+static void
+_monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
+{
+    char *buf, *p;
+    ssize_t ret;
+
+    vb_printf(VB_MON, "RECVING FROM: SOCKET %d", *sockp);
+    buf = (char *)vbuf;
+    for (p = buf; ;) {
+	ret = recv(*sockp, p, len - (p - buf), 0);
+	if (ret == INVALID_SOCKET) {
+#if defined(EINTR)
+	    if (errno == EINTR) {
+		continue;
+	    }
+#endif	/*!EINTR*/
+	    putil_syserr(2, "recv()");
+	    break;
+	} else if (ret == 0) {
+	    break;
+	} else {
+	    char *e;
+
+	    if ((e = strchr(p, '\n'))) {
+		*e = '\0';
+		break;
+	    } else {
+		p += ret;
+	    }
+	}
+    }
+}
+
+// Internal service routine.
+static void
+_monitor_flush(SOCKET *sockp)
+{
+    vb_printf(VB_MON, "FLUSHING: SOCKET %d", *sockp);
+    (void)shutdown(*sockp, 1);
+}
+
+// Internal service routine.
+static void
+_monitor_close(SOCKET *sockp, int exiting)
+{
+    vb_printf(VB_MON, "CLOSING: SOCKET %d", *sockp);
     if (*sockp == INVALID_SOCKET) {
 	return;
     }
@@ -532,8 +584,7 @@ _audit_start(CCS call)
     // Writes and sends need to be separated because you can't write()
     // to a socket on Windows and can't send() to a file anywhere.
     if (!prop_is_true(P_NO_MONITOR)) {
-	char ack_soa[256], *p, *e;
-	int ret;
+	char ack_soa[ACK_BUFFER_SIZE], *p;
 
 	// The SOA must arrive at the monitor before the SOAs of any
 	// children.  Thus we do not stash it for later delivery
@@ -543,40 +594,20 @@ _audit_start(CCS call)
 	// It's worth thinking this through again to see if there's
 	// way around it, either by keeping the socket open or
 	// allowing SOA to be sent in the same packet as EOA.
-	_socket_open(&ReportSocket, call);
-	SEND(ReportSocket, soa_hdr, strlen(soa_hdr));
+	_monitor_open(&ReportSocket, call);
+	_monitor_send(&ReportSocket, soa_hdr, strlen(soa_hdr));
+	putil_free(soa_hdr);
 
 	// Block until monitor acknowledges receipt of SOA.
 	// This is needed to make sure it doesn't see EOA first.
 	// We require the received message to be terminated with a newline;
 	// we don't actually want the newline but it's a good way to
 	// be sure we've read the whole message.
-	shutdown(ReportSocket, 1);
-	memset(ack_soa, '\0', sizeof(ack_soa));
-	for (p = ack_soa; ;) {
-	    ret = recv(ReportSocket, p, sizeof(ack_soa) - (p - ack_soa), 0);
-	    if (ret == INVALID_SOCKET) {
-#if defined(EINTR)
-		if (errno == EINTR) {
-		    continue;
-		}
-#endif	/*!EINTR*/
-		putil_syserr(2, "recv(ack_soa)");
-		break;
-	    } else if (ret == 0) {
-		break;
-	    } else {
-		if ((e = strchr(ack_soa, '\n'))) {
-		    *e = '\0';
-		    break;
-		} else {
-		    e += ret;
-		}
-	    }
-	}
-	_socket_close(&ReportSocket, 0);
+	_monitor_flush(&ReportSocket);
+	_monitor_recv_line(&ReportSocket, ack_soa, sizeof(ack_soa));
+	_monitor_close(&ReportSocket, 0);
 
-	vb_printf(VB_MON, "CONTINUING [%s] WITH %s\n",
+	vb_printf(VB_MON, "CONTINUING [%s] WITH %s",
 	    ack_soa, ca_get_line(CurrentCA));
 
 	if (!strcmp(ack_soa, ACK_FAILURE)) {
@@ -609,9 +640,9 @@ _audit_start(CCS call)
 	if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
 	    putil_syserr(2, "write");
 	}
+	putil_free(soa_hdr);
     }
 
-    putil_free(soa_hdr);
     return;
 }
 
@@ -672,16 +703,16 @@ _audit_end(CCS call, int exiting, long status)
     if (!_auditor_isActive()) {
 #if defined(_WIN32)
 	// Very special case: if (a) we're on Windows, (b) this
-	// command is not activated, (c) it's the top-level command,
+	// command is not "activated", (c) it's the top-level command,
 	// (d) it's exiting, and (e) we're talking with the
 	// monitor, then we need to finish by sending it a DONE
 	// token.  On Unix the monitor can catch SIGCHILD but
 	// not on Windows.
 	if (Depth == 0 && exiting && !prop_is_true(P_NO_MONITOR)) {
-	    _socket_open(&ReportSocket, call);
-	    SEND(ReportSocket, DONE, strlen(DONE));
-	    shutdown(ReportSocket, 1);
-	    _socket_close(&ReportSocket, 1);
+	    _monitor_open(&ReportSocket, call);
+	    _monitor_send(&ReportSocket, DONE, strlen(DONE));
+	    _monitor_flush(&ReportSocket);
+	    _monitor_close(&ReportSocket, 1);
 	}
 #endif	/*_WIN32*/
 	return;
@@ -719,7 +750,7 @@ _audit_end(CCS call, int exiting, long status)
 	if (AuditFD != -1 && CurrentCA && !ca_get_recycled(CurrentCA)) {
 	    char buf[1024];
 
-	    _socket_open(&ReportSocket, call);
+	    _monitor_open(&ReportSocket, call);
 
 	    // Rewind the temp file and send its contents to the monitor.
 	    if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
@@ -735,7 +766,7 @@ _audit_end(CCS call, int exiting, long status)
 #endif	/*!EINTR*/
 		    putil_syserr(2, "read");
 		}
-		SEND(ReportSocket, buf, n);
+		_monitor_send(&ReportSocket, buf, n);
 	    }
 	}
     }
@@ -758,7 +789,7 @@ _audit_end(CCS call, int exiting, long status)
 		putil_syserr(2, "write");
 	    }
 	} else {
-	    SEND(ReportSocket, eoa_hdr, strlen(eoa_hdr));
+	    _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
 	}
 
 	putil_free(eoa_hdr);
@@ -790,20 +821,11 @@ _audit_end(CCS call, int exiting, long status)
 
     // Block until monitor acknowledges receipt of EOA by closing
     // the other end.
-    shutdown(ReportSocket, 1);
-    memset(ack_eoa, '\0', sizeof(ack_eoa));
-    while (recv(ReportSocket, ack_eoa, sizeof(ack_eoa), 0) == INVALID_SOCKET) {
-#if defined(EINTR)
-	if (errno != EINTR) {
-	    putil_syserr(2, "recv(ack_eoa)");
-	}
-#else	/*!EINTR*/
-	putil_syserr(2, "recv(ack_eoa)");
-#endif	/*!EINTR*/
-    }
+    _monitor_flush(&ReportSocket);
+    _monitor_recv_line(&ReportSocket, ack_eoa, sizeof(ack_eoa));
 
     // And of course close this end when done.
-    _socket_close(&ReportSocket, 1);
+    _monitor_close(&ReportSocket, 1);
 }
 
 // Internal service routine.

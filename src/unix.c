@@ -437,7 +437,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     FD_ZERO(&master_read_fds);
     FD_ZERO(&listen_fds);
 
-    // Add the read end of the self pipe to the master set.
+    // Add the read end of the self-pipe to the master set.
     FD_SET(done_pipe[0], &master_read_fds);
     sockmax = done_pipe[0];
 

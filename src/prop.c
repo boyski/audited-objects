@@ -1611,7 +1611,6 @@ prop_mod_str(prop_e prop, CCS val, char *const *envp)
 void
 prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
 {
-    int ovlen;
     char vbuf[64];
 
     assert(proptab[prop].pr_flags & PROP_FLAG_EXPORT);
@@ -1619,9 +1618,6 @@ prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
     if (!proptab[prop].pr_value) {
 	putil_int("property %s not set", proptab[prop].pr_name);
     }
-    // Figure out how long the existing value is and make sure the
-    // new value has the exact same number of characters.
-    ovlen = strlen(proptab[prop].pr_value);
     snprintf(vbuf, charlen(vbuf), "%lu", val);
 
     // Any overflows should be detected here.

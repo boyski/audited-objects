@@ -59,7 +59,7 @@ extern CS util_strup(CS);
 extern CS util_strdown(CS);
 extern CS util_strtrim(CS);
 extern CCS util_find_fsname(CCS, CS, size_t);
-extern ssize_t util_send_all(SOCKET, const void *, ssize_t, int);
+extern ssize_t util_send_all(SOCKET, const void *, size_t, int);
 extern ssize_t util_read_all(int, void *, size_t);
 extern ssize_t util_write_all(int, const void *, size_t);
 extern int util_substitute_params(CCS, CCS *);

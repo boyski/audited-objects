@@ -241,7 +241,7 @@ static struct {
 #if defined(_WIN32)
 	"\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$|\\.cmake\\.state",
 #else	/*_WIN32*/
-	"/tmp\\d+\\b|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$",
+	"/tmp\\d+\\b|/tmp/[^/]+$|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$",
 #endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,

@@ -1,5 +1,7 @@
 Checklist of things to do when making a new release x.y.z of AO.
 
+- Make sure git is sync-ed with public repo.
+
 - Make sure release notes are up to date.
 
 - Make sure version numbers in App.properties, *.vcproj, and server side are updated to x.y.z.
@@ -35,6 +37,8 @@ Checklist of things to do when making a new release x.y.z of AO.
 (From a local browser):
 
 - Hit SF.net and see how things look.
+
+- git push
 
 Finish by updating all version numbers to N+1 !
 Change version numbers in App.properties, *.vcproj, and server side.

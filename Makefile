@@ -46,7 +46,7 @@ SRCS	 := $(src)/*.[ch] \
 	    $(src)/.indent.pro \
 	    $(src)/App.properties
 
-CPUARCH		:= $(CPU)
+CPUARCH		:= $(OS_CPU)
 TGTARCH		?= $(CPUARCH)
 
 SPKG	:= $(rdir)/ao-client-src.tar.gz

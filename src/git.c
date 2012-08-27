@@ -107,7 +107,7 @@ git_deliver(ca_o ca)
     return;
 }
 
-CCS
+static CCS
 git_path_to_blob(CCS sha1)
 {
     CS blob;

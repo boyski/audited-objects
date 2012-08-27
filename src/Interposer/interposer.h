@@ -598,6 +598,6 @@ interposer_get_real(const char *call)
 // late-init time, most obviously calculation of absolute paths,
 // can be confused by a cd. But if we intercept chdir we can do that
 // work before the cwd is changed.
-WRAP(int, chdir,  (const char *path), path)
+WRAP(int, chdir, (const char *path), path)
 
 #endif	/* _INTERPOSER_H */

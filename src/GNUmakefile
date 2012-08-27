@@ -76,8 +76,9 @@ endif
 OPS		:= ../OPS
 
 CC		:= gcc
-ANAL		:= -Wcast-align -Wpointer-arith ## -Waggregate-return
+ANAL		:= -Wcast-align -Wpointer-arith -Wshadow -Wconversion
 #ANAL		+= -Wno-ignored-qualifiers ## requires gcc 4.3+
+#ANAL		+= -Wmissing-prototypes -Wstrict-prototypes -Wtraditional -Wcast-qual -Waggregate-return -Wconversion
 CSTYLE		:= -Wall -W -Werror $(ANAL)
 SHLIBFLAGS	:= -shared
 INST_PREFIX	:= ${HOME}/${TGTARCH}

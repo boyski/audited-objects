@@ -1420,11 +1420,11 @@ util_tempnam(const char *dir, const char *pfx)
 #if defined(_WIN32)
     return _tempnam(dir, pfx);
 #else				/*!_WIN32 */
-    char *(*fcn)();
+    char *(*fcn)(const char *, const char *);
     char *err;
 
     (void)dlerror();
-    if (!(fcn = (char *(*)())dlsym(RTLD_DEFAULT, "tempnam")) && (err = dlerror())) {
+    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam")) && (err = dlerror())) {
 	putil_syserr(2, err);
     }
 

@@ -37,11 +37,12 @@ extern ck_o ck_new(CCS, unsigned long, unsigned long);
 extern ck_o ck_new_from_ca(ca_o);
 extern void ck_set_cmdid(ck_o, unsigned long);
 extern void ck_destroy(ck_o);
-extern ca_o ca_new();
+extern ca_o ca_new(void);
 extern ca_o ca_newFromCSVString(CCS);
 extern void ca_merge(ca_o, ca_o);
 extern void ca_record_pa(ca_o, pa_o);
 extern int ca_has_leader(ca_o);
+extern int ca_has_pathcode(ca_o);
 extern int ca_is_top(ca_o);
 extern int ca_is_uploadable(ca_o);
 extern int ca_get_pa_count(ca_o);
@@ -71,7 +72,7 @@ GEN_SETTER_GETTER_DECL(ca, host, CCS)
 GEN_SETTER_GETTER_DECL(ca, recycled, CCS)
 GEN_SETTER_GETTER_DECL(ca, rwd, CCS)
 GEN_SETTER_GETTER_DECL(ca, pccode, CCS)
-GEN_GETTER_DECL(ca, ccode, CCS)
+GEN_SETTER_GETTER_DECL(ca, ccode, CCS)
 GEN_SETTER_GETTER_DECL(ca, pathcode, CCS)
 GEN_SETTER_GETTER_DECL(ca, line, CCS)
 GEN_SETTER_GETTER_DECL(ca, subs, CCS)

@@ -232,7 +232,7 @@ ca_o_hash_func(const void *key)
 /// Constructor for CmdAction class.
 /// @return a new, empty CmdAction object
 ca_o
-ca_new()
+ca_new(void)
 {
     ca_o ca;
 

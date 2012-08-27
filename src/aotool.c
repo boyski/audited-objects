@@ -616,7 +616,7 @@ main(int argc, CS const *argv)
     int proplevel = -1;
     int no_server = 0;
     int make_clean = 0;
-    int tee = 0;
+    int teeflag = 0;
     int rc = 0;
 
     // Figure out the full path to the current executable program.
@@ -813,7 +813,7 @@ main(int argc, CS const *argv)
 		break;
 
 	    case LF('L', 'T'):
-		tee = 1;
+		teeflag = 1;
 		break;
 
 	    case LF('L', 'S'):
@@ -1043,7 +1043,7 @@ main(int argc, CS const *argv)
 
     // Special case - this program can turn into a "tee"
     // if requested. DOES NOT RETURN!
-    if (tee) {
+    if (teeflag) {
 	tee_into(prop_get_str(P_LOG_FILE));
     }
 

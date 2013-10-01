@@ -16,6 +16,12 @@
     <param-value>false</param-value>
   </context-param>
   
+  <!-- Won't work on Windows but easily overridden -->
+  <context-param>
+    <param-name>AO.Container.Root</param-name>
+    <param-value>/tmp</param-value>
+  </context-param>
+  
   <!-- Set a reasonable, container-independent default-default timeout which may still be overridden by the client -->
   <session-config>
     <session-timeout>30</session-timeout>

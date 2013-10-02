@@ -14,19 +14,21 @@
 While there are a lot of things that could still be done to improve
 the AO client, it's actually fairly stable at least on Linux. The
 AO server lags far behind the client in terms of maturity and
-stability. I have a plan to redo the server model completely;
-unfortunately my current job does not leave me the time to do it.
+stability and <b>unfortunately it must be considered deprecated.</b>
+I have a plan to redo the server model completely
+but at the moment my job does not leave me the time to do it.
 <p>
 The current Java-based server has a race condition; it works ok
 for a single user but has a tendency to throw exceptions when
-multiple builds are going on. I suspect that's not a hard problem
+multiple builds are going on. The issue appears to involve some kind
+of locking within the Java Persistence API. I suspect it's not a hard problem
 to solve for someone with the right skills but I'm not really
-a Java/SQL person so I've struggled with it. In fact I've been
-hopiong for years that some Java/database expert would offer to
-contribute some work but it hasn't happened.
+a Java/SQL expert so I've struggled with it. In fact I've been
+hoping for years that a Java/database guru would offer to
+contribute some work to the server side but it hasn't happened.
 </p>
 <p>
-Meanwhile, I decided that a standard Java HTTP server was not the
+Meanwhile, I decided that a standard Java HTTP server isn't the
 optimal solution anyway and that rather than fix it I should
 retire it and rework AO to use Git in its low-level guise as a
 "content-addressable filesystem" instead. The basic idea is to
@@ -35,12 +37,13 @@ from there at recycle (aka winkin) time.  Note that this would be
 a dedicated repo for AO, not the same one users might be using to
 version their text files. In fact there's no expectation that Git
 is being used as the SCM tool or is even installed.
-Thus it isn't correct to say that AO would "use" Git in the
+Thus it would be wrong to say that AO would "use" Git in the
 sense of an SCM tool, rather just that it would take advantage of
 Git's underlying APIs for file storage and retrieval, compression,
 digital signatures (SHA-1), cleanup (packing, garbage collection),
 and in particular syncing between sites (push/pull).  This would
-be implemented by linking with http://libgit2.github.com.
+be implemented by linking with http://libgit2.github.com, not by
+executing git commands directly.
 </p>
 <p>
 The Git model would work much better in a distributed development

@@ -33,7 +33,8 @@ WRAP(int, mkdirp, (const char *path, mode_t mode), path, mode)
 WRAP(int, rmdir,  (const char *path), path)
 
 #ifdef AT_FDCWD
-WRAP(int, renameat, (int fromfd, const char *old, int tofd, const char *newpath), fromfd, old, tofd, newpath)
+WRAP(int, renameat, (int fromfd, const char *oldpath, int tofd, const char *newpath), fromfd, oldpath, tofd, newpath)
+WRAP(int, linkat,   (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags), olddirfd, oldpath, newdirfd, newpath, flags)
 WRAP(int, unlinkat, (int dirfd, const char *path, int flag), dirfd, path, flag)
 #endif	/*AT_FDCWD*/
 

@@ -46,7 +46,7 @@
 		456B8CA8136D81A5000B8A5E /* threads.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = threads.h; sourceTree = "<group>"; };
 		456B8CA9136D81A5000B8A5E /* libcommon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libcommon.c; path = ../libcommon.c; sourceTree = SOURCE_ROOT; };
 		456B8CAA136D81A5000B8A5E /* libunix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libunix.c; path = ../libunix.c; sourceTree = SOURCE_ROOT; };
-		456B8CAB136D81A5000B8A5E /* Linux32.linkmap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Linux32.linkmap; path = ../Linux32.linkmap; sourceTree = SOURCE_ROOT; };
+		456B8CAB136D81A5000B8A5E /* Linux.linkmap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Linux.linkmap; path = ../Linux.linkmap; sourceTree = SOURCE_ROOT; };
 		456B8CAC136D81A5000B8A5E /* make.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = make.c; path = ../make.c; sourceTree = SOURCE_ROOT; };
 		456B8CAD136D81A5000B8A5E /* MAKE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MAKE.h; path = ../MAKE.h; sourceTree = SOURCE_ROOT; };
 		456B8CAE136D81A5000B8A5E /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../Makefile; sourceTree = SOURCE_ROOT; };
@@ -127,7 +127,7 @@
 				456B8C97136D81A5000B8A5E /* Interposer */,
 				456B8CA9136D81A5000B8A5E /* libcommon.c */,
 				456B8CAA136D81A5000B8A5E /* libunix.c */,
-				456B8CAB136D81A5000B8A5E /* Linux32.linkmap */,
+				456B8CAB136D81A5000B8A5E /* Linux.linkmap */,
 				456B8CAC136D81A5000B8A5E /* make.c */,
 				456B8CAD136D81A5000B8A5E /* MAKE.h */,
 				456B8CAE136D81A5000B8A5E /* Makefile */,

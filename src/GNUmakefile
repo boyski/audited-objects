@@ -260,7 +260,9 @@ CFLAGS		+= -fpic -D_GNU_SOURCE
 #CFLAGS		+= -D_FORTIFY_SOURCE=2
 #CFLAGS		+= -fstack-protector --param=ssp-buffer-size=4
 SHLIBFLAGS	+= -z defs -z interpose -z combreloc -z lazy
-LINKMAP32	:= -Wl,--version-script=Linux32.linkmap
+LINKMAP		:= -Wl,--version-script=Linux.linkmap
+LINKMAP32	:= $(LINKMAP)
+LINKMAP64	:= $(LINKMAP)
 PLDLIBS		:= -lm -lrt -ldl
 SYSINCS		:= -I/usr/include
 all: $(TGTDIR64)

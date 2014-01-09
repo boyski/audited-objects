@@ -27,6 +27,8 @@ extern "C" {
 // Low level I/O calls.
 // The 'open' call is special because of the optional 3rd argument.
 WRAP_OPEN(int, open)
+// The __open*_2 functions are used when compiling with high levels of -DFORTIFY_SOURCE
+WRAP_OPEN(int, __open_2)
 WRAP(int, creat, (const char *path, mode_t mode), path, mode)
 WRAP(int, dup2, (int fildes1, int fildes2), fildes1, fildes2)
 WRAP(int, truncate, (const char *path, off_t length), path, length)
@@ -55,6 +57,7 @@ WRAP(FILE *, fdopen, (int fildes, const char *mode), fildes, mode)
 #if !defined(sun) || (!defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE))
 #if !defined(__CYGWIN__) && !defined(__APPLE__)
 WRAP_OPEN(int, open64)
+WRAP_OPEN(int, __open64_2)
 WRAP(int, creat64, (const char *path, mode_t mode), path, mode)
 WRAP(FILE *, fopen64, (const char *path, const char *mode), path, mode)
 WRAP(FILE *, freopen64, (const char *path, const char *mode, FILE *stream), path, mode, stream)
@@ -64,8 +67,10 @@ WRAP(FILE *, freopen64, (const char *path, const char *mode, FILE *stream), path
 // This is an additional suite introduced on Solaris.
 #ifdef AT_FDCWD
 WRAP_OPENAT(int, openat)
+WRAP_OPENAT(int, __openat_2)
 #if !defined(INTERPOSER_64BIT_MODE)
 WRAP_OPENAT(int, openat64)
+WRAP_OPENAT(int, __openat64_2)
 #endif	/*INTERPOSER_64BIT_MODE*/
 #endif	/*AT_FDCWD*/
 

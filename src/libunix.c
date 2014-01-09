@@ -906,6 +906,23 @@ open64_wrapper(const char *call,
     return open_wrapper(call, next, path, oflag, mode);
 }
 
+int
+__open_2_wrapper(const char *call,
+	       int (*next) (const char *, int, ...),
+	       const char *path, int oflag, mode_t mode)
+{
+    return open_wrapper(call, next, path, oflag, mode);
+}
+
+int
+__open64_2_wrapper(const char *call,
+	       int (*next) (const char *, int, ...),
+	       const char *path, int oflag, mode_t mode)
+{
+    return open64_wrapper(call, next, path, oflag, mode);
+}
+
+
 #if defined(AT_FDCWD)
 
 /// Interposes over the openat() function. This is currently a
@@ -925,6 +942,7 @@ openat_wrapper(const char *call,
 	     int fildes, const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
+    WRAPPER_DEBUG("ENTERING openat_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(fildes, path, oflag, mode);
     saved_errno = errno;
@@ -975,6 +993,22 @@ openat_wrapper(const char *call,
 /// @return same as the wrapped function
 /*static*/ int
 openat64_wrapper(const char *call,
+	       int (*next) (int, const char *, int, ...),
+	       int fildes, const char *path, int oflag, mode_t mode)
+{
+    return openat_wrapper(call, next, fildes, path, oflag, mode);
+}
+
+int
+__openat_2_wrapper(const char *call,
+	     int (*next) (int, const char *, int, ...),
+	     int fildes, const char *path, int oflag, mode_t mode)
+{
+    return openat_wrapper(call, next, fildes, path, oflag, mode);
+}
+
+int
+__openat64_2_wrapper(const char *call,
 	       int (*next) (int, const char *, int, ...),
 	       int fildes, const char *path, int oflag, mode_t mode)
 {

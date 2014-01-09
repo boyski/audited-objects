@@ -167,11 +167,11 @@ extern void interposed_finalize(void);
 	poseur = (n_type(*)())dlsym(_RTLD_LOCAL_, #n_call "_wrapper");	\
 	if (!poseur) {							\
 	    if (interposer_dbg_flag > 1) {				\
-		fprintf(stderr, "Error: no wrapper found for %s()",	\
+		fprintf(stderr, "Error: no wrapper found for %s()\n",	\
 		    #n_call);						\
 		exit(2);						\
 	    } else if (interposer_dbg_flag == 1) {			\
-		fprintf(stderr, "Warning: no wrapper found for %s()",	\
+		fprintf(stderr, "Warning: no wrapper found for %s()\n",	\
 		    #n_call);						\
 	    }								\
 	}								\

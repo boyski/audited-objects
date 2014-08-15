@@ -1,4 +1,4 @@
-#!/usr/local/bin/gmake -f
+#!/usr/bin/gmake -f
 
 ############################################################################
 # The command line "gcc -m32 -E -dM -xc /dev/null" will cause gcc

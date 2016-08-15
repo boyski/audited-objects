@@ -30,8 +30,8 @@ extern "C" {
  * are of no use on Windows.
  *   They work by adding to or removing from the LD_PRELOAD EV, but the
  * strategy is complicated by the 32/64 bit models used on various Unices.
- * Basically, on multilib platforms we can't rely directly on LD_PRELOAD of
- * the danger of a "wrong ELF class" error. Instead , on Solaris we use
+ * Basically, on multilib platforms we can't rely directly on LD_PRELOAD
+ * due to risk of a "wrong ELF class" error. Instead , on Solaris we use
  * LD_PRELOAD_32 and LD_PRELOAD_64. However, we must *tolerate* an
  * inherited LD_PRELOAD. Thus the technique is that whatever comes in
  * on LD_PRELOAD goes out on *both* LD_PRELOAD_32 and LD_PRELOAD_64.

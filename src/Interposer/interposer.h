@@ -23,7 +23,7 @@
  * that of F_DUP2FD which is a synonym for dup2(), and in most cases
  * the only reason to hook dup2 functionality is to track open file
  * descriptors. For now, just assume that uses of fcntl(F_DUP2FD)
- * (as apposed to dup2) are rare. And most likely the only cost of
+ * (as opposed to dup2) are rare. And most likely the only cost of
  * missing one is a small memory leak anyway.
  *
  * -> The vfork hack is still a nuisance. Best I can think of is to
@@ -106,25 +106,6 @@ extern void interposed_late_init(const char *);
 #define	INTERPOSED_FINALIZE		"interposed_finalize"
 extern void interposed_finalize(void);
 
-// This is pretty ugly ... the openat() and related *at()
-// functions were introduced in Solaris 9. In order to support
-// earlier releases we must build on those older versions, but
-// if we do so the resulting binary will have a major bug on Sol 9
-// and above because many utilities use *at(). So we copy related
-// macros from Sol 9's <fcntl.h> and hope they won't change values.
-// It's ok to override functions on a system which doesn't have them.
-#include <fcntl.h>
-#ifdef sun
-#ifndef	AT_FDCWD
-#if (!defined(_POSIX_C_SOURCE) && !defined(_XOPEN_SOURCE)) || \
-	defined(__EXTENSIONS__) || defined(_ATFILE_SOURCE)
-#define	AT_FDCWD			0xffd19553
-#define	AT_SYMLINK_NOFOLLOW		0x1000
-#define	AT_REMOVEDIR			0x1
-#endif
-#endif	/*AT_FDCWD*/
-#endif
-
 // RTLD_SELF is the best way to look up functions within this
 // module but some systems (Linux) don't have it.
 #if defined(RTLD_SELF)
@@ -205,7 +186,7 @@ n_type n_call (const char *path, int oflag, ...) {			\
     }									\
 }
 
-// Like open() but AFAIK this is Solaris-only.
+// Like open() but relative to a file descriptor.
 #define WRAP_OPENAT(n_type, n_call)					\
 n_type n_call (int fildes, const char *path, int oflag, ...) {		\
     mode_t mode = 0;							\
@@ -476,30 +457,6 @@ interposer_argv_from_environ(int *p_argc)
 	if (p_argc)
 	    *p_argc = (int)p2i;
 	p++;
-#if defined(sun) && defined(__arch64__)
-	// This assignment was inserted because we were coming up with
-	// the wrong value in a 64-bit Solaris process. I don't know
-	// why that was happening but this seems to fix it.
-	// The specific problem had to do with linking a 64-bit shared
-	// library using gcc. The 32-bit linker is invoked and then
-	// re-invokes itself in its 64-bit form. Somehow argv[0] in
-	// the 64-bit version was identical to that in the 32-bit process.
-	// Turns out this caused a new bug since programs which
-	// are exec-ed via different symlinks and which figure out what
-	// to do by examining the name they were run as will break
-	// under AO since getexecname() resolves the symlink!
-	// Of course the damage is now limited to 64-bit processes,
-	// but we should debug the original problem since this workaround
-	// has a serious flaw. See dbg/multilink for a test case; it
-	// will do the right thing on Solaris when building 32-bit but
-	// not when run in 64-bit mode (and this hack is removed).
-	// UPDATE - I went back to try and fix this bug but could
-	// not reproduce it, so for now I am leaving the hack present
-	// but commented out. Possibly it was a Solaris bug now
-	// fixed, or sparc only, or my test case is broken. A good
-	// place to look if a 64-bit Solaris bug re-emerges.
-	// p[0] = (char *)getexecname();
-#endif	/*!sun*/
 	return p;
     } else {
 	return NULL;

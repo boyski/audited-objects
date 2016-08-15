@@ -7,10 +7,10 @@ certain understanding of classical build procedures and terminology
 
 =head2 Auditing Technology
 
-What makes AO possible is the auditing technology which is based on
-"symbol interposition". This means intercepting all calls to particular
-system services, typically system calls, by defining another symbol of
-the same name in a place which is searched earlier.  Thus the audited
+What makes AO possible is the auditing technology based on "symbol
+interposition". This means intercepting all calls to particular system
+services, typically system calls, by defining another symbol of the
+same name in a place which is searched earlier.  Thus the audited
 process will find the "interposed" symbol instead of the "real" one.
 The interposed symbol points to a function which will do what we need
 done, such as registering that a given file was opened, and then pass
@@ -138,16 +138,14 @@ treats internally as just another read operation. Thus, if command3 is
 updated the input file set will by definition not be unchanged because
 the file containing 'command3' is in its own input set.
 
-
-
 =head2 Path Names
 
 This discussion starts in the realm of epistemology. Consider the
-question "What constitutes a file?"  For instance, is
-"/usr/include/stdio.h" a file or just a name for a place where a file
+question "What constitutes a file?" which leads to further questions:
+Is "/usr/include/stdio.h" a file or just a name for a place where a file
 could legally exist? If a file containing data exists at /x/y/z at time
-A, and later at time B it exists but with different data, is it a
-different file, or the same file updated? Does it matter if we changed
+A, and later at time B it also exists but with different data, is it a
+different file or the same file updated? Does it matter if we changed
 the data by opening the original file for write or by unlinking it and
 then writing a new one? If we take the file /x/y/z and rename it to
 /x/y/zz and then place different data at /x/y/z, how many new files
@@ -169,8 +167,8 @@ One can think of this as epistemology or one can think in terms of
 database administration. A relational database has the concept of a
 "primary key", defined (loosely) as an attribute which uniqely
 describes at most one row. A classic though USA-centric example is a
-Social Security number. People may change their names, and two people
-may have the same name, but at least in theory everyone has a unique
+Social Security number: people may change their names, and two people
+may share the same name, but at least in theory everyone has a unique
 SSN. By making the person's real name be an attribute of the synthetic
 key, the SSN, confusion is avoided.
 
@@ -193,11 +191,11 @@ and/or metadata (sizes and/or timestamps) based on that assumption.
 
 =head2 Projects
 
-Back to Sean and Lucy. Assume they're using a copy-based SCM system and
-each has extracted a working fileset to a local disk. Sean put his in
-~sean/stuff but Lucy is out of space in her home directory and has
-placed hers in /usr/extra. How can AO compare their DOs and consider
-recycling?
+Back to Sean and Lucy. Assume they're using a copy-based SCM system
+and each has extracted a working fileset to a local disk. Sean put his
+in ~sean/stuff but Lucy is out of space in her home directory and has
+placed hers in /usr/extra. How can AO compare their DOs (derived objects)
+and consider recycling?
 
 The only clear solution is to think in terms of relative pathnames.
 Traditionally these are measured relative to the user's current working
@@ -211,13 +209,13 @@ path from the boundary to the project file is called the
 refer to the same logical file entity for both Sean and Lucy.
 
 To take a random example, imagine they're working on the PostgreSQL
-database (open-source projects make useful examples) and compiling the
-file "/usr/extra/postgresql/src/backend/utils/mb/alt.c". Or rather,
-that's what Lucy is seeing; Sean sees
-"/home/sean/stuff/postgresql/src/backend/utils/mb/alt.c".  Considered
-as a PRP, both are using "src/backend/utils/mb/alt.c". The PRP is
-considered the primary key; the base directory is ignored (actually
-it's recorded but not used for anything).
+database (open-source projects make useful examples) and compiling
+the file "/usr/extra/postgresql/src/backend/utils/mb/alt.c". Or
+rather, that's what Lucy is seeing; Sean sees
+"/home/sean/stuff/postgresql/src/backend/utils/mb/alt.c".  Considered as
+a PRP, both are using "src/backend/utils/mb/alt.c". The PRP is considered
+the primary key while the base directory is ignored (actually it's
+recorded but not used for anything).
 
 In terms of mechanism, this boundary point can be established in two
 ways. The auditing process searches back up towards the root looking
@@ -233,15 +231,15 @@ into a key which allows comparison between versions of "the same" files
 in different places, where sameness requires a certain amount of
 handwaving as above.
 
-The upshot of all this is that files are divided into two sets:
-members and non-members. For members, only the PRPs are recorded.
-Non-members get their full pathname recorded. Now if we go back to Sean
-and Lucy and open "src/backend/utils/mb/alt.c" we see it contains the
-statement "#include <stdio.h>". The build audit confirms that this
+The upshot of all this is that files are divided into two sets: members
+(of the project) and non-members. For members, only the PRPs are recorded
+while non-members get their full pathname recorded. If we now go back to
+Sean and Lucy and open "src/backend/utils/mb/alt.c" we see it contains
+the statement "#include <stdio.h>". The build audit confirms that this
 resolves to /usr/include/stdio.h. Now, the object file alt.o depends on
 (at least) a member file stored as "src/backend/utils/mb/alt.c" and a
 non-member "/usr/include/stdio.h".  Sean will not be able to recycle
-Lucy's alt.o unless both match.
+Lucy's alt.o unless both files match.
 
 =head2 Commands
 
@@ -283,12 +281,12 @@ are involved? And in what order are the commands exec-ed, and who waits
 for whom? Etc.
 
 In the same way that with files we ignore inodes and think only in
-terms of paths, here we try to ignore processes and pids and think in
-terms of textual I<commands>, where a I<command> is defined as the
-stringified version of the arguments passed to exec (or Createprocess
-on Windows). In other words the OS keeps track of a I<process tree> but
-AO keeps track of a I<command tree> which is related but not
-identical.
+terms of paths, here we try as much as possible to ignore processes
+and pids and think in terms of textual I<commands>, where a I<command>
+is defined as the stringified version of the arguments passed to exec
+(or Createprocess on Windows). In other words the OS keeps track of
+a I<process tree> but AO keeps track of a I<command tree> which is
+related but not identical.
 
 To do this we synthesize a so-called command id or I<cmdid>. It's based
 on the pid; in many cases it may have the same numerical value. The
@@ -311,18 +309,18 @@ in it.
 For this reason, file accesses are not reported as they happen. Instead
 they are kept in a little in-memory database (hash table or similar) as
 the command runs. During exit processing the audit record is simplified
-by deleting any references to files which were later unlinked, and then
-reported. This simplification process is called B<cancellation>.
+before being dumped out. Files created and then unlinked are removed
+from the audit record, multiple write events are compressed to a single
+write, etc.  This simplification process is called B<cancellation>.
 
-Unfortunately cancallation is not good enough. Many builds use temp
+Unfortunately cancellation is not good enough. Many builds use temp
 files to communicate between processes which run one after the other.
-A typical compiler might be implemented as a control program which
-under the covers runs a preprocessor to create temp file A, then
-runs a front end which reads A and writes intermediate language to
-temp file B. Then a back end program reads B and writes
-assembler code to C, and finally the assembler reads C and writes the
-C<real> output file. The driver program unlinks all temp files as
-soon as they've been consumed.
+A typical compiler such as gcc might be implemented as a control program
+which under the covers runs a preprocessor to create temp file A, then
+runs a front end which reads A and writes intermediate language to temp
+file B. Then a back-end program reads B and writes assembler code to C,
+and finally the assembler reads C and writes the C<real> output file. The
+driver program unlinks all temp files as soon as they've been consumed.
 
 Similarly, many builds accumulate data in a temp file and then rename
 it to a C<real> target when done. Yacc and lex are often used like
@@ -334,20 +332,20 @@ Cancellation can't help to rationalize these situations because the
 create and the unlink happen in different commands. This is where
 B<aggregation> comes in.
 
-A user or project can choose a regular expression (RE) selecting
-commands to be I<aggregated>. When a command matches an aggregation RE,
-it is marked as the I<leader> of an I<audit group> (AG). Its children
-are automatically entered as members of the AG too, and all those
-audits are held (i.e. not delivered to the server) until the leader has
-exited. At this point the entire I<audit group> is merged and treated
-as a single audit. Intra-command simplification similar to cancellation
-can be done within this group and, as above, only files which survive
-this are recorded.
+A user or project can choose a regular expression (RE) selecting commands
+to be I<aggregated>. When a command matches an aggregation RE, it is
+marked as the I<leader> of an I<audit group> (AG). Its children are
+automatically entered as members of the AG too, and all those audits are
+held (i.e. not delivered to the server) until the leader has exited. At
+this point the entire I<audit group> is merged and treated as a single
+audit. Intra-command simplification similar to cancellation can be done
+within this group and, as above, only file events which survive this
+winnowing are recorded.
 
 It's important to realize that cancellation and aggregation are best
 thought of as optimizations; in other words it's not a fatal error if a
-temp file is unnecessarily recorded. It simply means that an overhead
-will be paid for uploading it and that the C<bookkeeping> may be a
+temp file is recorded unnecessarily. It simply means that an overhead
+will be paid for tracking it and that the C<bookkeeping> may be a
 little muddier.
 
 =head1 COPYRIGHT

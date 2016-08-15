@@ -70,13 +70,13 @@ of the data survives.
 =head4 Cooking the Books
 
 Before dumping the database, an attempt is made to weave known events
-into a more coherent story. For instance, suppose file AA is written
-and then renamed to BB within the same process The raw audit would show
+into a more coherent story. For instance, suppose file AA is created
+and then renamed to BB within the same process. A raw audit would show
 both events but viewing the process as a black box the net effect is
-simply that file BB was created. Similarly, if a file is read, then
-written, then renamed, then unlinked, we could report all that but in
-fact the unlink cancels out all the other activity and nothing needs to
-be reported about that file.
+simply that file BB was created. Similarly, if a file is created, then
+read, then renamed, then unlinked, we could report all that but in fact
+the unlink cancels out all the other activity and nothing needs to be
+reported about that file.
 
 It's B<very> important to note that the above editing can B<only> be
 done on a per-program basis. I.e. each program has its own little
@@ -87,7 +87,7 @@ the following script:
     touch hw
     mv hw hello
 
-The echo and mv commands occupy different process slots. The audit of
+The touch and mv commands occupy different process slots. The audit of
 I<touch> will report that file C<hw> was created and that of I<mv> will
 report a rename to C<hello>, but they have no chance to compare notes.
 The I<audit monitor>, however, will be in a position to analyze these
@@ -209,9 +209,10 @@ For instance:
 	int fd = my_open("foo", O_RDONLY);
 
 However, there is no reason for an application to go to this trouble
-and AO is not a "security" tool - in other words it's not expected tgar
-anyone would go out of their way to beat auditing and if they do, they
-will succeed.  Such programs are not the target audience.
+and AO is not a "security" tool - in other words it's not expected
+that anyone would go out of their way to beat auditing and it can be
+expected that if they do they will succeed.  Such programs are not the
+target audience.
 
 =item 6. Files Opened by the System
 
@@ -236,10 +237,10 @@ will probably not work right.
 
 =item 8. Out-Of-Process Activity
 
-Imagine that somewhere in the build sequence a message ("Do XYZ") is
-sent via a socket to a daemon process potentially running on a
+Imagine that somewhere in the build sequence a message ("Do XYZ")
+is sent via a socket to a daemon process potentially running on a
 different system. Whatever XYZ does will not be audited. This is
-basically what remote shells (rsh, ssh) do. So be careful of remote
+basically what remote shells such as ssh do. So be careful of remote
 shell activity. The remote shell could be told to create a new audit
 session at the remote end, of course.
 

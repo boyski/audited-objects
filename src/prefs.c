@@ -222,7 +222,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 
 	    asprintf(&globalcfg, "%s%s%s%s", exedir, DIRSEP(), app, ext);
 #else	/*!_WIN32*/
-	    CS globalcfg;
+	    CS globalcfg = NULL;
 	    CS appdir;
 
 	    if ((appdir = putil_dirname(exedir))) {

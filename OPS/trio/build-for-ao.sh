@@ -7,6 +7,8 @@ fi
 
 : ${1?}
 
+: ${OS_CPU:=`uname -m`_`uname -s`}
+
 set -e
 
 srcpkg=$1

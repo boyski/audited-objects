@@ -9,6 +9,7 @@ if type -t git >/dev/null; then
 	git clone git://github.com/libgit2/libgit2.git repo
     fi
 fi
+: ${OS_CPU:=`uname -m`_`uname -s`}
 rm -rf ${OS_CPU?}
 mkdir ${OS_CPU?}
 cd ${OS_CPU?}

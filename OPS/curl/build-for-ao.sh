@@ -10,6 +10,7 @@ fi
 set -e
 
 : ${PWD:=`/bin/pwd`}
+: ${OS_CPU:=`uname -m`_`uname -s`}
 
 curlpkg=$1
 zlibpkg=$2

@@ -8,6 +8,7 @@ fi
 set -e
 
 : ${PWD:=`/bin/pwd`}
+: ${OS_CPU:=`uname -m`_`uname -s`}
 
 srcpkg=$1
 bits=$2

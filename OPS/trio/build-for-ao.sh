@@ -30,10 +30,6 @@ case ${OS_CPU?} in
 	;;
 esac
 
-# Can't use -Os here; it seems to lead to a core dump with
-# "ao run /bin/sh build.sh" in demo/hello on Solaris 9 sparc.
-# May be a bug in trio (?) so we just leave off -Os.
-
 cd "$srcdir"
 CFLAGS="-g ${bits:+-m$bits} $xflags -DNDEBUG" sh configure
 make clean all

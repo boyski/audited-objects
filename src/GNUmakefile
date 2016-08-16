@@ -97,9 +97,6 @@ SHLIBDIR	:= /lib
 
 ifneq (,$(findstring SunOS_,${TGTARCH}))
 SOLARIS		:= 1
-ifneq (,$(findstring _sparc,${TGTARCH}))
-SOLARIS_SPARC	:= 1
-endif
 endif
 
 ifneq (,$(findstring Linux,${TGTARCH}))
@@ -240,11 +237,7 @@ SHLIBFLAGS	+= -nodefaultlibs -Bdirect -z defs -z text -z interpose -z combreloc 
 # It's *possible* that after upgrading to libcurl 7.19.x with LFS support
 # turned on that -lgcc would not be needed. Strangely, ldd shows no
 # dependency even though we do not use -static-libgcc.
-ifdef SOLARIS_SPARC
-PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lc # -lumem
-else
 PLDLIBS		:= -lgcc -lsocket -lnsl -lm -ldl -lrt -lc
-endif	#SOLARIS_SPARC
 #SYSINCS			:= -I/opt/csw/include
 #SYSLIBS			:= -L/opt/csw/lib -Wl,-R,/opt/csw/lib
 #$(LIBAO64): SYSLIBS	:= -L/opt/csw/lib/64 -Wl,-R,/opt/csw/lib/64
@@ -388,9 +381,7 @@ realclean: clean
 	-$(RM) *.user .*/*.o .*/*.obj 2>/dev/null
 
 ifdef SOLARIS
-ifndef SOLARIS_SPARC
 roundtrip rt fi: tags
-endif
 endif
 
 relink: cleantargets install

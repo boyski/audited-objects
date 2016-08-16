@@ -290,7 +290,7 @@ endif
 ifdef DARWIN
 CFLAGS		+= -fPIC -fno-common # Q: add -dynamic too?
 CFLAGS		+= -arch i386 -arch x86_64
-UFLAGS		:= -gstabs+
+UFLAGS		:=
 SYSLIBS		:= -L/usr/lib
 SHLIBFLAGS	:= -dynamiclib -flat_namespace -multiply_defined suppress
 SHLIBFLAGS	+= -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)

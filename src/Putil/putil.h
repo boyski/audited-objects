@@ -623,7 +623,7 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext,
     size_t len = 0;
     int baselen;
 
-    ext = ext;	// to keep compiler happy - we don't use extensions on unix.
+    (void)ext;	// to keep compiler happy - we don't use extensions on unix.
     
     baselen = strlen(prog) + 1;
 
@@ -1663,10 +1663,12 @@ _putil_never_called(void)
     putil_readlink(NULL);
 #endif	/*_WIN32*/
 
+#if !defined(__clang__)
     // Avoid warning via bogus recursive call.
     if (_putil_never_called == _putil_never_called) {
 	_putil_never_called();
     }
+#endif  /*__clang__*/
 }
 
 #undef PUTIL_NULLSTR

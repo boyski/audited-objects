@@ -25,7 +25,7 @@ blddir=$curldir/${OS_CPU?}${bits:+_$bits}
 
 case ${OS_CPU?} in
     Darwin_*)
-	xflags="$xflags -mmacosx-version-min=10.5 -arch i386 -arch x86_64"
+	xflags="$xflags -mmacosx-version-min=10.9 -arch i386 -arch x86_64"
 	conf_flags=--disable-dependency-tracking
 	bitflag=
 	;;

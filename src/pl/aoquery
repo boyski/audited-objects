@@ -82,7 +82,7 @@ if (my $re = $opt{Cmd}) {
 	    push(@found, "> $path");
 	}
 	if (@found) {
-	    printf "= [%s] %s\n", $ca->get_rwd, $ca->get_line;
+	    printf "+ [%s] %s\n", $ca->get_rwd, $ca->get_line;
 	    if (! $opt{short}) {
 		print "$_\n" for @found;
 	    }

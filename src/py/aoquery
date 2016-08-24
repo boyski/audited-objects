@@ -1,0 +1,175 @@
+#!/usr/bin/env python2.7
+"""
+Query data from a raw AO audit file.
+
+This script will read in an audit file and print out aggregated data
+such as the list of source (pre-existing) files, the list of generated
+files, an ordered list of commands executed, etc.
+
+EXAMPLES:
+
+To show all input files captured in an audit:
+
+    %(prog)s -S < audit-file
+
+To show all commands matching a given pattern:
+
+    %(prog)s -C 'collect2$' < audit-file
+
+"""
+
+#############################################################################
+# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+
+import Actions
+
+
+def pathdump(pfx, paths, opts):
+    """Print a list of paths in standard format."""
+    for path in paths:
+        if not opts.short_format:
+            sys.stdout.write(pfx + ' ')
+        if not opts.abs_paths and path.startswith(opts.base_dir):
+            path = os.path.relpath(path, opts.base_dir)
+        sys.stdout.write(path + '\n')
+
+
+def main():
+    """Entry point for standalone use."""
+
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-a', '--abs-paths', action='store_true',
+        help='show pathnames as absolute')
+    parser.add_argument(
+        '-b', '--base-dir',
+        help='the root dir (default: cwd)')
+    parser.add_argument(
+        '-m', '--members-only', action='store_true',
+        help='ignore files which are not project members')
+    parser.add_argument(
+        '-s', '--short-format', action='store_true',
+        help='request short-form output')
+    parser.add_argument(
+        '-C', '--cmd-path-regex',
+        metavar='REGEX',
+        help='show commands associated with paths matching REGEX')
+    parser.add_argument(
+        '-S', '--src-paths', action='store_true',
+        help='show all "src" (opened only for read) paths')
+    parser.add_argument(
+        '-I', '--int-paths', action='store_true',
+        help='show all "intermediate" (written and read) paths')
+    parser.add_argument(
+        '-T', '--tgt-paths', action='store_true',
+        help='show all "target" (opened for write) paths')
+    parser.add_argument(
+        '-V', '--verbosity', action='count', default=0,
+        help='increment verbosity level')
+    parser.add_argument(
+        'audit', nargs='?',
+        help='optional audit file')
+    opts = parser.parse_args()
+
+    if not (opts.src_paths or opts.int_paths or
+            opts.tgt_paths or opts.cmd_path_regex):
+        opts.src_paths = opts.int_paths = opts.tgt_paths = True
+
+    if not opts.base_dir:
+        cmd = ['ao', '-q', 'property', 'Base.Dir']
+        opts.base_dir = subprocess.check_output(cmd).rstrip()
+    opts.base_dir = os.path.realpath(opts.base_dir)
+
+    # Use a state machine to parse the audit into a list of CAs.
+    calist = []
+    ca = None
+    f = open(opts.audit) if opts.audit else sys.stdin
+    for line in f:
+        if line[0] in '0123456789':
+            if not ca:
+                ca = Actions.CommandAction(line)
+                calist.append(ca)
+        elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            pa = Actions.PathAction(line, opts.base_dir)
+            if opts.members_only and not pa.is_member():
+                continue
+            ca.add(pa)
+        else:
+            ca = None
+
+    if opts.cmd_path_regex:
+        for ca in calist:
+            srcpaths, tgtpaths = set(), set()
+            for prq in ca.get_prereqs():
+                if opts.tgt_paths:
+                    continue
+                path = prq.path
+                if not opts.abs_paths and prq.path.startswith(opts.base_dir):
+                    path = os.path.relpath(path, opts.base_dir)
+                if re.search(opts.cmd_path_regex, path):
+                    srcpaths.add(path)
+            for tgt in ca.get_targets():
+                if opts.src_paths:
+                    continue
+                path = tgt.path
+                if not opts.abs_paths and tgt.path.startswith(opts.base_dir):
+                    path = os.path.relpath(path, opts.base_dir)
+                if re.search(opts.cmd_path_regex, path):
+                    tgtpaths.add(path)
+            if srcpaths or tgtpaths:
+                sys.stdout.write('+ [%s] %s\n' % (ca.rwd, ca.line))
+                pathdump('<', sorted(srcpaths), opts)
+                pathdump('>', sorted(tgtpaths), opts)
+    else:
+        srcpaths, intpaths, tgtpaths = set(), set(), set()
+        # Get the set of targets.
+        for ca in calist:
+            for tgt in ca.get_targets():
+                tgtpaths.add(tgt.path)
+
+        if opts.src_paths or opts.int_paths:
+            for ca in calist:
+                for prq in ca.get_prereqs():
+                    if prq.path in tgtpaths:
+                        intpaths.add(prq.path)
+                        if opts.int_paths:
+                            tgtpaths.remove(prq.path)
+                    else:
+                        srcpaths.add(prq.path)
+
+        if opts.src_paths:
+            pathdump('<', sorted(srcpaths), opts)
+        if opts.int_paths:
+            pathdump('=', sorted(intpaths), opts)
+        if opts.tgt_paths:
+            pathdump('>', sorted(tgtpaths), opts)
+
+if __name__ == '__main__':
+    main()
+
+# vim: ts=8:sw=4:tw=80:et:

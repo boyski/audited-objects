@@ -1,0 +1,132 @@
+#!/usr/bin/env python2.7
+"""
+Generate Makefile syntax from AO audit data.
+
+This script can generate make-format dependency data, or even a full working
+makefile, from the output of the AO auditing tool. By default it will
+create a set of *target.d* files, one for each target. In the case of
+sibling groups it will guess at a *primary* target and use that for the
+name of the prereq file.
+
+With the *--output* flag it will *also* produce a wrapper Makefile
+which includes all the prereq files. If *--full* is added,
+the generated file will be a full, self-contained Makefile
+which inlines the prereq data and adds build commands aka "recipes".
+
+It can be used in a few ways:
+
+=over 4
+
+**DEPENDENCY DATA**
+
+The simplest use is to add full prerequisite information to an
+existing, handcrafted Makefile suite. Simply add an *include*
+statement to the Makefile and use this to generate the include
+file. Now the Makefile will have full knowledge of which files
+depend on which other files, making the build more reliable and
+also opening the way to parallel builds, since generally the
+problems of parallelism are solved by full dependency information.
+This mode has no required flags, though you can change the file
+extension with *--extension* and may need *--base* with recursive
+build models.
+
+**COMPLETE MAKEFILE**
+
+A more ambitious use is to generate a full, working Makefile from
+an old-style build. If the old build model is creaky and unreliable
+and/or recursive, this can be used to generate a single, flat
+Makefile with full prerequisite data as above. After some
+massaging, the new Makefile may be able to replace the old, and
+thus this can be used as an automated way to update old build
+tooling. Use *--full* and optionally *--pdump* or *--vars*.
+
+The structural, unavoidable problem with full makefile generation is
+that we can only recapitulate the path that was taken. A real-life
+makefile will often have many conditionals for platform, for debug
+vs release, etc.  and the regenerated makefile will lose the unused
+portions. Similarly, it will lose comments, include-file structures,
+and variable (aka macro) abstractions.  And clever GNU make syntax using
+functions like $(foreach ...), $(eval ...), etc. cannot be preserved.
+This is all analogous to C code (generated and disassembled); some
+things are just lost in translation.
+
+**OTHER FORMATS**
+
+This script could be modified to generate any other format. The majority
+of the code simply reads audit data into data structures; this data can
+be modified and dumped in any format, limited only by your coding skills.
+
+EXAMPLES:
+
+    %(prog)s -o Makefile audit-file
+
+    %(prog)s -o Makefile --full --pdump < audit-file
+
+"""
+
+#############################################################################
+# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import argparse
+import os
+import sys
+
+import Actions
+
+
+def main():
+    """Entry point for standalone use."""
+
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-b', '--base-dir',
+        help='the root dir (default: cwd)')
+    parser.add_argument(
+        '-e', '--extension', default='.d',
+        help='The extension for prereq fragment files (default: %(default)s)')
+    parser.add_argument(
+        '-f', '--full', action='store_true',
+        help='generate a useable makefile (default: dependencies only)')
+    parser.add_argument(
+        '-m', '--members-only', action='store_true',
+        help='ignore files which are not project members')
+    parser.add_argument(
+        '-o', '--output',
+        help='write Makefile data to the specified file')
+    parser.add_argument(
+        '-p', '--pdump', action='store_true',
+        help='(with -full) use variables extracted from GNU "make -p"')
+    parser.add_argument(
+        '-v', '--vars',
+        help='(with -full) make variables to be substituted')
+    parser.add_argument(
+        'audit', nargs='?',
+        help='optional audit file')
+    opts = parser.parse_args()
+
+    f = open(opts.audit) if opts.audit else sys.stdin
+    print('stub for now')
+
+if __name__ == '__main__':
+    main()
+
+# vim: ts=8:sw=4:tw=80:et:

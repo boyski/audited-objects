@@ -39,7 +39,6 @@ release: clean-release install-release
 	$(RM) ..\$(rdir)\$(PKG)
 	$(RM) -r .$(TGTARCH)\$(CFG)\AO
 	cp ../etc/ao.properties-windows .$(TGTARCH)/$(CFG)/ao.properties-sample
-	xcopy /Y/S/F/I pl\AO .$(TGTARCH)\$(CFG)\AO
 	cd .$(TGTARCH)/$(CFG) && zip -rD ../../../$(rdir)/$(PKG) $(PKGFILES)
 
 else
@@ -65,7 +64,7 @@ CPUARCH		:= $(OS_CPU)
 TGTARCH		?= $(CPUARCH)
 TGTDIR		:= .${TGTARCH}
 TGTDIR64	:= $(TGTDIR)/64
-SCRIPTDIR	:= pl
+SCRIPTDIR	:= py
 
 ifneq (,$(findstring 64,$(TGTARCH)))
 BITS		:= 64
@@ -182,7 +181,7 @@ $(INST_PREFIX)/bin/%: $(TGTDIR)/%
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@test -L $@ || (set -x; cp $< $@)
 
-$(INST_PREFIX)/bin/%: pl/%
+$(INST_PREFIX)/bin/%: py/%
 	@chmod u+wx $?
 	@[ -d $(@D) ] || mkdir -p $(@D)
 	@test -L $@ || (set -x; cp $< $@)

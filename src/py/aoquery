@@ -92,7 +92,7 @@ def main():
         '-V', '--verbosity', action='count', default=0,
         help='increment verbosity level')
     parser.add_argument(
-        'audit', nargs='?',
+        'input', nargs='*', default=['-'],
         help='optional audit file')
     opts = parser.parse_args()
 
@@ -105,22 +105,25 @@ def main():
         opts.base_dir = subprocess.check_output(cmd).rstrip()
     opts.base_dir = os.path.realpath(opts.base_dir)
 
-    # Use a state machine to parse the audit into a list of CAs.
+    # Use a state machine to parse input data into a list of CAs.
     calist = []
     ca = None
-    f = open(opts.audit) if opts.audit else sys.stdin
-    for line in f:
-        if line[0] in '0123456789':
-            if not ca:
-                ca = Actions.CommandAction(line)
-                calist.append(ca)
-        elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            pa = Actions.PathAction(line, opts.base_dir)
-            if opts.members_only and not pa.is_member():
-                continue
-            ca.add(pa)
-        else:
-            ca = None
+    for path in opts.input:
+        f = sys.stdin if path == '-' else open(path)
+        for line in f:
+            if line[0] in '0123456789':
+                if not ca:
+                    ca = Actions.CommandAction(line)
+                    calist.append(ca)
+            elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+                pa = Actions.PathAction(line, opts.base_dir)
+                if opts.members_only and not pa.is_member:
+                    continue
+                ca.add(pa)
+            else:
+                ca = None
+        if f != sys.stdin:
+            f.close()
 
     if opts.cmd_path_regex:
         for ca in calist:
@@ -170,6 +173,13 @@ def main():
             pathdump('>', sorted(tgtpaths), opts)
 
 if __name__ == '__main__':
-    main()
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+    try:
+        main()
+    except IOError as e:
+        # Workaround for an interpreter bug triggered by SIGPIPE.
+        # See http://code.activestate.com/lists/python-tutor/88460/
+        if 'Broken pipe' not in e.strerror:
+            raise
 
 # vim: ts=8:sw=4:tw=80:et:

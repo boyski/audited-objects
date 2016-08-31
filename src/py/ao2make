@@ -85,10 +85,41 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import child
 import os
 import sys
 
-import Actions
+import actions  # pylint: disable=relative-import
+
+BROKEN_SH = os.path.isfile('/bin/dash') and os.path.isfile('/bin/sh') and \
+    os.stat('/bin/dash')[1] == os.stat('/bin/sh')[1]
+
+
+def desh(line):
+    """Turn "/bin/sh -c <cmd>" into "<cmd>" (without the quotes)."""
+    # If the matched command was '/bin/sh -c "stuff"', what we want to
+    # put in the makefile is just "stuff" (without the quotes) because
+    # when make sees this it will run it as '/bin/sh -c "stuff"' again.
+    # The simplest way to drop a shell level is to actually run the
+    # shell in verbose (-v) and no-execute (-n) mode and capture the
+    # output. BTW it turns out that due to subtle variations and bugs
+    # in different Unix shells (bash, ksh, zsh, etc) it's better to
+    # always use /bin/sh for this purpose. Usually faster too. But
+    # there's an exception: some newer Linux distros use 'dash' as
+    # their /bin/sh and dash doesn't seem to implement -n or -v as
+    # expected so we have to work around that. The current hack is
+    # that if /bin/sh == dash, use bash instead with some special flags.
+    # Argh.
+    parts = line.split(None, 2)
+    if len(parts) == 3 and parts[0].endswith('sh') and \
+       parts[1][0] == '-' and parts[1][-1] == 'c':
+        flags, text = parts[1], parts[2]
+        if BROKEN_SH:
+            cmd = ['/bin/bash', '--norc', '--noprofile', '-nv', flags, text]
+        else:
+            cmd = ['/bin/sh', '-nv', flags, text]
+        line = child.check_output(cmd, stderr=child.STDOUT).rstrip()
+    return line
 
 
 def main():
@@ -113,18 +144,54 @@ def main():
         '-o', '--output',
         help='write Makefile data to the specified file')
     parser.add_argument(
+        '--parallel', action='store_true',
+        help='TBD')
+    parser.add_argument(
         '-p', '--pdump', action='store_true',
         help='(with -full) use variables extracted from GNU "make -p"')
     parser.add_argument(
         '-v', '--vars',
         help='(with -full) make variables to be substituted')
     parser.add_argument(
-        'audit', nargs='?',
+        '-V', '--verbosity', action='store_true',
+        help='enable exec verbosity')
+    parser.add_argument(
+        'input', nargs='*', default=['-'],
         help='optional audit file')
     opts = parser.parse_args()
 
-    f = open(opts.audit) if opts.audit else sys.stdin
-    print('stub for now')
+    child.set_verbosity(opts.verbosity)
+
+    if opts.pdump or opts.vars:
+        opts.full = True
+
+    cmd = ['ao', '-q', 'property', 'Base.Dir', 'Project.Name']
+    properties = child.check_output(cmd).rstrip()
+    basedir, projname = properties.splitlines()
+    if not opts.base_dir:
+        opts.base_dir = basedir
+
+    # Use a state machine to parse input data into a list of CAs.
+    calist = []
+    ca = None
+    for path in opts.input:
+        f = sys.stdin if path == '-' else open(path)
+        for line in f:
+            if line[0] in '0123456789':
+                if not ca:
+                    ca = actions.CommandAction(line)
+                    calist.append(ca)
+            elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+                pa = actions.PathAction(line, opts.base_dir)
+                if opts.members_only and not pa.is_member:
+                    continue
+                ca.add(pa)
+            else:
+                ca = None
+        if f != sys.stdin:
+            f.close()
+
+    print('stub for now - basedir={0}, projname={1}'.format(basedir, projname))
 
 if __name__ == '__main__':
     main()

@@ -103,7 +103,7 @@ class PathAction(object):
         return hash(self.op + self.path)
 
     def __repr__(self):
-        return '%s %s' % (self.op, self.path)
+        return ' '.join([self.op, self.path])
 
     def exists(self):
         """Report whether this path currently exists."""
@@ -146,7 +146,7 @@ class CommandAction(object):
         self.pa_set = set()
 
     def __repr__(self):
-        return '[%s] %s' % (self.rwd, self.line)
+        return '[{0}] {1}'.format(self.rwd, self.line)
 
     def add(self, pa):
         """Add a PathAction object to the involved set."""

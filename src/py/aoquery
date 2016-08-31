@@ -39,12 +39,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import child
 import os
 import re
-import subprocess
 import sys
 
-import Actions
+import actions  # pylint: disable=relative-import
 
 
 def pathdump(pfx, paths, opts):
@@ -89,12 +89,14 @@ def main():
         '-T', '--tgt-paths', action='store_true',
         help='show all "target" (opened for write) paths')
     parser.add_argument(
-        '-V', '--verbosity', action='count', default=0,
-        help='increment verbosity level')
+        '-V', '--verbosity', action='store_true',
+        help='enable exec verbosity')
     parser.add_argument(
         'input', nargs='*', default=['-'],
         help='optional audit file')
     opts = parser.parse_args()
+
+    child.set_verbosity(opts.verbosity)
 
     if not (opts.src_paths or opts.int_paths or
             opts.tgt_paths or opts.cmd_path_regex):
@@ -102,7 +104,7 @@ def main():
 
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
-        opts.base_dir = subprocess.check_output(cmd).rstrip()
+        opts.base_dir = child.check_output(cmd).rstrip()
     opts.base_dir = os.path.realpath(opts.base_dir)
 
     # Use a state machine to parse input data into a list of CAs.
@@ -113,10 +115,10 @@ def main():
         for line in f:
             if line[0] in '0123456789':
                 if not ca:
-                    ca = Actions.CommandAction(line)
+                    ca = actions.CommandAction(line)
                     calist.append(ca)
             elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                pa = Actions.PathAction(line, opts.base_dir)
+                pa = actions.PathAction(line, opts.base_dir)
                 if opts.members_only and not pa.is_member:
                     continue
                 ca.add(pa)
@@ -145,7 +147,7 @@ def main():
                 if re.search(opts.cmd_path_regex, path):
                     tgtpaths.add(path)
             if srcpaths or tgtpaths:
-                sys.stdout.write('+ [%s] %s\n' % (ca.rwd, ca.line))
+                sys.stdout.write('+ [{0}] {1}\n'.format(ca.rwd, ca.line))
                 pathdump('<', sorted(srcpaths), opts)
                 pathdump('>', sorted(tgtpaths), opts)
     else:

@@ -34,9 +34,12 @@ def set_verbosity(state):
     VERBOSE = state
 
 
-def xtrace(cmd):
+def xtrace(cmd, **kwargs):
     """Print the command to stderr."""
-    if VERBOSE:
+    # Custom keyword xtrace=False to suppress verbosity for special cases.
+    if not kwargs.pop('xtrace', True):
+        return
+    if VERBOSE and kwargs.get('stderr') != STDOUT:
         if isinstance(cmd, basestring):
             sys.stderr.write('+ ' + cmd + '\n')
         else:
@@ -45,19 +48,19 @@ def xtrace(cmd):
 
 def call(*popenargs, **kwargs):
     """Wrapper over subprocess function with verbosity added."""
-    xtrace(popenargs[0])
+    xtrace(popenargs[0], **kwargs)
     return subprocess.call(*popenargs, **kwargs)
 
 
 def check_call(*popenargs, **kwargs):
     """Wrapper over subprocess function with verbosity added."""
-    xtrace(popenargs[0])
+    xtrace(popenargs[0], **kwargs)
     return subprocess.check_call(*popenargs, **kwargs)
 
 
 def check_output(*popenargs, **kwargs):
     """Wrapper over subprocess function with verbosity added."""
-    xtrace(popenargs[0])
+    xtrace(popenargs[0], **kwargs)
     return subprocess.check_output(*popenargs, **kwargs)
 
 
@@ -65,12 +68,11 @@ class Popen(subprocess.Popen):
     """Wrapper over subprocess Popen class with verbosity added."""
 
     def __init__(self, cmd, **kwargs):
-        xtrace(cmd)
+        xtrace(cmd, **kwargs)
         super(Popen, self).__init__(cmd, **kwargs)
 
 
 class CalledProcessError(subprocess.CalledProcessError):
-
     """Wrapper over subprocess.CalledProcessError class."""
     pass
 

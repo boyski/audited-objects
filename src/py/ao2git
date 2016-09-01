@@ -31,10 +31,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import os
-import sys
 
-import actions
+# import actions
 
 
 def main():
@@ -51,8 +49,7 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    f = open(opts.audit) if opts.audit else sys.stdin
-    print('stub for now')
+    print('stub for now {0}'.format(opts.audit))
 
 if __name__ == '__main__':
     main()

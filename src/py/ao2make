@@ -19,16 +19,15 @@ It can be used in a few ways:
 
 **DEPENDENCY DATA**
 
-The simplest use is to add full prerequisite information to an
-existing, handcrafted Makefile suite. Simply add an *include*
-statement to the Makefile and use this to generate the include
-file. Now the Makefile will have full knowledge of which files
-depend on which other files, making the build more reliable and
-also opening the way to parallel builds, since generally the
-problems of parallelism are solved by full dependency information.
-This mode has no required flags, though you can change the file
-extension with *--extension* and may need *--base* with recursive
-build models.
+The simplest use is to add full prerequisite information to an existing,
+handcrafted Makefile suite. Simply add an *include* statement to the
+Makefile and use this to generate the include file. Now the Makefile
+will have full knowledge of which files depend on which other files,
+making the build more reliable and also opening the way to parallel
+builds, since generally the problems of parallelism are solved by full
+dependency information.  This mode has no required flags, though you can
+change the file extension with *--extension* and may need *--base-dir*
+with recursive build models.
 
 **COMPLETE MAKEFILE**
 
@@ -85,46 +84,63 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import child
+import childx
 import os
+import re
 import sys
 
 import actions  # pylint: disable=relative-import
-
-BROKEN_SH = os.path.isfile('/bin/dash') and os.path.isfile('/bin/sh') and \
-    os.stat('/bin/dash')[1] == os.stat('/bin/sh')[1]
+import makefile  # pylint: disable=relative-import
 
 
-def desh(line):
-    """Turn "/bin/sh -c <cmd>" into "<cmd>" (without the quotes)."""
-    # If the matched command was '/bin/sh -c "stuff"', what we want to
-    # put in the makefile is just "stuff" (without the quotes) because
-    # when make sees this it will run it as '/bin/sh -c "stuff"' again.
-    # The simplest way to drop a shell level is to actually run the
-    # shell in verbose (-v) and no-execute (-n) mode and capture the
-    # output. BTW it turns out that due to subtle variations and bugs
-    # in different Unix shells (bash, ksh, zsh, etc) it's better to
-    # always use /bin/sh for this purpose. Usually faster too. But
-    # there's an exception: some newer Linux distros use 'dash' as
-    # their /bin/sh and dash doesn't seem to implement -n or -v as
-    # expected so we have to work around that. The current hack is
-    # that if /bin/sh == dash, use bash instead with some special flags.
-    # Argh.
-    parts = line.split(None, 2)
-    if len(parts) == 3 and parts[0].endswith('sh') and \
-       parts[1][0] == '-' and parts[1][-1] == 'c':
-        flags, text = parts[1], parts[2]
-        if BROKEN_SH:
-            cmd = ['/bin/bash', '--norc', '--noprofile', '-nv', flags, text]
-        else:
-            cmd = ['/bin/sh', '-nv', flags, text]
-        line = child.check_output(cmd, stderr=child.STDOUT).rstrip()
-    return line
+def full(calist, opts):
+    """Print a full makefile to output."""
+    mf = makefile.Makefile(basedir=opts.base_dir, srcbase=opts.srcbase)
+    mf.append('.SUFFIXES:\n')
+    mf.append('.ONESHELL:\n')
+    mf.append(makefile.Phony('all'))
+
+    tgts = set()
+    for ca in calist:
+        if not ca.targets():
+            continue
+        rule = makefile.Rule(ca.targets(), prereqs=ca.prereqs(), recipe=ca.line)
+        mf.append(rule)
+        tgts |= set(ca.targets())
+
+    pfx = mf.basevar.expand() + makefile.SEP
+    tgtvar = makefile.Variable(
+        name='FILETARGETS',
+        val=[os.path.join(pfx, tgt.path) for tgt in sorted(tgts)])
+    mf.append(tgtvar)
+
+    mf.append('all: {}\n'.format(tgtvar.expand()))
+
+    clean = makefile.Phony('clean', recipe='$(RM) {}'.format(tgtvar.expand()))
+    mf.append(clean)
+
+    if opts.output and opts.output != '-':
+        with open(opts.output, 'w') as f:
+            f.write(repr(mf))
+    else:
+        sys.stdout.write(repr(mf))
+
+
+def includes(calist, opts):
+    """Create a prereq makefile fragment for each target."""
+    for ca in calist:
+        if not ca.targets():
+            continue
+        mf = makefile.Makefile(basedir=opts.base_dir, srcbase=opts.srcbase)
+        rule = makefile.Rule(ca.targets(), prereqs=ca.prereqs())
+        mf.append(rule)
+        fragment = os.path.basename(ca.targets()[0].path) + opts.extension
+        with open(fragment, 'w') as f:
+            f.write(repr(mf))
 
 
 def main():
     """Entry point for standalone use."""
-
     parser = argparse.ArgumentParser(
         epilog=__doc__.strip(),
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -141,6 +157,9 @@ def main():
         '-m', '--members-only', action='store_true',
         help='ignore files which are not project members')
     parser.add_argument(
+        '--no-gnu', action='store_true',
+        help='avoid GNU make features')
+    parser.add_argument(
         '-o', '--output',
         help='write Makefile data to the specified file')
     parser.add_argument(
@@ -149,6 +168,15 @@ def main():
     parser.add_argument(
         '-p', '--pdump', action='store_true',
         help='(with -full) use variables extracted from GNU "make -p"')
+    parser.add_argument(
+        '--prqre',
+        help='ignore prereqs which do not match this regex')
+    parser.add_argument(
+        '--srcbase', default='SRCBASE',
+        help='the name of the base variable (default: %(default)s)')
+    parser.add_argument(
+        '--survivors-only', action='store_true',
+        help='ignore files which did not survive the build')
     parser.add_argument(
         '-v', '--vars',
         help='(with -full) make variables to be substituted')
@@ -160,18 +188,17 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    child.set_verbosity(opts.verbosity)
+    childx.set_verbosity(opts.verbosity)
 
-    if opts.pdump or opts.vars:
+    if opts.output or opts.pdump or opts.vars:
         opts.full = True
 
-    cmd = ['ao', '-q', 'property', 'Base.Dir', 'Project.Name']
-    properties = child.check_output(cmd).rstrip()
-    basedir, projname = properties.splitlines()
     if not opts.base_dir:
-        opts.base_dir = basedir
+        cmd = ['ao', '-q', 'property', 'Base.Dir']
+        opts.base_dir = childx.check_output(cmd).rstrip()
 
     # Use a state machine to parse input data into a list of CAs.
+    # TODO adapt DirTargets and DirLinkTargets logic.
     calist = []
     ca = None
     for path in opts.input:
@@ -182,18 +209,34 @@ def main():
                     ca = actions.CommandAction(line)
                     calist.append(ca)
             elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                pa = actions.PathAction(line, opts.base_dir)
+                pa = actions.PathAction(line)
+                if pa.is_unlink:
+                    continue
                 if opts.members_only and not pa.is_member:
                     continue
-                ca.add(pa)
+                if opts.survivors_only and not pa.exists():
+                    continue
+                if pa.is_target:
+                    ca.add(pa)
+                elif not opts.prqre or re.match(opts.prqre, pa.path):
+                    ca.add(pa)
             else:
                 ca = None
         if f != sys.stdin:
             f.close()
 
-    print('stub for now - basedir={0}, projname={1}'.format(basedir, projname))
+    if opts.full:
+        full(calist, opts)
+    else:
+        includes(calist, opts)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except IOError as e:
+        # Workaround for an interpreter bug triggered by SIGPIPE.
+        # See http://code.activestate.com/lists/python-tutor/88460/
+        if 'Broken pipe' not in e.strerror:
+            raise
 
 # vim: ts=8:sw=4:tw=80:et:

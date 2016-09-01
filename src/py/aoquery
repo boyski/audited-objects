@@ -39,7 +39,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import child
+import childx
 import os
 import re
 import sys
@@ -96,7 +96,7 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    child.set_verbosity(opts.verbosity)
+    childx.set_verbosity(opts.verbosity)
 
     if not (opts.src_paths or opts.int_paths or
             opts.tgt_paths or opts.cmd_path_regex):
@@ -104,7 +104,7 @@ def main():
 
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
-        opts.base_dir = child.check_output(cmd).rstrip()
+        opts.base_dir = childx.check_output(cmd).rstrip()
     opts.base_dir = os.path.realpath(opts.base_dir)
 
     # Use a state machine to parse input data into a list of CAs.
@@ -118,7 +118,7 @@ def main():
                     ca = actions.CommandAction(line)
                     calist.append(ca)
             elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                pa = actions.PathAction(line, opts.base_dir)
+                pa = actions.PathAction(line)
                 if opts.members_only and not pa.is_member:
                     continue
                 ca.add(pa)
@@ -130,19 +130,19 @@ def main():
     if opts.cmd_path_regex:
         for ca in calist:
             srcpaths, tgtpaths = set(), set()
-            for prq in ca.get_prereqs():
+            for prq in ca.prereqs():
                 if opts.tgt_paths:
                     continue
                 path = prq.path
-                if not opts.abs_paths and prq.path.startswith(opts.base_dir):
+                if not opts.abs_paths and not prq.is_member:
                     path = os.path.relpath(path, opts.base_dir)
                 if re.search(opts.cmd_path_regex, path):
                     srcpaths.add(path)
-            for tgt in ca.get_targets():
+            for tgt in ca.targets():
                 if opts.src_paths:
                     continue
                 path = tgt.path
-                if not opts.abs_paths and tgt.path.startswith(opts.base_dir):
+                if not opts.abs_paths and not tgt.is_member:
                     path = os.path.relpath(path, opts.base_dir)
                 if re.search(opts.cmd_path_regex, path):
                     tgtpaths.add(path)
@@ -154,12 +154,12 @@ def main():
         srcpaths, intpaths, tgtpaths = set(), set(), set()
         # Get the set of targets.
         for ca in calist:
-            for tgt in ca.get_targets():
+            for tgt in ca.targets():
                 tgtpaths.add(tgt.path)
 
         if opts.src_paths or opts.int_paths:
             for ca in calist:
-                for prq in ca.get_prereqs():
+                for prq in ca.prereqs():
                     if prq.path in tgtpaths:
                         intpaths.add(prq.path)
                         if opts.int_paths:
@@ -175,7 +175,6 @@ def main():
             pathdump('>', sorted(tgtpaths), opts)
 
 if __name__ == '__main__':
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
     try:
         main()
     except IOError as e:

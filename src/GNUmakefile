@@ -196,7 +196,7 @@ endif
 
 OBJS		:= aotool.o bsd_getopt.o ca.o code.o down.o git.o http.o \
 		   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
-		   putil.o re.o shop.o tee.o unix.o up.o util.o vb.o
+		   putil.o re.o sha1.o shop.o tee.o unix.o up.o util.o vb.o
 
 CFLAGS		+= -I. $(SYSINCS) -I$(OPS)/include
 
@@ -214,7 +214,7 @@ BINS		:= $(AOTOOL)
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS	:= -lkaz -lpcre -lgit2 -lz -ltrio
+DLL_LIBS	:= -lkaz -lpcre -lz -ltrio
 
 OPSLIBDIR	:= $(OPS)/${TGTARCH}/lib
 
@@ -324,7 +324,7 @@ TARGETS		:= $(BINS) $(SHLIBS)
 # The list of source files included by libunix.c
 COMMINCS	:= libcommon.c ca.c code.c moment.c \
 		   pa.c pn.c prefs.c prop.c ps.c \
-		   re.c util.c vb.c
+		   re.c sha1.c util.c vb.c
 
 INTERPOSERS	:= $(wildcard Interposer/*.h)
 

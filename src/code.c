@@ -103,7 +103,7 @@
 #include "CODE.h"
 #include "PROP.h"
 
-#include "git2.h"
+#include "sha1.h"
 #include "zlib.h"
 
 /// Returns true iff the file looks like the kind with an embedded
@@ -149,13 +149,41 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     if (algorithm && *algorithm &&
 	    (!stricmp(algorithm, "sha1") || !stricmp(algorithm, "git"))) {
-	git_oid oid;
+	SHA1Context sha;
+	uint8_t Message_Digest[20];
+	int err, i;
 
-	if (git_odb_hash(&oid, data, size, GIT_OBJ_BLOB)) {
-	    putil_die("sha-1 failed: %s", git_lasterror());
+	// There's a SHA-1 implementation available via libgit2 but that
+	// requires linking with openssh which drags in other stuff etc.
+	// so we use a standalone sha1.c derived directly from RFC3174.
+	// We may eventually need other git features from libgit2 but
+	// the hope would be to use that only from the monitor; the
+	// auditor should stay as small and statically linked as possible
+	// and libgit2/openssh/etc make that harder.
+	if ((err = SHA1Reset(&sha))) {
+	    putil_die("SHA1Reset() error %d", err);
 	}
-	git_oid_fmt(buf, &oid);
-	buf[40] = '\0';
+	{
+	    char hdr[64];
+
+	    // A git blob hash is not a vanilla SHA-1; it has a header.
+	    // For the 3 characters "XYZ" it's equivalent to these:
+	    //   $ echo -ne "blob 3\0XYZ" | sha1sum
+	    //   $ echo -n XYZ | git hash-object --stdin
+	    snprintf(hdr, sizeof(hdr), "blob %ld", size);
+	    if ((err = SHA1Input(&sha, (unsigned char *)hdr, strlen(hdr) + 1))) {
+		putil_die("SHA1Input() error %d", err);
+	    }
+	}
+	if ((err = SHA1Input(&sha, (unsigned char *)data, size))) {
+	    putil_die("SHA1Input() error %d", err);
+	}
+	if ((err = SHA1Result(&sha, Message_Digest))) {
+	    putil_die("SHA1Result() error %d", err);
+	}
+	for(i = 0; i < 20 ; i++) {
+	    snprintf(buf + (i * 2), 3, "%02x", (CCS)(intptr_t)(Message_Digest[i]));
+	}
     } else {
 	// Old reliable CRC32. Said to be a bad choice for an identity
 	// hash as the distribution is not great. It's not really a hash

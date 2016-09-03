@@ -42,7 +42,7 @@
 #include "cdb.h"
 #include "curl/curl.h"
 #include "pcre.h"
-#include "git2.h"
+// #include "git2.h"  /* not yet in use */
 #include "zlib.h"
 
 #include "About/about.c"	// NOTE: including a .c file!
@@ -223,7 +223,7 @@ _print_version(int full)
 	fputs("\n", stdout);
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", pcre_version());
-	printf("libgit2=%s\n", LIBGIT2_VERSION);
+	// printf("libgit2=%s\n", LIBGIT2_VERSION);
 	printf("zlib=%s\n", (const char *)zlibVersion());
 	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
 	printf("kazlib=1.20\n"); // Abandoned, will never change

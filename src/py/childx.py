@@ -1,71 +1,64 @@
-"""Wrapper over subprocess with verbosity added."""
+"""
+Wrapper over subprocess with xtrace verbosity added.
 
-#############################################################################
-# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#############################################################################
+This adds a capability similar to the /bin/sh -x option to the
+subprocess module.  With verbosity enabled, all command execs will
+print "+ <cmdline>" to stderr. In all other respects it behaves just
+like subprocess.
 
-from __future__ import print_function
-from __future__ import unicode_literals
+"""
 
 import subprocess
 import sys
 
+# Pass these through so users don't need to import subprocess.
 PIPE = subprocess.PIPE
 STDOUT = subprocess.STDOUT
-VERBOSE = False
+
+# Controls xtrace verbosity.
+XTRACE = False
 
 
-def set_verbosity(state):
+def set_xtrace(state):
     """Turn exec verbosity on or off."""
-    global VERBOSE  # pylint: disable=global-statement
-    VERBOSE = state
+    global XTRACE  # pylint: disable=global-statement
+    XTRACE = state
 
 
 def xtrace(cmd, **kwargs):
     """Print the command to stderr."""
-    # Custom keyword xtrace=False to suppress verbosity for special cases.
+    # Allow this custom keyword to suppress verbosity for special cases.
     if not kwargs.pop('xtrace', True):
         return
-    if VERBOSE and kwargs.get('stderr') != STDOUT:
-        if isinstance(cmd, basestring):
-            sys.stderr.write('+ ' + cmd + '\n')
-        else:
-            sys.stderr.write('+ ' + ' '.join(cmd) + '\n')
+    # Skip xtrace verbosity if stderr is redirected.
+    if not XTRACE or kwargs.get('stderr') is not None:
+        return
+    if isinstance(cmd, basestring):
+        sys.stderr.write('+ ' + cmd + '\n')
+    else:
+        sys.stderr.write('+ ' + ' '.join(cmd) + '\n')
 
 
 def call(*popenargs, **kwargs):
-    """Wrapper over subprocess function with verbosity added."""
+    """Wrapper over subprocess function with xtrace verbosity added."""
     xtrace(popenargs[0], **kwargs)
     return subprocess.call(*popenargs, **kwargs)
 
 
 def check_call(*popenargs, **kwargs):
-    """Wrapper over subprocess function with verbosity added."""
+    """Wrapper over subprocess function with xtrace verbosity added."""
     xtrace(popenargs[0], **kwargs)
     return subprocess.check_call(*popenargs, **kwargs)
 
 
 def check_output(*popenargs, **kwargs):
-    """Wrapper over subprocess function with verbosity added."""
+    """Wrapper over subprocess function with xtrace verbosity added."""
     xtrace(popenargs[0], **kwargs)
     return subprocess.check_output(*popenargs, **kwargs)
 
 
 class Popen(subprocess.Popen):
-    """Wrapper over subprocess Popen class with verbosity added."""
+    """Wrapper over subprocess Popen class with xtrace verbosity added."""
 
     def __init__(self, cmd, **kwargs):
         xtrace(cmd, **kwargs)

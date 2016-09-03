@@ -96,7 +96,7 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    childx.set_verbosity(opts.verbosity)
+    childx.set_xtrace(opts.verbosity)
 
     if not (opts.src_paths or opts.int_paths or
             opts.tgt_paths or opts.cmd_path_regex):

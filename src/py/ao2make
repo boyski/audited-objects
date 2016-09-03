@@ -188,7 +188,7 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    childx.set_verbosity(opts.verbosity)
+    childx.set_xtrace(opts.verbosity)
 
     if opts.output or opts.pdump or opts.vars:
         opts.full = True

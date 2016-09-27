@@ -335,7 +335,9 @@ _libinterposer_never_called(void)
     (void)libinterposer_preload_on(NULL, NULL);
     (void)libinterposer_preload_off(NULL, NULL, 0);
     (void)libinterposer_preload_dbg(NULL);
-    _libinterposer_never_called();
+    if ((void *)libinterposer_preload_on > (void *)libinterposer_preload_off) {
+	_libinterposer_never_called();
+    }
 }
 
 #ifdef  __cplusplus

@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -27,18 +27,11 @@
 #include <stdarg.h>
 #include <time.h>
 
-#if defined(_WIN32)
-#include <direct.h>
-#include <lmcons.h>
-#include <process.h>
-#include <sys/utime.h>
-#else	/*_WIN32*/
 #include <grp.h>
 #include <pwd.h>
 #include <strings.h>
 #include <unistd.h>
 #include <sys/time.h>
-#endif	/*_WIN32*/
 
 /// @cond static
 #define VBMASK_UNSET 		-2
@@ -345,43 +338,7 @@ vb_printfA(long bit, const char *fmt, ...)
     }
 }
 
-#if defined(_WIN32)
-void
-vb_printfW(long bit, const wchar_t *fmt, ...)
-{
-    va_list ap;
-
-    FILE *vbstrm;
-
-    // This may be called from an a DLL startup function before stdio
-    // is fully initialized, so we work extra hard to get SOMETHING out
-    // even in that case. It may not look good but at least we'd
-    // have a clue that the event being reported took place.
-    if (vb_bitmatch(bit) && fmt) {
-	vbstrm = vb_get_stream();
-	if (fprintf(vbstrm, "%s: ", prop_get_app()) < 0) {
-	    write(2, prop_get_app(), strlen(prop_get_app()));
-	    write(2, ": ", 2);
-	}
-	// Makes it easier to see extra verbosity or grep it from a log.
-	if (bit != VB_STD && bit != VB_ON) {
-	    if (fputc('=', vbstrm) == EOF) {
-		write(2, "=", 1);
-	    }
-	}
-	va_start(ap, fmt);
-	if (vfwprintf(vbstrm, fmt, ap) < 0) {
-	    write(2, fmt, wcslen(fmt) * 2);
-	}
-	va_end(ap);
-	if (fputc('\n', vbstrm) == EOF) {
-	    write(2, "\n", 1);
-	}
-    }
-}
-#endif	/*_WIN32*/
-
-/// Finalizes verbosity.
+/// Finalize verbosity.
 void
 vb_fini(void)
 {
@@ -389,3 +346,5 @@ vb_fini(void)
 	(void)fclose(VerbosityStream);
     }
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

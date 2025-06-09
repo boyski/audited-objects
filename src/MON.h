@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -52,3 +52,5 @@ extern void mon_ptx_end(int, CCS);
 extern void mon_fini(void);
 
 #endif
+
+// vim: sw=4 ts=8 tw=100 cc=+1

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 """
 Query data from a raw AO audit file.
 
@@ -19,7 +19,7 @@ To show all commands matching a given pattern:
 """
 
 #############################################################################
-# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+# Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -35,16 +35,13 @@ To show all commands matching a given pattern:
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
-import childx
 import os
 import re
 import sys
 
 import actions  # pylint: disable=relative-import
+import childx
 
 
 def pathdump(pfx, paths, opts):
@@ -111,7 +108,7 @@ def main():
     calist = []
     ca = None
     for path in opts.input:
-        f = sys.stdin if path == '-' else open(path)
+        f = sys.stdin if path == '-' else open(path, encoding='utf-8')
         for line in f:
             if line[0] in '0123456789':
                 if not ca:
@@ -127,6 +124,7 @@ def main():
         if f != sys.stdin:
             f.close()
 
+    # pylint: disable=too-many-nested-blocks
     if opts.cmd_path_regex:
         for ca in calist:
             srcpaths, tgtpaths = set(), set()
@@ -174,6 +172,7 @@ def main():
         if opts.tgt_paths:
             pathdump('>', sorted(tgtpaths), opts)
 
+
 if __name__ == '__main__':
     try:
         main()
@@ -183,4 +182,11 @@ if __name__ == '__main__':
         if 'Broken pipe' not in e.strerror:
             raise
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

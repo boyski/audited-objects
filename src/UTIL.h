@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -24,10 +24,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if defined(_WIN32)
-#include <winsock2.h>
-#endif
-
 #include "Putil/putil.h"
 
 /// @file
@@ -35,18 +31,9 @@
 
 /// @cond UTIL
 
-/// The number of 100-nanosecond intervals (Windows time unit) in a second.
-#define WIN_CLUNKS_PER_SEC		10000000L
-
-/// The number of 100-nanosecond intervals ("clunks") from the Windows
-/// epoch to the Unix epoch.
-#define WIN_EPOCH_OFFSET		116444736000000000LL
-
 /// @endcond UTIL
 
 extern int util_pathcmp(const void *, const void *);
-extern void util_socket_lib_init(void);
-extern void util_socket_lib_fini(void);
 unsigned char * util_map_file(CCS, int, off_t, uint64_t);
 extern void util_unmap_file(unsigned char *, uint64_t);
 extern CS util_requote_argv(CS const *);
@@ -76,3 +63,5 @@ extern char *util_unescape(const char *, int, int *);
 extern char *util_tempnam(const char *, const char *);
 
 #endif				/*UTIL_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

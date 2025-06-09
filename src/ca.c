@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 
 /// @file
 /// @brief Definitions for the CmdAction "class" and CmdKey "inner class".
+///
 /// The CmdAction class records a command and the files it read from or
 /// wrote to (see pa.c).
 ///
@@ -37,10 +38,6 @@
 #include "hash.h"
 
 #include "zlib.h"
-
-#if defined(_WIN32)
-#include <winsock2.h>
-#endif	/*_WIN32*/
 
 /// @cond static
 #define AUDIT_BUF_INIT_SIZE			8192
@@ -166,7 +163,7 @@ ca_o_hash_cmp(const void *left, const void *right)
     // quite common for the same cmd to occur in different parts of the
     // cmd tree. An obvious example would be the cmd "make" in a recursive
     // make model. Also, consider "date >> log" at the beginning and
-    // end of a build; each has the build script as its parent.
+    // end of a build; each looks the same and has the build script as its parent.
     // In these cases the pids will be different so we compare those. There
     // remains the case (on Unix) where a cmd execs itself without a fork.
     // Though this would often be an infinite loop it's not necessarily
@@ -174,22 +171,27 @@ ca_o_hash_cmp(const void *left, const void *right)
     // In this case all the above would match and we must use the depth,
     // which will increment with each exec. I believe the combination
     // of these 3 items is safely unique.
+    //
     // The only possible issues I can think of with this design are:
+    //
     // 1. It's conceivable that two *different* processes could have the
     // same cmdid because pids are only guaranteed unique while the process
     // is running and audits are processed after they die. However,
     // given the amount of time required for pid wrap on most systems,
     // and that not only would that have to occur but the ccode and
     // depth would have to match too, this seems practically impossible.
+    //
     // 2. There's also a tiny (ISTR 1 in 10 million?) chance of
     // different cmds having the same ccode. But when that's multiplied
     // by the odds of the cmdid and depth also colliding, again this
     // seems discountable in practice.
-    // Update: actually it turns out we can't ever safely rely on depth,
+    //
+    // Update: actually it turns out we can't ever safely rely on depth
     // because a user is allowed to do a partial build within a subtree
     // of the project. So depth can be useful for intra-build resolution
     // but never for *inter*-build comparisons. Therefore the depth
     // test mentioned above is turned off.
+    //
     // Note: a possible improvement in robustness would be for the CA to
     // store its ccode, its parent's ccode, AND its grandparent's ccode.
     // Having a record of all three would enable this comparator to
@@ -353,7 +355,7 @@ _ca_verbosity_pa(pa_o pa, ca_o ca, CCS action)
     }
 }
 
-/// Tests whether the object has a valid "path code".
+/// Test whether the object has a valid "path code".
 /// @param[in] ca       the object pointer
 /// @return true if the CA has a pathcode.
 int
@@ -362,7 +364,7 @@ ca_has_pathcode(ca_o ca)
     return !CSV_FIELD_IS_NULL(ca_get_pathcode(ca));
 }
 
-/// Tests whether this CA has no parent and thus represents
+/// Test whether this CA has no parent and thus represents
 /// the top-level cmd.
 /// @param[in] ca       the object pointer
 /// @return true if the CA represents the top level command
@@ -372,7 +374,7 @@ ca_is_top(ca_o ca)
     return CSV_FIELD_IS_NULL(ca_get_pccode(ca));
 }
 
-/// Traverses the CA, calling the specified function on each 'raw' PA.
+/// Traverse the CA, calling the specified function on each 'raw' PA.
 /// @param[in] ca       the object pointer
 /// @param[in] process  pointer to the callback function
 /// @param[in] data     pointer which is passed to the callback
@@ -400,7 +402,7 @@ ca_foreach_raw_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
     return rc;
 }
 
-/// Traverses the CA, calling the specified function on each 'cooked' PA.
+/// Traverse the CA, calling the specified function on each 'cooked' PA.
 /// In order to enforce the conventional ordering of read-before-write
 /// we go around twice, handling reads on the first pass and everything
 /// else on the second.
@@ -446,7 +448,7 @@ ca_foreach_cooked_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
     return rc;
 }
 
-/// Serializes the CmdAction and writes it to the specified file descriptor.
+/// Serialize the CmdAction and write it to the specified file descriptor.
 /// On Windows this must send to a socket. On Unix it can use any
 /// kind of file descriptor.
 /// @param[in] ca       the object pointer
@@ -592,8 +594,8 @@ ca_coalesce(ca_o ca)
     return;
 }
 
-/// Merge two CmdActions, a 'leader' and a 'donor', together. The donor
-/// is then redundant.
+/// Merge two CmdActions, a 'leader' and a 'donor', together.
+/// The donor becomes redundant.
 /// @param[in] leader   the leader object pointer
 /// @param[in] donor    the donor object pointer
 void
@@ -658,7 +660,7 @@ ca_record_pa(ca_o ca, pa_o pa)
     dict_insert(ca->ca_raw_pa_dict, dnp, pa);
 }
 
-/// Returns the number of raw PathActions held in the CmdAction.
+/// Return the number of raw PathActions held in the CmdAction.
 /// @param[in] ca       the object pointer
 /// @return the number of raw PathActions
 int
@@ -686,7 +688,7 @@ ca_start_group(ca_o ca, int strength)
     ca_set_strong(ca, strength);
 }
 
-/// Adds a new CA to the audit group.
+/// Add a new CA to the audit group.
 /// @param[in] ldr      the leader object reference
 /// @param[in] sub      the new member CA
 void
@@ -712,7 +714,7 @@ ca_aggregate(ca_o ldr, ca_o sub)
     ca_set_leader(sub, ldr);
 }
 
-/// Returns true if the CA has a known leader.
+/// Return true if the CA has a known leader.
 /// @param[in] ca       the object pointer
 /// @return true if a leader is known
 int
@@ -721,7 +723,7 @@ ca_has_leader(ca_o ca)
     return ca_get_leader(ca) != NULL;
 }
 
-/// Checks the list of PAs and tells us whether any of them references
+/// Check the list of PAs and tells us whether any of them references
 /// a file which needs to be uploaded.
 /// @param[in] ca       the object pointer
 /// @return true if the object refers to an uploadable file
@@ -745,7 +747,7 @@ ca_is_uploadable(ca_o ca)
     return rc;
 }
 
-/// Breaks up the aggregation and uploads each piece separately.
+/// Break up the aggregation and upload each piece separately.
 /// Audit groups do not nest. Therefore, when we see an aggregating
 /// cmd while already within an audit group, the "outer" group becomes
 /// invalid. This method traverses an audit group, publishes each of
@@ -887,14 +889,14 @@ _ca_add_to_pathcode(pa_o pa, void *data)
     return 0;
 }
 
-/// Generates the 'pathcode' - a hash of all pathnames opened by this cmd.
+/// Generate the 'pathcode' - a hash of all pathnames opened by this cmd.
 /// The combination of command line and pathcode is believed
 /// sufficent to uniquely identify any given command, because
 /// if two commands with identical textual representations operate on the
 /// same set of files, they must be functionally identical.
 /// In other words the command line says what to do and the pathcode
 /// says who it's done to. Thus 'touch foo' might be repeated in different
-/// places but it's only the *same command* if the 'foo' it touches
+/// places but it's only the *same* command if the 'foo' it touches
 /// is at the same absolute path. Similarly, 'make' might occur all
 /// over in a recursive-make build but it's not the same make unless it
 /// opens the same Makefile. Another way of putting it: if a cmd addresses
@@ -902,7 +904,7 @@ _ca_add_to_pathcode(pa_o pa, void *data)
 /// of the files it opens. If it doesn't then the CWD doesn't matter.
 /// Of course there can still be semantically identical cmds which look
 /// different: consider "rm foo bar" and "rm bar foo". But these cases
-/// would be very rare in real life and don't break anything - we would
+/// would be rare in real life and they don't break anything - we would
 /// just miss a potential recycle opportunity.
 /// @param[in] ca       the object pointer
 void
@@ -928,7 +930,7 @@ ca_derive_pathcode(ca_o ca)
     }
 }
 
-/// Returns an allocated string representing the CA without its PAs.
+/// Return an allocated string representing the CA without its PAs.
 /// @param[in] ca       the object pointer
 /// @return a string which should be freed when no longer needed
 CCS
@@ -1030,13 +1032,12 @@ _ca_format_palist_callback(pa_o pa, void *data)
 
 	dcode_path = dcode_all || pa_is_member(pa) || pa_get_uploadable(pa);
 
-#if !defined(_WIN32)
-	// If we're checksumming a PA which represents a write op,
+	// If checksumming a PA which represents a write op,
 	// flush the file descriptor associated with it in an
 	// attempt to avoid bad dcode values caused by files left
 	// open by the audited process with data still not
 	// synced to disk. This is not actually known to be a
-	// problem but it seems like fsync is a good idea here.
+	// problem but it seems like fsync may be a good idea here.
 	if (dcode_path && (pa_get_fd(pa) > 2) && pa_is_write(pa)) {
 	    (void)fsync(pa_get_fd(pa));
 	    // IDEA: if this isn't sufficient, potentially we could
@@ -1045,7 +1046,6 @@ _ca_format_palist_callback(pa_o pa, void *data)
 	    // by this point any data sent to the fd will be appended).
 	    // I believe fcntl() could help us find the mode bits.
 	}
-#endif	/*_WIN32*/
 
 	(void)pa_stat(pa, dcode_path);
     }
@@ -1100,7 +1100,7 @@ _ca_format_cooked_palist(ca_o ca)
     return fpstruct.fp_buf;
 }
 
-/// Formats a string representing a human-readable form of the CA.
+/// Format a string representing a human-readable form of the CA.
 /// @param[in] ca       the object pointer
 /// @return a string which should be freed when no longer needed
 CCS
@@ -1145,7 +1145,7 @@ _ca_dump_pa(pa_o pa, void *data)
     return 0;
 }
 
-/// For debugging support - dumps contents of a CA to stderr
+/// For debugging support - dump contents of a CA to stderr
 /// @param[in] ca       the object pointer
 /*static*/ void
 ca_dump(ca_o ca)
@@ -1187,7 +1187,7 @@ ca_dump(ca_o ca)
     fputs(stars, stderr);
 }
 
-/// Sets the command-line field for the CmdAction object. The string
+/// Set the command-line field for the CmdAction object. The string
 /// passed in may be freed afterward since a copy is held.
 /// The 'ccode' attribute is set as a side effect since it's derived
 /// from the command line.
@@ -1234,7 +1234,7 @@ ca_set_line(ca_o ca, CCS line)
     }
 }
 
-/// Gets the command-line field from the CmdAction object.
+/// Get the command-line field from the CmdAction object.
 /// @param[in] ca       the object pointer
 /// @return a string representing the command line
 CCS
@@ -1243,7 +1243,7 @@ ca_get_line(ca_o ca)
     return ca->ca_line;
 }
 
-/// Gets the aggregated subcommands of this CA in string form.
+/// Get the aggregated subcommands of this CA in string form.
 /// @param[in] ca       the object pointer
 /// @return a string representing the command lines of all sub-commands
 CCS
@@ -1252,7 +1252,7 @@ ca_get_subs(ca_o ca)
     return ca->ca_subs;
 }
 
-/// Returns the number of pending (not yet closed) audits in the group.
+/// Return the number of pending (not yet closed) audits in the group.
 /// @param[in] ca       the object pointer
 /// @return the number of pending audits
 int
@@ -1342,7 +1342,7 @@ ca_clear_pa(ca_o ca)
     }
 }
 
-/// Finalizer - releases all allocated memory for object.
+/// Finalizer - release all allocated memory for object.
 /// If object is a null pointer, no action occurs.
 /// @param[in] ca       the object pointer
 void
@@ -1365,7 +1365,8 @@ ca_destroy(ca_o ca)
 
     ca_clear_pa(ca);
 
-    dict_destroy(ca->ca_raw_pa_dict);
+    // TODO - figure out why this dumps core.
+    // dict_destroy(ca->ca_raw_pa_dict);
 
     putil_free(ca->ca_prog);
     putil_free(ca->ca_host);
@@ -1380,3 +1381,5 @@ ca_destroy(ca_o ca)
     memset(ca, 0, sizeof(*ca));
     putil_free(ca);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

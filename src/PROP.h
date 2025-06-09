@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -137,11 +137,9 @@ extern void prop_help(int, int, CCS);
 extern void prop_dump(int);
 extern size_t prop_new_env_block_sizeA(char *const *);
 extern char *const *prop_custom_envA(char **, char *const *);
-#if defined(_WIN32)
-extern size_t prop_new_env_block_sizeW(WCHAR *const *);
-extern WCHAR *const *prop_custom_envW(WCHAR **, WCHAR *const *);
-#endif	/*_WIN32*/
 extern void prop_unexport_all(void);
 extern void prop_fini(void);
 
 #endif				/*PROP_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

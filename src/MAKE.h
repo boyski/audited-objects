@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -26,3 +26,5 @@ extern void make_file(ca_o);
 extern void make_fini(void);
 
 #endif
+
+// vim: sw=4 ts=8 tw=100 cc=+1

@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -47,16 +47,8 @@
     concern; hacking the Makefile for a new platform is by far a
     smaller task than hacking the code itself.
 
-    In fact there are two makefiles. For Unix there is a
-    <i>GNUmakefile</i> which <b>requires GNU Make</b>. For Windows there
-    is a <i>Makefile</i> which assumes Windows, nmake, and MS Visual
-    Studio.
-
-    AO is built only with GCC on Unix/Linux and with Visual Studio
-    on Windows. It is possible to use other compilers but in the
-    interest of simplicity we standardize on these two. On Windows,
-    VS 2005 or above is required since AO uses variadic macros
-    which were not supported prior to VS 2005 (aka VS 8.0).
+    Out of the box AO is built only with GCC. Other compilers have been
+    used in the past but only GCC is supported.
 
 @subsection libraries Third Party Libraries
 
@@ -189,9 +181,6 @@
     - We also need to support parallel builds, distributed or not.
     This is NKNTW now.
 
-    - To the degree possible we like to make the Unix and Windows
-    mechanisms similar (easier said than done, vide infra).
-
     - Speed is, of course, critical. And there are also certain
     constraints with regard to delivery order.
 
@@ -276,14 +265,12 @@ typedef enum {
     OP_MKDIR = 'D',		/// Directory create operation
 } op_e;
 
-#if defined(_WIN32)
-#define pathncmp			strnicmp
-#elif defined(__APPLE__)
+/// Compare path segments case-appropriately.
+#if defined(__APPLE__)
 #define pathncmp			strncasecmp
-#else				/*!_WIN32 */
-/// Compare path segments case-appropriately on Unix, Windows, and Mac.
+#else
 #define pathncmp			strncmp
-#endif	/*_WIN32*/
+#endif
 
 /// Macro representing the size of one char regardless of charset.
 #define CHARSIZE			sizeof(char)
@@ -365,11 +352,7 @@ class ## _get_ ## attr(class ## _o obj)					\
 
 /// The name of the auditing shared library. Must be hard-wired so the
 /// client knows what to "inject" into the audited program.
-#if defined(_WIN32)
-#define AUDITOR			"LibAO.dll"
-#else	/*_WIN32*/
 #define AUDITOR			"libAO.so"
-#endif	/*_WIN32*/
 
 // Drag these in here because (a) just about everybody needs them and
 // (b) they may need to be "above" other internal headers.
@@ -377,3 +360,5 @@ class ## _get_ ## attr(class ## _o obj)					\
 #include "VB.h"
 
 #endif				/*AO_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

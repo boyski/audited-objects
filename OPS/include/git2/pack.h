@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "oid.h"
+#include "indexer.h"
 
 /**
  * @file git2/pack.h
@@ -50,7 +51,7 @@ GIT_BEGIN_DECL
  */
 typedef enum {
 	GIT_PACKBUILDER_ADDING_OBJECTS = 0,
-	GIT_PACKBUILDER_DELTAFICATION = 1,
+	GIT_PACKBUILDER_DELTAFICATION = 1
 } git_packbuilder_stage_t;
 
 /**
@@ -147,6 +148,7 @@ GIT_EXTERN(int) git_packbuilder_insert_recur(git_packbuilder *pb, const git_oid 
  *
  * @param buf Buffer where to write the packfile
  * @param pb The packbuilder
+ * @return 0 or an error code
  */
 GIT_EXTERN(int) git_packbuilder_write_buf(git_buf *buf, git_packbuilder *pb);
 
@@ -154,7 +156,7 @@ GIT_EXTERN(int) git_packbuilder_write_buf(git_buf *buf, git_packbuilder *pb);
  * Write the new pack and corresponding index file to path.
  *
  * @param pb The packbuilder
- * @param path to the directory where the packfile and index should be stored
+ * @param path Path to the directory where the packfile and index should be stored, or NULL for default location
  * @param mode permissions to use creating a packfile or 0 for defaults
  * @param progress_cb function to call with progress information from the indexer (optional)
  * @param progress_cb_payload payload for the progress callback (optional)
@@ -165,20 +167,45 @@ GIT_EXTERN(int) git_packbuilder_write(
 	git_packbuilder *pb,
 	const char *path,
 	unsigned int mode,
-	git_transfer_progress_cb progress_cb,
+	git_indexer_progress_cb progress_cb,
 	void *progress_cb_payload);
 
+#ifndef GIT_DEPRECATE_HARD
 /**
-* Get the packfile's hash
-*
-* A packfile's name is derived from the sorted hashing of all object
-* names. This is only correct after the packfile has been written.
-*
-* @param pb The packbuilder object
-*/
+ * Get the packfile's hash
+ *
+ * A packfile's name is derived from the sorted hashing of all object
+ * names. This is only correct after the packfile has been written.
+ *
+ * @deprecated use git_packbuilder_name
+ * @param pb The packbuilder object
+ * @return 0 or an error code
+ */
 GIT_EXTERN(const git_oid *) git_packbuilder_hash(git_packbuilder *pb);
+#endif
 
-typedef int (*git_packbuilder_foreach_cb)(void *buf, size_t size, void *payload);
+/**
+ * Get the unique name for the resulting packfile.
+ *
+ * The packfile's name is derived from the packfile's content.
+ * This is only correct after the packfile has been written.
+ *
+ * @param pb the packbuilder instance
+ * @return a NUL terminated string for the packfile name
+ */
+GIT_EXTERN(const char *) git_packbuilder_name(git_packbuilder *pb);
+
+/**
+ * Callback used to iterate over packed objects
+ *
+ * @see git_packbuilder_foreach
+ *
+ * @param buf A pointer to the object's data
+ * @param size The size of the underlying object
+ * @param payload Payload passed to git_packbuilder_foreach
+ * @return non-zero to terminate the iteration
+ */
+typedef int GIT_CALLBACK(git_packbuilder_foreach_cb)(void *buf, size_t size, void *payload);
 
 /**
  * Create the new pack and pass each object to the callback
@@ -206,8 +233,16 @@ GIT_EXTERN(size_t) git_packbuilder_object_count(git_packbuilder *pb);
  */
 GIT_EXTERN(size_t) git_packbuilder_written(git_packbuilder *pb);
 
-/** Packbuilder progress notification function */
-typedef int (*git_packbuilder_progress)(
+/**
+ * Packbuilder progress notification function.
+ *
+ * @param stage the stage of the packbuilder
+ * @param current the current object
+ * @param total the total number of objects
+ * @param payload the callback payload
+ * @return 0 on success or an error code
+ */
+typedef int GIT_CALLBACK(git_packbuilder_progress)(
 	int stage,
 	uint32_t current,
 	uint32_t total,
@@ -220,6 +255,9 @@ typedef int (*git_packbuilder_progress)(
  * @param progress_cb Function to call with progress information during
  * pack building. Be aware that this is called inline with pack building
  * operations, so performance may be affected.
+ * When progress_cb returns an error, the pack building process will be
+ * aborted and the error will be returned from the invoked function.
+ * `pb` must then be freed.
  * @param progress_cb_payload Payload for progress callback.
  * @return 0 or an error code
  */
@@ -237,4 +275,5 @@ GIT_EXTERN(void) git_packbuilder_free(git_packbuilder *pb);
 
 /** @} */
 GIT_END_DECL
+
 #endif

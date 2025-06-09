@@ -9,13 +9,9 @@ set -e
 
 srcpkg=$1
 
-srcdir=`basename $srcpkg .tar.gz`
-gunzip -c $srcpkg | tar -xf -
+srcdir=$(basename $srcpkg .tar.gz)
+tar -xzf $srcpkg
 
 cd "$srcdir"
 
-make clean all
-
-case `uname` in
-    SunOS*) echo "\nREMEMBER TO COPY libkaz64.a TO .../64/libkaz.a !!" ;;
-esac
+make -f Makefile.gcc CFLAGS=-fPIC clean libkaz.a

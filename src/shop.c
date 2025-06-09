@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -31,12 +31,10 @@
 #include "cdb.h"
 #include "dict.h"
 
-#if !defined(_WIN32)
 #include <sys/mman.h>
 #if  !defined(BSD)
 #include <alloca.h>
 #endif	/*BSD*/
-#endif	/*_WIN32*/
 
 /// @cond static
 #define PTX_PREFIX		"X"
@@ -323,7 +321,6 @@ _shop_process_target(pa_o spa, void *data)
 		putil_syserr(0, path);
 		rc = -1;
 	    }
-#if !defined(_WIN32)
 	} else if (pa_is_link(spa)) {
 	    CCS path2;
 
@@ -395,24 +392,21 @@ _shop_process_target(pa_o spa, void *data)
 		    rc = -1;
 		}
 	    }
-#endif				/*!_WIN32 */
 	} else if (pa_is_dir(spa)) {
 	    // TODO: COVERITY TOCTOU
 	    if (access(path, F_OK)) {
 		if (putil_mkdir_p(path)) {
 		    putil_syserr(0, path);
 		} else {
-#if !defined(_WIN32)
 		    if (chmod(path, ps_get_mode(sps))) {
 			putil_syserr(0, path);
 		    }
-#endif /*!_WIN32 */
 		}
 	    }
 	} else {
 	    // We have a live one! For symmetry with uploads we do not
 	    // report the download of zero-length files even though they
-	    // may require a servlet invocation to get mode and datestamp.
+	    // may require a servlet invocation to get mode and timestamp.
 	    if (ps_get_size(sps) > 0) {
 		pn_verbosity(ps_get_pn(sps), "DOWNLOADING", ssp->winner);
 	    }
@@ -1021,3 +1015,5 @@ shop(ca_o ca, CCS cmdkey, int getfiles)
 
     return rc;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

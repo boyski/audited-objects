@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 """
 Publish AO audit data via git.
 
@@ -11,7 +11,7 @@ To ...
 """
 
 #############################################################################
-# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+# Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -26,9 +26,6 @@ To ...
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
-
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 
@@ -51,7 +48,15 @@ def main():
 
     print('stub for now {0}'.format(opts.audit))
 
+
 if __name__ == '__main__':
     main()
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

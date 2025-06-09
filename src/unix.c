@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,6 @@
 /// @brief Provides the Unix-specific code to kick off the top-level
 /// audited command and monitor it and its children, receiving
 /// "audit packets", processing them, and uploading data to the server.
-/// The analogous Windows code is in win.c.
 
 #include "AO.h"
 
@@ -170,7 +169,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 {
     CS path;
     pid_t childpid;
-    int reuseaddr = 1;
     struct timeval master_timeout, timeout;
     int64_t session_timeout, last_heartbeat, heartbeat_interval;
     int sockmin = 3, sockmax = 0;
@@ -281,9 +279,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	heartbeat_interval = HTTP_SESSION_TIMEOUT_SECS_DEFAULT / 2;
     }
 
-    // This is really only required on Windows.
-    util_socket_lib_init();
-
     // The grandparent dir of this exe becomes the base where
     // we look for the preloaded library.
     if (!(pdir = putil_dirname(exe)) || !(shlibdir = putil_dirname(pdir))) {
@@ -306,13 +301,14 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     }
 
     {
+	int so_reuse = 1;
 	struct sockaddr_in addr;
 	socklen_t addrlen;
 	char *portstr;
 	size_t len;
 	u_short port;
 
-	// Max digits needed to represent a 32-bit value plus ':' is 11.
+	// Max chars needed to represent a 32-bit value plus ':' is 11.
 	len = ports * 11;
 	portstr = putil_calloc(len, 1);
 
@@ -322,9 +318,16 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    }
 
 	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
-			   &reuseaddr, sizeof(reuseaddr)) == SOCKET_ERROR) {
+			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
 		putil_syserr(2, "SO_REUSEADDR");
 	    }
+
+#if defined(SO_REUSEPORT)
+	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEPORT,
+			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+		putil_syserr(2, "SO_REUSEPORT");
+	    }
+#endif	/*SO_REUSEPORT*/
 
 	    addrlen = sizeof(addr);
 	    memset(&addr, 0, addrlen);
@@ -631,14 +634,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	}
     } else {
 	if (WIFSIGNALED(wstat)) {
-#if defined(__hpux)
-	    // HACK - no strsignal on HPUX 11.00
-	    putil_error("%s: %s%s", path, "",
-			WCOREDUMP(wstat) ? " (coredump)" : "");
-#else	/*__hpux*/
 	    putil_error("%s: %s%s", path, strsignal(WTERMSIG(wstat)),
 			WCOREDUMP(wstat) ? " (coredump)" : "");
-#endif	/*__hpux*/
 	}
 	ExitStatus = 2;
     }
@@ -653,7 +650,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	}
     }
 
-    util_socket_lib_fini();
-
     return ExitStatus;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

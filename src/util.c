@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 
 /// @file
 /// @brief Miscellaneous system utility functions for AO.
-/// Some of these exist only to provide a more Unix-like API on Windows.
+/// Some of these were created only to provide a more Unix-like API on Windows.
 
 #include "AO.h"
 
@@ -26,13 +26,6 @@
 #include <stdarg.h>
 #include <time.h>
 
-#if defined(_WIN32)
-#include <direct.h>
-#include <lmcons.h>
-#include <process.h>
-#include <winsock2.h>
-#include <sys/utime.h>
-#else				/*!_WIN32 */
 #include <dlfcn.h>
 #include <grp.h>
 #include <pwd.h>
@@ -42,14 +35,8 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include "Interposer/preload.h"
-#endif				/*!_WIN32 */
 
-#include "pcre.h"
 #include "zlib.h"
-
-#if defined(_WIN32)
-static WSADATA wsaData;
-#endif	/*_WIN32*/
 
 static char OutputFile[PATH_MAX];
 static FILE *OutputStream;
@@ -69,9 +56,7 @@ util_pathcmp(const void *left, const void *right)
     int rc = 0;
 
     if (left != right) {
-#if defined(_WIN32)
-	rc = stricmp((CCS)left, (CCS)right);
-#elif defined(__APPLE__)
+#if defined(__APPLE__)
 	rc = strcasecmp((CCS)left, (CCS)right);
 #else
 	rc = strcmp((CCS)left, (CCS)right);
@@ -79,38 +64,6 @@ util_pathcmp(const void *left, const void *right)
     }
 
     return rc;
-}
-
-/// An ugly Windows hack which may be simplified away someday.
-/// Winsock init/fini stuff is really painful, at least as documented.
-void
-util_socket_lib_init(void) {
-#if defined(_WIN32)
-    if (!wsaData.wVersion) {
-	int wsarc;
-
-	vb_printf(VB_OFF, "WSAStartup in %ld", getpid());
-	if ((wsarc = WSAStartup(MAKEWORD(1, 1), &wsaData))) {
-	    putil_win32err(2, wsarc, "WSAStartup()");
-	}
-    }
-#endif	/*_WIN32*/
-}
-
-/// An ugly Windows hack which may be simplified away someday.
-/// Winsock init/fini stuff is really painful for us.
-void
-util_socket_lib_fini(void) {
-#if defined(_WIN32)
-    // MSDN says each WSAStartup should be balanced with a WSACleanup.
-    // It's not clear whether it's really needed just before exit.
-    if (wsaData.wVersion) {
-	vb_printf(VB_OFF, "WSACleanup in %ld", getpid());
-	if (WSACleanup()) {
-	    putil_win32err(0, WSAGetLastError(), "WSACleanup");
-	}
-    }
-#endif	/*_WIN32*/
 }
 
 /// Maps the specified file into memory.
@@ -124,37 +77,9 @@ util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
 {
     unsigned char *fdata;
 
-#if defined(_WIN32)
-    HANDLE hMap;
-    HANDLE fh;
-
-    if ((fh = (HANDLE)_get_osfhandle(fd)) == INVALID_HANDLE_VALUE) {
-	putil_win32err(2, GetLastError(), path);
-    }
-
-    if (!(hMap = CreateFileMapping(fh, NULL, PAGE_READONLY, 0, 0, NULL))) {
-	putil_win32err(2, GetLastError(), path);
-    }
-
-    if (!(fdata = (unsigned char *)MapViewOfFile(hMap,
-						 FILE_MAP_COPY, 0, offset,
-						 (SIZE_T)extent))) {
-	putil_win32err(2, GetLastError(), path);
-    }
-
-    // We can close both handles as soon as the mapping exists.
-    if (!CloseHandle(hMap)) {
-	putil_win32err(2, GetLastError(), path);
-    }
-    if (!CloseHandle(fh)) {
-	putil_win32err(2, GetLastError(), path);
-    }
-#else	/*_WIN32*/
     // It's not documented whether 'private' or 'shared' mapping
-    // is faster when the mapping is PROT_READ anyway, but Solaris
-    // uses 'private' to map its shared libraries and we can assume
-    // that that code has been carefully tuned. Git is another data
-    // point which also uses 'private' mode.
+    // is faster when the mapping is PROT_READ anyway. Private
+    // seems like the best guess.
     fdata = (unsigned char *)mmap64(0, extent, PROT_READ, MAP_PRIVATE, fd, offset);
     if (fdata == MAP_FAILED) {
 	putil_syserr(2, path);
@@ -165,7 +90,6 @@ util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
     // in one place.
     madvise((char *)fdata, extent, MADV_SEQUENTIAL);
 #endif	/*MADV_SEQUENTIAL*/
-#endif	/*_WIN32*/
 
     vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
 
@@ -179,91 +103,13 @@ void
 util_unmap_file(unsigned char *fdata, uint64_t extent)
 {
     if (fdata) {
-#if defined(_WIN32)
-	UNUSED(extent);
-	if (UnmapViewOfFile(fdata) == 0) {
-	    putil_win32err(2, GetLastError(), "unmap");
-	}
-#else	/*_WIN32*/
 	if (munmap((void *)fdata, extent) == -1) {
 	    putil_syserr(0, "munmap");
 	}
-#endif	/*_WIN32*/
 	vb_printf(VB_MAP, "Unmapped %p", fdata);
     }
 }
 
-#if defined(_WIN32)
-// Documented below.
-CS
-util_requote_argv(CS const *argv)
-{
-    CS word, cmdline, ptr;
-    int quote, i;
-    size_t cmdlen;
-
-    // Figure out the worst-case scenario for how much space the cmdline
-    // will need and allocate that much. This worst case is when each
-    // char needs an escape, plus quotes, plus the trailing space or null.
-    for (cmdlen =  0, i = 0; argv[i]; i++) {
-	cmdlen += (strlen(argv[i]) * 2) + 3;
-    }
-    cmdline = (CS)putil_malloc(cmdlen);
-
-    for (ptr = cmdline; (word = *argv); argv++) {
-
-	// If the word needs quoting at all, use single quotes unless
-	// it _contains_ a single quote, in which case use double
-	// quotes and escape special chars.
-	if (*word) {
-	    char *p;
-
-	    for (quote = 0, p = word; *p; p++) {
-		if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
-		    quote = '"';
-		    break;
-		}
-	    }
-	} else {
-	    quote = '"';
-	}
-
-	// Add opening quote if required.
-	if (quote) {
-	    *ptr++ = quote;
-	}
-
-	// Copy the word into the output buffer with escapes as needed.
-	while (*word) {
-	    if (quote && *word == quote) {
-		*ptr++ = '\\';
-	    }
-	    *ptr++ = *word++;
-	}
-
-	// Add closing quote if required.
-	if (quote) {
-	    // Special case - \ quotes trailing ".
-	    if (*(ptr - 1) == '\\') {
-		*ptr++ = '\\';
-	    }
-	    *ptr++ = quote;
-	}
-
-	// Append space or terminating null.
-	if (argv[1]) {
-	    *ptr++ = ' ';
-	} else {
-	    *ptr = '\0';
-	}
-    }
-
-    // Trim to fit
-    cmdline = (CS)putil_realloc(cmdline, strlen(cmdline) + 1);
-
-    return cmdline;
-}
-#else	/*!_WIN32*/
 /// Takes an argv (which may have been derived by a shell splitting up
 /// a command line) and formats it back into a command line, quoted
 /// correctly such that if split by a shell the result would be the
@@ -356,14 +202,13 @@ util_requote_argv(CS const *argv)
 
     return cmdline;
 }
-#endif	/*!_WIN32*/
 
 /// A wrapper over getcwd(3) which returns a malloc-ed buffer.
 /// @return an allocated buffer
 CCS
 util_get_cwd(void)
 {
-    ssize_t len;
+    size_t len;
     CS cwd;
 
     len = putil_path_max() + 1;
@@ -417,14 +262,10 @@ util_get_rwd(void)
 CCS
 util_get_umask(CS curr_umask, size_t len)
 {
-#if defined(_WIN32)
-    snprintf(curr_umask, len, "0%lo", 02);
-#else	/*_WIN32*/
     mode_t tmask = umask(0);
 
     umask(tmask);
     snprintf(curr_umask, len, "0%lo", (unsigned long)tmask & 07777);
-#endif	/*_WIN32*/
     return (CCS)curr_umask;
 }
 
@@ -433,21 +274,6 @@ util_get_umask(CS curr_umask, size_t len)
 CCS
 util_get_logname(void)
 {
-#if defined(_WIN32)
-    static CS username;
-
-    if (username) {
-	return username;
-    } else {
-	char buf[UNLEN + 1];
-	DWORD len = charlen(buf);
-
-	if (GetUserName(buf, &len)) {
-	    username = putil_strdup(buf);
-	    return username;
-	}
-    }
-#else				/*!_WIN32 */
     struct passwd *me;
 
     // We explicitly prefer the effective uid over the actual.
@@ -457,7 +283,6 @@ util_get_logname(void)
 	    return me->pw_name;
 	}
     }
-#endif				/*!_WIN32 */
     return "NOBODY";
 }
 
@@ -466,39 +291,6 @@ util_get_logname(void)
 CCS
 util_get_groupname(void)
 {
-#if defined(_WIN32)
-    static char groupname[SMALLBUF];
-
-    if (groupname[0]) {
-	return groupname;
-    } else {
-	HANDLE TokenHandle;
-	DWORD tpg_len = 0;
-	PTOKEN_PRIMARY_GROUP tpg;
-	char pgroup[SMALLBUF], domain[SMALLBUF];
-	DWORD pgroup_len = charlen(pgroup);
-	DWORD domain_len = charlen(domain);
-	SID_NAME_USE snu;
-
-	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &TokenHandle)) {
-	    GetTokenInformation(TokenHandle, TokenPrimaryGroup, NULL,
-				tpg_len, &tpg_len);
-	    if (tpg_len) {
-		tpg = (PTOKEN_PRIMARY_GROUP) GlobalAlloc(GPTR, tpg_len);
-		if (GetTokenInformation(TokenHandle, TokenPrimaryGroup,
-					tpg, tpg_len, &tpg_len)) {
-		    if (LookupAccountSid(NULL, tpg->PrimaryGroup,
-					 pgroup, &pgroup_len, domain,
-					 &domain_len, &snu)) {
-			snprintf(groupname, charlen(groupname),
-				   "%s/%s", domain, pgroup);
-			return groupname;
-		    }
-		}
-	    }
-	}
-    }
-#else				/*!_WIN32 */
     struct group *me;
 
     if ((me = getgrgid(getegid()))) {
@@ -506,7 +298,6 @@ util_get_groupname(void)
 	    return me->gr_name;
 	}
     }
-#endif				/*!_WIN32 */
     return "NOGROUP";
 }
 
@@ -519,10 +310,7 @@ util_strdown(CS str)
     CS t;
 
     for (t = str; *t; t++) {
-	// Windows requires this test though Unix does not.
-	if (ISUPPER(*t)) {
-	    *t = tolower((int)*t);
-	}
+	*t = tolower((int)*t);
     }
     return str;
 }
@@ -536,10 +324,7 @@ util_strup(CS str)
     CS t;
 
     for (t = str; *t; t++) {
-	// Windows requires this test though Unix does not.
-	if (ISLOWER(*t)) {
-	    *t = toupper((int)*t);
-	}
+	*t = toupper((int)*t);
     }
     return str;
 }
@@ -564,15 +349,11 @@ util_strtrim(CS str)
 #include <elf.h>
 #endif /*APPLE*/
 #else /*BSD*/
-#if defined(_WIN32)
-#include <windows.h>
-#else	/*_WIN32*/
 #include <sys/statvfs.h>
 #include <sys/vfs.h>
-#endif	/*_WIN32*/
 #endif /*BSD*/
 
-#if defined(linux) || defined(__CYGWIN__)
+#if defined(linux)
 #include <search.h>
 #include <sys/vfs.h>
     typedef struct {
@@ -589,7 +370,7 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
     return (((fstypes *) node1)->f_type != ((fstypes *) node2)->f_type);
 }
 
-#endif				/*linux||__CYGWIN__*/
+#endif /*linux*/
 
 /// Determines the textual name of the filesystem containing the
 /// specified path.
@@ -597,24 +378,11 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
 /// @param[out] buf     a buffer for the filesystem name
 /// @param[in] len      size of buffer
 /// @return the passed-in buffer
-// TODO: possibly we should be using getmntent() on Solaris and Linux
-// or getmntinfo() on BSD, but I wrote this before I found them.
+// TODO: maybe this should use getmntent() on Linux
+// but I wrote this before I found it.
 CCS
 util_find_fsname(CCS path, CS buf, size_t len)
 {
-#if defined(_WIN32)
-    char vol[32768];
-
-    strcpy(buf, "??fs");
-    if (GetVolumePathName(path, vol, charlen(vol))) {
-	// MSDN says we need a trailing \ here ...
-	strcat(vol, "\\");
-	if (GetVolumeInformation(vol, NULL, 0, NULL, NULL, NULL, buf, len)) {
-	    return buf;
-	}
-    }
-    return NULL;
-#else	/*_WIN32*/
     // If path doesn't exist, return the fs name of its parent (recursively).
     if (access(path, F_OK)) {
 	CS pdir;
@@ -628,15 +396,7 @@ util_find_fsname(CCS path, CS buf, size_t len)
     }
 
     (void)strcpy(buf, "??fs");
-#if defined(sun)
-    {
-	struct statvfs fsbuf;
-
-	if (statvfs(path, &fsbuf) == 0) {
-	    (void)strcpy(buf, fsbuf.f_basetype);
-	}
-    }
-#elif defined(BSD)
+#if defined(BSD)
     {
 	struct statfs fsbuf;
 
@@ -644,7 +404,7 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    (void)strcpy(buf, fsbuf.f_fstypename);
 	}
     }
-#elif defined(linux) || defined(__CYGWIN__)
+#elif defined(linux)
     {
 	struct statfs sfs;
 	FILE *mtab;
@@ -697,12 +457,11 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    strcpy(buf, fnd->f_name);
 	}
     }
-#else	/*linux||__CYGWIN__*/
+#else	/*linux*/
     // Don't know how to get fs name on other platforms ...
     UNUSED(path);
-#endif	/*linux||__CYGWIN__*/
+#endif	/*linux*/
     return buf;
-#endif	/*_WIN32*/
 }
 
 /// Like the standard send() system call but takes care of
@@ -800,13 +559,9 @@ util_write_all(int fd, const void *vptr, size_t n)
 
 	    w = write(fd, p, n);
 	    if (w < 0) {
-#if defined(_WIN32)
-		return -1;
-#else	/*_WIN32*/
 		if (errno != EAGAIN && errno != EINTR)
 		    return -1;
 		continue;
-#endif	/*_WIN32*/
 	    }
 	    sofar += w;
 	    break;
@@ -934,12 +689,11 @@ util_hash_fun_default(const void *key)
 }
 
 /// Decides whether a path should be considered a temp file.
-/// On Windows this requires stepping carefully around
+/// On Windows this would require stepping carefully around
 /// both upper/lower case and short/long name issues.
 /// On Unix it's a simple matter of being in or under a
-/// directory named "/tmp".
-/// On both Unix and Windows we assume that a name ending
-/// with ".tmp" is a temp file.
+/// directory named "/tmp" while not being in the project.
+/// Assume a name ending with ".tmp" is always a temp file.
 /// @param path the pathname to check
 /// @return true iff the path is within a known temp dir.
 int
@@ -948,10 +702,6 @@ util_is_tmp(CCS path)
     static const char *basedir;
     size_t baselen;
     int rc = 0;
-#if defined(_WIN32)
-    // This does not use TCHARs because we assume UTF-8.
-    static char szTempPathLong[MAX_PATH], szTempPathShort[MAX_PATH];
-#endif
 
     if (! basedir) {
 	if ((basedir = prop_get_str(P_BASE_DIR))) {
@@ -966,44 +716,9 @@ util_is_tmp(CCS path)
 	return 0;
     }
 
-#if defined(_WIN32)
-    if (!szTempPathLong[0]) {
-	// Record the official temp-file location so we can ignore
-	// files there. This tends to be returned as a short pathname
-	// so for safety's sake we convert it to both short and long
-	// versions and check both (*&@# Windows!)
-	if (GetTempPathA(charlen(szTempPathShort), szTempPathShort) == 0) {
-	    putil_win32err(0, GetLastError(), "GetTempPath");
-	}
-
-	if (GetShortPathNameA(szTempPathShort,
-			      szTempPathShort, charlen(szTempPathShort)) == 0) {
-	    putil_win32err(0, GetLastError(), "GetShortPathName");
-	}
-	putil_canon_path(szTempPathShort, NULL, 0);
-
-	if (GetLongPathNameA(szTempPathShort,
-			     szTempPathLong, charlen(szTempPathLong)) == 0) {
-	    putil_win32err(0, GetLastError(), "GetLongPathName");
-	    strcpy(szTempPathLong, szTempPathShort);
-	}
-	putil_canon_path(szTempPathLong, NULL, 0);
-    }
-
-    if (!strnicmp(path, szTempPathLong, strlen(szTempPathLong))) {
-	rc = 1;
-    } else if (!strnicmp(path, szTempPathShort, strlen(szTempPathShort))) {
-	rc = 1;
-    } else if (!stricmp(endof(path) - 4, ".tmp")) {
-	rc = 1;
-    } else {
-	rc = 0;
-    }
-#else				/*!_WIN32 */
     rc = strstr(path, "/tmp/") ||
 	!util_pathcmp(endof(path) - 4, "/tmp") ||
 	!util_pathcmp(endof(path) - 4, ".tmp");
-#endif				/*!_WIN32 */
 
     return rc;
 }
@@ -1016,7 +731,6 @@ _util_finalize_output_file(void)
 	CS obuf;
 
 	if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
-	    unlink(OutputFile);	// needed on Windows
 	    if (rename(obuf, OutputFile)) {
 		putil_syserr(0, OutputFile);
 	    }
@@ -1097,8 +811,8 @@ util_print_elapsed(time_t since, long minimum, CCS msg)
 }
 
 /// Attempts to fire up a debugger on the current process in a new window.
-/// Requires the X Windows System to be in use because it depends on
-/// starting the debugger within an xterm windows.
+/// Requires the X Window System to be in use because it depends on
+/// starting the debugger within an xterm.
 /// This will run the debugger unless the _START_DEBUGGER
 /// environment variable is present and set to 0.
 void
@@ -1108,15 +822,11 @@ util_debug_from_here(void)
 
     if (!(ev = putil_getenv("_START_DEBUGGER")) || *ev != '0') {
 
-#if defined(_WIN32)
-	DebugBreak();
-#else				/*!_WIN32 */
 	char *buf;
 
 	asprintf(&buf,
-		 "set -x; %s_32= %s_64= %s= xterm -e gdb --quiet %s %lu &",
-		 PRELOAD_EV, PRELOAD_EV, PRELOAD_EV,
-		 putil_getexecpath(), (unsigned long)getpid());
+		 "set -x; %s= xterm -e gdb --quiet %s %lu &",
+		 PRELOAD_EV, putil_getexecpath(), (unsigned long)getpid());
 
 	if (system(buf)) {
 	    abort();
@@ -1124,7 +834,6 @@ util_debug_from_here(void)
 	    (void)sleep(2);
 	}
 	putil_free(buf);
-#endif				/*!_WIN32 */
     }
 }
 
@@ -1417,9 +1126,6 @@ util_unescape(const char *string, int length, int *olen)
 char *
 util_tempnam(const char *dir, const char *pfx)
 {
-#if defined(_WIN32)
-    return _tempnam(dir, pfx);
-#else				/*!_WIN32 */
     char *(*fcn)(const char *, const char *);
     char *err;
 
@@ -1429,5 +1135,6 @@ util_tempnam(const char *dir, const char *pfx)
     }
 
     return fcn(dir, pfx);
-#endif				/*!_WIN32 */
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

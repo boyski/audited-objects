@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  */
 
 /// @file
-/// @brief Handles client-side makefile generation code.
+/// @brief Handle client-side makefile generation code.
 
 #include "AO.h"
 
@@ -49,11 +49,7 @@ make_init(CCS exe)
 	if (exe && (exedir = putil_dirname(exe))) {
 	    if ((appdir = putil_dirname(exedir))) {
 
-#if defined(_WIN32)
-		asprintf(&fragment, "%s\\%s.mk", appdir, prop_get_app());
-#else	/*_WIN32*/
 		asprintf(&fragment, "%s/etc/%s.mk", appdir, prop_get_app());
-#endif	/*_WIN32*/
 		putil_free(appdir);
 	    }
 	    putil_free(exedir);
@@ -62,13 +58,7 @@ make_init(CCS exe)
 	if (!fragment) {
 	    putil_warn("missing makefile fragment");
 	} else if (access(fragment, R_OK)) {
-#if !defined(_WIN32)
-	    /*
-	     * On Windows we use this if present but don't bother warning
-	     * if not, because use of gnu make is less likely.
-	     */
 	    putil_syserr(0, fragment);
-#endif	/*_WIN32*/
 	} else {
 	    CS mf, ev;
 
@@ -189,3 +179,5 @@ make_fini(void)
 
     putil_free(MakeCmd);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

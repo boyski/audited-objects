@@ -1,4 +1,4 @@
-/* Copyright (c) 2005-2011 David Boyce.  All rights reserved. */
+/* Copyright (c) 2005-2025 David Boyce.  All rights reserved. */
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -50,9 +50,9 @@ re_init__(CCS name, CCS restr)
     int erroffset;
     int opts = PCRE_UTF8;
 
-#if defined(_WIN32)
+#if defined(__APPLE__)
     opts |= PCRE_CASELESS;
-#endif	/*_WIN32*/
+#endif	/*__APPLE__*/
 
     vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
 
@@ -128,3 +128,11 @@ re_fini__(void **re)
     pcre_free(*re);
     *re = NULL;
 }
+
+const char *
+re_version(void)
+{
+    return pcre_version();
+}
+
+// vim: sw=4 ts=8 tw=100 cc=+1

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2009-2011 the libgit2 contributors
+ * Copyright (C) the libgit2 contributors. All rights reserved.
  *
  * This file is part of libgit2, distributed under the GNU GPL v2 with
  * a Linking Exception. For full terms see the included COPYING file.
  */
-#ifndef INCLUDE_net_h__
-#define INCLUDE_net_h__
+#ifndef INCLUDE_git_net_h__
+#define INCLUDE_git_net_h__
 
 #include "common.h"
 #include "oid.h"
@@ -13,41 +13,44 @@
 
 /**
  * @file git2/net.h
- * @brief Git networking declarations
+ * @brief Low-level networking functionality
  * @ingroup Git
  * @{
  */
 GIT_BEGIN_DECL
 
+/** Default git protocol port number */
 #define GIT_DEFAULT_PORT "9418"
 
-/*
+/**
+ * Direction of the connection.
+ *
  * We need this because we need to know whether we should call
  * git-upload-pack or git-receive-pack on the remote end when get_refs
  * gets called.
  */
-
-#define GIT_DIR_FETCH 0
-#define GIT_DIR_PUSH 1
+typedef enum {
+	GIT_DIRECTION_FETCH = 0,
+	GIT_DIRECTION_PUSH  = 1
+} git_direction;
 
 /**
- * Remote head description, given out on `ls` calls.
+ * Description of a reference advertised by a remote server, given out
+ * on `ls` calls.
  */
 struct git_remote_head {
-	int local:1; /* available locally */
+	int local; /* available locally */
 	git_oid oid;
 	git_oid loid;
 	char *name;
-};
-
-/**
- * Array of remote heads
- */
-struct git_headarray {
-	unsigned int len;
-	struct git_remote_head **heads;
+	/**
+	 * If the server send a symref mapping for this ref, this will
+	 * point to the target.
+	 */
+	char *symref_target;
 };
 
 /** @} */
 GIT_END_DECL
+
 #endif

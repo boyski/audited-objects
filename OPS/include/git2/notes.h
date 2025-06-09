@@ -11,7 +11,7 @@
 
 /**
  * @file git2/notes.h
- * @brief Git notes management routines
+ * @brief Notes are metadata attached to an object
  * @defgroup git_note Git notes management routines
  * @ingroup Git
  * @{
@@ -21,13 +21,15 @@ GIT_BEGIN_DECL
 /**
  * Callback for git_note_foreach.
  *
- * Receives:
- * - blob_id: Oid of the blob containing the message
- * - annotated_object_id: Oid of the git object being annotated
- * - payload: Payload data passed to `git_note_foreach`
+ * @param blob_id object id of the blob containing the message
+ * @param annotated_object_id the id of the object being annotated
+ * @param payload user-specified data to the foreach function
+ * @return 0 on success, or a negative number on failure
  */
-typedef int (*git_note_foreach_cb)(
-	const git_oid *blob_id, const git_oid *annotated_object_id, void *payload);
+typedef int GIT_CALLBACK(git_note_foreach_cb)(
+	const git_oid *blob_id,
+	const git_oid *annotated_object_id,
+	void *payload);
 
 /**
  * note iterator
@@ -52,6 +54,20 @@ GIT_EXTERN(int) git_note_iterator_new(
 	const char *notes_ref);
 
 /**
+ * Creates a new iterator for notes from a commit
+ *
+ * The iterator must be freed manually by the user.
+ *
+ * @param out pointer to the iterator
+ * @param notes_commit a pointer to the notes commit object
+ *
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_note_commit_iterator_new(
+	git_note_iterator **out,
+	git_commit *notes_commit);
+
+/**
  * Frees an git_note_iterator
  *
  * @param it pointer to the iterator
@@ -70,8 +86,8 @@ GIT_EXTERN(void) git_note_iterator_free(git_note_iterator *it);
  *         (negative value)
  */
 GIT_EXTERN(int) git_note_next(
-	git_oid* note_id,
-	git_oid* annotated_id,
+	git_oid *note_id,
+	git_oid *annotated_id,
 	git_note_iterator *it);
 
 
@@ -92,6 +108,25 @@ GIT_EXTERN(int) git_note_read(
 	git_note **out,
 	git_repository *repo,
 	const char *notes_ref,
+	const git_oid *oid);
+
+
+/**
+ * Read the note for an object from a note commit
+ *
+ * The note must be freed manually by the user.
+ *
+ * @param out pointer to the read note; NULL in case of error
+ * @param repo repository where to look up the note
+ * @param notes_commit a pointer to the notes commit object
+ * @param oid OID of the git object to read the note from
+ *
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_note_commit_read(
+	git_note **out,
+	git_repository *repo,
+	git_commit *notes_commit,
 	const git_oid *oid);
 
 /**
@@ -153,6 +188,36 @@ GIT_EXTERN(int) git_note_create(
 	const char *note,
 	int force);
 
+/**
+ * Add a note for an object from a commit
+ *
+ * This function will create a notes commit for a given object,
+ * the commit is a dangling commit, no reference is created.
+ *
+ * @param notes_commit_out pointer to store the commit (optional);
+ *					NULL in case of error
+ * @param notes_blob_out a point to the id of a note blob (optional)
+ * @param repo repository where the note will live
+ * @param parent Pointer to parent note
+ *					or NULL if this shall start a new notes tree
+ * @param author signature of the notes commit author
+ * @param committer signature of the notes commit committer
+ * @param oid OID of the git object to decorate
+ * @param note Content of the note to add for object oid
+ * @param allow_note_overwrite Overwrite existing note
+ *
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_note_commit_create(
+	git_oid *notes_commit_out,
+	git_oid *notes_blob_out,
+	git_repository *repo,
+	git_commit *parent,
+	const git_signature *author,
+	const git_signature *committer,
+	const git_oid *oid,
+	const char *note,
+	int allow_note_overwrite);
 
 /**
  * Remove the note for an object
@@ -172,6 +237,32 @@ GIT_EXTERN(int) git_note_remove(
 	const git_signature *author,
 	const git_signature *committer,
 	const git_oid *oid);
+
+/**
+ * Remove the note for an object
+ *
+ * @param notes_commit_out pointer to store the new notes commit (optional);
+ *					NULL in case of error.
+ *					When removing a note a new tree containing all notes
+ *					sans the note to be removed is created and a new commit
+ *					pointing to that tree is also created.
+ *					In the case where the resulting tree is an empty tree
+ *					a new commit pointing to this empty tree will be returned.
+ * @param repo repository where the note lives
+ * @param notes_commit a pointer to the notes commit object
+ * @param author signature of the notes commit author
+ * @param committer signature of the notes commit committer
+ * @param oid OID of the git object to remove the note from
+ *
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_note_commit_remove(
+		git_oid *notes_commit_out,
+		git_repository *repo,
+		git_commit *notes_commit,
+		const git_signature *author,
+		const git_signature *committer,
+		const git_oid *oid);
 
 /**
  * Free a git_note object
@@ -214,4 +305,5 @@ GIT_EXTERN(int) git_note_foreach(
 
 /** @} */
 GIT_END_DECL
+
 #endif

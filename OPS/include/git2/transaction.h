@@ -8,6 +8,15 @@
 #define INCLUDE_git_transaction_h__
 
 #include "common.h"
+#include "types.h"
+
+/**
+ * @file git2/transaction.h
+ * @brief Transactional reference handling
+ * @defgroup git_transaction Transactional reference handling
+ * @ingroup Git
+ * @{
+ */
 GIT_BEGIN_DECL
 
 /**
@@ -107,5 +116,7 @@ GIT_EXTERN(int) git_transaction_commit(git_transaction *tx);
  */
 GIT_EXTERN(void) git_transaction_free(git_transaction *tx);
 
+/** @} */
 GIT_END_DECL
+
 #endif

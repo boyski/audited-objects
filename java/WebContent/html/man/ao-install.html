@@ -42,10 +42,10 @@ rather than an OS/distro version.</p>
 <p>The client install is as simple as extracting the tar file into the
 <em>install-base</em> directory. For instance, for personal use or evaluation
 place it in your home directory:</p>
-<pre>    % cd ~<br />    % gtar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:$HOME/bin</pre>
+<pre>    % cd ~<br />    % tar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:$HOME/bin</pre>
 
 <p>Or if you prefer to install for general use in /opt/local/bin:</p>
-<pre>    % cd /opt/local<br />    % gtar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:/opt/local/bin</pre>
+<pre>    % cd /opt/local<br />    % tar -xzvf /tmp/ao-Linux_i386-2.3.2.tar.gz<br />    % export PATH=$PATH:/opt/local/bin</pre>
 
 <p>Etc. This may be done for each client system or just once in a
 globally-mounted location. The important thing is that the <em>ao</em> program
@@ -69,20 +69,14 @@ to audit any program by simply prepending "ao -o- run". E.g.
 If the program returns output similar to the above and an exit status of 0, client installation succeeded.
 The &quot;-o&quot; told it to dump the audit to a file instead of sending it to a server and the
 value &quot;-&quot; named that file as standard output. The output itself is rather cryptic but essentially
-the first line describes the audited command itself and the second describes the only file it opened.
+it's a CSV format. The first line describes the audited command itself and the second describes the only file it opened.
 
 <h4><a id="setuid_use">SETUID USE</a></h4>
 
-<p>In order for AO to audit a setuid program the <code>libao.so</code> file
+<p>In order for AO to audit a setuid program the <code>libAO.so</code> file
 must be marked as a <em>trusted library</em>. This is handled differently on
-different platforms; e.g. on Linux it must be listed in /etc/ld.so.conf. See
-<i>man ld.so</i> for details. On Solaris see <i>man ld.so.1</i> and <i>man crle</i></p>.
-
-<h3><a id="windows_clients">WINDOWS CLIENTS</a></h3>
-
-<p>The Windows client install is similar except that the zip file should be
-extracted directly into a folder which is on %PATH%. The properties file
-belongs in %HOMEDRIVE%%HOMEPATH%.</p>
+different platforms. On Linux it must be listed in /etc/ld.so.conf. See
+<i>man ld.so</i> for details.
 
 <hr />
 
@@ -135,7 +129,7 @@ have Unix line endings in the tar packages and Windows line endings in the
     <code>chown -R</code> the entire directory tree to be owned by that user,
     but there are other ways. You may also prefer to use a symbolic link
     to simplify configuration. For instance:<p></p>
-    <pre>    % cd /opt<br />    % gtar -xzf /tmp/apache-tomcat-6.0.18.tar.gz<br />    % chown -R $LOGNAME apache-tomcat-6.0.18<br />    % ln -s apache-tomcat-6.0.18 tomcat</pre>
+    <pre>    % cd /opt<br />    % tar -xzf /tmp/apache-tomcat-6.0.18.tar.gz<br />    % chown -R $LOGNAME apache-tomcat-6.0.18<br />    % ln -s apache-tomcat-6.0.18 tomcat</pre>
     <p>The directory containing Tomcat (<code>/opt/tomcat</code> here) will be
     known as <em>AOSERVER_HOME</em> below.</p>
   </li>
@@ -255,8 +249,7 @@ CONFIGURATION</a></h2>
 
 <p>To avoid having to specify the server string each time, edit the
 <em>ao.properties</em> file you created above, or make a new one in
-<em>$HOME/ao.properties</em> (or <em>%HOMEDRIVE%\%HOMEPATH%\ao.properties</em>
-on Windows), and set the following property:</p>
+<em>$HOME/ao.properties</em>, and set the following property:</p>
 <pre>    Server = server:port</pre>
 
 <p>Where <code>server:port</code> is the same string you passed with -s above.

@@ -1,7 +1,7 @@
 """Classes to support AO post-processing."""
 
 #############################################################################
-# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+# Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -17,17 +17,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-from __future__ import print_function
-from __future__ import unicode_literals
+import os.path as op
+import site
 
-import os
+# Update sys.path to find required library modules.
+site.addsitedir(op.dirname(op.realpath(__file__)))
 
 CA_SPLITS = 13
 PA_SPLITS = 16
 SEP = ','
 
 
-class PathAction(object):
+class PathAction():
 
     """Parse the AO file-access CSV format into its component parts."""
 
@@ -37,7 +38,7 @@ class PathAction(object):
         self.dcode = fields[14]
         self.path2 = fields[-2]
         self.path = fields[-1]
-        self.is_member = not os.path.isabs(self.path)
+        self.is_member = not op.isabs(self.path)
 
         # The whole area of symlinks in AO is complicated. From a
         # filesystem POV there's no need for a symlink to resolve,
@@ -55,12 +56,11 @@ class PathAction(object):
 
         # The next-to-last slot is reserved for a possible symlink target.
         if self.path2:
-            if not os.path.isabs(self.path2):
-                self.path2 = os.path.join(
-                    os.path.dirname(self.path), self.path2)
-            self.path2 = os.path.normpath(self.path2)
+            if not op.isabs(self.path2):
+                self.path2 = op.join(op.dirname(self.path), self.path2)
+            self.path2 = op.normpath(self.path2)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         """
 
         Sometimes it's helpful to treat one among multiple sibling
@@ -74,27 +74,29 @@ class PathAction(object):
         in subdirectories, so we favor shorter paths.  The target at
         the front of the list after all this is considered primary.
 
-        Still, this is basically guesswork and subject to breakage.
+        Still, this is just a heuristic and subject to breakage.
         Always looking for a better way.
 
         This logic is available for sorting any PA set but is important
         primarily for targets.
         """
         if self.is_member != other.is_member:
-            return 1 if self.is_member else -1
+            return not bool(self.is_member)
         if self.path[0] == '.' and other.path[0] != '.':
-            return -1
+            return True
         if self.is_dir and not other.is_dir:
-            return -1
+            return True
         if self.is_append and not other.is_append:
-            return -1
+            return True
         diff = len(self.path) - len(other.path)
         if diff == 0:
-            return cmp(self.path, other.path)
-        return -1 if diff > 0 else 1
+            return self.path < other.path
+        return diff < 0
+
+    def __eq__(self, other):
+        return self.path == other.path and self.op == other.op
 
     def __hash__(self):
-        """Required due to cmp override."""
         return hash(self.op + self.path)
 
     def __repr__(self):
@@ -102,7 +104,7 @@ class PathAction(object):
 
     def exists(self):
         """Report whether this path currently exists."""
-        return os.path.exists(self.path)
+        return op.exists(self.path)
 
     @property
     def is_prereq(self):
@@ -135,7 +137,7 @@ class PathAction(object):
         return self.op == 'D'
 
 
-class CommandAction(object):
+class CommandAction():
 
     """Parse the AO command-line CSV format into its component parts."""
 
@@ -155,7 +157,7 @@ class CommandAction(object):
 
     def paths(self):
         """Return the set of paths involved in PathActions."""
-        return set([pa.path for pa in self.pa_set])
+        return {pa.path for pa in self.pa_set}
 
     def prereqs(self):
         """Return the list of prereq PathActions."""
@@ -165,4 +167,11 @@ class CommandAction(object):
         """Return the list of target PathActions."""
         return sorted([pa for pa in self.pa_set if pa.is_target])
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

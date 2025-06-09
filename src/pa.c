@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 /// rename, or unlink. A PathAction contains a PathState (see ps.c). For a
 /// given PathState there may be many PathActions, though all but one (or
 /// zero) of them must be read operations since a creation event would
-/// typically result in a new PathState.
+/// result in a new PathState.
 ///
 /// The term PathAction is often abbreviated as PA.
 
@@ -536,3 +536,5 @@ pa_destroy(pa_o pa)
     // Last, free the object itself.
     putil_free(pa);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

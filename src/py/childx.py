@@ -33,7 +33,7 @@ def xtrace(cmd, **kwargs):
     # Skip xtrace verbosity if stderr is redirected.
     if not XTRACE or kwargs.get('stderr') is not None:
         return
-    if isinstance(cmd, basestring):
+    if isinstance(cmd, str):
         sys.stderr.write('+ ' + cmd + '\n')
     else:
         sys.stderr.write('+ ' + ' '.join(cmd) + '\n')
@@ -62,11 +62,17 @@ class Popen(subprocess.Popen):
 
     def __init__(self, cmd, **kwargs):
         xtrace(cmd, **kwargs)
-        super(Popen, self).__init__(cmd, **kwargs)
+        super().__init__(cmd, **kwargs)
 
 
 class CalledProcessError(subprocess.CalledProcessError):
     """Wrapper over subprocess.CalledProcessError class."""
-    pass
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

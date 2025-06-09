@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -80,20 +80,6 @@ static void interposer_early_init(void) __attribute__ ((constructor));
 static void interposer_finalize(void) __attribute__ ((destructor));
 #endif
 
-// There are a number of macros indicating 32- vs 64-bit mode.
-// I do not know which ones are standard/reliable/portable, so
-// what we do here is check for all known macros and turn them
-// into one of our own creation. Some may be specific to a compiler
-// (gcc vs Sun), some to an OS (Linux vs Windows), some to a
-// particular CPU (AMD vs Intel vs Sparc). Note that FreeBSD
-// is always 64-bit.
-#if defined(__LP64__) || defined(_LP64) \
-    || defined(__arch64__) || defined(__amd64__) \
-    || defined(__sparcv9) || defined(__x86_64) || defined(__x86_64__) \
-    || defined(__FreeBSD__)
-#define INTERPOSER_64BIT_MODE
-#endif
-
 extern int interposer_set_dbg_flag(int);
 extern int interposer_get_active(void);
 extern int interposer_set_active(int);
@@ -112,11 +98,6 @@ extern void interposed_finalize(void);
 #define _RTLD_LOCAL_			RTLD_SELF
 #else
 #define _RTLD_LOCAL_			RTLD_DEFAULT
-#endif
-
-// This seems to work OK on Cygwin. Not sure why though.
-#if defined(__CYGWIN__) && !defined(RTLD_NEXT)
-#define RTLD_NEXT RTLD_DEFAULT
 #endif
 
 #if defined(INTERPOSER_DEBUG) || 0
@@ -287,15 +268,14 @@ static int interposer_dbg_flag;
 static struct timeval interposer_start_time;
 
 // We work hard to determine the original argv passed to the program.
-// This represents our best effort. Unfortunately, some programs
-// overwrite their own argv during execution (e.g. "find ... -exec ..."
-// on Solaris), so we can't just hold a pointer to it because the data
-// might be useless by the time we need it. We must make a copy
-// at startup time. Even more unfortunately, we can't malloc the copy
-// because our constructor runs before that of libc, so malloc isn't
-// available yet. And our next chance may be too late. So the best we
-// can do is a big static buffer. ARG_MAX is normally plenty since the
-// actual limit is (ARG_MAX - <size-of-environment> - <some-other-stuff>).
+// This represents our best effort. Unfortunately, some programs may
+// overwrite their own argv during execution so we can't just hold a
+// pointer to it because the data might be useless by the time we need it.
+// We must make a copy at startup time. Even more unfortunately, we
+// can't malloc the copy because our constructor runs before that of libc
+// so malloc isn't available yet. And our next chance may be too late.
+// So the best we can do is a big static buffer. ARG_MAX is normally plenty
+// since the actual limit is (ARG_MAX - <size-of-environment> - <some-other-bits>).
 // However, if kernel params have been tweaked to set the limit
 // higher than the compile-time constant, this could still truncate.
 static char interposer_cmdline[ARG_MAX] = "???";
@@ -408,24 +388,10 @@ interposer_requote(char **argv, char *cmdline)
 static char **
 interposer_argv_from_environ(int *p_argc)
 {
-#ifdef	_WIN32
-    return NULL;
-#else	/*!_WIN32*/
-
 #if defined(__APPLE__)
     // OSX has its own way (as usual).
     char **av;
     av = *_NSGetArgv();
-    if (p_argc) {
-	int i;
-	for (i = 0; av[i]; i++)
-	*p_argc = i;
-    }
-    return av;
-#elif defined(__CYGWIN__)
-    extern char **__argv;
-    char **av;
-    av = __argv;
     if (p_argc) {
 	int i;
 	for (i = 0; av[i]; i++)
@@ -462,7 +428,6 @@ interposer_argv_from_environ(int *p_argc)
 	return NULL;
     }
 #endif	/*!__APPLE__*/
-#endif	/*!_WIN32*/
 }
 
 static void interposer_late_init(const char *);
@@ -544,7 +509,7 @@ interposer_get_real(const char *call)
 {
     void *real;
 
-    // Let the receiver decide how to handle missing symbols.
+    // Let the caller decide how to handle missing symbols.
     real = dlsym(RTLD_NEXT, call);
 
     return real;
@@ -558,3 +523,5 @@ interposer_get_real(const char *call)
 WRAP(int, chdir, (const char *path), path)
 
 #endif	/* _INTERPOSER_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

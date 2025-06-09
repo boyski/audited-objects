@@ -1,20 +1,20 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <package-X.Y.tar.bz2> [64]" >&2
+    echo "Usage: $0 <package-X.Y.tar.bz2>" >&2
     exit 1
 fi
 
 set -e
 
-: ${PWD:=`/bin/pwd`}
-: ${OS_CPU:=`uname -m`_`uname -s`}
+: ${PWD:=$(/bin/pwd)}
+: ${OS_CPU:=$(uname -m)_$(uname -s)}
 
 srcpkg=$1
 bits=$2
 
-srcdir=`basename $srcpkg .tar.bz2`
-bunzip2 -c $srcpkg | tar -xf -
+srcdir=$(basename $srcpkg .tar.bz2)
+tar -xjf $srcpkg
 
 blddir=${OS_CPU?}${bits:+_$bits}
 
@@ -24,10 +24,7 @@ case ${OS_CPU?} in
 	conf_flags=--disable-dependency-tracking
 	;;
     *)
-	case "$bits" in
-	    64) xflags="-fPIC" ;;
-	    *)  xflags="-fpic" ;;
-	esac
+	xflags="-fPIC"
 	;;
 esac
 

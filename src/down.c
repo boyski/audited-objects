@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -155,12 +155,10 @@ down_load(ps_o ps)
     }
 
     if (rc == 0) {
-#ifndef _WIN32
 	// If no mode was reported at all, let the current umask win.
 	if (dps.dps_mode && chmod(abspath, dps.dps_mode)) {
 	    putil_syserr(0, abspath);
 	}
-#endif	/*_WIN32*/
 	// By default we set the mod time of the downloaded file to what
 	// it was when it was uploaded, but 'now' can also be requested.
 	// If no timestamp was sent by the server, 'now' it is.
@@ -180,3 +178,5 @@ down_load(ps_o ps)
 
     return rc;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

@@ -9,17 +9,17 @@ fi
 
 set -e
 
-: ${PWD:=`/bin/pwd`}
-: ${OS_CPU:=`uname -m`_`uname -s`}
+: ${PWD:=$(/bin/pwd)}
+: ${OS_CPU:=$(uname -m)_$(uname -s)}
 
 curlpkg=$1
 zlibpkg=$2
 bits=$3
 
-gunzip -c $curlpkg | tar -xf -
+tar -xzf $curlpkg
 
-curldir=$PWD/`basename $curlpkg .tar.gz`
-zlibdir=$PWD/`basename $zlibpkg .tar.gz`
+curldir=$PWD/$(basename $curlpkg .tar.gz)
+zlibdir=$PWD/$(basename $zlibpkg .tar.gz)
 zlibinst=$PWD/zlib-inst
 blddir=$curldir/${OS_CPU?}${bits:+_$bits}
 
@@ -42,7 +42,7 @@ esac
 (
     set -e
     rm -rf "$zlibdir"
-    gunzip -c $zlibpkg | tar -xf -
+    tar -xzf $zlibpkg
     cd "$zlibdir"
     CFLAGS="-Os $bitflag $xflags" sh configure --prefix=$zlibinst
     make clean all
@@ -62,6 +62,7 @@ conf_flags="$conf_flags \
     --enable-static --disable-shared \
     --without-ssl \
     --without-libidn \
+    --without-libpsl \
     --disable-ftp \
     --disable-ldap \
     --disable-ldaps \

@@ -4,7 +4,7 @@
 // do not mention it.
 
 static char self_license[] = "\
-Copyright (c) 2002-2011 David Boyce.  All rights reserved.\n\
+Copyright (c) 2002-2025 David Boyce.  All rights reserved.\n\
 Warning: this computer software is protected by copyright law and\n\
 international treaties. Unauthorized reproduction or distribution of\n\
 this software, or any portion of it, may result in severe civil and\n\
@@ -196,6 +196,39 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF\n\
 SUCH DAMAGE.\n\
 ";
 
+static char xxhash_license[] = "\
+Copyright (C) 2012-2023 Yann Collet\n\
+\n\
+BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)\n\
+\n\
+Redistribution and use in source and binary forms, with or without\n\
+modification, are permitted provided that the following conditions are\n\
+met:\n\
+\n\
+   * Redistributions of source code must retain the above copyright\n\
+     notice, this list of conditions and the following disclaimer.\n\
+   * Redistributions in binary form must reproduce the above\n\
+     copyright notice, this list of conditions and the following disclaimer\n\
+     in the documentation and/or other materials provided with the\n\
+     distribution.\n\
+\n\
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\
+\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\n\
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\n\
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\n\
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\n\
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\n\
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\n\
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\n\
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n\
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n\
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\
+\n\
+You can contact the author at:\n\
+  - xxHash homepage: https://www.xxhash.com\n\
+  - xxHash source repository: https://github.com/Cyan4973/xxHash\n\
+";
+
 static char banner[] =
 "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
 
@@ -225,7 +258,7 @@ about_client(void)
 
     print_license("BSD", bsd_license);
 
-#if defined(_WIN32)
-#include "About/about_win.c"
-#endif
+    print_license("XXHASH", xxhash_license);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

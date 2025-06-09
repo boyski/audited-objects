@@ -32,14 +32,16 @@ may be used for years before being updated. A
 corollary of this is that nobody cares how long the build takes,
 since it runs just the one time. Another is that aggressive optimization of
 the final product is usually sacrificed in the interest of
-portability, and another is that any ugly hack is tolerable. This is
+portability, and another is that any ugly hack is tolerable. 
+Careful dependency analysis is often sacrificed because builds
+tend to be from scratch so interdependencies don't matter.  This is
 the <em>BORM</em> philosophy, and the great majority of open-source
 tools subscribe to it.</p>
 
 <p>When a software business is building its own product, however, the
 incentives are reversed. The build may be run many times per day by
-multiple users as part of an agile methodology, or at least there may
-be a nightly build. Developers may rebuild nearly every time
+multiple users as part of a continuous integration methodology, or there may
+at least be a nightly build. Developers may rebuild nearly every time
 they change a source file. Meanwhile, the software is typically
 targeted at a tightly controlled set of supported platforms, all
 of which are accessible to build maintainers, and support for old
@@ -63,8 +65,8 @@ So the decision generally is to leave it alone no matter how ugly.
 Second is the fun factor: people work on open source code to please
 themselves, because they want to invent something cool or to add a
 feature for which they have a personal use. Developers do not
-usually flock to an OSS project in order to streamline the build
-model. In most cases they're not using agile methodologies, which
+usually flock to an OSS project in order to streamline its build
+system. In most cases they're not using agile methodologies which
 place a premium on fast build turnaround. None of this is to say
 that OSS programmers don't care about quality; they do, but they
 rarely have a vested interest in <em>build</em> quality.</p>

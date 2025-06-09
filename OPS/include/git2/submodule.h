@@ -15,7 +15,7 @@
 
 /**
  * @file git2/submodule.h
- * @brief Git submodule management utilities
+ * @brief Submodules place another repository's contents within this one
  *
  * Submodule support in libgit2 builds a list of known submodules and keeps
  * it in the repository.  The list is built from the .gitmodules file, the
@@ -85,23 +85,30 @@ typedef enum {
 	GIT_SUBMODULE_STATUS_WD_MODIFIED       = (1u << 10),
 	GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED = (1u << 11),
 	GIT_SUBMODULE_STATUS_WD_WD_MODIFIED    = (1u << 12),
-	GIT_SUBMODULE_STATUS_WD_UNTRACKED      = (1u << 13),
+	GIT_SUBMODULE_STATUS_WD_UNTRACKED      = (1u << 13)
 } git_submodule_status_t;
 
+/** Submodule source bits */
 #define GIT_SUBMODULE_STATUS__IN_FLAGS		0x000Fu
+/** Submodule index status */
 #define GIT_SUBMODULE_STATUS__INDEX_FLAGS	0x0070u
+/** Submodule working directory status */
 #define GIT_SUBMODULE_STATUS__WD_FLAGS		0x3F80u
 
+/** Whether the submodule is modified */
 #define GIT_SUBMODULE_STATUS_IS_UNMODIFIED(S) \
 	(((S) & ~GIT_SUBMODULE_STATUS__IN_FLAGS) == 0)
 
+/** Whether the submodule is modified (in the index) */
 #define GIT_SUBMODULE_STATUS_IS_INDEX_UNMODIFIED(S) \
 	(((S) & GIT_SUBMODULE_STATUS__INDEX_FLAGS) == 0)
 
+/** Whether the submodule is modified (in the working directory) */
 #define GIT_SUBMODULE_STATUS_IS_WD_UNMODIFIED(S) \
 	(((S) & (GIT_SUBMODULE_STATUS__WD_FLAGS & \
 	~GIT_SUBMODULE_STATUS_WD_UNINITIALIZED)) == 0)
 
+/** Whether the submodule working directory is dirty */
 #define GIT_SUBMODULE_STATUS_IS_WD_DIRTY(S) \
 	(((S) & (GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED | \
 	GIT_SUBMODULE_STATUS_WD_WD_MODIFIED | \
@@ -115,28 +122,23 @@ typedef enum {
  * @param payload value you passed to the foreach function as payload
  * @return 0 on success or error code
  */
-typedef int (*git_submodule_cb)(
+typedef int GIT_CALLBACK(git_submodule_cb)(
 	git_submodule *sm, const char *name, void *payload);
 
 /**
  * Submodule update options structure
  *
- * Use the GIT_SUBMODULE_UPDATE_OPTIONS_INIT to get the default settings,
- * like this:
+ * Initialize with `GIT_SUBMODULE_UPDATE_OPTIONS_INIT`. Alternatively, you can
+ * use `git_submodule_update_options_init`.
  *
- * git_submodule_update_options opts = GIT_SUBMODULE_UPDATE_OPTIONS_INIT;
  */
 typedef struct git_submodule_update_options {
 	unsigned int version;
 
 	/**
 	 * These options are passed to the checkout step. To disable
-	 * checkout, set the `checkout_strategy` to
-	 * `GIT_CHECKOUT_NONE`. Generally you will want the use
-	 * GIT_CHECKOUT_SAFE to update files in the working
-	 * directory. Use the `clone_checkout_strategy` field
-	 * to set the checkout strategy that will be used in
-	 * the case where update needs to clone the repository.
+	 * checkout, set the `checkout_strategy` to `GIT_CHECKOUT_NONE`
+	 * or `GIT_CHECKOUT_DRY_RUN`.
 	 */
 	git_checkout_options checkout_opts;
 
@@ -149,34 +151,33 @@ typedef struct git_submodule_update_options {
 	git_fetch_options fetch_opts;
 
 	/**
-	 * The checkout strategy to use when the sub repository needs to
-	 * be cloned. Use GIT_CHECKOUT_SAFE to create all files
-	 * in the working directory for the newly cloned repository.
-	 */
-	unsigned int clone_checkout_strategy;
-
-	/**
 	 * Allow fetching from the submodule's default remote if the target
 	 * commit isn't found. Enabled by default.
 	 */
 	int allow_fetch;
 } git_submodule_update_options;
 
+/** Current version for the `git_submodule_update_options` structure */
 #define GIT_SUBMODULE_UPDATE_OPTIONS_VERSION 1
+
+/** Static constructor for `git_submodule_update_options` */
 #define GIT_SUBMODULE_UPDATE_OPTIONS_INIT \
 	{ GIT_SUBMODULE_UPDATE_OPTIONS_VERSION, \
-		{ GIT_CHECKOUT_OPTIONS_VERSION, GIT_CHECKOUT_SAFE }, \
-	GIT_FETCH_OPTIONS_INIT, GIT_CHECKOUT_SAFE, 1 }
+	  GIT_CHECKOUT_OPTIONS_INIT, \
+	  GIT_FETCH_OPTIONS_INIT, \
+	  1 }
 
 /**
- * Initializes a `git_submodule_update_options` with default values.
- * Equivalent to creating an instance with GIT_SUBMODULE_UPDATE_OPTIONS_INIT.
+ * Initialize git_submodule_update_options structure
  *
- * @param opts The `git_submodule_update_options` instance to initialize.
- * @param version Version of struct; pass `GIT_SUBMODULE_UPDATE_OPTIONS_VERSION`
+ * Initializes a `git_submodule_update_options` with default values. Equivalent to
+ * creating an instance with `GIT_SUBMODULE_UPDATE_OPTIONS_INIT`.
+ *
+ * @param opts The `git_submodule_update_options` struct to initialize.
+ * @param version The struct version; pass `GIT_SUBMODULE_UPDATE_OPTIONS_VERSION`.
  * @return Zero on success; -1 on failure.
  */
-GIT_EXTERN(int) git_submodule_update_init_options(
+GIT_EXTERN(int) git_submodule_update_options_init(
 	git_submodule_update_options *opts, unsigned int version);
 
 /**
@@ -189,13 +190,13 @@ GIT_EXTERN(int) git_submodule_update_init_options(
  * @param submodule Submodule object
  * @param init If the submodule is not initialized, setting this flag to true
  *        will initialize the submodule before updating. Otherwise, this will
- *        return an error if attempting to update an uninitialzed repository.
+ *        return an error if attempting to update an uninitialized repository.
  *        but setting this to true forces them to be updated.
  * @param options configuration options for the update.  If NULL, the
  *        function works as though GIT_SUBMODULE_UPDATE_OPTIONS_INIT was passed.
  * @return 0 on success, any non-zero return value from a callback
  *         function, or a negative value to indicate an error (use
- *         `giterr_last` for a detailed error message).
+ *         `git_error_last` for a detailed error message).
  */
 GIT_EXTERN(int) git_submodule_update(git_submodule *submodule, int init, git_submodule_update_options *options);
 
@@ -230,6 +231,16 @@ GIT_EXTERN(int) git_submodule_lookup(
 	git_submodule **out,
 	git_repository *repo,
 	const char *name);
+
+/**
+ * Create an in-memory copy of a submodule. The copy must be explicitly
+ * free'd or it will leak.
+ *
+ * @param out Pointer to store the copy of the submodule.
+ * @param source Original submodule to copy.
+ * @return 0
+ */
+GIT_EXTERN(int) git_submodule_dup(git_submodule **out, git_submodule *source);
 
 /**
  * Release a submodule
@@ -271,7 +282,8 @@ GIT_EXTERN(int) git_submodule_foreach(
  * from the working directory to the new repo.
  *
  * To fully emulate "git submodule add" call this function, then open the
- * submodule repo and perform the clone step as needed.  Lastly, call
+ * submodule repo and perform the clone step as needed (if you don't need
+ * anything custom see `git_submodule_add_clone()`). Lastly, call
  * `git_submodule_add_finalize()` to wrap up adding the new submodule and
  * .gitmodules to the index to be ready to commit.
  *
@@ -294,6 +306,22 @@ GIT_EXTERN(int) git_submodule_add_setup(
 	int use_gitlink);
 
 /**
+ * Perform the clone step for a newly created submodule.
+ *
+ * This performs the necessary `git_clone` to setup a newly-created submodule.
+ *
+ * @param out The newly created repository object. Optional.
+ * @param submodule The submodule currently waiting for its clone.
+ * @param opts The options to use.
+ *
+ * @return 0 on success, -1 on other errors (see git_clone).
+ */
+GIT_EXTERN(int) git_submodule_clone(
+	git_repository **out,
+	git_submodule *submodule,
+	const git_submodule_update_options *opts);
+
+/**
  * Resolve the setup of a new git submodule.
  *
  * This should be called on a submodule once you have called add setup
@@ -302,6 +330,7 @@ GIT_EXTERN(int) git_submodule_add_setup(
  * (but doesn't actually do the commit).
  *
  * @param submodule The submodule to finish adding.
+ * @return 0 or an error code.
  */
 GIT_EXTERN(int) git_submodule_add_finalize(git_submodule *submodule);
 
@@ -511,7 +540,8 @@ GIT_EXTERN(int) git_submodule_set_update(
  * Note that at this time, libgit2 does not honor this setting and the
  * fetch functionality current ignores submodules.
  *
- * @return 0 if fetchRecurseSubmodules is false, 1 if true
+ * @param submodule the submodule to examine
+ * @return the submodule recursion configuration
  */
 GIT_EXTERN(git_submodule_recurse_t) git_submodule_fetch_recurse_submodules(
 	git_submodule *submodule);
@@ -523,7 +553,7 @@ GIT_EXTERN(git_submodule_recurse_t) git_submodule_fetch_recurse_submodules(
  *
  * @param repo the repository to affect
  * @param name the submodule to configure
- * @param fetch_recurse_submodules Boolean value
+ * @param fetch_recurse_submodules the submodule recursion configuration
  * @return old value for fetchRecurseSubmodules
  */
 GIT_EXTERN(int) git_submodule_set_fetch_recurse_submodules(
@@ -571,6 +601,9 @@ GIT_EXTERN(int) git_submodule_repo_init(
  * submodule config, acting like "git submodule sync".  This is useful if
  * you have altered the URL for the submodule (or it has been altered by a
  * fetch of upstream changes) and you need to update your local repo.
+ *
+ * @param submodule The submodule to copy.
+ * @return 0 or an error code.
  */
 GIT_EXTERN(int) git_submodule_sync(git_submodule *submodule);
 
@@ -642,4 +675,5 @@ GIT_EXTERN(int) git_submodule_location(
 
 /** @} */
 GIT_END_DECL
+
 #endif

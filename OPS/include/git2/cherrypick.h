@@ -13,9 +13,12 @@
 
 /**
  * @file git2/cherrypick.h
- * @brief Git cherry-pick routines
+ * @brief Cherry-pick the contents of an individual commit
  * @defgroup git_cherrypick Git cherry-pick routines
  * @ingroup Git
+ *
+ * "Cherry-pick" will attempts to re-apply the changes in an
+ * individual commit to the current index and working directory.
  * @{
  */
 GIT_BEGIN_DECL
@@ -33,18 +36,25 @@ typedef struct {
 	git_checkout_options checkout_opts; /**< Options for the checkout */
 } git_cherrypick_options;
 
+/** Current version for the `git_cherrypick_options` structure */
 #define GIT_CHERRYPICK_OPTIONS_VERSION 1
-#define GIT_CHERRYPICK_OPTIONS_INIT {GIT_CHERRYPICK_OPTIONS_VERSION, 0, GIT_MERGE_OPTIONS_INIT, GIT_CHECKOUT_OPTIONS_INIT}
+
+/** Static constructor for `git_cherrypick_options` */
+#define GIT_CHERRYPICK_OPTIONS_INIT { \
+	GIT_CHERRYPICK_OPTIONS_VERSION, 0, \
+	GIT_MERGE_OPTIONS_INIT, GIT_CHECKOUT_OPTIONS_INIT }
 
 /**
- * Initializes a `git_cherrypick_options` with default values. Equivalent to
- * creating an instance with GIT_CHERRYPICK_OPTIONS_INIT.
+ * Initialize git_cherrypick_options structure
  *
- * @param opts the `git_cherrypick_options` struct to initialize
- * @param version Version of struct; pass `GIT_CHERRYPICK_OPTIONS_VERSION`
+ * Initializes a `git_cherrypick_options` with default values. Equivalent to creating
+ * an instance with GIT_CHERRYPICK_OPTIONS_INIT.
+ *
+ * @param opts The `git_cherrypick_options` struct to initialize.
+ * @param version The struct version; pass `GIT_CHERRYPICK_OPTIONS_VERSION`.
  * @return Zero on success; -1 on failure.
  */
-GIT_EXTERN(int) git_cherrypick_init_options(
+GIT_EXTERN(int) git_cherrypick_options_init(
 	git_cherrypick_options *opts,
 	unsigned int version);
 
@@ -57,8 +67,8 @@ GIT_EXTERN(int) git_cherrypick_init_options(
  * @param out pointer to store the index result in
  * @param repo the repository that contains the given commits
  * @param cherrypick_commit the commit to cherry-pick
- * @param our_commit the commit to revert against (eg, HEAD)
- * @param mainline the parent of the revert commit, if it is a merge
+ * @param our_commit the commit to cherry-pick against (eg, HEAD)
+ * @param mainline the parent of the `cherrypick_commit`, if it is a merge
  * @param merge_options the merge options (or null for defaults)
  * @return zero on success, -1 on failure.
  */
@@ -87,4 +97,3 @@ GIT_EXTERN(int) git_cherrypick(
 GIT_END_DECL
 
 #endif
-

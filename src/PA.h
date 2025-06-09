@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -80,3 +80,5 @@ GEN_GETTER_DECL(pa, moment, moment_s)
 GEN_GETTER_DECL(pa, size, int64_t)
 
 #endif				/*PA_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

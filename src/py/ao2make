@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 """
 Generate Makefile syntax from AO audit data.
 
@@ -21,10 +21,10 @@ It can be used in a few ways:
 
 The simplest use is to add full prerequisite information to an existing,
 handcrafted Makefile suite. Simply add an *include* statement to the
-Makefile and use this to generate the include file. Now the Makefile
+Makefile and use AO to generate the include file. Now the Makefile
 will have full knowledge of which files depend on which other files,
 making the build more reliable and also opening the way to parallel
-builds, since generally the problems of parallelism are solved by full
+builds since generally the problems of parallelism are solved by full
 dependency information.  This mode has no required flags, though you can
 change the file extension with *--extension* and may need *--base-dir*
 with recursive build models.
@@ -46,8 +46,9 @@ vs release, etc.  and the regenerated makefile will lose the unused
 portions. Similarly, it will lose comments, include-file structures,
 and variable (aka macro) abstractions.  And clever GNU make syntax using
 functions like $(foreach ...), $(eval ...), etc. cannot be preserved.
-This is all analogous to C code (generated and disassembled); some
-things are just lost in translation.
+This is all analogous to C code (generated and disassembled); some things
+are just lost in translation, so some manual work on a generated makefile
+would generally be necessary even if all technical problems are solved.
 
 **OTHER FORMATS**
 
@@ -57,14 +58,14 @@ be modified and dumped in any format, limited only by your coding skills.
 
 EXAMPLES:
 
-    %(prog)s -o Makefile audit-file
+    %(prog)s -o deps.mk audit-file
 
     %(prog)s -o Makefile --full --pdump < audit-file
 
 """
 
 #############################################################################
-# Copyright (c) 2005-2016 David Boyce.  All rights reserved.
+# Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -80,22 +81,19 @@ EXAMPLES:
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
-import childx
 import os
 import re
 import sys
 
-import actions  # pylint: disable=relative-import
-import makefile  # pylint: disable=relative-import
+import actions
+import childx
+import makefile
 
 
 def full(calist, opts):
     """Print a full makefile to output."""
-    mf = makefile.Makefile(basedir=opts.base_dir, srcbase=opts.srcbase)
+    mf = makefile.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
     mf.append('.SUFFIXES:\n')
     mf.append('.ONESHELL:\n')
     mf.append(makefile.Phony('all'))
@@ -104,7 +102,8 @@ def full(calist, opts):
     for ca in calist:
         if not ca.targets():
             continue
-        rule = makefile.Rule(ca.targets(), prereqs=ca.prereqs(), recipe=ca.line)
+        rule = makefile.Rule(
+            ca.targets(), prereqs=ca.prereqs(), recipe=ca.line)
         mf.append(rule)
         tgts |= set(ca.targets())
 
@@ -120,10 +119,13 @@ def full(calist, opts):
     mf.append(clean)
 
     if opts.output and opts.output != '-':
-        with open(opts.output, 'w') as f:
-            f.write(repr(mf))
+        f = open(opts.output, mode='w', encoding='utf-8')
     else:
-        sys.stdout.write(repr(mf))
+        f = sys.stdout
+
+    if mf.basevar:
+        f.write(repr(mf.basevar) + '\n\n')
+    f.write(repr(mf))
 
 
 def includes(calist, opts):
@@ -131,12 +133,19 @@ def includes(calist, opts):
     for ca in calist:
         if not ca.targets():
             continue
-        mf = makefile.Makefile(basedir=opts.base_dir, srcbase=opts.srcbase)
+        mf = makefile.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
         rule = makefile.Rule(ca.targets(), prereqs=ca.prereqs())
         mf.append(rule)
         fragment = os.path.basename(ca.targets()[0].path) + opts.extension
-        with open(fragment, 'w') as f:
+        with open(fragment, mode='w', encoding='utf-8') as f:
             f.write(repr(mf))
+
+
+def is_vcs(path):
+    """Return True if the path looks like version-control metadata."""
+    return ('.git' in path or '.svn' in path or
+            '.bzr' in path or '.hg' in path or
+            'CVS/' in path)
 
 
 def main():
@@ -202,7 +211,7 @@ def main():
     calist = []
     ca = None
     for path in opts.input:
-        f = sys.stdin if path == '-' else open(path)
+        f = sys.stdin if path == '-' else open(path, encoding='utf-8')
         for line in f:
             if line[0] in '0123456789':
                 if not ca:
@@ -210,6 +219,8 @@ def main():
                     calist.append(ca)
             elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
                 pa = actions.PathAction(line)
+                if is_vcs(path):
+                    continue
                 if pa.is_unlink:
                     continue
                 if opts.members_only and not pa.is_member:
@@ -230,6 +241,7 @@ def main():
     else:
         includes(calist, opts)
 
+
 if __name__ == '__main__':
     try:
         main()
@@ -239,4 +251,11 @@ if __name__ == '__main__':
         if 'Broken pipe' not in e.strerror:
             raise
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

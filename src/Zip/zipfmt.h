@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -159,3 +159,5 @@ static const byte cd_end_signature[4] = { '\x50', '\x4B', '\x05', '\x06' };
 	    TYPE##_signature, sizeof(TYPE##_signature)) == 0)
 
 #endif	/*ZIPFMT_H__*/
+
+// vim: sw=4 ts=8 tw=100 cc=+1

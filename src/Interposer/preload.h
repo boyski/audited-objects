@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -28,11 +28,10 @@ extern "C" {
 #define PRELOAD_EV	"LD_PRELOAD"
 #endif	/*__APPLE__*/
 
-#define PRELOAD_EV_32	PRELOAD_EV "_32"
-#define PRELOAD_EV_64	PRELOAD_EV "_64"
-
 #ifdef  __cplusplus
 }
 #endif
 
 #endif	/* _INTERPOSER_PRELOAD_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

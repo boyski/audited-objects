@@ -99,3 +99,5 @@ int SHA1Result( SHA1Context *,
 
 #endif
 // vim: ts=8:sw=4:et:
+
+// vim: sw=4 ts=8 tw=100 cc=+1

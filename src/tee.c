@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  */
 
 /// @file
-/// @brief Allows this program to run as a "tee"-alike process.
+/// @brief Allow this program to run as a "tee"-alike process.
 
 #include "AO.h"
 
@@ -85,3 +85,5 @@ tee_into(const char *into)
 
     exit(0);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

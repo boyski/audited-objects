@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ extern int ps_stat(ps_o, int);
 extern ps_o ps_copy(ps_o);
 extern CCS ps_diff(ps_o, ps_o);
 extern CCS ps_toCSVString(ps_o);
-extern int ps_format_user(ps_o, int, int, CS, int);
+extern size_t ps_format_user(ps_o, int, int, CS, size_t);
 extern int ps_set_moment_str(ps_o, CCS);
 extern void ps_set_size_str(ps_o, CCS);
 extern void ps_set_unlinked(ps_o);
@@ -74,3 +74,5 @@ extern void
 ps_destroy(ps_o);
 
 #endif				/*PS_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

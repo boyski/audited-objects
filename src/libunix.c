@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -46,11 +46,6 @@ static void _thread_mutex_unlock(void);
 #include <unistd.h>
 #include <pthread.h>
 
-#if defined(sun)
-#include <thread.h>
-#include <sys/systeminfo.h>
-#endif	/*sun*/
-
 // Here we declare alternate names for some functions we'll be
 // intercepting in order that we can still call them directly as
 // needed within the auditor.
@@ -75,46 +70,6 @@ static pthread_t(*pthread_self_real) (void);
 // where we need it.
 static pthread_mutex_t StaticDataAccessMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
-
-#if defined(__CYGWIN__)
-/*
- * An un(der)documented fact about Cygwin is that LD_PRELOAD works as long as you
- * call out each interceptable function via CW_HOOK as shown. In order to avoid
- * dragging in <windows.h> here and confusing everyone, we provide the DllMain
- * signature in terms of basic types, presuming it can never change.
- * Another strange thing about Cygwin is that it does not implement RTLD_NEXT,
- * only RTLD_DEFAULT, and yet RTLD_DEFAULT seems to behave like RTLD_NEXT.
- * Not complaining, because it works for us. Just saying.
- */
-#include <sys/cygwin.h>
-int __attribute__((__stdcall__)) DllMain(void *hinstDLL, unsigned long fdwReason, void *lpvReserved)
-{
-    (void)hinstDLL; (void)fdwReason; (void)lpvReserved;
-    cygwin_internal (CW_HOOK, "_Exit", _Exit);
-    cygwin_internal (CW_HOOK, "_exit", _exit);
-    cygwin_internal (CW_HOOK, "close", close);
-    cygwin_internal (CW_HOOK, "creat", creat);
-    cygwin_internal (CW_HOOK, "execv", execv);
-    cygwin_internal (CW_HOOK, "execve", execve);
-    cygwin_internal (CW_HOOK, "execvp", execvp);
-    cygwin_internal (CW_HOOK, "fopen", fopen);
-    cygwin_internal (CW_HOOK, "freopen", freopen);
-    cygwin_internal (CW_HOOK, "open64", open64);
-    cygwin_internal (CW_HOOK, "fork", fork);
-    cygwin_internal (CW_HOOK, "link", link);
-    cygwin_internal (CW_HOOK, "mkdir", mkdir);
-    cygwin_internal (CW_HOOK, "open", open);
-    cygwin_internal (CW_HOOK, "popen", popen);
-    cygwin_internal (CW_HOOK, "pthread_create", pthread_create);
-    cygwin_internal (CW_HOOK, "pthread_exit", pthread_exit);
-    cygwin_internal (CW_HOOK, "rename", rename);
-    cygwin_internal (CW_HOOK, "symlink", symlink);
-    cygwin_internal (CW_HOOK, "system", system);
-    cygwin_internal (CW_HOOK, "unlink", unlink);
-    cygwin_internal (CW_HOOK, "vfork", vfork);
-    return 1;
-}
-#endif
 
 // Contains some declarations used by the common code.
 #include "Interposer/interposer.h"
@@ -175,7 +130,7 @@ int __attribute__((__stdcall__)) DllMain(void *hinstDLL, unsigned long fdwReason
 #include <sys/vfs.h>
 #endif	/*BSD*/
 
-#if !defined(__APPLE__) && !defined(__hpux__) && !defined(__CYGWIN__)
+#if !defined(__APPLE__)
 #include <link.h>
 #endif /*APPLE*/
 
@@ -256,12 +211,7 @@ _ignore_path(const char *path)
 	// There's no good reason to use ccache with AO but try to
 	// behave reasonably if it happens anyway.
 	rc = 1;
-#if defined(sun)
-    } else if (!strncmp(path, "/tmp/workshop", 13)) {
-	// The Sun Workshop (aka Forte etc) (5.0? 6.0) compiler apparently
-	// creates and does not remove a file beginning like this.
-	rc = 1;
-#elif defined(linux) || defined(__CYGWIN__)
+#if defined(linux)
     } else if (!strcmp(path, "/etc/mtab") || !strcmp(path, "/proc/mounts")) {
 	// On Linux all processes seem to open /etc/mtab.
 	// And we ourselves need to open /proc/mounts.
@@ -459,76 +409,6 @@ execve_wrapper(const char *call,
     return ret;
 }
 
-#if defined(sun)
-/*static*/ int
-isaexec_wrapper(const char *call,
-		int (*next) (const char *, char *const argv[],
-			     char *const envp[]), const char *path,
-		char *const argv[], char *const envp[])
-{
-    int ret, dbg = 0;
-    long sysret;
-    size_t len;
-    long isalen = 255;
-    char *isalist, *pathbuf, *p, *isa, *lasts;
-    const char *name;
-
-    isalist = putil_malloc(isalen);
-    while ((sysret = sysinfo(SI_ISALIST, isalist, isalen) > isalen)) {
-	isalen = sysret;
-	isalist = putil_realloc(isalist, isalen);
-    }
-
-    if (sysret == -1) {
-	return -1;
-    }
-
-    len = strlen(path) + isalen;
-    pathbuf = putil_malloc(len);
-    strcpy(pathbuf, path);
-    if ((p = strrchr(pathbuf, '/'))) {
-	*++p = '\0';
-	name = path + (p - pathbuf);
-    } else {
-	name = path;
-	pathbuf[0] = '\0';
-    }
-    len = strlen(pathbuf);
-
-    // We could handle the isaexec wrapper multiple ways: e.g. doing
-    // the entire logic here and never calling through to 'next' by
-    // making a call to either execve() or execve_wrapper(). The
-    // current strategy is to simply use this logic to predict what
-    // path the 'real' isaexec() will find and flush based on it.
-    // This means that when we call through to 'next' it will make
-    // an inter-library call to execve() which we will *miss*, but
-    // presumably the work that would have been done in execve's
-    // wrapper will have already been done here.
-
-    for (isa = strtok_r(isalist, " ", &lasts); isa;
-	 isa = strtok_r(NULL, " ", &lasts)) {
-	strcpy(pathbuf + len, isa);
-	strcat(pathbuf + len, "/");
-	strcat(pathbuf + len + 1, name);
-	if (!access(pathbuf, X_OK)) {
-	    dbg = _pre_exec(call, pathbuf, &argv, envp);
-	    break;
-	}
-    }
-
-    putil_free(pathbuf);
-    putil_free(isalist);
-
-    if (dbg) {
-	ret = (*next)(argv[0], argv, envp);
-    } else {
-	ret = (*next)(path, argv, envp);
-    }
-
-    return ret;
-}
-#endif				/*sun */
-
 /// Interposes over the execvp() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
@@ -626,17 +506,6 @@ fork_wrapper(const char *call, pid_t(*next) (void))
 
     return pid;
 }
-
-#if defined(sun)
-/// @param[in] call     the name of the interposed function in string form
-/// @param[in] next     a pointer to the interposed function
-/// @return same as the wrapped function
-/*static*/ pid_t
-fork1_wrapper(const char *call, pid_t(*next) (void))
-{
-    return fork_wrapper(call, next);
-}
-#endif				/*sun */
 
 /// Interposes over the vfork() function.
 /// It's nearly impossible to wrap vfork() since the docs say:
@@ -786,48 +655,7 @@ pthread_exit_wrapper(const char *call, void (*next) (void *), void *value_ptr)
     (*next)(value_ptr);
 }
 
-#if defined(sun)
-/// Interposes over the thr_creat() function. Like pthread_create_wrapper()
-/// but for Solaris thread compatibility. Sun's JVM uses these threads.
-/// @param[in] call     the name of the interposed function in string form
-/// @param[in] next     a pointer to the interposed function
-/// @param[in] stack_base same as the wrapped function
-/// @param[in] stack_size same as the wrapped function
-/// @param[in] start_func  same as the wrapped function
-/// @param[in] arg      same as the wrapped function
-/// @param[in] flags    same as the wrapped function
-/// @param[out] new_ID  same as the wrapped function
-/// @return same as the wrapped function
-int
-thr_create_wrapper(const char *call,
-		   int (*next) (void *, size_t, void *(*s) (void *), void *,
-				long, thread_t *), void *stack_base,
-		   size_t stack_size, void *(*start_func) (void *), void *arg,
-		   long flags, thread_t * new_ID)
-{
-    int ret;
-
-    _enable_thread_support(call);
-
-    ret = (*next)(stack_base, stack_size, start_func, arg, flags, new_ID);
-
-    return ret;
-}
-
-/// Interposes over the thr_exit() function. See pthread_exit_wrapper().
-/// @param[in] call     the name of the interposed function in string form
-/// @param[in] next     a pointer to the interposed function
-/// @param[out] status  same as the wrapped function
-/// @return same as the wrapped function
-void
-thr_exit_wrapper(const char *call, void (*next) (void *), void *status)
-{
-    UNUSED(call);
-    (*next)(status);
-}
-#endif				/*sun */
-
-#if defined(linux) || defined(__CYGWIN__)
+#if defined(linux)
 // I have no idea if this works but it should at least print a message
 // so we know we've found an actual use of clone, at which time more
 // work can be put into making it work right. To date I've never observed
@@ -1468,3 +1296,5 @@ _Exit_wrapper(const char *call, void (*next) (int), int status)
     WRAPPER_DEBUG("ENTERING _Exit_wrapper() => %p [%d]\n", next, status);
     _exit_wrapper(call, next, status);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

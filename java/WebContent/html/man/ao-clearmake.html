@@ -21,7 +21,7 @@ capabilities of ClearCase, which more precisely encompass the
 abbreviate <em>clearmake</em> as CM and ClearCase as CC.</p>
 <p>This comparison is not <em>inherently</em> a competitive one.
 There are scenarios where having AO might free a user from needing
-ClearCase, but there are also scenarios where AO can be used within
+ClearCase, but there are also scenarios where AO could be used within
 ClearCase to mutual benefit. It can even be used to augment the
 capabilities of the clearmake program. So a number of viewpoints
 are offered in differing degrees of competitive and
@@ -31,8 +31,7 @@ any make program, and does not require the use of a make program.
 Nevertheless, an understanding of make concepts and terms is
 essential to this document. We will discuss the basic make model,
 then how clearmake works, then how AO works, before getting into
-comparisons. Also, the examples and terminology tend to show a Unix
-bias but the basic concepts apply to Windows as well.</p>
+comparisons.</p>
 <hr />
 <h1><a id="the_make_paradigm">THE MAKE
 PARADIGM</a></h1>
@@ -50,11 +49,11 @@ files</em>, <em>prerequisite files</em>, and <em>commands</em>, aka <i>recipes</
 The person writing the makefile decides first what <em>targets</em>
 need to be created. For each <em>target</em>, there is a set of
 <em>prerequisites</em> - files which are used to create that
-<em>target</em>. This set is associated with the <em>target</em>.
-Then the Makefile writer simply needs to list the command (or
-sequence of commands) which must be run to create the
+<em>target</em>. This set is associated with the <em>target</em>
+and the Makefile writer simply needs to list the command (or
+sequence of commands) which should be run to create the
 <em>target</em> from the <em>prerequisites</em>.</p>
-<p>When make is run, it reads the Makefile and, for each
+<p>When make is run it reads the Makefile and, for each
 <em>target</em> listed, looks at the associated
 <em>prerequisites</em> and compares their ages. If any
 <em>prerequisite</em> is newer than the <em>target</em>, the
@@ -73,7 +72,7 @@ following two invocations are identical:</p>
 makefile writer provides a set of lines which are called
 <em>commands</em> but which can really contain arbitrary text. Make
 simply spits out a re-ordered subset of those text lines based on
-which <em>prerequisites</em> have been modified. It actually sends
+which <em>prerequisites</em> have been modified. It sends
 these lines to a program identified by the $(SHELL) variable but
 that doesn't matter to make. The buck has been passed; to whom is
 not important.</p>
@@ -84,7 +83,7 @@ AO AND CLEARMAKE HAVE IN COMMON</a></h1>
 i.e. what they do that's similar. Both clearmake and AO (when used as "ao make")
 extend the above paradigm with concepts of <i>build auditing</i> (tracking and
 storing build metadata), automatic <i>build avoidance</i> (deriving dependency
-information on the fly), and <i>winkin</i>. All these are described in more
+information on the fly), and <i>wink-in</i>. All these are described in more
 detail below; for now, suffice it to say that both clearmake and AO automatically
 detect differences in command scripts and input files and can decide what to do
 next based on those determinations.</p>
@@ -119,11 +118,11 @@ its version number. During subsequent builds it can compare
 versions instead of date stamps, which is both more robust and more
 flexible.</li>
 <li><strong><a id=
-"item_winkin">WINKIN</a></strong><br /></li>
+"item_wink-in">WINK-IN</a></strong><br /></li>
 <li style="list-style: none">If a target need to be rebuilt, say
 because the prerequisite file foo.h was updated, clearmake has one
 more trick up its sleeve. It can look in the database and see if
-some other user has built this target using the new version of
+some other user has already rebuilt this target using the new version of
 foo.h . If so, and assuming the rest of that user's build audit
 matches the current state, clearmake can simply copy the target
 from the remote user's build and skip the actual compilation (or
@@ -132,14 +131,14 @@ looking for a potential wink-in is called shopping .</li>
 </ul>
 <p>In summary, we can say that clearmake adds three major features
 to base make: <em>auditing</em>, improved <em>build avoidance</em>,
-and <em>winkin</em>. Auditing records a bill of materials for each
+and <em>wink-in</em>. Auditing records a bill of materials for each
 generated file, build avoidance can speed up incremental builds by
 doing a better job than base make of knowing which targets to skip,
-and winkin can speed up even full (non-incremental) builds by
+and wink-in can speed up even full (non-incremental) builds by
 borrowing prefabricated targets from previous builds.</p>
 <p>ClearCase comes with a separate program called
 <em>clearaudit</em> which provides the same audit facility as
-clearmake but without doing any of the build avoidance or winkin
+clearmake but without doing any of the build avoidance or wink-in
 shopping. It merely records what files the audited process
 used.</p>
 <hr />
@@ -148,9 +147,9 @@ used.</p>
 <p>Consider the clearmake situation again: there are two different
 programs, clearaudit and clearmake, which between them provide the
 three key features of <em>auditing</em>, <em>build avoidance</em>,
-and <em>winkin</em>. Both clearaudit and clearmake do
+and <em>wink-in</em>. Both clearaudit and clearmake do
 <em>auditing</em>. But why can't clearaudit do build avoidance and
-winkin? There is no logical reason clearaudit couldn't do these: at
+wink-in? There is no logical reason clearaudit couldn't do these: at
 the beginning of each clearaudited process, it has access to the
 ClearCase database and could optionally wink in the results of a
 matching previous run. The reason clearaudit cannot wink in is
@@ -158,14 +157,14 @@ non-obvious[*].</p>
 <p>Imagine that it could, though, and you could use it with a make
 program of your choice:</p>
 <pre>
-    clearaudit -winkin gmake ...
+    clearaudit -wink-in gmake ...
 </pre>
 <p>or really any program:</p>
 <pre>
-    clearaudit -winkin sh build.sh ...
+    clearaudit -wink-in sh build.sh ...
 </pre>
 <p>This is the approach taken by AO. An experienced ClearCase user
-can think of AO as clearaudit-with-winkin. When a program is run
+can think of AO as clearaudit-with-wink-in. When a program is run
 under AO control:</p>
 <pre>
     ao gmake ...
@@ -173,17 +172,17 @@ under AO control:</p>
 <p>each build command is audited, the results are stored in a
 database, and previous matches can be winked in or, in AO
 terminology, <em>recycled</em>. We can now say that AO provides two
-(auditing, winkin) of the three major clearmake features while
+(auditing, wink-in) of the three major clearmake features while
 leaving the third (build avoidance) to the make program. There are
-ways it can help with build avoidance too; these will be discussed
+ways it can help with build avoidance too; these are discussed
 below.</p>
 <p>[*] Without actually knowing ClearCase architecture, the
 technical reason is likely to be that clearaudit lacks a way of
-breaking the process tree into discrete &quot;transactions&quot;. The
+breaking the process tree into atomic &quot;transactions&quot;. The
 abstraction offered by clearmake allows it to treat each target's
 build script as a black box with well-defined inputs and outputs.
-Clearaudit is not given this information. It could still offer
-winkin as an all-or-nothing proposition, though.</p>
+Clearaudit isn't given this information. It could still offer
+wink-in as an all-or-nothing proposition, though.</p>
 <h2><a id=
 "user_space_vs_kernel_space">USER SPACE VS KERNEL SPACE</a></h2>
 <p>As noted, clearmake depends on MVFS for its auditing capability.
@@ -206,8 +205,8 @@ approach, as seen below.</p>
 <hr />
 <h1><a id="ao_vs_clearmake">AO vs
 CLEARMAKE</a></h1>
-<p>We'll use a game-show-style head-to-head shootout for the comparison.
-Each of the pros and cons below is annotated as a point to AO or
+<p>Let's use a game-show-style head-to-head shootout for this comparison.
+Each of the pros and cons below is annotated as a point to AO or to
 clearmake (CM). Of course some of these awards may be arguable and
 in any case they're just a rough outline, but it's helpful for framing
 further discussion:</p>
@@ -218,7 +217,7 @@ AO)</a></strong><br /></li>
 <li style="list-style: none">A significant limitation of clearmake
 is that it can only audit MVFS files. Since OS files cannot
 (generally) be in MVFS, this limits the value of the audit. For
-instance, clearmake will not automatically record the state of
+instance, clearmake can't automatically record the state of
 /usr/include/stdio.h should it be used. AO, on the other hand, is
 completely agnostic with respect to the filesystem or location of
 audited files.</li>
@@ -226,7 +225,7 @@ audited files.</li>
 Immediate, Synchronous Promotion (point:
 CM?)</a></strong><br /></li>
 <li style="list-style: none">Clearmake leaves derived object files
-in place and only promotes them (copies them up to the server) if
+(DO's) in place and only promotes them (copies them up to the server) if
 and when they're needed elsewhere. The original build is thus
 not slowed by having to upload DO's as created, nor is network
 bandwidth wasted by transferring files which may never be reused.
@@ -248,7 +247,7 @@ Your Build Program (point: AO!)</a></strong><br /></li>
 <li style="list-style: none">Clearmake is a large, idiosyncratic
 program which attempts to be compatible with many make variants but
 is 100% compatible with none. Very often, build systems need to be
-rewritten to work with it which is not only costly but results in
+modified to work with it which is not only costly but results in
 vendor lock-in. And it is a make program, thus being no use for a
 shell/perl/ant/etc script or an MSVC project. AO is 100% compatible
 with any make program, not to mention many non-make programs.</li>
@@ -259,7 +258,7 @@ CC, clearmake is able to record actual versions of prerequisites
 (e.g. foo.c@@/main/167). AO, being SCM-system agnostic, cannot be
 so tightly integrated out of the box. It records only the
 standard metadata shared by all files (size, date, owner, etc) plus
-a data hash similar to a CRC or MD5 which is used as a digital
+a hash of the contents which is used as a digital
 fingerprint. However, with any SCM system which implements triggers it
 should be possible to develop an adapter mapping AO version data to
 SCM versions. A checkin trigger would calculate the data hash of
@@ -278,7 +277,7 @@ be orders of magnitude faster than a full build in a native
 filesystem but if not, it may be 2 or 3 times slower than the
 equivalent native build. AO provides the same potential speedup but
 the fixed cost of doing an audited vs an unaudited full build
-without winkins is closer to 10%. And of course much of what a
+without wink-ins is closer to 10%. And of course much of what a
 developer does is other than building: editing, testing, copying
 files around, etc. A CC user pays the MVFS cost for every file
 operation - even dumping core is slower in MVFS. Unit testing can be painful in a custom
@@ -305,17 +304,18 @@ ClearCase, very often the initial builds fail miserably. This is
 because clearmake is less tolerant of common problems like
 dependency loops which regular make programs may ignore. This
 strictness often causes developers to dislike ClearCase even though
-the flaw is in their own code, but either way the pain is real. AO
-does not force you to clean up in the same way. The relative
+the flaw is in their own code, but either way the pain is real
+though it results in a better makefile. AO doesn't force you to clean up
+in the same way because it's agnostic about the makefile. The relative
 benefits here are in the eye of the beholder.</li>
 <li><strong>CM *May* Record Out-of-Process Activity (point:
 CM??)</strong><br /></li>
 <li style="list-style: none">If a remote shell is used to invoke a
 process on another system,
 AO will not know about any filesystem activity caused by the remote
-process. It is unclear whether clearmake would be told of such
+process. It's unclear whether clearmake would be told of such
 remote MVFS activity. More
-generally, AO audits the activity of one process tree : the
+generally, AO audits the activity of one process tree: the
 original audited program and its descendants, regardless of what
 file system(s) they touch. Clearmake, on the other hand, audits
 activity within one filesystem from the time the original audited
@@ -351,14 +351,14 @@ WITHIN CLEARCASE</a></h1>
 different scenarios:</p>
 <h2><a id="copybased_views">COPY-BASED
 VIEWS</a></h2>
-<p>Clearmake auditing and winkin work only within dynamic views.
+<p>Clearmake auditing and wink-in work only within dynamic views.
 But there's no reason clearmake couldn't be used in dynamic views
 and AO in snapshot views. Of course those two sets of users
 wouldn't be sharing DO's, but they could use the same Makefiles.
 E.g. you could use clearmake in GNU-compatibility mode in dynamic
 views and real GNU make under AO control in snapshot views. In fact
 clearmake can itself be used under AO control in non-dynamic views,
-with AO taking over the auditing/winkin job.</p>
+with AO taking over the auditing/wink-in job.</p>
 <h2><a id="exported_views">EXPORTED
 VIEWS</a></h2>
 <p>Very similar to the above. If a view is mounted via NFS on a

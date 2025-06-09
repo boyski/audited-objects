@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@ WRAP_VOID(pid_t, fork)
 WRAP_VOID(pid_t, fork1)
 #endif	/*sun*/
 
-#if defined(linux) || defined(__CYGWIN__)
+#if defined(linux)
 #include <sched.h>
 // In newer Linux versions this becomes variadic so we may someday
 // need a special-case macro. If we need this wrapper at all, that is.
@@ -54,3 +54,5 @@ WRAP(FILE *, popen,  (const char *command, const char *mode), command, mode)
 #endif
 
 #endif	/* _INTERPOSER_FORK_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

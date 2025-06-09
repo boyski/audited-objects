@@ -13,8 +13,8 @@
 
 /**
  * @file git2/revert.h
- * @brief Git revert routines
- * @defgroup git_revert Git revert routines
+ * @brief Cherry-pick the inverse of a change to "undo" its effects
+ * @defgroup git_revert Cherry-pick the inverse of a change to "undo" its effects
  * @ingroup Git
  * @{
  */
@@ -33,18 +33,25 @@ typedef struct {
 	git_checkout_options checkout_opts; /**< Options for the checkout */
 } git_revert_options;
 
+/** Current version for the `git_revert_options` structure */
 #define GIT_REVERT_OPTIONS_VERSION 1
-#define GIT_REVERT_OPTIONS_INIT {GIT_REVERT_OPTIONS_VERSION, 0, GIT_MERGE_OPTIONS_INIT, GIT_CHECKOUT_OPTIONS_INIT}
+
+/** Static constructor for `git_revert_options` */
+#define GIT_REVERT_OPTIONS_INIT { \
+	GIT_REVERT_OPTIONS_VERSION, 0, \
+	GIT_MERGE_OPTIONS_INIT, GIT_CHECKOUT_OPTIONS_INIT }
 
 /**
- * Initializes a `git_revert_options` with default values. Equivalent to
- * creating an instance with GIT_REVERT_OPTIONS_INIT.
+ * Initialize git_revert_options structure
  *
- * @param opts the `git_revert_options` struct to initialize
- * @param version Version of struct; pass `GIT_REVERT_OPTIONS_VERSION`
+ * Initializes a `git_revert_options` with default values. Equivalent to
+ * creating an instance with `GIT_REVERT_OPTIONS_INIT`.
+ *
+ * @param opts The `git_revert_options` struct to initialize.
+ * @param version The struct version; pass `GIT_REVERT_OPTIONS_VERSION`.
  * @return Zero on success; -1 on failure.
  */
-GIT_EXTERN(int) git_revert_init_options(
+GIT_EXTERN(int) git_revert_options_init(
 	git_revert_options *opts,
 	unsigned int version);
 
@@ -75,7 +82,7 @@ GIT_EXTERN(int) git_revert_commit(
  *
  * @param repo the repository to revert
  * @param commit the commit to revert
- * @param given_opts merge flags
+ * @param given_opts the revert options (or null for defaults)
  * @return zero on success, -1 on failure.
  */
 GIT_EXTERN(int) git_revert(
@@ -85,5 +92,5 @@ GIT_EXTERN(int) git_revert(
 
 /** @} */
 GIT_END_DECL
-#endif
 
+#endif

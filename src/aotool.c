@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 
 /// @file
 /// @brief Contains the 'main' routine of the client.
+///
 /// Handles parsing of command-line options, certain
 /// client-side-only actions, and general initialization
 /// of the client program.
@@ -35,6 +36,7 @@
 #include "PS.h"
 #include "PREFS.h"
 #include "PROP.h"
+#include "RE.h"
 #include "SHOP.h"
 #include "TEE.h"
 #include "UW.h"
@@ -49,9 +51,9 @@
 
 #include "bsd_getopt.h"
 
-#if !defined(_WIN32) && !defined(BSD)
+#if !defined(BSD)
 #include <alloca.h>
-#endif	/*_WIN32*/
+#endif	/*BSD*/
 
 /// @cond static
 #define ROADMAP_DEFAULT_NAME		"roadmap.cdb"
@@ -121,10 +123,8 @@ _usage(int rc)
     fprintf(fp, fmt, "-C dir", "Change to dir before doing anything");
     _usg_line(fp, fmt, "-d", P_DOWNLOAD_ONLY, NULL);
     _usg_line(fp, fmt, "-F file", P_MAKE_FILE, NULL);
-#if !defined(_WIN32)
     _usg_line(fp, fmt, "-l file", P_LOG_FILE, NULL);
     _usg_line(fp, fmt, "-L", P_LOG_FILE_TEMP, NULL);
-#endif	/*_WIN32*/
     _usg_line(fp, fmt, "-MD", P_MAKE_DEPENDS, NULL);
     _usg_line(fp, fmt, "-m", P_MEMBERS_ONLY, NULL);
     _usg_line(fp, fmt, "-o file", P_OUTPUT_FILE, NULL);
@@ -217,12 +217,12 @@ _print_version(int full)
 
     if (full) {
 	fputs(putil_builton(), stdout);
-#if defined(_WIN32) && defined(_DEBUG)
+#if defined(_DEBUG)
 	fputs(" (DEBUG)", stdout);
 #endif	/*_DEBUG*/
 	fputs("\n", stdout);
 	printf("libcurl=%s\n", curl_version());
-	printf("pcre=%s\n", pcre_version());
+	printf("pcre=%s\n", re_version());
 	// printf("libgit2=%s\n", LIBGIT2_VERSION);
 	printf("zlib=%s\n", (const char *)zlibVersion());
 	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
@@ -253,8 +253,7 @@ do_action(CCS action, int argc, CS const *argv)
 		printf("\n");
 	    }
 	}
-    } else if (streq(action, "Substitute") ||
-	    streq(action, "substitute")) {
+    } else if (streq(action, "Substitute") || streq(action, "substitute")) {
 	// Apply standard %-substitutions to the input string.
 	int i;
 
@@ -265,7 +264,7 @@ do_action(CCS action, int argc, CS const *argv)
 	    printf("%s\n", subs);
 	    putil_free(subs);
 	}
-    } else if (streq(action, "hash-object")) {
+    } else if (streq(action, "hash")) {
 	int write_flag = 0;
 	CCS dcode = NULL;
 	ps_o ps;
@@ -379,11 +378,7 @@ do_action(CCS action, int argc, CS const *argv)
 		putil_syserr(0, path);
 		ps_destroy(ps);
 		continue;
-	    } else if (!S_ISREG(stbuf.st_mode)
-#if !defined(_WIN32)
-		       && !S_ISLNK(stbuf.st_mode)
-#endif	/*_WIN32*/
-		) {
+	    } else if (!S_ISREG(stbuf.st_mode) && !S_ISLNK(stbuf.st_mode)) {
 		putil_warn("%s: not a regular file", path);
 		ps_destroy(ps);
 		continue;
@@ -397,7 +392,7 @@ do_action(CCS action, int argc, CS const *argv)
 
 		len = putil_path_max() + 256 + 1;
 		buf = putil_malloc(len);
-		ps_format_user(ps, long_flag, short_flag, buf, len);
+		(void)ps_format_user(ps, long_flag, short_flag, buf, len);
 		fputs(buf, stdout);
 		putil_free(buf);
 	    }
@@ -433,7 +428,7 @@ do_action(CCS action, int argc, CS const *argv)
 	}
 
 	if (!short_flag) {
-	    print_license("Audited Objects", self_license);
+	    (void)print_license("Audited Objects", self_license);
 
 	    fputs("This software incorporates all or parts ", stdout);
 	    fputs("of the following, whose\ncontributions ", stdout);
@@ -522,7 +517,7 @@ do_action(CCS action, int argc, CS const *argv)
 	if (streq(action, "help") && !argv[0]) {
 	    const char *fmt = "%-12s - %s\n";
 
-	    // Here we document only actions which are PURELY client-side,
+	    // This documents actions which are PURELY client-side
 	    // aside from the "run" variants.
 	    // If they have any server part, e.g. "label" or "ADMIN",
 	    // then let the server document them.
@@ -530,8 +525,7 @@ do_action(CCS action, int argc, CS const *argv)
 	    printf(fmt, "make", "shorthand for 'run make'");
 	    printf(fmt, "stat", "print vital statistics for specified files");
 	    printf(fmt, "property", "print the value of the named property");
-	    printf(fmt, "substitute",
-		"apply standard %-substitutions to the input string");
+	    printf(fmt, "substitute", "apply standard %-formatting to the input string");
 	    printf("\n");
 	}
 
@@ -557,21 +551,12 @@ _make_clean(int argc, CS const *argv)
     int i = 0;
     char clean[1024];
     char *pathMF = NULL;
-#if defined(_WIN32)
-    char *mkprog = "nmake /nologo";
-#else	/*_WIN32*/
     char *mkprog = "make";
-#endif	/*_WIN32*/
 
     for (i = 0; i < argc - 1; i++) {
 	if (!strcmp("-f", argv[i])) {
 	    pathMF = argv[i + 1];
 	    break;
-#if defined(_WIN32)
-	} else if (!strcmp("/f", argv[i])) {
-	    pathMF = argv[i + 1];
-	    break;
-#endif	/*_WIN32*/
 	}
     }
 
@@ -579,9 +564,7 @@ _make_clean(int argc, CS const *argv)
 	snprintf(clean, sizeof(clean) - 1, "%s -s -f %s clean", mkprog, pathMF);
     } else if (access("Makefile", R_OK) &&
 	    access("makefile", R_OK) &&
-#if !defined(_WIN32)
 	    access("GNUmakefile", R_OK) &&
-#endif	/*_WIN32*/
 	    !access("build.xml", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1, "ant -q clean");
     } else {
@@ -625,12 +608,6 @@ main(int argc, CS const *argv)
 	putil_die("unable to determine path to argv[0]\n");
     }
 
-#if defined(_WIN32)
-    if (putil_getenv("DEBUGBREAK")) {
-	DebugBreak();
-    }
-#endif	/*_WIN32*/
-
     // Initialize verbosity. Should be done before most
     // other initializations since they may use verbosity.
     vb_init();
@@ -660,13 +637,6 @@ main(int argc, CS const *argv)
 
     // Default this to on; make auditing is tough without it.
     prop_override_true(P_MAKE_ONESHELL);
-
-    // TODO - this is just for porting purposes so we can see if
-    // AO is treated as BLODA. Remove if and when a successful
-    // port is made.
-#if defined(__CYGWIN__)
-    putil_putenv("CYGWIN=detect_bloda");
-#endif
 
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse
@@ -864,6 +834,7 @@ main(int argc, CS const *argv)
 
 	    case 'o':
 		no_server = 1;
+		// fallthrough
 	    case 'O':
 		if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
 		    prop_override_str(P_OUTPUT_FILE, DEVNULL);
@@ -882,16 +853,14 @@ main(int argc, CS const *argv)
 		}
 		break;
 
-		// Generate runtime linker profile output. Works on
-		// Solaris and Linux at least.
+		// Generate runtime linker profile output.
 	    case LF('P', '%'):
-#if !defined(_WIN32)
 		putil_putenv("LD_PROFILE=" AUDITOR);
-#endif	/*_WIN32*/
 		break;
 
 	    case 'Q':
 		prop_override_str(P_SERVER_LOG_LEVEL, "WARN");
+		// fallthrough
 	    case 'q':
 		QuietMode = 1;
 		vb_addstr("-");
@@ -901,6 +870,7 @@ main(int argc, CS const *argv)
 		prop_override_true(P_REUSE_ROADMAP);
 		prop_unset(P_DOWNLOAD_ONLY, 0);
 		prop_put_ulong(P_DOWNLOAD_ONLY, 2);
+		// fallthrough
 	    case 'r':
 		prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
 		prop_override_true(P_LEAVE_ROADMAP);
@@ -939,31 +909,15 @@ main(int argc, CS const *argv)
 		prop_override_ulong(P_UNCOMPRESSED_TRANSFERS, 1);
 		break;
 
-	    case 'V':		// keeps verbosity out of auditor
+	    case 'V':		// keep verbosity out of auditor
 		prop_unexport(P_VERBOSITY, 1);
+		// fallthrough
 	    case 'v':
 		vb_addstr(bsd_optarg);
 		break;
 
 	    case LF('D', 'M'):
-#if defined(sun)
-		if (bsd_optarg && *bsd_optarg == 'w') {
-		    putil_putenv("LD_PRELOAD=watchmalloc.so.1");
-		    if (!putil_getenv("MALLOC_DEBUG")) {
-			putil_putenv("MALLOC_DEBUG=WATCH");
-		    }
-		    printf("MALLOC_DEBUG=%s\n", putil_getenv("MALLOC_DEBUG"));
-		} else {
-		    putil_putenv("LD_PRELOAD=/lib/libumem.so");
-		    if (!putil_getenv("UMEM_DEBUG")) {
-			putil_putenv("UMEM_DEBUG=default,verbose");
-		    }
-		    printf("UMEM_DEBUG=%s\n", putil_getenv("UMEM_DEBUG"));
-		}
-		if (putil_getenv("LD_PRELOAD")) {
-		    printf("LD_PRELOAD=%s\n", putil_getenv("LD_PRELOAD"));
-		}
-#elif defined(__APPLE__)
+#if defined(__APPLE__)
 		putil_putenv("MallocScribble=1");
 		putil_putenv("MallocPreScribble=1");
 		putil_putenv("MallocBadFreeAbort=1");
@@ -1054,21 +1008,14 @@ main(int argc, CS const *argv)
     // The command we've been asked to invoke.
     if ((action = argv[0])) {
 	// Hack for typing ease: "make" is a synonym for "run make".
-	// Similarly, "ant" is a synonym for "run ant".
-	// And any word with non-alphanumeric chars must be a program to run.
-	if (strpbrk(action, "/\\=+-")
-	    || strstr(action, "make")
-	    || !util_pathcmp(action, "sh")
-	    || !util_pathcmp(action, "vcbuild")		// Windows only
-	    || !util_pathcmp(action, "msbuild")		// Windows only
-	    || !util_pathcmp(action, "ant")) {
+	if (strstr(action, "make")) {
 	    action = "run";
 	} else {
 	    argv++;
 	    argc--;
 	}
     } else {
-	// The default command ...
+	// The default command.
 	action = "help";
     }
 
@@ -1101,7 +1048,6 @@ main(int argc, CS const *argv)
     }
 
     // Optionally run help output through a pager.
-#if !defined(_WIN32)
     if (pager ||
 	(streq(action, "man") && (pager = prop_get_str(P_DOC_PAGER)))) {
 	int pfd[2];
@@ -1143,7 +1089,6 @@ main(int argc, CS const *argv)
 	    putil_syserr(2, "fork");
 	}
     }
-#endif	/*_WIN32*/
 
     // For debugging convenience allow server=nnnn to mean "localhost:nnnn"
     // and server=foo to mean "foo:8080" since those are the most common.
@@ -1273,16 +1218,13 @@ main(int argc, CS const *argv)
 	    }
 	}
 
-#if defined(_WIN32)
-	/* TODO */
-#else
 	if (redo_script) {
 	    FILE *fp;
 
 	    if (!(fp = fopen(redo_script, "w"))) {
 		putil_syserr(2, redo_script);
 	    } else {
-		extern char **environ;		// Win32 declares this in stdlib.h
+		extern char **environ;
 		size_t plen;
 		char **pblock;
 		char **envp;
@@ -1324,7 +1266,6 @@ main(int argc, CS const *argv)
 		vb_printf(VB_STD, "redo script written to '%s'", redo_script);
 	    }
 	}
-#endif
 
 	// For systems supporting DTrace: run the cmd with the specified
 	// dtrace script.
@@ -1435,3 +1376,5 @@ main(int argc, CS const *argv)
 
     return rc;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

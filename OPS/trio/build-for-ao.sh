@@ -1,21 +1,20 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <package-X.Y.tar.gz> [64]" >&2
+    echo "Usage: $0 <package-X.Y.tar.gz>" >&2
     exit 1
 fi
 
 : ${1?}
 
-: ${OS_CPU:=`uname -m`_`uname -s`}
+: ${OS_CPU:=$(uname -m)_$(uname -s)}
 
 set -e
 
 srcpkg=$1
-bits=$2
 
-srcdir=`basename $srcpkg .tar.gz`
-gunzip -c $srcpkg | tar -xf -
+srcdir=$(basename $srcpkg .tar.gz)
+tar -xzf $srcpkg
 
 case ${OS_CPU?} in
     Darwin_*)
@@ -31,5 +30,5 @@ case ${OS_CPU?} in
 esac
 
 cd "$srcdir"
-CFLAGS="-g ${bits:+-m$bits} $xflags -DNDEBUG" sh configure
+CFLAGS="-g ${bits:+-m$bits} $xflags -DNDEBUG -std=c89" sh configure
 make clean all

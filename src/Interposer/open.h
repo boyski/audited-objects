@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -39,39 +39,9 @@ WRAP(FILE *, fopen, (const char *path, const char *mode), path, mode)
 WRAP(FILE *, freopen, (const char *path, const char *mode, FILE *stream), path, mode, stream)
 WRAP(FILE *, fdopen, (int fildes, const char *mode), fildes, mode)
 
-// Transitional lf64 I/O calls for Unix/Linux 32-bit objects.
-// The use of these is pretty confused; following is what I believe to
-// be the situation. On Solaris, these are available to 32-bit processes
-/// only if -D_LARGEFILE_SOURCE was used. In Solaris 64-bit binaries 
-// they should never occur because they become compile-time macro
-// aliases to the regular names. The situation is the same on Linux
-// except that the *64 variants can still be used explicitly (as
-// functions, not macros) in a 64-bit binary.
-// Bottom line: the rules concerning when these might be needed are
-// complex, undocumented, and subject to change/surprise. Since I
-// know of no harm that comes from defining the wrappers even when
-// they couldn't be used, that's the approach I'd prefer to take.
-// But ATM we just hack it for Solaris and Linux and worry about other
-// 64-bit platforms as they come alone. This is hacky and should be
-// revisited.
-#if !defined(sun) || (!defined(INTERPOSER_64BIT_MODE) && defined(_LARGEFILE_SOURCE))
-#if !defined(__CYGWIN__) && !defined(__APPLE__)
-WRAP_OPEN(int, open64)
-WRAP_OPEN(int, __open64_2)
-WRAP(int, creat64, (const char *path, mode_t mode), path, mode)
-WRAP(FILE *, fopen64, (const char *path, const char *mode), path, mode)
-WRAP(FILE *, freopen64, (const char *path, const char *mode, FILE *stream), path, mode, stream)
-#endif
-#endif
-
-// This is an additional suite introduced on Solaris.
 #ifdef AT_FDCWD
 WRAP_OPENAT(int, openat)
 WRAP_OPENAT(int, __openat_2)
-#if !defined(INTERPOSER_64BIT_MODE)
-WRAP_OPENAT(int, openat64)
-WRAP_OPENAT(int, __openat64_2)
-#endif	/*INTERPOSER_64BIT_MODE*/
 #endif	/*AT_FDCWD*/
 
 #ifdef  __cplusplus
@@ -79,3 +49,5 @@ WRAP_OPENAT(int, __openat64_2)
 #endif
 
 #endif	/* _INTERPOSER_OPEN_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

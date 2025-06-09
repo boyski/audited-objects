@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,10 @@
  */
 
 /// @file
-/// @brief The part of the auditor library which is common to
-/// both Unix and Windows.
+/// @brief The part of the auditor library which is common across platforms.
+/// Combines with libunix.c to form the auditing shared object. There used
+/// to be a Windows file too but since Windows support was dropped the split
+/// is merely historical.
 
 #include "ca.c"
 
@@ -43,16 +45,16 @@
 
 #include "vb.c"
 
+#include "xxhash.c" // xxhash routines may also come in via code.c
+
+#include "zips.c"
+
 #include "ACK.h"
 
-#if defined(_WIN32)
-#include <winsock2.h>
-#else				/*!_WIN32 */
 #include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif	/*!_WIN32*/
 
 #define DONE				"{DONE}\n"
 
@@ -196,19 +198,11 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 	// Only store the thread id for a threaded program (on Windows
 	// they're all threaded). We believe 0 to be an invalid thread
 	// id which is thus used to indicate "unthreaded".
-#if defined(_WIN32)
-	// This won't work right because it's not "stable", meaning that
-	// the Win32 thread id seems to be a random number. We need to
-	// synthesize something that's the same from run to run (even this
-	// must assume the host program creates threads in a static order).
-	pa_set_tid(pa, (unsigned long)GetCurrentThreadId());
-#else	/*_WIN32*/
 	if (pthread_self_real) {
 	    pa_set_tid(pa, (unsigned long)pthread_self_real());
 	} else {
 	    pa_set_tid(pa, 0);
 	}
-#endif	/*_WIN32*/
 
 	ps = ps_new();
 	ps_set_pn(ps, pn);
@@ -279,6 +273,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 static void
 _monitor_open(SOCKET *sockp, CCS call)
 {
+    int so_reuse = 1;
     struct sockaddr_in dest_addr;
     const char *host;
     const char *portstr;
@@ -294,11 +289,21 @@ _monitor_open(SOCKET *sockp, CCS call)
 	return;
     }
 
-    util_socket_lib_init();
-
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
 	putil_syserr(2, "socket");
     }
+
+    if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
+		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+	putil_syserr(2, "SO_REUSEADDR");
+    }
+
+#if defined(SO_REUSEPORT)
+    if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
+		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+	putil_syserr(2, "SO_REUSEPORT");
+    }
+#endif	/*SO_REUSEPORT*/
 
     host = prop_get_str(P_MONITOR_HOST);
     portstr = prop_get_str(P_MONITOR_PORT);
@@ -323,11 +328,6 @@ _monitor_open(SOCKET *sockp, CCS call)
 	    return;
 	}
 
-#if defined(_WIN32)
-	if (WSAGetLastError() == WSAETIMEDOUT) {
-	    continue;
-	}
-#else				/*!_WIN32 */
 	if (errno == ETIMEDOUT || errno == EINTR) {
 	    vb_printf(VB_STD, "RETRY CONNECT");
 	    continue;
@@ -335,7 +335,6 @@ _monitor_open(SOCKET *sockp, CCS call)
 	    vb_printf(VB_MON, "CONNECTED: SOCKET %d", *sockp);
 	    return;
 	}
-#endif	/*_WIN32*/
     }
 
     putil_syserr(2, host_port);
@@ -397,30 +396,14 @@ _monitor_flush(SOCKET *sockp)
 static void
 _monitor_close(SOCKET *sockp, int exiting)
 {
+    UNUSED(exiting);
+
     vb_printf(VB_MON, "CLOSING: SOCKET %d", *sockp);
     if (*sockp == INVALID_SOCKET) {
 	return;
     }
 
-#if defined(_WIN32)
-    closesocket(*sockp);
-#else				/*!_WIN32 */
     close(*sockp);
-#endif	/*_WIN32*/
-
-    // Despite what MSDN implies, I do not believe there's
-    // any need to call WSACleanup() in the Windows auditor.
-    // We always need sockets right up until exit time, at
-    // which point the DLL will be unloaded anyway. The
-    // situation is quite analogous to freeing memory; if
-    // it happens just before exit it's redundant. Meanwhile
-    // the complexities of counting calls to WSAStartup()
-    // can be irritating and potentially threaten thread
-    // safety. So, unless and until it becomes a problem,
-    // we are going to let the system handle socket cleanup.
-    if (exiting) {
-	//util_socket_lib_fini();
-    }
 
     *sockp = INVALID_SOCKET;
 }
@@ -448,10 +431,6 @@ _audit_open(void)
 	    } else if (!strcmp(ofile, "=")) {
 		fd = STDERR_FILENO;
 	    } else {
-#if defined(_WIN32)
-		// Haven't decided how to handle this for win32 yet.
-		fd = STDERR_FILENO;
-#else	/*_WIN32*/
 		// If the file already exists, just append to it.
 		// If not, make a new file with the pid appended.
 		fd = open_real(ofile, O_WRONLY | O_APPEND, 0);
@@ -466,7 +445,6 @@ _audit_open(void)
 		    putil_free(obuf);
 		}
 		fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-#endif	/*_WIN32*/
 	    }
 	} else {
 	    fd = STDERR_FILENO;
@@ -474,39 +452,6 @@ _audit_open(void)
     } else {
 	int i;
 
-#if defined(_WIN32)
-	CS tfn;
-	HANDLE fh;
-
-	// We can't use tmpfile() on Windows because it uses
-	// CreateFile() and we'd fall into our own hook.
-	// Also it creates the file in the root of the current
-	// drive, which fails in ClearCase dynamic views and probably
-	// other situations too. We step carefully here to avoid
-	// falling into the CreateFile hook.
-	for (fd = -1, i = 0; fd == -1 && i < 10; i++) {
-	    if (!(tfn = _tempnam(NULL, "ao."))) {
-		putil_syserr(2, "tempnam()");
-	    }
-	    fh = CreateFileA_real(tfn,
-				  GENERIC_READ | GENERIC_WRITE | DELETE,
-				  FILE_SHARE_READ | FILE_SHARE_WRITE |
-				  FILE_SHARE_DELETE, NULL, CREATE_ALWAYS,
-				  FILE_ATTRIBUTE_TEMPORARY |
-				  FILE_FLAG_DELETE_ON_CLOSE, NULL);
-	    if (fh == (HANDLE)-1) {
-		putil_win32err(2, GetLastError(), tfn);
-	    }
-	    if ((fd = _open_osfhandle((intptr_t)fh, _O_RDWR)) == -1) {
-		putil_syserr(2, "_open_osfhandle()");
-	    }
-	    free(tfn);
-	}
-
-	if (fd == -1) {
-	    putil_syserr(2, "tempnam()");
-	}
-#else	/*_WIN32*/
 	FILE *tfp;
 
 	// Create an unnamed/unlinked temp file. Unfortunately this
@@ -547,7 +492,6 @@ _audit_open(void)
 
 	// Each new cmd and/or process must create its own temp file.
 	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-#endif	/*_WIN32*/
     }
 
     return fd;
@@ -583,7 +527,7 @@ _audit_start(CCS call)
     AuditFD = _audit_open();
 
     // Write the SOA record into the file descriptor or socket.
-    // Writes and sends need to be separated because you can't write()
+    // Writes and sends are separated because you can't write()
     // to a socket on Windows and can't send() to a file anywhere.
     if (!prop_is_true(P_NO_MONITOR)) {
 	char ack_soa[ACK_BUFFER_SIZE], *p;
@@ -703,20 +647,6 @@ _audit_end(CCS call, int exiting, long status)
     char ack_eoa[ACK_BUFFER_SIZE];
 
     if (!_auditor_isActive()) {
-#if defined(_WIN32)
-	// Very special case: if (a) we're on Windows, (b) this
-	// command is not "activated", (c) it's the top-level command,
-	// (d) it's exiting, and (e) we're talking with the
-	// monitor, then we need to finish by sending it a DONE
-	// token.  On Unix the monitor can catch SIGCHILD but
-	// not on Windows.
-	if (Depth == 0 && exiting && !prop_is_true(P_NO_MONITOR)) {
-	    _monitor_open(&ReportSocket, call);
-	    _monitor_send(&ReportSocket, DONE, strlen(DONE));
-	    _monitor_flush(&ReportSocket);
-	    _monitor_close(&ReportSocket, 1);
-	}
-#endif	/*_WIN32*/
 	return;
     }
 
@@ -738,8 +668,8 @@ _audit_end(CCS call, int exiting, long status)
     // recycle. But I tried moving it once and it broke so I moved
     // it back and added this note. Maybe I put it in the wrong
     // place. Analyze someday.
-    // A downloading build of OpenSSL 1.0 triggers this problem, at
-    // least on Ubuntu and at one time on Solaris 10 X86.
+    // A downloading build of OpenSSL 1.0 demo-ed this problem
+    // back in the day.
     {
 	struct sigaction sigpipe;
 
@@ -805,15 +735,9 @@ _audit_end(CCS call, int exiting, long status)
 	if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
 	    putil_syserr(2, "lseek");
 	}
-#if defined(_WIN32)
-	if (_chsize(AuditFD, 0)) {
-	    putil_syserr(2, "_chsize");
-	}
-#else	/*_WIN32*/
 	if (ftruncate(AuditFD, 0)) {
 	    putil_syserr(2, "ftruncate");
 	}
-#endif	/*!_WIN32*/
     }
 
     // No ACK needed in no-monitor mode ...
@@ -849,14 +773,14 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Best guess is that perl maintains a static pointer to
     // the env block and the putenv() causes a realloc of said
     // env block leaving perl's pointer dangling.
-    // The main point is, even if this isn't exactly what's
-    // happening in perl, the case described could happen in any
+    // The main point is that even if this isn't exactly what's
+    // happening in perl, this case *could* happen in any
     // program. Therefore the rule is that the auditor must *NEVER*
     // add or modify an env var via putenv(). The wrapper program must
     // make sure an EV is already present with sufficient padding
     // and the auditor can then twiddle those bits in place.
-    // For instance, if an EV must hold a number we allocate 10
-    // bytes (plus nul) for it in the wrapper because that's the
+    // For instance, if an EV must hold a 32-but value we allocate
+    // 10 bytes (plus \0) for it in the wrapper because that's the
     // number of characters needed to represent 2**32 in decimal.
 
     // Initialize verbosity asap.
@@ -936,21 +860,13 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // because a process is NOT a cmd until an exec has taken place.
     ca_set_started(CurrentCA, 1);
 
-    // Set the current hostname.
+    // Derive the current hostname.
     if (!ca_get_host(CurrentCA)) {
 	char hostbuf[HOST_NAME_MAX];
 
-#if defined(_WIN32)
-	DWORD namelen = charlen(hostbuf);
-
-	if (!GetComputerNameEx(ComputerNameDnsHostname, hostbuf, &namelen)) {
-	    putil_win32err(2, GetLastError(), "GetComputerNameEx()");
-	}
-#else	/*_WIN32*/
 	if (gethostname(hostbuf, sizeof(hostbuf))) {
 	    putil_syserr(2, "gethostname()");
 	}
-#endif	/*_WIN32*/
 
 	ca_set_host(CurrentCA, hostbuf);
     }
@@ -1051,3 +967,5 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     return pid;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

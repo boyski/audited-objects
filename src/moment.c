@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,9 @@
 
 /// @file
 /// @brief Support for standard timestamp format.
+/// MODERN:
+/// Nanosecond resolution is assumed.
+/// HISTORICAL:
 /// Some interfaces report time in seconds, others in milli-, micro-,
 /// or nano-seconds. Sometimes these differ between platforms (Linux
 /// stat() reports file times to microseconds, Solaris to nanoseconds,
@@ -62,23 +65,6 @@ moment_is_set(moment_s moment)
 int
 moment_get_systime(moment_s *mptr)
 {
-#if defined(_WIN32)
-    // This implementation is taken from 'c-ares' at
-    // http://daniel.haxx.se/projects/c-ares/.
-    FILETIME ft;
-    LARGE_INTEGER li;
-    __int64 clunks;
-
-    // At least somebody refers to the 100-nanosecond intervals
-    // that Windows measures as 'clunks'.
-    GetSystemTimeAsFileTime(&ft);
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
-    clunks = li.QuadPart;	// In 100-nanosecond intervals
-    clunks -= WIN_EPOCH_OFFSET;	// Convert to Unix epoch
-    mptr->ntv_sec = (int64_t)(clunks / WIN_CLUNKS_PER_SEC);
-    mptr->ntv_nsec = (long)((clunks % WIN_CLUNKS_PER_SEC) * 100);
-#else				/*!_WIN32 */
     struct timeval tv;
 
     if ((gettimeofday(&tv, NULL) == -1)) {
@@ -86,7 +72,6 @@ moment_get_systime(moment_s *mptr)
     }
     mptr->ntv_sec = tv.tv_sec;
     mptr->ntv_nsec = tv.tv_usec * 1000;
-#endif	/*_WIN32*/
 
     return 0;
 }
@@ -99,41 +84,6 @@ moment_get_systime(moment_s *mptr)
 int
 moment_set_mtime(moment_s *mptr, CCS path)
 {
-#if defined(_WIN32)
-    HANDLE hFile;
-    FILETIME ft;
-
-    hFile = CreateFile(path, GENERIC_READ | FILE_WRITE_ATTRIBUTES,
-		       FILE_SHARE_READ, NULL, OPEN_EXISTING,
-		       FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-	putil_win32err(0, GetLastError(), path);
-	return -1;
-    }
-
-    if (mptr) {
-	__int64 clunks;
-
-	clunks = (mptr->ntv_sec * WIN_CLUNKS_PER_SEC) + WIN_EPOCH_OFFSET;
-	clunks += mptr->ntv_nsec / 100;	// add in the nanosecond part
-	ft.dwLowDateTime = (DWORD)clunks;
-	ft.dwHighDateTime = (unsigned long)(clunks >> 32);
-    } else {
-	SYSTEMTIME st;
-
-	GetSystemTime(&st);
-	SystemTimeToFileTime(&st, &ft);
-    }
-
-    if (SetFileTime(hFile, NULL, NULL, &ft) == 0) {
-	putil_win32err(0, GetLastError(), path);
-	return -1;
-    }
-
-    if (!CloseHandle(hFile)) {
-	putil_win32err(0, GetLastError(), path);
-    }
-#else	/*_WIN32*/
     if (mptr) {
 	struct timeval tvp[2];
 
@@ -156,7 +106,6 @@ moment_set_mtime(moment_s *mptr, CCS path)
 	    return -1;
 	}
     }
-#endif	/*_WIN32*/
 
     return 0;
 }
@@ -355,14 +304,12 @@ moment_format_id(moment_s *mp)
 void
 moment_millisleep(int millis)
 {
-#if defined(_WIN32)
-    Sleep(millis);
-#else				/*!_WIN32 */
     struct timespec tspec;
 
     tspec.tv_sec = millis / MILLIS_PER_SECOND;
     tspec.tv_nsec = (millis % MILLIS_PER_SECOND) * NANOS_PER_MILLI;
     //vb_printf(VB_OFF, "SLEEPING %d.%ld", tspec.tv_sec, tspec.tv_nsec);
     (void)nanosleep(&tspec, NULL);
-#endif				/*!_WIN32 */
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

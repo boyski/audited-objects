@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -33,3 +33,5 @@ WRAP(int, fclose, (FILE *stream), stream)
 #endif
 
 #endif	/* _INTERPOSER_CLOSE_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

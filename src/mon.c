@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,9 +17,17 @@
 
 /// @file
 /// @brief Manages the input stream of records from audited commands.
+///
 /// This file also contains the code for starting and ending PTXes
 /// on the server side, managing roadmaps and logfiles, and
 /// parsing audit packets as they arrive from each audited cmd.
+///
+/// The monitor is a sort of server that talks only to clients on the
+/// same host. In fact it talks only to its descendants in the process
+/// tree. In other words, once the top-level program has kicked off a
+/// build process it goes into monitor mode, collecting reports from its
+/// children, grandchildren, etc while potentially communicating with the
+/// "real" server.
 
 #include "AO.h"
 
@@ -966,3 +974,5 @@ mon_fini(void)
 
     shop_fini();
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

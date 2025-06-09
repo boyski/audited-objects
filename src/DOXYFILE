@@ -4,7 +4,7 @@
 
 PROJECT_NAME			= "AO"
 
-PROJECT_NUMBER			= 1.0
+PROJECT_NUMBER			= 2.0.1
 
 QUIET				= YES
 

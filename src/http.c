@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -118,13 +118,13 @@ _debug_curl(CURL *curl, curl_infotype type, char *buf, size_t len, void *userp)
 		if (len > 2) {
 		    len -= 2;
 		}
-		// fall through to regular mode ...
+		/* fallthrough */
 	    case CURLINFO_TEXT:
 		// Put a newline between each http request/response cycle.
 		if (count++ && !strncmp("About to ", buf, 9)) {
 		    fputc('\n', vstrm);
 		}
-		// fall through ...
+		/* fallthrough */
 	    case CURLINFO_HEADER_IN:
 		fwrite(s_infotype[type], 2, 1, vstrm);
 		fwrite(buf, len, 1, vstrm);
@@ -1261,3 +1261,5 @@ http_restart(void)
 
     return rc;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

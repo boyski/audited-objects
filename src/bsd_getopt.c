@@ -446,3 +446,5 @@ bsd_getopt_reset(void)
 }
 
 #endif /* !GETOPT_LONG */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

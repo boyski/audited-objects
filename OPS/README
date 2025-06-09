@@ -1,69 +1,53 @@
 OPS == Other People's Software, e.g. third-party code.
 
-NOTE 1: The AO client basically consists of two binary files:  "the
-auditor", which is a shared library named 'libao.so', and "the
-monitor", an executable program named 'ao'. Depending on platform,
-each of these may exist in both 32- and 64-bit forms.
+NOTE 1: The AO client consists of two binary files: the "auditor",
+which is a shared library named 'libAO.so', and the "monitor", an
+executable program named 'ao'.
 
-NOTE 2: since the .../OPS/include directory is shared across
-platforms, it's best to update a third-party library for all
-platforms at the same time to avoid header skew.
+NOTE 2: since the .../OPS/include directory is shared across platforms,
+it's best to update a third-party library for all platforms at once to
+avoid header skew.
 
 NOTE 3: I use a conventional $OS_CPU macro of the form "`uname
--s`_`uname -p`" to indicate target platform. Example values include
-"Linux_i386", "Linux_x86_64", "Solaris_i386", and "Windows_i386".
-Within the OPS tree, header files go in the OPS/include directory
-and static libraries in OPS/$OS_CPU/lib.
+-s`_`uname -p`" to indicate target platform. The result is along the
+lines of "Linux_x86_64".  Within the OPS tree, header files go in the
+OPS/include directory and static libraries in OPS/$OS_CPU/lib. Shared
+libraries are avoided.
 
-NOTE 4: some OPS libraries are well-known, widely available, and
-even bundled with the OS (zlib, libcurl, etc). But there are a few
-which are harder to get and/or may have needed some tweaks for AO
-(kazlib, tinycdb, etc). For these I provide a copy of the package.
-This is not to say that newer version may not be used when
-available.
+NOTE 4: some OPS libraries are well-known, widely available, and even
+bundled with the OS (zlib, libcurl, etc). But there are a few which
+are harder to get and/or may have needed some tweaks for AO (kazlib,
+tinycdb, trio, etc).
 
-In general, libraries which are linked into the *auditor* must be
-built both static (.a) and PIC (-fpic/-fPIC). This may seem
-contradictory since usually PIC is used only for shared libraries,
-but since the auditor itself is a shared library and these static
-libraries are being linked into it, they must be PIC. It's also
-generally a good idea to build these as small and tight as possible
-(no debug symbols, no support for unneeded features, etc). Overall,
-build these as if for an embedded application.  This results in a
-smaller auditor which may have a performance impact (static vs
-shared actually has a huge impact here) and definitely feels a
-little more lightweight. And there's little downside, since if we
-ever had to debug a problem in third-party libraries we'd start by
-trying the latest and greatest, in which case we could build THAT
-version for debug.
+In general, libraries linked into the *auditor* must be built both
+static (.a) and PIC (-fPIC). This may seem contradictory since PIC is
+generally used for shared libraries, but since the auditor itself is
+a shared library and these static libraries are linked into it
+they must also be PIC. It's also generally a good idea to build them as
+small and tight as possible (no debug symbols, no support for unneeded
+features, etc). Overall, build them as if for an embedded application.
+This results in a smaller auditor which may have a performance impact
+(static vs shared actually has a big impact here) and definitely feels
+a little more lightweight. And there's little downside since if we ever
+had to debug a problem in third-party libraries we'd start by trying the
+latest and greatest, in which case we could build THAT version for debug.
 
-Libraries used in the monitor are subject to fewer restrictions;
+Libraries used only in the monitor are subject to fewer restrictions;
 they may be shared (.so), they may be debug, they may have support
-for all sort of things that add size and complexity (libcurl SSL
-support, just for instance). It may even make sense to use any
-bundled versions which may be present; a platform like Linux will
-very likely already have libcurl, zlib, etc.
+for features that add size and complexity. But keep in mind that some
+libraries are used on both auditor and monitor.
 
-However, it's generally more convenient to use just one build of
-each library per platform. For that reason I tend to use the
-"tight" library built for the auditor in the monitor too. Take
-Windows for instance: we build the auditor with /MT (for reasons
-explained below) and thus must link it with libraries built with
-/MT too. The monitor could easily use /MD, which is the more
-general use case, but for that to work we'd need another whole set
-of libraries compiled with /MD. So in the end it's much less
-stressful to build both monitor and auditor using /MT and link them
-with the same set of /MT libraries.
+However, it's generally most convenient to use just one build of each
+library per platform. For that reason I tend to use the "tight" library
+built for the auditor in the monitor too.
 
-IDEA Next time these libraries are built, consider adding /Gy to the
-Windows compile flags. Should reduce the size of the binary somewhat.
-On Unix, try -ffunction-sections for gcc and -Wl,--gc-sections for the
-linker. This may only work when using the GNU linker though.
+IDEA Next time these libraries are built, consider trying
+-ffunction-sections for gcc and -Wl,--gc-sections for the linker.
 
-TO BUILD THIS STUFF FOR:
+TO BUILD THIS CODE FOR:
 
 ============================================================================
-				UNIX
+				LINUX/UNIX
 ============================================================================
 
     In general, for each package I've made a little
@@ -72,14 +56,11 @@ TO BUILD THIS STUFF FOR:
     platform-specific subdirectory. So the basic procedure (from
     the directory containing build-for-ao.sh) is:
 
-	extract the downloaded package into the cwd
-	cd into the package base dir
-	sh ../build-for-ao > build.log 2>&1
+	cd into the package dir
+	sh ./build-for-ao > build.log 2>&1
 
-    Then install the headers to .../OPS/include and the library(s)
-    to .../OPS/$OS_CPU/lib. On some platforms (eg Solaris) you
-    may also need to install the 64-bit variants of libraries to
-    .../OPS/$OS_CPU/lib/64.
+    Then install headers to .../OPS/include and libraries
+    to .../OPS/$OS_CPU/lib.
 
     Some packages are sophisticated enough to let you build multiple
     platforms from the same set of sources by creating a $OS_CPU
@@ -164,88 +145,7 @@ TO BUILD THIS STUFF FOR:
 				WINDOWS
 ============================================================================
 
-NOTE: The naming convention I've used for libraries is something like
-"libxyzMTd.{lib,pdb}" where "lib" means it's a library (redundant),
-"xyz" is the name of the library, "MT" means it was compiled with the
-/MT flag, and "d" would indicate the debug version.
-
-And on that note, AO and its libraries have always been built with
-/MT, even though /MD is generally recommended. Though I'm not the
-world's leading expert on Windows linking, here are my reasons:
-
-1. We're injecting a DLL (libAO.dll) which was built using a given
-CRT ("C RunTime library") into a random executable which may have
-been linked with a different CRT. If both CRTs were linked
-dynamically, things can get confusing as some symbols are resolved
-from CRT #1 and others from CRT #2. I don't know how realistic this
-concern is, but the safest thing is to bind libAO.dll with its CRT
-statically. Then, at the price of a little disk space and virtual
-memory, LibAO.dll is a self-contained unit which needs nothing from
-its host.
-
-2. Auditor performance is driven largely by speed of loading. The
-auditor may need to be loaded into dozens of short-lived processes per
-minute in some border conditions. A statically linked DLL will
-load faster.
-
-I'm not going to describe Windows builds in the same level of detail
-as Unix. Gnerally, for each build-for.ao.sh script there's a
-build-for-ao.bat. These are not carefully maintained but should
-give an idea of the flags preferred, and they may even work.
-
-Windows 64-bit builds are an exercise left to the reader.
-
-	ZLIB:
-
-	    Instructions similar to UNIX (see above).
-
-	CURL:
-
-	    Instructions similar to UNIX (see above).
-
-	PCRE:
-
-	    Extract into .../OPS/pcre/Windows_i386/pcre-x.y.
-
-	    Copy or rename the file config.h.in as config.h, and change
-	    the macros that define HAVE_STRERROR and HAVE_MEMMOVE to
-	    define them as 1 rather than 0.
-
-	    Run build-for-ao.bat. See ./NON-UNIX-USE for details.
-
-	    Install pcred.lib and pcred.pdb into .../OPS/Windows_i386/lib.
-	    Install pcre.lib into .../OPS/Windows_i386/lib.
-	    
-	    Install pcre.h into .../OPS/Windows_i386/include.
-
-	KAZLIB:
-
-	    Cd into OPS/kazlib.
-
-	    Extract kazlib-1.20.tar.gz and cd into it.
-
-	    Run "nmake -f NMakefile clean all"
-
-	    Install kazlib.lib and kazlibd.lib to the usual place.
-
-	    Install dict.h and hash.h to the usual place.
-
-	TINYCDB:
-	TRIO:
-
-	    Very similar to  kazlib. Extract the tar file, cd into it,
-	    use the NMakefile to build, copy out.
-
-	UNSTAMP:
-
-	    Cd into OPS/unstamp.
-
-	    Run "nmake -f NMakefile clean".
-
-	    Run "nmake -f NMakefile CFG=debug", then copy out .lib and .pdb.
-
-	    Run "nmake -f NMakefile CFG=release", then copy out .lib
-
-	    Or - use the VC++ project. Build Release, then Debug,
-	    and install unstamp.h plus .lib and .pdb artifacts
-	    as above.
+All Windows support, and support for minor Unix platforms, has been
+removed because I just don't feel like keeping it up and no one has
+asked for it. However, visiting the "preop" tag would show its state
+pre-amputation.

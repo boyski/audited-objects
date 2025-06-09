@@ -1,21 +1,27 @@
-/*
- * Hash Table Data Type
- * Copyright (C) 1997 Kaz Kylheku <kaz@ashi.footprints.net>
+/* Copyright 2009
+ * Kaz Kylheku <kkylheku@gmail.com>
+ * Vancouver, Canada
+ * All rights reserved.
  *
- * Free Software License:
+ * BSD License:
  *
- * All rights are reserved by the author, with the following exceptions:
- * Permission is granted to freely reproduce and distribute this software,
- * possibly in exchange for a fee, provided that this copyright notice appears
- * intact. Permission is also granted to adapt this software to produce
- * derivative works, as long as the modified versions carry this copyright
- * notice and additional notices stating that the work has been modified.
- * This source code may be translated into executable form and incorporated
- * into proprietary software; there is no requirement for such software to
- * contain a copyright notice related to this source.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * $Id: hash.h,v 1.22.2.7 2000/11/13 01:36:45 kaz Exp $
- * $Name: kazlib_1_20 $
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in
+ *      the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. The name of the author may not be used to endorse or promote
+ *      products derived from this software without specific prior
+ *      written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 #ifndef HASH_H
@@ -50,12 +56,12 @@ extern int hash_val_t_bit;
  * Hash chain node structure.
  * Notes:
  * 1. This preprocessing directive is for debugging purposes.  The effect is
- *    that if the preprocessor symbol KAZLIB_OPAQUE_DEBUG is defined prior to the
- *    inclusion of this header,  then the structure shall be declared as having
- *    the single member   int __OPAQUE__.   This way, any attempts by the
- *    client code to violate the principles of information hiding (by accessing
- *    the structure directly) can be diagnosed at translation time. However,
- *    note the resulting compiled unit is not suitable for linking.
+ *    that if the preprocessor symbol KAZLIB_OPAQUE_DEBUG is defined prior to
+ *    the inclusion of this header,  then the structure shall be declared as
+ *    having the single member   int __OPAQUE__.   This way, any attempts by
+ *    the client code to violate the principles of information hiding (by
+ *    accessing the structure directly) can be diagnosed at translation time.
+ *    However, note the resulting compiled unit is not suitable for linking.
  * 2. This is a pointer to the next node in the chain. In the last node of a
  *    chain, this pointer is null.
  * 3. The key is a pointer to some user supplied data that contains a unique
@@ -71,11 +77,11 @@ extern int hash_val_t_bit;
  */
 
 typedef struct hnode_t {
-    #if defined(HASH_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)	/* 1 */
-    struct hnode_t *hash_next;		/* 2 */
-    const void *hash_key;		/* 3 */
-    void *hash_data;			/* 4 */
-    hash_val_t hash_hkey;		/* 5 */
+    #if defined(HASH_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)   /* 1 */
+    struct hnode_t *hash_next;          /* 2 */
+    const void *hash_key;               /* 3 */
+    void *hash_data;                    /* 4 */
+    hash_val_t hash_hkey;               /* 5 */
     #else
     int hash_dummy;
     #endif
@@ -148,19 +154,19 @@ typedef void (*hnode_free_t)(hnode_t *, void *);
 
 typedef struct hash_t {
     #if defined(HASH_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
-    struct hnode_t **hash_table;		/* 1 */
-    hashcount_t hash_nchains;			/* 2 */
-    hashcount_t hash_nodecount;			/* 3 */
-    hashcount_t hash_maxcount;			/* 4 */
-    hashcount_t hash_highmark;			/* 5 */
-    hashcount_t hash_lowmark;			/* 6 */
-    hash_comp_t hash_compare;			/* 7 */
-    hash_fun_t hash_function;			/* 8 */
+    struct hnode_t **hash_table;                /* 1 */
+    hashcount_t hash_nchains;                   /* 2 */
+    hashcount_t hash_nodecount;                 /* 3 */
+    hashcount_t hash_maxcount;                  /* 4 */
+    hashcount_t hash_highmark;                  /* 5 */
+    hashcount_t hash_lowmark;                   /* 6 */
+    hash_comp_t hash_compare;                   /* 7 */
+    hash_fun_t hash_function;                   /* 8 */
     hnode_alloc_t hash_allocnode;
     hnode_free_t hash_freenode;
     void *hash_context;
-    hash_val_t hash_mask;			/* 9 */
-    int hash_dynamic;				/* 10 */
+    hash_val_t hash_mask;                       /* 9 */
+    int hash_dynamic;                           /* 10 */
     #else
     int hash_dummy;
     #endif
@@ -178,9 +184,9 @@ typedef struct hash_t {
 
 typedef struct hscan_t {
     #if defined(HASH_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
-    hash_t *hash_table;		/* 1 */
-    hash_val_t hash_chain;	/* 2 */
-    hnode_t *hash_next;		/* 3 */
+    hash_t *hash_table;         /* 1 */
+    hash_val_t hash_chain;      /* 2 */
+    hnode_t *hash_next;         /* 3 */
     #else
     int hash_dummy;
     #endif
@@ -192,7 +198,7 @@ extern void hash_destroy(hash_t *);
 extern void hash_free_nodes(hash_t *);
 extern void hash_free(hash_t *);
 extern hash_t *hash_init(hash_t *, hashcount_t, hash_comp_t,
-	hash_fun_t, hnode_t **, hashcount_t);
+        hash_fun_t, hnode_t **, hashcount_t);
 extern void hash_insert(hash_t *, hnode_t *, const void *);
 extern hnode_t *hash_lookup(hash_t *, const void *);
 extern hnode_t *hash_delete(hash_t *, hnode_t *);

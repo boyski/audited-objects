@@ -11,6 +11,7 @@
 <p style="text-align:center">This is a random collection of notes written for
 developers working on AO internals, not for users.</p>
 <h2><a>Building AO</a></h2>
+
 <p>The AO client is versioned in Git at sourceforge.net. To grab a read-only
 clone use the following command:
 </p>
@@ -21,8 +22,9 @@ clone use the following command:
 <code>git clone ssh://USERNAME@audited-objects.git.sourceforge.net/gitroot/audited-objects/audited-objects</code>
 
 <h2><a id="abstractions">Abstractions</a></h2>
+
 <p>Let's start with a short overview of the basic AO coding abstractions (the
-same basic model is in use on both client and server sides, though
+same model is in use on both client and server sides, though
 many details differ).</p>
 
 <p>AO is concerned with software builds. A build is
@@ -42,7 +44,7 @@ relationship between a <i>Command</i> and a
 instance of that class. In real-life
 terms this means that &quot;gcc -c foo.c&quot; is a Command, which is
 inherently singular; if the command is run multiple times, a new
-CommandAction object will be generated each time but they will all
+CommandAction object will be generated each time but they all
 share the same Command object.</p>
 
 <p>Files are slightly more complicated. At the lowest level we have
@@ -62,13 +64,16 @@ since a file may be read many times without being changed. However,
 when the action is a write it's likely to change the file's state so
 for writes the relationship between <i>PathAction</i>s and
 <i>PathState</i>s becomes more like one-to-one.</p>
+
 <p>We can say that CommandActions contain Commands in the same way
 that PathActions contain PathStates.</p>
+
 <p>It's important to note here that AO sees files differently from
 the way the filesystem sees them. To AO, if you rename &quot;foo&quot; to
 &quot;bar&quot; you've destroyed one file and created another. To the
 filesystem there was only one file which remained unchanged while the
 parent directory was modified.</p>
+
 <p>Now let's switch and look from the top down. The highest-level
 abstraction in AO is a collection of files called a
 <i>Project</i>. This is very likely to map to what you already
@@ -106,6 +111,7 @@ for better ways to distinguish commands. Thus a particular Command
 object is treated the same regardless of where it is run.</p>
 
 <h2><a id="client_vs_server">CLIENT VS SERVER</a></h2>
+
 <p>Though the AO client is written in C and the server in Java, and
 they have no code in common, both sides employ the same basic
 abstractions of Project, PTX, Command/CommandAction, and
@@ -114,6 +120,7 @@ because some methods and attributes are of use only to one or the
 other, but the concepts are the same.</p>
 
 <h2><a id="character_sets">CHARACTER SETS</a></h2>
+
 <p>The auditor always uses 8-bit character widths and UTF-8
 for both internal representations and transmission over HTTP.
 </p>

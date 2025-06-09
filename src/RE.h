@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -73,4 +73,10 @@ extern CCS re_match__(void *re, CCS str);
 /// @param[in,out] re      a pointer to the regular expression
 extern void re_fini__(void **re);
 
+/// Return the version of the PCRE library.
+/// @return a string reporting the PCRE version
+extern const char *re_version(void);
+
 #endif				/*RE_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

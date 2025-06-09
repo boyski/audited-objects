@@ -9,12 +9,18 @@
 
 #include "common.h"
 
+/**
+ * @file git2/global.h
+ * @brief libgit2 library initializer and shutdown functionality
+ * @ingroup Git
+ * @{
+ */
 GIT_BEGIN_DECL
 
 /**
  * Init the global state
  *
- * This function must the called before any other libgit2 function in
+ * This function must be called before any other libgit2 function in
  * order to set up global state and threading.
  *
  * This function may be called multiple times - it will return the number
@@ -32,7 +38,7 @@ GIT_EXTERN(int) git_libgit2_init(void);
  * many times as `git_libgit2_init()` was called - it will return the
  * number of remainining initializations that have not been shutdown
  * (after this one).
- * 
+ *
  * @return the number of remaining initializations of the library, or an
  * error code.
  */
@@ -40,5 +46,6 @@ GIT_EXTERN(int) git_libgit2_shutdown(void);
 
 /** @} */
 GIT_END_DECL
+
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -103,35 +103,9 @@
 #define TOUPPER(c)		toupper((int)(c))
 #define TOLOWER(c)		tolower((int)(c))
 
-#if defined(_WIN32)
-#pragma warning(disable:4706)		// Stupid *&#$@ warning!
-#endif	/*_WIN32*/
-
-#if !defined(_WIN32)
 // For compatibility with Windows.
 typedef int			SOCKET;
-#endif
 
-#if !defined(_WIN32)
-#define DebugBreak()
-#endif
-
-#ifdef _WIN32
-// We use GetVolumePathName*(), GetComputerNameEx(), and probably others.
-#define _WIN32_WINNT 0x0500
-#define WIN32_LEAN_AND_MEAN 
-#include <windows.h>
-#include <direct.h>
-#include <io.h>
-#include <malloc.h>
-#include <process.h>
-// As there's no <inttypes.h> for *#%$& Windows, fake the parts we need.
-typedef ULONG32		uint32_t;
-typedef __int64		int64_t;
-typedef ULONG64		uint64_t;
-#define	PRId64		"I64d"
-#define	PRIu64		"I64u"
-#else	/*_WIN32*/
 #include <errno.h>
 #include <inttypes.h>
 #include <libgen.h>
@@ -141,15 +115,13 @@ typedef ULONG64		uint64_t;
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#endif	/*_WIN32*/
 
 // Special hack because Linux, or at least Fedora, goes out of its
 // way to hide/undef ARG_MAX presumably because such a limit no longer
 // exists.  Might be a good idea to research this more deeply.
-// For now, the number 131072 represents the most recent max on
-// both Solaris and Linux, and probably the maximum-maximum of
-// all UNix platforms. But still a pretty random choice. Ideally
-// we would also get out of the business of caring about ARG_MAX.
+// For now, the number 131072 represents a pretty common traditional
+// maximum but it's still a pretty random choice. Ideally we'd get
+// out of the business of caring about ARG_MAX altogether.
 #if !defined(ARG_MAX)
 #define ARG_MAX			131072
 #endif
@@ -158,7 +130,7 @@ typedef ULONG64		uint64_t;
 #include <crt_externs.h>
 // OSX doesn't allow direct access to 'environ' so we fake it here.
 #define environ (*_NSGetEnviron())
-#elif !defined(_WIN32)	/*!__APPLE__ && !_WIN32*/
+#else
 extern char **environ;
 #endif	/*__APPLE__*/
 
@@ -177,8 +149,7 @@ typedef const char *CCS;
 #endif	/*BSD*/
 
 // FreeBSD is just 64-bit all the way, no transition environment.
-// I don't know what's up with Cygwin but it also has no *64 interfaces.
-#if defined(BSD) || defined(__CYGWIN__)
+#if defined(BSD)
 #define off64_t		off_t
 #define lseek64		lseek
 #define open64		open
@@ -187,67 +158,18 @@ typedef const char *CCS;
 #define lstat64		lstat
 #define fstat64		fstat
 #define O_LARGEFILE	0
-#endif	/*BSD || _WIN32*/
+#endif	/*BSD*/
 
-// On Windows a long is the same size as an int (32 bits in Win32)
-// while a pointer is 64 bits even on Win32. Don't ask me why.
-// The upshot is that pointer arithmetic involving casts to long
-// gives a warning on Windows. We use the following, borrowed from
-// <windows.h>, to hack around this.
-#if !defined(_WIN32)
+// Old Windows-related names.
 typedef long LONG64;
 typedef unsigned long ULONG64;
-#endif	/*_WIN32*/
 
-// Hacks for Win32 CRT
-#if defined(_WIN32) && !defined(__GNUC__)
-typedef int		socklen_t;
-typedef unsigned long	mode_t;
-typedef long		pid_t;
-typedef long		ssize_t;
-#define O_RDONLY	_O_RDONLY
-#define O_WRONLY	_O_WRONLY
-#define O_BINARY	_O_BINARY
-#define	S_ISDIR(mode)	(((mode)&0xF000) == 0x4000)
-#define	S_ISREG(mode)	(((mode)&0xF000) == 0x8000)
-#define open64		_open
-#define pclose		_pclose
-#define popen		_popen
-#define stat64		_stat64
-#define lstat64		_stat64
-#define fstat64		_fstat64
-#else	/*!_WIN32 || __GNUC__*/
 #ifndef O_BINARY
 #define O_BINARY	0
 #endif
-#define __stat64	stat64		// the struct
+#define __stat64	stat64
 #define stricmp		strcasecmp
 #define strnicmp	strncasecmp
-#endif	/*_WIN32 && !__GNUC__*/
-
-// Windows supports access() but not these constants.
-#if defined(_WIN32) && !defined(__GNUC__)
-#define R_OK	04
-#define W_OK	02
-//#define X_OK	01	/* We need to know about places that use this */
-#define F_OK	00
-
-#if !defined(STDERR_FILENO)
-#define STDIN_FILENO	0
-#define STDOUT_FILENO	1
-#define STDERR_FILENO	2
-#endif
-
-// Confusion between size_t and unsigned due to different signatures
-// of e.g. read() between POSIX and Windows. The pragma is specific
-// to MSVC.
-#pragma warning(disable: 4267)
-// I don't see a problem with "upcasting" a size to a larger size ...
-#pragma warning(disable: 4312)
-
-#define PATH_MAX MAX_PATH
-
-#endif	/*_WIN32 && !__GNUC__*/
 
 // HOST_NAME_MAX is not universally available.
 #if !defined(HOST_NAME_MAX)
@@ -278,50 +200,31 @@ typedef long		ssize_t;
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-#define putil_is_absolute(path)	    ((*path == '/' || *path == '\\'	\
-				    || (ISALPHA(*path)			\
-				    && path[1] == ':'			\
-				    && (path[2] == '/' || path[2] == '\\'))))
-#define putil_path_strcmp(s1, s2)		_stricmp(s1, s2)
-#define putil_path_strncmp(s1, s2, n)		_strnicmp(s1, s2, n)
-#define putil_strtoll(p1, p2, n)		_strtoi64(p1, p2, n)
-#define putil_strtoull(p1, p2, n)		_strtoui64(p1, p2, n)
-#else	/*_WIN32*/
 #define putil_is_absolute(path)			(*path == '/')
 #define putil_path_strcmp(s1, s2)		strcmp(s1, s2)
 #define putil_path_strncmp(s1, s2, n)		strncmp(s1, s2, n)
 #define putil_strtoll(p1, p2, n)		strtoll(p1, p2, n)
 #define putil_strtoull(p1, p2, n)		strtoull(p1, p2, n)
-#endif	/*_WIN32*/
 
 /* Return the number of (potentially wide) characters in a buffer */
-#define charlen(x)		(sizeof(x)/sizeof(char))
-
-/* Return the number of wide characters in a buffer */
-#define charlenW(x)		(sizeof(x)/sizeof(wchar_t))
+#define charlen(x)		(sizeof(x) / sizeof(char))
 
 /* Return the number of *bytes* in a (potentially wide) string */
-#define bytelen(x)		((x) ? (strlen(x)*sizeof(char)) : 0)
+#define bytelen(x)		((x) ? (strlen(x) * sizeof(char)) : 0)
 
-/* Return the number of unused TCHARs in a string buffer (for snprintf) */
-#define leftlen(buf)	(charlen(buf) - strlen(buf))
+/* Return the number of unused TCHARs in a null-terminated string buffer (for snprintf) */
+#define leftlen(buf)		(charlen(buf) - strlen(buf))
 
 /* Return the end of a null-terminated string */
-#define endof(str)	strchr(str, '\0')
+#define endof(str)		strchr(str, '\0')
 
-#ifdef _WIN32
-#define endswith(str, ext)	(!stricmp(endof(str) - strlen(ext), ext))
-#else	/*_WIN32*/
+/* True if the string ends with "ext" */
 #define endswith(str, ext)	(!strcmp(endof(str) - strlen(ext), ext))
-#endif	/*_WIN32*/
 
-// Allows Unix- and Windows-specific code segments to look more alike.
-#if !defined(_WIN32)
+// Windows-specific name hacks.
 #define SOCKET					int
 #define INVALID_SOCKET				-1
 #define SOCKET_ERROR				-1
-#endif	/*!_WIN32*/
 
 /* Convenience: strcmp macro with reversed sense */
 #define streq(a,b)	!strcmp(a,b)
@@ -334,13 +237,8 @@ typedef long		ssize_t;
 #define SMALLBUF 1024
 
 /* Obvious but generally useful */
-#ifdef _WIN32
-#define DEVNULL		"NUL"
-#define SYS_SHELL	"cmd.exe"
-#else	/*_WIN32*/
 #define DEVNULL		"/dev/null"
 #define SYS_SHELL	"/bin/sh"
-#endif	/*_WIN32*/
 
 // For general purpose automatic buffers. Typically this is to be used
 // when we need a temporary construction buffer placed on the stack
@@ -350,6 +248,7 @@ typedef long		ssize_t;
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
+// C++ compat, may be unnecessary.
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -392,36 +291,15 @@ PUTIL_API CS putil_strdup(CCS);
 PUTIL_API CS putil_getenv(CCS);
 PUTIL_API int putil_putenv(CS);
 PUTIL_API void putil_unsetenv(CCS);
-
-#if defined(_WIN32)
-PUTIL_API void putil_errorW_(CCS, int, WCHAR *, ...);
-PUTIL_API void putil_warnW_(CCS, int, WCHAR *, ...);
-PUTIL_API void putil_win32err_(CCS, int, int, DWORD, CCS);
-PUTIL_API void putil_win32errW_(CCS, int, int, DWORD, LPCWSTR);
-PUTIL_API void putil_syserrW_(CCS, int, int, WCHAR *);
-PUTIL_API CCS putil_tmpdir(CS, DWORD);
-PUTIL_API CCS DIRSEP(void);
-PUTIL_API CCS PATHSEP(void);
-#else	/*_WIN32*/
 #define DIRSEP()	"/"
 #define PATHSEP()	":"
 PUTIL_API CCS putil_tmpdir(CS, size_t);
 PUTIL_API CCS putil_readlink(CCS);
-#endif	/*_WIN32*/
 
-#if defined(_WIN32)
-struct utsname {
-    char sysname[257];
-    char nodename[257];
-    char release[257];
-    char version[257];
-    char machine[257];
-};
-#else	/*_WIN32*/
 #include <sys/utsname.h>
-#endif	/*_WIN32*/
 PUTIL_API int putil_uname(struct utsname *);
 
+// C++ compat, may be unnecessary.
 #ifdef __cplusplus
 }
 #endif
@@ -458,11 +336,7 @@ PUTIL_API int putil_uname(struct utsname *);
     (void) fputc('\n', stderr);						\
 }
 
-#if defined(_WIN32)
-#define _PUTIL_ABORT_()	DebugBreak()
-#else	/*_WIN32*/
 #define _PUTIL_ABORT_()	unlink("/cores/core");	abort()
-#endif	/*_WIN32*/
 
 #define _PUTIL_ERROR_DEBUG_(level, file, line)				\
     if (Putil_Strict_Error < 0) {					\
@@ -476,16 +350,11 @@ PUTIL_API int putil_uname(struct utsname *);
 // Note that variadic macros on Windows require MSVC 2005 or above.
 #define putil_exit(status)	putil_exit_(__FILE__, __LINE__, status)
 #define putil_error(...)	putil_error_(__FILE__, __LINE__, __VA_ARGS__)
-#define putil_errorW(...)	putil_errorW_(__FILE__, __LINE__, __VA_ARGS__)
 #define putil_int(...)		putil_int_(__FILE__, __LINE__, __VA_ARGS__)
 #define putil_die(...)		putil_die_(__FILE__, __LINE__, __VA_ARGS__)
 #define putil_warn(...)		putil_warn_(__FILE__, __LINE__, __VA_ARGS__)
-#define putil_warnW(...)	putil_warnW_(__FILE__, __LINE__, __VA_ARGS__)
 #define putil_srcdbg(...)	putil_srcdbg_(__FILE__, __LINE__, __VA_ARGS__)
-#define putil_win32err(...)	putil_win32err_(__FILE__, __LINE__, __VA_ARGS__)
-#define putil_win32errW(...)	putil_win32errW_(__FILE__, __LINE__,__VA_ARGS__)
 #define putil_syserr(...)	putil_syserr_(__FILE__, __LINE__, __VA_ARGS__)
-#define putil_syserrW(...)	putil_syserrW_(__FILE__, __LINE__, __VA_ARGS__)
 #define putil_lnkerr(...)	putil_lnkerr_(__FILE__, __LINE__, __VA_ARGS__)
 
 /////////////////////////////////////////////////////////////////////////////
@@ -498,15 +367,11 @@ PUTIL_API int putil_uname(struct utsname *);
 #define _PUTIL_STR(x)  #x
 #define _PUTIL_XSTR(x) _PUTIL_STR(x)
 
-#if defined(_MSC_VER)
-#define PUTIL_COMPILER_	"MS Visual C " ## _PUTIL_XSTR(_MSC_VER)
-#elif defined(__SUNPRO_C)
-#define PUTIL_COMPILER_	"Sun Studio " ## _PUTIL_XSTR(__SUNPRO_C)
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
 #define PUTIL_COMPILER_	"GCC " __VERSION__
 #else
-#define PUTIL_COMPILER_	"unknown compiler-version"
-#endif	/*_WIN32 && !__GNUC__*/
+#define PUTIL_COMPILER_	"unknown compiler/version"
+#endif
 
 PUTIL_CLASS char putil_platform[] = "@(#) " PUTIL_BUILTON "/" PUTIL_COMPILER_;
 
@@ -533,52 +398,6 @@ putil_strict_error(int level)
 
 #undef _PUTIL_STR
 #undef _PUTIL_XSTR
-
-/////////////////////////////////////////////////////////////////////////////
-
-// This is a function on Windows so it can return "/" in a Unix
-// emulation environment - such as Cygwin - and "\" otherwise.
-#if defined(_WIN32)
-PUTIL_CLASS CCS
-DIRSEP(void)
-{
-    static CCS dirsep;
-
-    if (!dirsep) {
-	dirsep = "\\";
-	// This test was suggested for Cygwin but seems to have a good
-	// hope of translating to other emulation environments. Of course
-	// we could also define our own EV which would be dispositive.
-	if (getenv("TERM")) {
-	    dirsep = "/";
-	}
-    }
-    return dirsep;
-}
-#endif	/*!_WIN32*/
-
-/////////////////////////////////////////////////////////////////////////////
-
-// This is a function on Windows so it can return ":" in a Unix
-// emulation environment - such as Cygwin - and ";" otherwise.
-#if defined(_WIN32)
-PUTIL_CLASS CCS
-PATHSEP(void)
-{
-    static CCS pathsep;
-
-    if (!pathsep) {
-	pathsep = ";";
-	// This test was suggested for Cygwin but seems to have a good
-	// hope of translating to other emulation environments. Of course
-	// we could also define our own EV which would be dispositive.
-	if (getenv("TERM")) {
-	    pathsep = ":";
-	}
-    }
-    return pathsep;
-}
-#endif	/*!_WIN32*/
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -611,14 +430,11 @@ putil_path_max(void)
 
 /////////////////////////////////////////////////////////////////////////////
 
-// This protoype is based on the Win32 SearchPath function for compatibility.
+// This API was originally based on the Win32 SearchPath function.
 PUTIL_CLASS size_t
 putil_searchpath(CCS srchpath, CCS prog, CCS ext,
 		    unsigned long buflen, CS buf, CS *basepart)
 {
-#ifdef _WIN32
-    return SearchPath(srchpath, prog, ext, buflen, buf, basepart);
-#else	/*_WIN32*/
     CS spath, p, e;
     size_t len = 0;
     int baselen;
@@ -692,7 +508,6 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext,
     putil_free(spath);
 
     return len;
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -706,24 +521,11 @@ putil_error_(CCS f, int l, CCS fmt, ...)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32)
-PUTIL_CLASS void
-putil_errorW_(CCS f, int l, WCHAR *fmt, ...)
-{
-    _PUTIL_PRINTMSGW_(Error, f,l, fmt);
-    _PUTIL_ERROR_DEBUG_(2, f, l);
-}
-#endif	/*_WIN32*/
-
-/////////////////////////////////////////////////////////////////////////////
-
 PUTIL_CLASS void
 putil_int_(CCS f, int l, CCS fmt, ...)
 {
     _PUTIL_PRINTMSG_(Internal Error, f, l, fmt);
-#if !defined(_WIN32)
     unlink("/cores/core");	// OS X doesn't like to overwrite core files
-#endif	/*!_WIN32*/
     abort();
 }
 
@@ -748,17 +550,6 @@ putil_warn_(CCS f, int l, CCS fmt, ...)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32)
-PUTIL_CLASS void
-putil_warnW_(CCS f, int l, WCHAR *fmt, ...)
-{
-    _PUTIL_PRINTMSGW_(Warning, f, l, fmt);
-    _PUTIL_ERROR_DEBUG_(2, f, l);
-}
-#endif	/*_WIN32*/
-
-/////////////////////////////////////////////////////////////////////////////
-
 PUTIL_CLASS void
 putil_srcdbg_(CCS f, int l, CCS fmt, ...)
 {
@@ -772,60 +563,9 @@ putil_srcdbg_(CCS f, int l, CCS fmt, ...)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(_WIN32)
-PUTIL_CLASS void
-putil_win32err_(CCS f, int l, int code, DWORD last, CCS string)
-{
-    LPTSTR msg;
-
-    DWORD flgs = FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
-
-    if(!FormatMessage(flgs, NULL, last, 0, (LPTSTR)&msg, 0, NULL)) {
-	msg = "unknown error";
-    }
-
-    if (code) {
-	putil_error_(f, l, "%s: [%ld] %s", string, last, msg);
-	exit(code);
-    } else {
-	putil_warn_(f, l, "%s: [%ld] %s", string, last, msg);
-    }
-}
-#endif	/*_WIN32*/
-
-/////////////////////////////////////////////////////////////////////////////
-
-#if defined(_WIN32)
-PUTIL_CLASS void
-putil_win32errW_(CCS f, int l, int code, DWORD last, LPCWSTR string)
-{
-    LPWSTR msg;
-
-    DWORD flgs = FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
-
-    if(!FormatMessageW(flgs, NULL, last, 0, (LPWSTR)&msg, 0, NULL)) {
-	msg = L"unknown error";
-    }
-
-    if (code) {
-	putil_errorW_(f, l, L"%s: [%ld] %s", string, last, msg);
-	exit(code);
-    } else {
-	putil_warnW_(f, l, L"%s: [%ld] %s", string, last, msg);
-    }
-}
-#endif	/*_WIN32*/
-
-/////////////////////////////////////////////////////////////////////////////
-
 PUTIL_CLASS void
 putil_syserr_(CCS f, int l, int code, CCS string)
 {
-#if defined(_WIN32)
-    putil_win32err_(f, l, code, GetLastError(), string);
-#else	/*_WIN32*/
     char *msg;
     
     msg = strerror(errno);
@@ -844,38 +584,16 @@ putil_syserr_(CCS f, int l, int code, CCS string)
 	    putil_warn_(f,l, "%s", msg);
 	}
     }
-#endif	/*_WIN32*/
 }
-
-/////////////////////////////////////////////////////////////////////////////
-
-#if defined(_WIN32)
-PUTIL_CLASS void
-putil_syserrW_(CCS f, int l, int code, WCHAR *string)
-{
-    putil_win32errW_(f, l, code, GetLastError(), string);
-}
-#endif	/*_WIN32*/
 
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
 putil_lnkerr_(CCS f, int l, int code, CCS name1, CCS name2)
 {
-#if defined(_WIN32)
-    DWORD flgs = FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
-    LPTSTR msg;
-
-    if(!FormatMessage(flgs, NULL, GetLastError(), 0, (LPTSTR)&msg, 0, NULL)) {
-	msg = "unknown error";
-    }
-#else	/*_WIN32*/
     char *msg;
     
     msg = strerror(errno);
-#endif	/*_WIN32*/
-
     if (code) {
 	putil_error_(f,l, "%s -> %s: %s", name2, name1, msg);
 	exit(code);
@@ -893,31 +611,12 @@ putil_get_homedir(CS buf, size_t buflen)
 
     buf[0] = '\0';
 
-    // If a $HOME EV exists, even on Windows, use it. This allows
-    // support of Cygwin et al.
     if ((h = getenv("HOME"))) {
 	if (bytelen(h) <= buflen) {
 	    strcpy(buf, h);
 	    return buf;
 	}
     }
-
-#ifdef _WIN32
-    // Otherwise, on Windows, drop back to %HOMEDRIVE%%HOMEPATH%.
-    if ((h = getenv("HOMEDRIVE"))) {
-	strcpy(buf, h);
-	if ((h = getenv("HOMEPATH"))) {
-	    if (bytelen(buf) + bytelen(h) <= buflen) {
-		strcat(buf, h);
-		return buf;
-	    } else {
-		buf[0] = '\0';
-	    }
-	} else {
-	    buf[0] = '\0';
-	}
-    }
-#endif	/*_WIN32*/
 
     return NULL;
 }
@@ -927,16 +626,7 @@ putil_get_homedir(CS buf, size_t buflen)
 PUTIL_CLASS CS
 putil_get_systemdir(CS buf, size_t buflen)
 {
-#ifdef _WIN32
-    CS h;
-
-    buf[0] = '\0';
-    if (!(h = getenv("SYSTEMROOT")))
-	return NULL;
-    _snprintf(buf, buflen, "%s", h);
-#else	/*_WIN32*/
     snprintf(buf, buflen, "/etc");
-#endif	/*_WIN32*/
     return buf;
 }
 
@@ -947,37 +637,25 @@ putil_get_systemdir(CS buf, size_t buflen)
 // *should* look like instead of failing as realpath() does
 // on some systems.
 // Note that this will resolve symlinks, just as SUS says realpath() does.
-// Also note that this is just as insecure as the original.
+// Also note that it's just as insecure as the original.
 PUTIL_CLASS CS
 putil_realpath(CCS path, int guess)
 {
-    CS resolved;
+    char resolved[PATH_MAX + 1];
     size_t len;
 
-    len = putil_path_max() + 1;
-    resolved = (CS)putil_malloc(len);
+    len = sizeof(resolved);
 
-#ifdef _WIN32
-    {
-	DWORD ret = GetFullPathName(path, len, resolved, NULL);
-	if (ret == 0 || ret > len) {
-	    putil_free(resolved);
-	    return NULL;
-	}
-    }
-#else	/*_WIN32*/
     if (realpath(path, resolved)) {
 	// Feeble attempt at making realpath more secure ...
 	if (strlen(resolved) >= len)
 	    abort();
     } else {
 	if (!guess) {
-	    putil_free(resolved);
 	    return NULL;
 	}
 
 	if (errno != ENOENT) {
-	    putil_free(resolved);
 	    return NULL;
 	} else if (*path == '/') {
 	    char *parent;
@@ -992,7 +670,6 @@ putil_realpath(CCS path, int guess)
 		    putil_free(rbuf);
 		} else {
 		    putil_free(parent);
-		    putil_free(resolved);
 		    return NULL;
 		}
 	    }
@@ -1001,21 +678,17 @@ putil_realpath(CCS path, int guess)
 		strcat(resolved, "/");
 		strcat(resolved, path);
 	    } else {
-		putil_free(resolved);
 		return NULL;
 	    }
 	}
     }
 
-    // Some realpaths (Solaris) return NULL if path doesn't exist,
-    // others (FreeBSD) don't care.
+    // Some realpath() implementations return NULL if path doesn't exist.
     if (!guess && access(resolved, F_OK)) {
-	putil_free(resolved);
 	return NULL;
     }
-#endif	/*_WIN32*/
 
-    return resolved;
+    return putil_strdup(resolved);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1023,24 +696,11 @@ putil_realpath(CCS path, int guess)
 PUTIL_CLASS CS
 putil_basename(CCS path)
 {
-#ifdef _WIN32
-    char fname[_MAX_FNAME], ext[_MAX_EXT], buf[_MAX_PATH];
-    _splitpath(path, NULL, NULL, fname, ext);
-    strcpy(buf, fname);
-    strcat(buf, ext);
-    if (!stricmp(endof(path) - strlen(buf), buf)) {
-	return (CS)(endof(path) - strlen(buf));
-    } else {
-	return putil_strdup(buf);
-    }
-#else	/*_WIN32*/
     return basename((CS)path);
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef _WIN32
 // Like readlink(2) but allocates and returns a null-terminated buffer.
 PUTIL_CLASS CCS
 putil_readlink(CCS path)
@@ -1071,7 +731,6 @@ putil_readlink(CCS path)
 
     return buf;
 }
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1085,31 +744,9 @@ putil_dirname(CCS path)
 
     result = (CS)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
 
-#ifdef _WIN32
-    {
-	char buf[PATH_MAX];
-	CS ep;
-	char drive[_MAX_DRIVE], dir[_MAX_DIR];
-
-	strcpy(buf, path);
-	for (ep = endof(buf) - 1; *ep == '\\' || *ep == '/'; ep--) {
-	    *ep = '\0';
-	}
-	_splitpath(buf, drive, dir, NULL, NULL);
-	result[0] = '\0';
-	strcat(result, drive);
-	if (*dir) {
-	    strcat(result, dir);
-	} else {
-	    strcat(result, "\\");
-	}
-	for (ep = endof(result) - 1; *ep == '\\' || *ep == '/'; ep--)
-		*ep = '\0';
-    }
-#else	/*_WIN32*/
     // We do this double copying because some dirname()
     // implementations (FreeBSD) return a ptr to static storage
-    // while others (Solaris) modify the parameter string. The
+    // while others modify the parameter string. The
     // following is safe in both cases, thread-safety aside.
     {
 	char *buf;
@@ -1118,7 +755,6 @@ putil_dirname(CCS path)
 	strcpy(result, dirname(buf));
 	putil_free(buf);
     }
-#endif	/*_WIN32*/
     return result;
 }
 
@@ -1134,11 +770,7 @@ putil_mkdir_p(CCS path)
 	    (void)putil_mkdir_p(parent);
 	putil_free(parent);
     }
-#ifdef	_WIN32
-    return mkdir(path);
-#else	/*_WIN32*/
     return mkdir(path, 0777);
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1189,10 +821,6 @@ putil_prog(void)
 PUTIL_CLASS CS *
 putil_argv_from_environ(int *p_argc)
 {
-#ifdef	_WIN32
-    return NULL;
-#else	/*_WIN32*/
-
 #if defined(__APPLE__)
     // OSX has its own way (as usual).
     CS *av;
@@ -1232,7 +860,6 @@ putil_argv_from_environ(int *p_argc)
 	return NULL;
     }
 #endif	/*__APPLE__*/
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1246,11 +873,6 @@ PUTIL_CLASS CCS
 putil_getexecpath(void)
 {
     static char xname[PATH_MAX];
-#ifdef _WIN32
-    if (xname[0] == '\0')
-	GetModuleFileName(NULL, xname, charlen(xname));
-    return xname;
-#else	/*_WIN32*/
     char buf[PATH_MAX + 1], pbuf[PATH_MAX];
     ssize_t llen;
 
@@ -1270,7 +892,7 @@ putil_getexecpath(void)
 //    1+strlen(environ[last])+environ[last] is a string containing the
 //    pathname that was given to execve()."
 // So we look for something past the environ block that looks like a path.
-#if defined(linux) || defined(__CYGWIN__)
+#if defined(linux)
     if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
 	char **e;
 	CS p;
@@ -1286,30 +908,7 @@ putil_getexecpath(void)
     } else {
 	buf[llen] = '\0';
     }
-#elif defined(sun)
-    {
-	// This /proc entry is only available as of Solaris 10, but
-	// if present it's the most reliable.
-	if ((llen = readlink("/proc/self/path/a.out", buf, charlen(buf) - 1)) == -1) {
-	    // One danger of getexecname() is that if you run "foo"
-	    // which is a symlink to "bar", getexecname() returns "bar".
-	    // Otherwise it's pretty strong with the caveat mentioned
-	    // in the man page about relative paths and changing cwd.
-	    (void)strcpy(buf, getexecname());
-	    if (! putil_is_absolute(buf)) {
-		char cwd[PATH_MAX];
-		if (getcwd(cwd, charlen(cwd)) == NULL)
-		    putil_syserr(1, "getcwd");
-		strcat(cwd, "/");
-		strcat(cwd, buf);
-		strcpy(buf, cwd);
-	    }
-	} else {
-	    buf[llen] = '\0';
-	}
-    }
 #else
-
     {
 #if defined(BSD)
 	// As of FreeBSD 5.x the /proc filesystem isn't mounted by
@@ -1360,36 +959,16 @@ putil_getexecpath(void)
 
     buf[0] = '\0';
     return NULL;
-#endif /*_WIN32*/
 }
 
 PUTIL_CLASS CS
 putil_canon_path(CS path, CS newpath, size_t len)
 {
-#ifdef _WIN32
-    CS buf, p;
-
-    if (newpath) {
-	p = buf = strncpy(newpath, path, len);
-    } else {
-	p = buf = path;
-    }
-
-    for (; *p; p++) {
-	if (*p == '\\')
-	    *p = '/';
-    }
-
-    for (p = strchr(buf, '\0') - 1; *p == '/'; *p-- = '\0');
-
-    return buf;
-#else	/*_WIN32*/
     if (newpath) {
 	return strncpy(newpath, path, len);
     } else {
 	return path;
     }
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1398,21 +977,7 @@ putil_canon_path(CS path, CS newpath, size_t len)
 PUTIL_CLASS CS
 putil_path_strstr(CCS s1, CCS s2)
 {
-#ifdef _WIN32
-    size_t len;
-    char c1, c2;
-
-    for (len = strlen(s2); *s1; s1++) {
-	c1 = *s1;
-	c2 = *s2;
-	if (_tolower(c1) == _tolower(c2))
-	    if (!strnicmp(s1, s2, len))
-		return (CS)s1;
-    }
-    return NULL;
-#else	/*_WIN32*/
     return strstr(s1, s2);
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1500,9 +1065,6 @@ putil_putenv(CS string)
 PUTIL_CLASS void
 putil_unsetenv(CCS name)
 {
-#if defined(_WIN32)
-    SetEnvironmentVariable(name, NULL);
-#else	/*_WIN32*/
     CS *ep;
     size_t len;
 
@@ -1515,7 +1077,6 @@ putil_unsetenv(CCS name)
 		np[0] = np[1];
 	}
     }
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1523,28 +1084,7 @@ putil_unsetenv(CCS name)
 PUTIL_CLASS int
 putil_uname(struct utsname *name)
 {
-#if defined(_WIN32)
-    OSVERSIONINFO osvi = {0};
-    DWORD nodelen = sizeof(name->nodename);
-
-    strcpy(name->sysname,  "Windows");
-    strcpy(name->nodename, "");
-    strcpy(name->release,  "");
-    strcpy(name->version,  "");
-    strcpy(name->machine,  "x86");
-
-    if (!GetComputerNameEx(ComputerNameDnsHostname, name->nodename, &nodelen))
-	return -1;
-
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    if (!GetVersionEx(&osvi))
-	return -1;
-    _snprintf(name->release, sizeof(name->release), "%d.%d",
-	osvi.dwMajorVersion, osvi.dwMinorVersion);
-    return 0;
-#else	/*_WIN32*/
     return uname(name);
-#endif	/*_WIN32*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1588,16 +1128,6 @@ putil_prepend2argv(CS *argv, ...)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-PUTIL_CLASS CCS
-putil_tmpdir(CS tbuf, DWORD tlen)
-{
-    DWORD len = GetTempPath(tlen, tbuf);
-    if (len == 0 || len > tlen)
-	putil_die("unable to determine temp dir");
-    return tbuf;
-}
-#else	/*_WIN32*/
 PUTIL_CLASS CCS
 putil_tmpdir(CS tbuf, size_t tlen)
 {
@@ -1608,7 +1138,6 @@ putil_tmpdir(CS tbuf, size_t tlen)
     snprintf(tbuf, tlen, "%s/", t);
     return tbuf;
 }
-#endif	/*_WIN32*/
 
 // Simply to help suppressing warnings. The space is there because
 // otherwise we get a warning from __attribute__(( __format__)).
@@ -1652,20 +1181,11 @@ _putil_never_called(void)
     putil_unsetenv(PUTIL_NULLSTR);
     putil_uname(NULL);
     putil_mkdir_p(PUTIL_NULLSTR);
-
-#if defined(_WIN32)
-    putil_errorW(PUTIL_NULLSTRW);
-    putil_warnW(PUTIL_NULLSTRW);
-    putil_win32err_(PUTIL_NULLSTR, 0, 0, 0, PUTIL_NULLSTR);
-    putil_win32errW_(PUTIL_NULLSTR, 0, 0, 0, PUTIL_NULLSTRW);
-    putil_syserrW_(PUTIL_NULLSTR, 0, 0, PUTIL_NULLSTRW);
-#else	/*_WIN32*/
     putil_readlink(NULL);
-#endif	/*_WIN32*/
 
 #if !defined(__clang__)
     // Avoid warning via bogus recursive call.
-    if (_putil_never_called == _putil_never_called) {
+    if (_putil_never_called == (void *)-1) {
 	_putil_never_called();
     }
 #endif  /*__clang__*/
@@ -1686,3 +1206,5 @@ _putil_never_called(void)
 /// @endcond RSN
 
 #endif	/* PUTIL_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

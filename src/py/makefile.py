@@ -1,4 +1,4 @@
-"""Classes to support makefile abstractions and creation."""
+"""Classes to support makefile abstraction and creation."""
 
 #############################################################################
 # This is free and unencumbered software released into the public domain.
@@ -24,9 +24,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #############################################################################
-
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import os
 import re
@@ -78,9 +75,8 @@ def shellsafe(text):
     # Special case - a tilde is inert except when leading.
     if text[0] != '~' and re.match(r'^[-+~\w/.%@,:{}=]+$', text):
         return True
-    else:
-        #  Another special case - a leading caret does not require quoting.
-        return text[0] == '^' and '^' not in text[1:]
+    #  Another special case - a leading caret does not require quoting.
+    return text[0] == '^' and '^' not in text[1:]
 
 
 def quote(stuff):
@@ -158,7 +154,7 @@ def desh(line):
     return line
 
 
-class Path(object):
+class Path():
 
     """A path which may be used in the makefile by a parameterized name."""
 
@@ -169,7 +165,7 @@ class Path(object):
             self.ppath = quote(path.replace(begin, '$({})'.format(macro), 1))
 
 
-class Variable(object):
+class Variable():
 
     """Represent a make variable."""
 
@@ -187,7 +183,7 @@ class Variable(object):
 
     def __repr__(self):
         result = '{} {}'.format(self.name, self.eq)
-        if isinstance(self.val, basestring):
+        if isinstance(self.val, str):
             result += SP + self.val
         else:
             btwn = CONT + INDENT
@@ -208,7 +204,7 @@ class Variable(object):
         return repr(self)
 
 
-class Phony(object):
+class Phony():
 
     """Represent a classic GNU make .PHONY target."""
 
@@ -226,12 +222,12 @@ class Phony(object):
         return result + NL
 
 
-class Rule(object):
+class Rule():
 
     """Represent a classic make targets/prereqs/recipe triple."""
 
     def __init__(self, targets, prereqs=None, recipe=None):
-        if isinstance(targets, basestring):
+        if isinstance(targets, str):
             self.targets = [targets]
         else:
             self.targets = targets
@@ -281,21 +277,18 @@ class Rule(object):
         return result
 
 
-class Makefile(object):
+class Makefile():
 
     """Manage a makefile abstraction and dump it in file form."""
 
-    def __init__(self, basedir, srcbase):
-        self.basevar = Variable(name=srcbase, val=basedir)
+    def __init__(self, basevar='SRCBASE', basedir=None):
+        self.basevar = Variable(name=basevar, val=basedir) if basedir else None
         self.items = []
 
     def __repr__(self):
         result = ''
-        if self.basevar:
-            result += repr(self.basevar)
-            result += NL * 2
         for item in self.items:
-            if isinstance(item, basestring):
+            if isinstance(item, str):
                 result += item
             else:
                 if isinstance(item, Rule):
@@ -310,4 +303,11 @@ class Makefile(object):
         """Add a new item to the end of the makefile object."""
         self.items.append(item)
 
-# vim: ts=8:sw=4:tw=80:et:
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -29,9 +29,7 @@
 #include "PROP.h"
 #include "RE.h"
 
-#if !defined(_WIN32)
 #include <wordexp.h>
-#endif	/*_WIN32*/
 
 /// @cond prefs
 #define PROJ_EXT			".project"
@@ -59,20 +57,6 @@ _find_file_up(CCS name)
 
 	// Optionally, break when the specified glob is matched.
 	if (project_base_glob) {
-#if defined(_WIN32)
-	    WIN32_FIND_DATA FindFileData;
-	    HANDLE hFind;
-
-	    asprintf(&glob, "%s/%s", dir, project_base_glob);
-	    if ((hFind = FindFirstFile(glob, &FindFileData)) != INVALID_HANDLE_VALUE) {
-		asprintf(&result, "%s\\%s", dir, putil_basename(FindFileData.cFileName));
-		FindClose(hFind);
-		putil_free(glob);
-		putil_free(dir);
-		return result;
-	    }
-	    putil_free(glob);
-#else	/*_WIN32*/
 	    wordexp_t wexp;
 	    CS scratch;
 	    CS g;
@@ -103,7 +87,6 @@ _find_file_up(CCS name)
 	    }
 
 	    putil_free(scratch);
-#endif	/*_WIN32*/
 	}
 
 	asprintf(&result, "%s%s%s", dir, DIRSEP(), name);
@@ -125,12 +108,6 @@ _find_file_up(CCS name)
 		dir = pdir;
 	    }
 	}
-
-#if defined(_WIN32)
-	if (!strcmp(dir, "\\")) {
-	    break;
-	}
-#endif	/*_WIN32*/
     }
 
     putil_free(dir);
@@ -152,23 +129,9 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     // Store the short program name for error msgs etc.
     if ((p = strrchr(exe, '/'))) {
 	progname = putil_strdup(p + 1);
-#if defined(_WIN32)
-    } else if ((p = strrchr(exe, '\\'))) {
-	progname = putil_strdup(p + 1);
-#endif	/*_WIN32*/
     } else {
 	progname = putil_strdup(exe);
     }
-
-#if defined(_WIN32)
-    {
-	CS ext;
-
-	if ((ext = strrchr(progname, '.'))) {
-	    *ext = '\0';
-	}
-    }
-#endif	/*_WIN32*/
 
     prop_put_str(P_PROGNAME, progname);
     putil_free(progname);
@@ -217,11 +180,6 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	// Try a truly global properties file from the dir
 	// the executable is in (Windows) or ../etc from there (Unix).
 	if ((exedir = putil_dirname(exe))) {
-#if defined(_WIN32)
-	    CS globalcfg;
-
-	    asprintf(&globalcfg, "%s%s%s%s", exedir, DIRSEP(), app, ext);
-#else	/*!_WIN32*/
 	    CS globalcfg = NULL;
 	    CS appdir;
 
@@ -229,7 +187,6 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 		asprintf(&globalcfg, "%s/etc/%s%s", appdir, app, ext);
 		putil_free(appdir);
 	    }
-#endif	/*_WIN32*/
 
 	    putil_free(exedir);
 
@@ -272,18 +229,6 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	putil_free(cfgname);
     }
 
-    // We need to determine what type of platform this is if not Unix.
-#if defined(_WIN32)
-    {
-	char *term;
-	if ((term = putil_getenv("TERM")) && strstr(term, "cygwin")) {
-	    prop_put_str(P_MONITOR_PLATFORM, "c");
-	} else {
-	    prop_put_str(P_MONITOR_PLATFORM, "w");
-	}
-    }
-#endif	/*!_WIN32 */
-
     // "Strict" is a shorthand for all strict options.
     if (prop_is_true(P_STRICT)) {
 	prop_set_true(P_STRICT_UPLOAD);
@@ -300,3 +245,5 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 
     return;
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

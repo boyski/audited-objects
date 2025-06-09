@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -18,10 +18,11 @@
 /// @file
 /// @brief Definitions for the PathState "class".
 /// A PathState represents the "state" of a file over a certain period of
-/// time, in terms of file size, datestamp, contents, and lesser metadata
+/// time, in terms of file size, timestamp, contents, and lesser metadata
 /// such as owner, group, and permissions.  A PathState contains a PathName
-/// (see pn.c). The underlying path state is in existence for some quantum
-/// of time and may be opened any number of times during that period. Once
+/// (see pn.c) and generally is contained by a PathAction (see pa.c).
+/// The underlying path state is in existence for some quantum of
+/// time and may be opened any number of times during that period. Once
 /// the file is written to, or renamed or unlinked, the previous state is
 /// no longer in existence but the PathState object representing it may
 /// live on in the historical record like a fossil.
@@ -54,8 +55,8 @@ typedef enum {
 } ps_e;
 
 /// Object structure for describing the state of a file at a given time.
-// NOTE: we use int64_t for file sizes in preference to off_t because
-// Windows forces off_t to 'long' and we need to be sure we can
+// NOTE: int64_t was used for file sizes in preference to off_t because
+// Windows forces off_t to 'long' and we needed to be sure we can
 // represent 64-bit sizes.
 struct path_state_s {
     moment_s ps_moment;		///< mtime as secs+nanos
@@ -192,13 +193,8 @@ ps_is_dir(ps_o ps)
 int
 ps_is_special(ps_o ps)
 {
-#if defined(_WIN32)
-    UNUSED(ps);
-    return 0;
-#else	/*_WIN32*/
     return S_ISBLK(ps->ps_mode) || S_ISCHR(ps->ps_mode)
 	|| S_ISFIFO(ps->ps_mode) || S_ISSOCK(ps->ps_mode);
-#endif	/*_WIN32*/
 }
 
 /// Boolean - returns true iff this object is the result of a hard link op.
@@ -362,42 +358,6 @@ _ps_get_cached_dcode(ps_o ps, CCS path)
 static int
 _ps_set_modtime(CCS path, moment_s *mptr, struct __stat64 *stp)
 {
-#if defined(_WIN32)
-    HANDLE hFile;
-
-    FILETIME ft;
-
-    LARGE_INTEGER li;
-
-    __int64 clunks;
-
-    hFile = CreateFile(path,
-		       GENERIC_READ,
-		       FILE_SHARE_READ,
-		       NULL,
-		       OPEN_EXISTING,
-		       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS,
-		       NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-	return 1;
-    }
-    if (GetFileTime(hFile, NULL, NULL, &ft) == 0) {
-	CloseHandle(hFile);
-	return 1;
-    }
-    if (!CloseHandle(hFile)) {
-	putil_win32err(0, GetLastError(), path);
-    }
-
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
-    clunks = li.QuadPart;	// In 100-nanosecond intervals
-    clunks = ((LONGLONG) ft.dwHighDateTime) << 32;
-    clunks += ft.dwLowDateTime - WIN_EPOCH_OFFSET;
-    mptr->ntv_sec = (int64_t)(clunks / WIN_CLUNKS_PER_SEC);
-    mptr->ntv_nsec = (long)((clunks % WIN_CLUNKS_PER_SEC) * 100);
-#else	/*_WIN32*/
-
     UNUSED(path);
 
 // Funny little hack-on-hack: many modern Unices hack
@@ -414,12 +374,10 @@ _ps_set_modtime(CCS path, moment_s *mptr, struct __stat64 *stp)
     mptr->ntv_nsec = 0;
 #endif	/*st_mtime*/
 
-#endif	/*_WIN32*/
-
     return 0;
 }
 
-/// Samples the contained pathname and stores its vital statistics.
+/// Sample the contained pathname and store its vital statistics.
 /// @param[in] ps               the object pointer
 /// @param[in] want_dcode       boolean - derive dcode iff true
 /// @return 0 on success
@@ -488,7 +446,6 @@ ps_stat(ps_o ps, int want_dcode)
 	putil_syserr(0, path);
 	return -1;
     }
-#if !defined(_WIN32)
     if (S_ISLNK(stbuf.st_mode)) {
 	ps_set_symlinked(ps);
 	if (!ps_get_target(ps)) {
@@ -503,7 +460,6 @@ ps_stat(ps_o ps, int want_dcode)
 	    }
 	}
     }
-#endif	/*_WIN32*/
 
     if (want_dcode) {
 	CCS dcode;
@@ -662,38 +618,37 @@ ps_toCSVString(ps_o ps)
 /// @param[out] buf     a buffer to hold the formatted string
 /// @param[in] bufmax   the size of the passed-in buffer
 /// @return the length of the formatted string
-int
-ps_format_user(ps_o ps, int lflag, int sflag, CS buf, int bufmax)
+size_t
+ps_format_user(ps_o ps, int lflag, int sflag, CS buf, size_t bufmax)
 {
     CCS path;
-
-    int len;
+    size_t len;
 
     path = prop_is_true(P_ABSOLUTE_PATHS) ? ps_get_abs(ps) : ps_get_rel(ps);
 
     buf[0] = '\0';
 
     if (sflag) {
-	len = snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
+	len = (size_t)snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
     } else if (lflag) {
 	char mtime[MOMENT_BUFMAX];
 
 	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	len = snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
+	len = (size_t)snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
 			 " moment=%s %s\n",
 			 ps_get_dcode(ps),
 			 ps_get_size(ps),
 			 mtime,
 			 path);
     } else {
-	len = snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
+	len = (size_t)snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
 			 ps_get_dcode(ps),
 			 ps_get_size(ps),
 			 path);
     }
 
-    if (len < 0 || len > bufmax) {
+    if (len > bufmax) {
 	buf[bufmax - 1] = '\0';
 	putil_syserr(0, buf);
 	len = strlen(buf);
@@ -846,3 +801,5 @@ ps_destroy(ps_o ps)
     // Then free it.
     putil_free(ps);
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

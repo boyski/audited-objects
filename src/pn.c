@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2005-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,8 @@
 /// @brief Definitions for the PathName "class".
 /// A PathName represents a pathname, naturally. The main value it
 /// adds over a simple string is that it contains both absolute and
-/// project-relative versions of the path.
+/// project-relative versions of the path. It is generally contained
+/// by a PathState (see ps.c).
 ///
 /// The term PathName is often abbreviated as PN.
 
@@ -287,6 +288,7 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
 		    src++;
 		    break;
 		}
+		// fallthrough
 	    case ST_SEPARATOR:
 		if (*src == '\0') {
 		    *dst = '\0';
@@ -351,11 +353,10 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
 	}
     }
 
-#if !defined(_WIN32)
     errno = ERANGE;
-#endif	/*_WIN32*/
-
     return -1;
 }
 
 /// @endcond static
+
+// vim: sw=4 ts=8 tw=100 cc=+1

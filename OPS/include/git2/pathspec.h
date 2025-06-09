@@ -12,6 +12,13 @@
 #include "strarray.h"
 #include "diff.h"
 
+/**
+ * @file git2/pathspec.h
+ * @brief Specifiers for path matching
+ * @defgroup git_pathspec Specifiers for path matching
+ * @ingroup Git
+ * @{
+ */
 GIT_BEGIN_DECL
 
 /**
@@ -26,33 +33,50 @@ typedef struct git_pathspec_match_list git_pathspec_match_list;
 
 /**
  * Options controlling how pathspec match should be executed
- *
- * - GIT_PATHSPEC_IGNORE_CASE forces match to ignore case; otherwise
- *   match will use native case sensitivity of platform filesystem
- * - GIT_PATHSPEC_USE_CASE forces case sensitive match; otherwise
- *   match will use native case sensitivity of platform filesystem
- * - GIT_PATHSPEC_NO_GLOB disables glob patterns and just uses simple
- *   string comparison for matching
- * - GIT_PATHSPEC_NO_MATCH_ERROR means the match functions return error
- *   code GIT_ENOTFOUND if no matches are found; otherwise no matches is
- *   still success (return 0) but `git_pathspec_match_list_entrycount`
- *   will indicate 0 matches.
- * - GIT_PATHSPEC_FIND_FAILURES means that the `git_pathspec_match_list`
- *   should track which patterns matched which files so that at the end of
- *   the match we can identify patterns that did not match any files.
- * - GIT_PATHSPEC_FAILURES_ONLY means that the `git_pathspec_match_list`
- *   does not need to keep the actual matching filenames.  Use this to
- *   just test if there were any matches at all or in combination with
- *   GIT_PATHSPEC_FIND_FAILURES to validate a pathspec.
  */
 typedef enum {
 	GIT_PATHSPEC_DEFAULT        = 0,
+
+	/**
+	 * GIT_PATHSPEC_IGNORE_CASE forces match to ignore case; otherwise
+	 * match will use native case sensitivity of platform filesystem
+	 */
 	GIT_PATHSPEC_IGNORE_CASE    = (1u << 0),
+
+	/**
+	 * GIT_PATHSPEC_USE_CASE forces case sensitive match; otherwise
+	 * match will use native case sensitivity of platform filesystem
+	 */
 	GIT_PATHSPEC_USE_CASE       = (1u << 1),
+
+	/**
+	 * GIT_PATHSPEC_NO_GLOB disables glob patterns and just uses simple
+	 * string comparison for matching
+	 */
 	GIT_PATHSPEC_NO_GLOB        = (1u << 2),
+
+	/**
+	 * GIT_PATHSPEC_NO_MATCH_ERROR means the match functions return error
+	 * code GIT_ENOTFOUND if no matches are found; otherwise no matches is
+	 * still success (return 0) but `git_pathspec_match_list_entrycount`
+	 * will indicate 0 matches.
+	 */
 	GIT_PATHSPEC_NO_MATCH_ERROR = (1u << 3),
+
+	/**
+	 * GIT_PATHSPEC_FIND_FAILURES means that the `git_pathspec_match_list`
+	 * should track which patterns matched which files so that at the end of
+	 * the match we can identify patterns that did not match any files.
+	 */
 	GIT_PATHSPEC_FIND_FAILURES  = (1u << 4),
-	GIT_PATHSPEC_FAILURES_ONLY  = (1u << 5),
+
+	/**
+	 * GIT_PATHSPEC_FAILURES_ONLY means that the `git_pathspec_match_list`
+	 * does not need to keep the actual matching filenames.  Use this to
+	 * just test if there were any matches at all or in combination with
+	 * GIT_PATHSPEC_FIND_FAILURES to validate a pathspec.
+	 */
+	GIT_PATHSPEC_FAILURES_ONLY  = (1u << 5)
 } git_pathspec_flag_t;
 
 /**
@@ -259,5 +283,7 @@ GIT_EXTERN(size_t) git_pathspec_match_list_failed_entrycount(
 GIT_EXTERN(const char *) git_pathspec_match_list_failed_entry(
 	const git_pathspec_match_list *m, size_t pos);
 
+/** @} */
 GIT_END_DECL
+
 #endif

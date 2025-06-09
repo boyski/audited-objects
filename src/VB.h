@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -103,9 +103,6 @@ extern void vb_addstr(CCS);
 extern void vb_addbit(int);
 extern int vb_bitmatch(long);
 extern void vb_printfA(long, const char *, ...);
-#if defined(_WIN32)
-extern void vb_printfW(long, const wchar_t *, ...);
-#endif	/*_WIN32*/
 extern void vb_fini(void);
 
 /// @cond VB
@@ -113,3 +110,5 @@ extern void vb_fini(void);
 /// @endcond VB
 
 #endif				/*VB_H */
+
+// vim: sw=4 ts=8 tw=100 cc=+1

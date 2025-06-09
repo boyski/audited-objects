@@ -1,4 +1,4 @@
-// Copyright (c) 2002-2011 David Boyce.  All rights reserved.
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
 
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 
 /// @file
 /// @brief Support for Properties objects.
-/// These are analogous to Java Properties in the sense that the file
+/// These are analogous to Java properties in the sense that the file
 /// format is the same. Essentially, properties are a set of key-value
 /// pairs describing local or personal configuration choices.
 ///
@@ -43,20 +43,13 @@
 #include "PREFS.h"
 #include "PROP.h"
 
-#if  defined(_WIN32)
-#include <wchar.h>
-#else	/*_WIN32*/
 #if  !defined(BSD)
 #include <alloca.h>
 #endif	/*BSD*/
 /// @cond static
-extern char **environ;		// Win32 declares this in stdlib.h
+extern char **environ;
 /// @endcond static
-#endif	/*_WIN32*/
 
-#if  defined(_WIN32)
-static WCHAR PropEnvPrefixW[128];
-#endif	/*_WIN32*/
 static char PropEnvPrefix[128];
 static size_t PropEnvPrefixLen;
 
@@ -140,12 +133,7 @@ static struct {
 	"Aggregation.Line.Strong.RE",
 	NULL,
 	"Strong-aggregation RE based on cmd line",
-#if defined(_WIN32)
-	// Windows patterns are always case-insensitive.
-	NULL,
-#else	/*_WIN32*/
 	"^(?:(?:/usr|/usr/xpg4)?/bin/)?[a-z]*sh\\s+|libtool|^/\\S*/perl\\s+\\S+gcc",
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_LINE_STRONG_RE,
@@ -154,12 +142,7 @@ static struct {
 	"Aggregation.Line.Weak.RE",
 	NULL,
 	"Weak-aggregation RE based on cmd line",
-#if defined(_WIN32)
-	// Windows patterns are always case-insensitive.
-	"cmd\\.exe$",
-#else	/*_WIN32*/
 	NULL,
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_LINE_WEAK_RE,
@@ -168,12 +151,7 @@ static struct {
 	"Aggregation.Prog.Break.RE",
 	NULL,
 	"Break-aggregation RE based on prog name",
-#if defined(_WIN32)
-	// Windows patterns are always case-insensitive.
-	NULL,
-#else	/*_WIN32*/
 	"make$",
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_BREAK_RE,
@@ -182,12 +160,7 @@ static struct {
 	"Aggregation.Prog.Strong.RE",
 	NULL,
 	"Strong-aggregation RE based on prog name",
-#if defined(_WIN32)
-	// Windows patterns are always case-insensitive.
-	"(cl|link|msbuild|vcbuild|devenv)\\.(exe|com)$",
-#else	/*_WIN32*/
 	"(\\bcc|\\bCC|gcc|gcc-.*|[cg][+]{2}|[cg][+]{2}-.*|ccache)$",
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_STRONG_RE,
@@ -196,12 +169,7 @@ static struct {
 	"Aggregation.Prog.Weak.RE",
 	NULL,
 	"Weak-aggregation RE based on prog name",
-#if defined(_WIN32)
-	// Windows patterns are always case-insensitive.
-	"java\\.exe$",
-#else	/*_WIN32*/
 	"java$",
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC,
 	0,
 	P_AGGREGATION_PROG_WEAK_RE,
@@ -238,11 +206,7 @@ static struct {
 	"Audit.Ignore.Path.RE",
 	NULL,
 	"Regular expression matching pathnames to be completely ignored",
-#if defined(_WIN32)
-	"\\b(index\\.dat|BuildLog\\.htm|\\.rsp|\\.bak)$|\\.cmake\\.state",
-#else	/*_WIN32*/
 	"/tmp\\d+\\b|/tmp/[^/]+$|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$",
-#endif	/*_WIN32*/
 	PROP_FLAG_PUBLIC | PROP_FLAG_EXPORT,
 	0,
 	P_AUDIT_IGNORE_PATH_RE,
@@ -251,11 +215,7 @@ static struct {
 	"Audit.Ignore.Prog.RE",
 	NULL,
 	"Regular expression matching programs to be completely ignored",
-#if defined(_WIN32)
-	"mspdbsrv",
-#else	/*_WIN32*/
 	NULL,
-#endif	/*_WIN32*/
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_AUDIT_IGNORE_PROG_RE,
@@ -358,8 +318,8 @@ static struct {
     {
 	"Identity.Hash",
 	NULL,
-	"Name of identity hash (CRC, SHA1, GIT)",
-	"GIT",
+	"Name of identity hash (CRC, SHA1, GIT, XXHASH)",
+	"XXHASH",
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_IDENTITY_HASH,
@@ -466,7 +426,7 @@ static struct {
     {
 	"Monitor.Platform",
 	NULL,
-	"Type of client platform: Unix, Windows, Cygwin, ...",
+	"Type of client platform",
 	"u",
 	PROP_FLAG_PRIVATE,
 	0,
@@ -812,10 +772,6 @@ prop_init(CCS app)
 	"_%s_", proptab[P_APP].pr_value);
     util_strup(PropEnvPrefix);
     PropEnvPrefixLen = strlen(PropEnvPrefix);
-#if defined(_WIN32)
-    (void)MultiByteToWideChar(CP_ACP, 0, PropEnvPrefix, -1,
-	PropEnvPrefixW, charlen(PropEnvPrefixW));
-#endif	/*_WIN32*/
 }
 
 // Retrieve a generic pointer by key.
@@ -1110,8 +1066,8 @@ _prop_put_str(prop_e prop, CCS val)
 /// realloc of) the env block in an audited process. I.e. we may export
 /// "1" as "         1" in order to reserve all the env space
 /// possibly needed for a 32-bit value. Luckily, strtol and friends
-/// ignore leading whitespace. For string-valured properties we will
-/// have to remember to trim it off ourselves.
+/// ignore leading whitespace. For string-valued properties we must
+/// remember to trim it off ourselves.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as a string
 void
@@ -1222,20 +1178,6 @@ _prop_matches_ev_name(CCS name)
     }
 }
 
-#if defined(_WIN32)
-static int
-_prop_matches_ev_nameW(WCHAR *name)
-{
-    if (!wcsncmp(name, PropEnvPrefixW, PropEnvPrefixLen)) {
-	return PropEnvPrefixLen;
-    } else if (!wcsncmp(name, PropEnvPrefixW + 1, PropEnvPrefixLen - 1)) {
-	return PropEnvPrefixLen - 1;
-    } else {
-	return 0;
-    }
-}
-#endif	/*_WIN32*/
-
 // Internal service routine.
 static void
 _prop_load_from_ev(CS buf)
@@ -1313,23 +1255,6 @@ prop_load(CCS fname, CCS verbose, int win)
     } else {
 	int offset;
 
-#if defined(_WIN32)
-	char *env, *ep;
-
-	if (!(env = GetEnvironmentStrings())) {
-	    putil_syserr(2, "GetEnvironmentStrings");
-	}
-
-	for (ep = env; *ep; ep++) {
-	    if ((offset = _prop_matches_ev_name(ep))) {
-		strcpy(buf, ep + offset);
-		_prop_load_from_ev(buf);
-	    }
-	    ep = strchr(ep, '\0');
-	}
-
-	FreeEnvironmentStrings(env);
-#else	/*_WIN32*/
 	char **envp;
 
 	for (envp = environ; *envp; envp++) {
@@ -1338,7 +1263,6 @@ prop_load(CCS fname, CCS verbose, int win)
 		_prop_load_from_ev(buf);
 	    }
 	}
-#endif	/*_WIN32*/
 
 	if (verbose) {
 	    printf("%s[Environment]\n", verbose);
@@ -1388,18 +1312,6 @@ _prop_export(prop_e prop)
 	name++;
     }
 
-#if defined(_WIN32)
-    str = (CS)alloca(PROP_STR_MAX);
-    if (GetEnvironmentVariable(name, str, PROP_STR_MAX) && !strcmp(str, val)) {
-	return;
-    }
-    if (!SetEnvironmentVariable(name, val)) {
-	putil_syserr(0, name);
-    }
-    if (GetEnvironmentVariable(name, str, PROP_STR_MAX)) {
-	assert(!strcmp(str, val));
-    }
-#else	/*_WIN32*/
     if ((str = putil_getenv(name)) && !strcmp(str, val)) {
 	return;
     }
@@ -1412,7 +1324,6 @@ _prop_export(prop_e prop)
     // Unfortunately Sun's bcheck will show it as a memory leak.
     // Sadly, so does valgrind 3.4.1 on Linux ...
     //putil_free(str);
-#endif	/*_WIN32*/
 
     return;
 }
@@ -1429,11 +1340,7 @@ prop_unexport(prop_e prop, int forever)
 
     _prop_to_ev(prop, buf, charlen(buf));
 
-#if defined(_WIN32)
-    SetEnvironmentVariable(buf, NULL);
-#else	/*_WIN32*/
     putil_unsetenv(buf);
-#endif	/*_WIN32*/
 
     if (forever) {
 	proptab[prop].pr_flags &= ~PROP_FLAG_EXPORT;
@@ -1515,9 +1422,6 @@ prop_dump(int all)
 static CCS
 _prop_modify_env_val(char *const *envp, CCS name, CCS nval)
 {
-#if defined(_WIN32)
-    return SetEnvironmentVariable(name, nval) ? name : NULL;
-#else				/*!_WIN32 */
     char *const *ep;
     CS oval = NULL, result = NULL;
     size_t nlen, ovlen, nvlen;
@@ -1563,10 +1467,9 @@ _prop_modify_env_val(char *const *envp, CCS name, CCS nval)
     }
 
     return (CCS)result;
-#endif	/*_WIN32*/
 }
 
-/// Modifies a string-valued property in place. Main reason to do this is if
+/// Modify a string-valued property in place. Main reason to do this is if
 /// the property is exported. Doing a putenv of the new value can cause
 /// the environment block to be realloc-ed, i.e. moved, which can
 /// confuse the host process badly.
@@ -1636,7 +1539,7 @@ prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
 //
 // Our problem with this design is that AO passes some of its own parameters
 // (aka properties) in the environment. Unfortunately anything exported
-// by the audit lib is "under the radar" of %ENV and thus not represented
+// by the audit lib flies under the radar of %ENV and is thus not represented
 // and not passed on to children as expected. This problem is not just
 // in Perl; it may occur whenever a process assembles a custom environment
 // for its child, though more often than not the custom env will include all
@@ -1700,7 +1603,7 @@ prop_mod_ulong(prop_e prop, unsigned long val, char *const *envp)
 // because they are and should be hardwired to a particular char width.
 /////////////////////////////////////////////////////////////////////////////
 
-/// Calculates a buffer big enough for the new env
+/// Calculate a buffer big enough for the new env
 /// block plus the 'envp' (char **) array which Unix uses and
 /// Windows doesn't (but which we need for sorting on Windows anyway)
 /// plus terminating nulls.
@@ -1714,27 +1617,16 @@ prop_new_env_block_sizeA(char *const *cenv)
     // Figure out how many bytes are in the provided env.
     // We might end up counting properties twice for size
     // purposes but that's ok, the block is short-lived.
-#if defined(_WIN32)
-    char *sp;
-
-    for (plen = 0, sp = (char *)cenv; *sp; sp += strlen(sp) + 1) {
-	plen += (strlen(sp) + 1) * charwidth;
-	plen += sizeof(char *);
-    }
-    // The Windows block will be terminated by double null chars.
-    plen += charwidth;
-#else	/*_WIN32*/
     char **ep;
 
     for (plen = 0, ep = (char **)cenv; *ep; ep++) {
 	plen += strlen(*ep) + charwidth;
 	plen += sizeof(char *);
     }
-#endif	/*_WIN32*/
 
     // For the NULL pointer which terminates envp.
-    // Remember that we construct an envp even for Windows which
-    // doesn't use one because we need it for sorting, which
+    // Remember we construct an envp even for Windows, which
+    // doesn't use one, because we need it for sorting, which
     // Windows does require.
     plen += sizeof(char **);
 
@@ -1758,54 +1650,6 @@ prop_new_env_block_sizeA(char *const *cenv)
 
     return plen;
 }
-
-#if defined(_WIN32)
-// UNICODE version for Windows only.
-size_t
-prop_new_env_block_sizeW(WCHAR *const *cenv)
-{
-    size_t plen;
-    int prop;
-    int charwidth = sizeof(WCHAR);
-
-    // Figure out how many bytes are in the provided env.
-    // We might end up counting properties twice for size
-    // purposes but that's ok, the block is short-lived.
-    WCHAR *sp;
-    for (plen = 0, sp = (WCHAR *)cenv; *sp; sp += wcslen(sp) + 1) {
-	plen += (wcslen(sp) + 1) * charwidth;
-	plen += sizeof(WCHAR *);
-    }
-    // The Windows block will be terminated by double null chars.
-    plen += charwidth;
-
-    // For the NULL pointer which terminates envp.
-    // Remember that we construct an envp even for Windows which
-    // doesn't use one because we need it for sorting, which
-    // Windows does require.
-    plen += sizeof(WCHAR **);
-
-    // Add the additional bytes which must be exported from properties.
-    for (prop = 0; proptab[prop].pr_name; prop++) {
-	char name[PROP_NAME_MAX];
-
-	if (!proptab[prop].pr_value ||
-	    !(proptab[prop].pr_flags & PROP_FLAG_EXPORT)) {
-	    continue;
-	}
-	_prop_to_ev((prop_e)prop, name, charlen(name));
-	// Account for ["name" '=' "value" '\0']
-	plen += (strlen(name) +
-		 strlen(proptab[prop].pr_value) + 2) * charwidth;
-	plen += sizeof(WCHAR *);
-    }
-
-    // Don't forget the extra pointer at the front for Unix/Win consistency.
-    plen += sizeof(WCHAR **);
-
-    return plen;
-}
-#endif	/*_WIN32*/
 
 // Internal service routine, ANSI version.
 static int
@@ -1814,26 +1658,10 @@ _prop_qsort_nenvA(const void *p1, const void *p2)
     const char **lp = (const char **)p1;
     const char **rp = (const char **)p2;
 
-#if defined(_WIN32)
-    return stricmp(*lp, *rp);
-#else	/*_WIN32*/
     return strcmp(*lp, *rp);
-#endif	/*_WIN32*/
 }
 
-#if defined(_WIN32)
-// Internal service routine, UNICODE version for Windows only.
-static int
-_prop_qsort_nenvW(const void *p1, const void *p2)
-{
-    const WCHAR **lp = (const WCHAR **)p1;
-    const WCHAR **rp = (const WCHAR **)p2;
-
-    return _wcsicmp(*lp, *rp);
-}
-#endif	/*_WIN32*/
-
-/// Fills in the supplied block of memory with our special
+/// Fill in the supplied block of memory with our special
 /// "cross-platform environment block". See voluminous related comments.
 // One thing this code doesn't deal with is a custom 'envp' on
 // Unix which _omits_ LD_PRELOAD*. Seems like the right thing
@@ -1848,19 +1676,11 @@ prop_custom_envA(char **pblock, char *const *cenv)
     int charwidth = sizeof(char);
 
     // Figure out how many non-properties strings are in the provided env.
-#if defined(_WIN32)
-    for (count = 0, sp = (char *)cenv; *sp; sp += strlen(sp) + 1) {
-	if (!_prop_matches_ev_name(sp)) {
-	    count++;
-	}
-    }
-#else	/*_WIN32*/
     for (count = 0, ep = (char **)cenv; *ep; ep++) {
 	if (!_prop_matches_ev_name(*ep)) {
 	    count++;
 	}
     }
-#endif	/*_WIN32*/
 
     // Figure out how many additional strings are to be exported
     // from properties.
@@ -1874,13 +1694,6 @@ prop_custom_envA(char **pblock, char *const *cenv)
     tenvp = ep = (char **)alloca((count + 1) * sizeof(void *));
 
     // Enter all the pre-existing EVs in the temp envp.
-#if defined(_WIN32)
-    for (sp = (char *)cenv; *sp; sp += strlen(sp) + 1) {
-	if (!_prop_matches_ev_name(sp)) {
-	    *ep++ = sp;
-	}
-    }
-#else	/*_WIN32*/
     {
 	char *const *op;
 
@@ -1890,7 +1703,6 @@ prop_custom_envA(char **pblock, char *const *cenv)
 	    }
 	}
     }
-#endif	/*_WIN32*/
 
     // Place the exportable property settings in the temp envp too.
     for (prop = 0; proptab[prop].pr_name; prop++) {
@@ -1916,7 +1728,7 @@ prop_custom_envA(char **pblock, char *const *cenv)
     // And terminate the temp envp.
     *ep = NULL;
 
-    // Sorting is required on Windows, just a frill on Unix.
+    // Sorting is required on Windows, just a nice frill on Unix.
     qsort(tenvp, count, sizeof(char *), _prop_qsort_nenvA);
 
     // Now that the temp array is sorted, copy it along with
@@ -1933,96 +1745,7 @@ prop_custom_envA(char **pblock, char *const *cenv)
     return pblock;
 }
 
-#if defined(_WIN32)
-// UNICODE version for Windows only.
-WCHAR *const *
-prop_custom_envW(WCHAR **pblock, WCHAR *const *cenv)
-{
-    int prop, count, i;
-    WCHAR *sp;
-    WCHAR **envp, **tenvp, **ep;
-    int charwidth = sizeof(WCHAR);
-    LPWSTR name_w, value_w;
-    int widelen;
-
-    // Figure out how many non-properties strings are in the provided env.
-    for (count = 0, sp = (WCHAR *)cenv; *sp; sp += wcslen(sp) + 1) {
-	if (!_prop_matches_ev_nameW(sp)) {
-	    count++;
-	}
-    }
-
-    // Figure out how many additional strings are to be exported
-    // from properties.
-    for (prop = 0; proptab[prop].pr_name; prop++) {
-	if (proptab[prop].pr_value &&
-	    (proptab[prop].pr_flags & PROP_FLAG_EXPORT)) {
-	    count++;
-	}
-    }
-
-    tenvp = ep = (WCHAR **)_alloca((count + 1) * sizeof(void *));
-
-    // Enter all the pre-existing EVs in the temp envp.
-    for (sp = (WCHAR *)cenv; *sp; sp += wcslen(sp) + 1) {
-	if (!_prop_matches_ev_nameW(sp)) {
-	    *ep++ = sp;
-	}
-    }
-
-    // Place the exportable property settings in the temp envp too.
-    for (prop = 0; proptab[prop].pr_name; prop++) {
-	char name[PROP_NAME_MAX], *value;
-	size_t len;
-
-	value = proptab[prop].pr_value;
-	if (!value || !(proptab[prop].pr_flags & PROP_FLAG_EXPORT)) {
-	    continue;
-	}
-
-	_prop_to_ev((prop_e)prop, name, charlen(name));
-
-	// Convert the environment variable name to wide characters.
-	widelen = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
-	name_w = (LPWSTR) _alloca(widelen * sizeof(WCHAR));
-	widelen = MultiByteToWideChar(CP_ACP, 0, name, -1, name_w, widelen);
-
-	// Convert the property value to wide characters.
-	widelen = MultiByteToWideChar(CP_ACP, 0, value, -1, NULL, 0);
-	value_w = (LPWSTR) _alloca(widelen * sizeof(WCHAR));
-	widelen = MultiByteToWideChar(CP_ACP, 0, value, -1, value_w, widelen);
-
-	// Combine them into a wide-char environment assignment.
-	len = wcslen(name_w) + charwidth + wcslen(value_w);
-	*ep = (WCHAR *)alloca((len + 1) * charwidth);
-	wcscpy(*ep, name_w);
-	wcscat(*ep, L"=");
-	wcscat(*ep, value_w);
-	ep++;
-    }
-
-    // And terminate the temp envp.
-    *ep = NULL;
-
-    // Sorting is required on Windows, just a frill on Unix.
-    qsort(tenvp, count, sizeof(WCHAR *), _prop_qsort_nenvW);
-
-    // Now that the temp array is sorted, copy it along with
-    // its strings into the real, custom env block.
-    envp = (WCHAR **)pblock + 1;
-    for (i = 0, sp = (WCHAR *)(envp + count + 1); i < count; i++) {
-	wcscpy(sp, tenvp[i]);
-	envp[i] = sp;
-	sp += wcslen(sp) + 1;
-    }
-
-    pblock[0] = (WCHAR *)(envp + count + 1);
-
-    return pblock;
-}
-#endif	/*_WIN32*/
-
-/// Attempts to remove from the environment any properties which were
+/// Attempt to remove from the environment any properties which were
 /// placed there earlier in this program. This is of no practical
 /// use since it happens just before exit anyway. The idea is to
 /// help suppress warnings about memory leaks deriving from putenv()
@@ -2031,7 +1754,6 @@ prop_custom_envW(WCHAR **pblock, WCHAR *const *cenv)
 void
 prop_unexport_all(void)
 {
-#if !defined(_WIN32)
     char **envp, *ptr;
 
     for (envp = environ; *envp; envp++) {
@@ -2042,7 +1764,6 @@ prop_unexport_all(void)
 	    putil_free(*envp);
 	}
     }
-#endif	/*_WIN32*/
 }
 
 /// Finalizer - releases all storage of the "singleton properties object".
@@ -2055,3 +1776,5 @@ prop_fini(void)
 	prop_unset(proptab[i].pr_index, 0);
     }
 }
+
+// vim: sw=4 ts=8 tw=100 cc=+1

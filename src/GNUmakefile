@@ -45,7 +45,8 @@ CFLAGS := \
   -Wcast-align \
   -Wno-ignored-qualifiers \
   -Wpointer-arith \
-  -Wshadow
+  -Wshadow \
+  -Wundef
 
 # Are these useful or just annoying?
 # CFLAGS += -Wcast-qual

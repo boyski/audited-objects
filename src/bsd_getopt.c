@@ -45,7 +45,7 @@
 
 #include "bsd_getopt.h"
 
-#if !HAVE_GETOPT_LONG
+#ifndef HAVE_GETOPT_LONG
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
 #define PRINT_ERROR	((opterr) && ((*options != ':') \
 				      || (IGNORE_FIRST && options[1] != ':')))
@@ -445,6 +445,6 @@ bsd_getopt_reset(void)
     optind = opterr = 1;
 }
 
-#endif /* !GETOPT_LONG */
+#endif /* !HAVE_GETOPT_LONG */
 
 // vim: sw=4 ts=8 tw=100 cc=+1

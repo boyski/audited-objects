@@ -14,7 +14,7 @@ define WFLAGS :=
   -Wextra
   -Wformat=2
   -Winit-self
-  -Wmissing-prototypes
+  #-Wmissing-prototypes
   -Wno-ignored-qualifiers
   -Wpointer-arith
   -Wshadow
@@ -34,7 +34,7 @@ endef
 
 IFLAGS := -I$(OPS)include
 
-CFLAGS := $(strip $(WFLAGS) $(DFLAGS) $(IFLAGS))
+CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(DFLAGS) $(IFLAGS)))
 
 .PHONY: all
 all: cjson git2a

@@ -12,6 +12,7 @@ OPS/
 bin/
 build/
 pl/
+src/play/
 cpci_i.c
 cpci_i.h
 cpci_p.c

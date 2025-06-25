@@ -38,30 +38,38 @@ OPS := ../OPS
 
 CC := gcc
 
-CFLAGS := \
-  -Wall \
-  -Werror \
-  -Wextra \
-  -Wcast-align \
-  -Wno-ignored-qualifiers \
-  -Wpointer-arith \
-  -Wshadow \
-  -Wundef
+define FFLAGS :=
+  -fPIC
+  -fstack-protector-strong
+  -m64
+  -pedantic
+  -std=c17
+  #-fdiagnostics-show-option
+endef
 
-# Are these useful or just annoying?
-# CFLAGS += -Wcast-qual
-# CFLAGS += -Wconversion
+define WFLAGS :=
+  -Wall
+  -Wcast-align
+  -Werror
+  -Wextra
+  -Wformat=2
+  -Winit-self
+  -Wmissing-prototypes
+  -Wno-ignored-qualifiers
+  -Wpointer-arith
+  -Wshadow
+  -Wstrict-overflow=2
+  -Wswitch-default
+  -Wundef
+endef
 
 SHLIBFLAGS := -shared
 INST_PREFIX := ${HOME}/$(TGTARCH)
 
-# Source file data seems to be unavailable on OS X when using DWARF, and
-# STABS seems to do no harm across the board so we make it the default.
-# But it's really only for OS X and there may be a better answer there too.
-UFLAGS := -g
+GFLAGS := -g
 
-#DFLAGS := $(shell getconf LFS_CFLAGS 2>/dev/null || echo $(DEF_DFLAGS))
 DFLAGS := -D_REENTRANT -DFILE_OFFSET_BITS=64 -DTRIO_REPLACE_STDIO
+DFLAGS += -D_GNU_SOURCE
 
 SHLIBDIR := /lib
 
@@ -81,8 +89,6 @@ ifneq ($(LINUX),)
     perl -nle 'print("glibc ", (split m%[ ,]+%)[6]); last')
 endif
 DFLAGS += -DPUTIL_BUILTON='"$(BUILTON)"'
-
-CFLAGS += $(DFLAGS)
 
 STRIP := :
 
@@ -107,12 +113,6 @@ else
   all:
 endif
 
-# The Kazlib code overloads -DNDEBUG to turn off its own debugging mode.
-.PHONY: debug
-debug release: all
-release: UFLAGS := -Os -DNDEBUG
-release: STRIP := strip
-
 $(BINDIR) $(LIBDIR) $(INST_PREFIX)/bin $(INST_PREFIX)/lib64:
 	mkdir -p $@
 
@@ -132,7 +132,7 @@ $(INST_PREFIX)/bin/%: py/% | $$(@D)
 # Compile in the version number if accessible.
 include App.properties
 ifneq ($(APPLICATION_VERSION),)
-  CFLAGS += -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
+  DFLAGS += -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
 else
   APPLICATION_VERSION := 0.0
 endif
@@ -143,7 +143,9 @@ OBJS := \
   putil.o re.o sha1.o shop.o tee.o unix.o up.o util.o \
   vb.o zips.o
 
-CFLAGS += -I. $(SYSINCS) -I$(OPS)/include
+IFLAGS := -I. -I$(OPS)/include
+
+CFLAGS := $(filter-out #%,$(strip $(FFLAGS) $(WFLAGS) $(DFLAGS) $(IFLAGS)))
 
 AUDITOR	:= libAO.so
 LIBAO := $(addprefix $(LIBDIR)/,$(AUDITOR))
@@ -162,21 +164,15 @@ DLL_LIBS := -lkaz -lpcre -lz -ltrio
 OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 
 ifneq ($(LINUX),)
-  CFLAGS += -fpic -D_GNU_SOURCE
-  # These require gcc 4.x or so.
-  #CFLAGS += -D_FORTIFY_SOURCE=2
-  #CFLAGS += -fstack-protector --param=ssp-buffer-size=4
   SHLIBFLAGS += -z defs -z interpose -z combreloc -z lazy
   LINKMAP := -Wl,--version-script=Linux.linkmap
   LINKMAP32 := $(LINKMAP)
   LINKMAP64 := $(LINKMAP)
   PLDLIBS := -lm -lrt -ldl
-  SYSINCS := -I/usr/include
-  $(AOTOOL) $(LIBAO): CFLAGS += -m64
 else ifneq ($(DARWIN),)
-  CFLAGS += -fPIC -fno-common # Q: add -dynamic too?
+  CFLAGS += -fno-common # Q: add -dynamic too?
   CFLAGS += -arch x86_64
-  UFLAGS :=
+  GFLAGS :=
   SYSLIBS := -L/usr/lib
   SHLIBFLAGS := -dynamiclib -flat_namespace -multiply_defined suppress
   SHLIBFLAGS += -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
@@ -240,16 +236,16 @@ $(TGTDIR)/putil.o: Putil/putil.h
 $(TGTDIR)/aotool.o: About/about.c
 
 $(TGTDIR)/%.o: %.c AO.h App.properties
-	$(CC) -c $(UFLAGS) $(CFLAGS) -o $@ $<
+	$(CC) -c $(GFLAGS) $(CFLAGS) -o $@ $<
 
 #############################################################################
 
 $(AOTOOL): $(addprefix $(TGTDIR)/,$(OBJS)) | $$(@D)
-	$(strip $(CC) -o $@ $(UFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/,$(OBJS)) \
+	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/,$(OBJS)) \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
 $(LIBAO): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS) | $$(@D)
-	$(strip $(CC) -o $@ $(UFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< \
+	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))
 
 .PHONY: tags

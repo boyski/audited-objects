@@ -23,6 +23,7 @@
 #include "CA.h"
 #include "HTTP.h"
 #include "PROP.h"
+#include "UP.h"
 
 #include "curl/curl.h"
 

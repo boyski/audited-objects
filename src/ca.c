@@ -1147,7 +1147,7 @@ _ca_dump_pa(pa_o pa, void *data)
 
 /// For debugging support - dump contents of a CA to stderr
 /// @param[in] ca       the object pointer
-/*static*/ void
+void
 ca_dump(ca_o ca)
 {
     CCS hdr;

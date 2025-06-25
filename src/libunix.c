@@ -15,6 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Suppress "ISO C forbids conversion of object pointer to function pointer"
+#pragma GCC diagnostic ignored "-Wpedantic"
+// Suppress "warning: no previous prototype for ..."
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
 /// @file
 /// @brief The part of the auditor library which is specific
 /// to Unix. More precisely it is specific to ELF-based,

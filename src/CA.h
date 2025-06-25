@@ -62,6 +62,8 @@ extern hash_val_t ca_o_hash_func(const void *);
 extern void ca_clear_pa(ca_o);
 extern void ca_destroy(ca_o);
 
+extern void ca_dump(ca_o);
+
 GEN_SETTER_GETTER_DECL(ca, cmdid, unsigned long)
 GEN_SETTER_GETTER_DECL(ca, depth, unsigned long)
 GEN_SETTER_GETTER_DECL(ca, pcmdid, unsigned long)

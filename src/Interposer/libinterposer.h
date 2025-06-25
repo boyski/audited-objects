@@ -191,13 +191,14 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 // exported from a shared library, polluting the linker namespace.
 // So we make a fake use of them from this fake function, tries to avoid
 // the warning by "calling" itself recursively.
+extern void _libinterposer_never_called(void);
 void
 _libinterposer_never_called(void)
 {
     (void)libinterposer_preload_on(NULL, NULL);
     (void)libinterposer_preload_off(NULL, NULL, 0);
     (void)libinterposer_preload_dbg(NULL);
-    if ((void *)libinterposer_preload_on > (void *)libinterposer_preload_off) {
+    if (0) {
 	_libinterposer_never_called();
     }
 }

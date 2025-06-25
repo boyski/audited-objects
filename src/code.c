@@ -416,4 +416,11 @@ code_from_path(CCS path, CS buf, size_t len)
     return buf[0] ? buf : NULL;
 }
 
+/// Finalize hash-code data structures.
+void
+code_fini(void)
+{
+    // Nothing to do here.
+}
+
 // vim: sw=4 ts=8 tw=100 cc=+1

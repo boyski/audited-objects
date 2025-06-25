@@ -1129,10 +1129,15 @@ util_tempnam(const char *dir, const char *pfx)
     char *(*fcn)(const char *, const char *);
     char *err;
 
+// Suppress "ISO C forbids conversion of object pointer to function pointer"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     (void)dlerror();
-    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam")) && (err = dlerror())) {
+    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam")) &&
+	    (err = dlerror())) {
 	putil_syserr(2, err);
     }
+#pragma GCC diagnostic pop
 
     return fcn(dir, pfx);
 }

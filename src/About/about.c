@@ -232,6 +232,8 @@ You can contact the author at:\n\
 static char banner[] =
 "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
 
+void print_license(const char *, const char *);
+
 void
 print_license(const char *title, const char *text)
 {
@@ -244,6 +246,8 @@ print_license(const char *title, const char *text)
     fputs(text, stdout);
     fputs("\n\n", stdout);
 }
+
+void about_client(void);
 
 void
 about_client(void)

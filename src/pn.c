@@ -350,6 +350,8 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
 		state = ST_NORMAL;
 		*dst++ = *src++;
 		break;
+	    default:
+		break;
 	}
     }
 

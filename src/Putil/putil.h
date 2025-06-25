@@ -111,7 +111,7 @@ typedef int			SOCKET;
 #include <libgen.h>
 #include <unistd.h>
 // The 'BSD' macro on BSD-like systems comes from <sys/param.h>
-#include <sys/param.h>
+//#include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -142,23 +142,6 @@ typedef const char *CCS;
 #endif
 
 #define UNUSED(var)		(void)var
-
-#ifdef	BSD
-// Different name, same thing.
-#define st_mtim st_mtimespec
-#endif	/*BSD*/
-
-// FreeBSD is just 64-bit all the way, no transition environment.
-#if defined(BSD)
-#define off64_t		off_t
-#define lseek64		lseek
-#define open64		open
-#define stat64		stat
-#define mmap64		mmap
-#define lstat64		lstat
-#define fstat64		fstat
-#define O_LARGEFILE	0
-#endif	/*BSD*/
 
 // Old Windows-related names.
 typedef long LONG64;
@@ -805,13 +788,6 @@ putil_prog(void)
 	return me;
     }
 
-#if defined(BSD)
-    if ((me = getprogname())) {
-	return me;
-    } else {
-	return "????";
-    }
-#else	/*BSD*/
     if ((me = putil_getexecpath())) {
 	CCS lastf = strrchr(me, '/');
 	CCS lastb = strrchr(me, '\\');
@@ -826,7 +802,6 @@ putil_prog(void)
     } else {
 	return "????";
     }
-#endif	/*!BSD*/
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -895,7 +870,6 @@ putil_getexecpath(void)
 {
     static char xname[PATH_MAX];
     char buf[PATH_MAX + 1], pbuf[PATH_MAX];
-    ssize_t llen;
 
     // This can't change once we derive it ...
     if (xname[0] != '\0')
@@ -914,48 +888,39 @@ putil_getexecpath(void)
 //    pathname that was given to execve()."
 // So we look for something past the environ block that looks like a path.
 #if defined(linux)
-    if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
-	char **e;
-	CS p;
-
-	for (e = environ; *(e + 1); e++);
-	p = strchr(*e, '\0') + 1;
-	if (*p == '/') {
-	    (void)strcpy(buf, p);
-	} else {
-	    buf[0] = '\0';
-	    return NULL;
-	}
-    } else {
-	buf[llen] = '\0';
-    }
-#else
     {
-#if defined(BSD)
-	// As of FreeBSD 5.x the /proc filesystem isn't mounted by
-	// default so we can't count on the following to work. If the
-	// file is present it should be reliable; if not we fall back.
-	if ((llen = readlink("/proc/curproc/file", buf, charlen(buf) - 1)) == -1) {
-	    buf[0] = '\0';
-	} else {
-	    buf[llen] = '\0';
-	}
-#endif	/*BSD*/
+	ssize_t llen;
 
-	if (! putil_is_absolute(buf)) {
-	    // At this point we've found we're on a system without a
-	    // 100% ironclad way of getting the exec path. Try digging
-	    // up the argv, which only works if argv immediately
-	    // precedes the environ block in memory, and seeing if we
-	    // can do something with argv[0]. Note that many Unix books,
-	    // FAQs, etc. deprecate this but it does usually "work".
-	    char **argv = putil_argv_from_environ(NULL);
-	    if (argv) {
-		(void)strcpy(buf, argv[0]);
+	if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
+	    char **e;
+	    CS p;
+
+	    for (e = environ; *(e + 1); e++);
+	    p = strchr(*e, '\0') + 1;
+	    if (*p == '/') {
+		(void)strcpy(buf, p);
 	    } else {
 		buf[0] = '\0';
 		return NULL;
 	    }
+	} else {
+	    buf[llen] = '\0';
+	}
+    }
+#else
+    if (! putil_is_absolute(buf)) {
+	// At this point we've found we're on a system without a
+	// 100% ironclad way of getting the exec path. Try digging
+	// up the argv, which only works if argv immediately
+	// precedes the environ block in memory, and seeing if we
+	// can do something with argv[0]. Note that many Unix books,
+	// FAQs, etc. deprecate this but it does usually "work".
+	char **argv = putil_argv_from_environ(NULL);
+	if (argv) {
+	    (void)strcpy(buf, argv[0]);
+	} else {
+	    buf[0] = '\0';
+	    return NULL;
 	}
     }
 
@@ -1165,10 +1130,11 @@ putil_tmpdir(CS tbuf, size_t tlen)
 #define PUTIL_NULLSTR		" "
 #define PUTIL_NULLSTRW		L" "
 
-// This exists only to suppress a bogus warning emitted by gcc when
+// This exists only to suppress a warning emitted by gcc when
 // you define a static func but don't call it in the same
 // compilation unit. This function calls itself recursively to try
 // to avoid that same warning.
+void _putil_never_called(void);
 void
 _putil_never_called(void)
 {
@@ -1206,7 +1172,7 @@ _putil_never_called(void)
 
 #if !defined(__clang__)
     // Avoid warning via bogus recursive call.
-    if (_putil_never_called == (void *)-1) {
+    if (0) {
 	_putil_never_called();
     }
 #endif  /*__clang__*/

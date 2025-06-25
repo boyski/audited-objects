@@ -25,6 +25,8 @@ extern void git_init(CCS);
 extern void git_deliver(ca_o);
 extern void git_store_blob(ps_o);
 extern void git_get_blob(CCS, CCS);
+extern unsigned char *git_map_blob(CCS);
+extern void git_unmap_blob(unsigned char *, unsigned long);
 extern void git_fini(void);
 
 #endif

@@ -3153,6 +3153,7 @@ XXH32_finalize(xxh_u32 hash, const xxh_u8* ptr, size_t len, XXH_alignment align)
            case 1:       XXH_PROCESS1;
                          XXH_FALLTHROUGH;  /* fallthrough */
            case 0:       return XXH32_avalanche(hash);
+           default:      XXH_ASSERT(0);
         }
         XXH_ASSERT(0);
         return hash;   /* reaching this point is deemed impossible */
@@ -7342,4 +7343,4 @@ XXH3_generateSecret_fromSeed(XXH_NOESCAPE void* secretBuffer, XXH64_hash_t seed)
 } /* extern "C" */
 #endif
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 tw=100 cc=+1 et

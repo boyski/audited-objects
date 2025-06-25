@@ -25,6 +25,8 @@
 
 #include "Zip/zipfmt.h"
 
+#include "ZIPS.h"
+
 /* Return a 16-bit value */
 static unsigned
 _get_u16(const byte *b)
@@ -276,13 +278,6 @@ zips_is_zipfile(const void *data, off_t size)
 	    + sizeof(struct cd_end))
 	    && SIGNATURE_MATCHES(data, file_header);
     }
-}
-
-/// Finalizes hash-code data structures.
-void
-code_fini(void)
-{
-    // Nothing to do here.
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

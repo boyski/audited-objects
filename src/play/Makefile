@@ -37,14 +37,17 @@ IFLAGS := -I$(OPS)include
 CFLAGS := $(strip $(WFLAGS) $(DFLAGS) $(IFLAGS))
 
 .PHONY: all
-all: cjson
+all: cjson git2a
 
 cjson: cjson.c
 	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lcjson
 
+git2a: git2a.c
+	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lgit2 -lpcre -lpthread -lz
+
 .PHONY: clean
 clean:
-	$(RM) cjson
+	$(RM) cjson git2a
 
 # This comment block must stay at the bottom of the file.
 # Local Variables:

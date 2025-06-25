@@ -41,7 +41,7 @@
 static char OutputFile[PATH_MAX];
 static FILE *OutputStream;
 
-/// Compares two pathnames for equality. Basically this is an alias
+/// Compare two pathnames for equality. Basically this is an alias
 /// for strcmp() which compares case-insensitively on platforms where
 /// filenames are typically not case sensitive. The other reason for
 /// this function's existence is that its signature matches the typedef
@@ -66,7 +66,7 @@ util_pathcmp(const void *left, const void *right)
     return rc;
 }
 
-/// Maps the specified file into memory.
+/// Map the specified file into memory.
 /// @param[in] path     The pathname of the file to map
 /// @param[in] fd       A file descriptor for the file to be mapped
 /// @param[in] offset   The offset of the first byte to map
@@ -96,7 +96,7 @@ util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
     return fdata;
 }
 
-/// Unmaps the specified region of a mapped file.
+/// Unmap the specified region of a mapped file.
 /// @param[in] fdata    A pointer to the mapped region
 /// @param[in] extent   The size of the mapped region
 void
@@ -110,7 +110,7 @@ util_unmap_file(unsigned char *fdata, uint64_t extent)
     }
 }
 
-/// Takes an argv (which may have been derived by a shell splitting up
+/// Take an argv (which may have been derived by a shell splitting up
 /// a command line) and formats it back into a command line, quoted
 /// correctly such that if split by a shell the result would be the
 /// original argv.
@@ -203,28 +203,29 @@ util_requote_argv(CS const *argv)
     return cmdline;
 }
 
-/// A wrapper over getcwd(3) which returns a malloc-ed buffer.
+/// Wrapper over getcwd(3) which returns a malloc-ed buffer.
 /// @return an allocated buffer
 CCS
 util_get_cwd(void)
 {
-    size_t len;
     CS cwd;
+#if defined(linux)
+    cwd = getcwd(NULL, 0);
+#else
+    size_t len;
 
     len = putil_path_max() + 1;
     cwd = (CS)putil_malloc(len);
-
     if (!getcwd(cwd, len)) {
 	putil_free(cwd);
 	cwd = NULL;
-    }
-
+    } 
+#endif
     return cwd;
-
 }
 
-/// Calculates the "relative working directory". This is defined
-/// to be 'the cwd as measured from the project base dir'.
+/// Calculate the "relative working directory". This is defined
+/// to be the cwd as measured from the project base dir.
 /// @return an allocated buffer
 CCS
 util_get_rwd(void)
@@ -255,7 +256,7 @@ util_get_rwd(void)
     return rwd;
 }
 
-/// Determines current umask and formats it in string form.
+/// Determine current umask and formats it in string form.
 /// @param[out] curr_umask      buffer for umask in string form
 /// @param[in] len              size of buffer
 /// @return the passed-in buffer
@@ -269,7 +270,7 @@ util_get_umask(CS curr_umask, size_t len)
     return (CCS)curr_umask;
 }
 
-/// Returns the login name of the current user.
+/// Return the login name of the current user.
 /// @return a string which should NOT be freed
 CCS
 util_get_logname(void)
@@ -286,7 +287,7 @@ util_get_logname(void)
     return "NOBODY";
 }
 
-/// Returns the group name of the current user.
+/// Return the group name of the current user.
 /// @return a string which should NOT be freed
 CCS
 util_get_groupname(void)
@@ -301,7 +302,7 @@ util_get_groupname(void)
     return "NOGROUP";
 }
 
-/// Modifies the passed-in string in place to be all lower case.
+/// Modify the passed-in string in place to be all lower case.
 /// @param[in,out] str  modifiable, null-terminated string
 /// @return a pointer to the modified string.
 CS
@@ -315,7 +316,7 @@ util_strdown(CS str)
     return str;
 }
 
-/// Modifies the passed-in string in place to be all UPPER CASE.
+/// Modify the passed-in string in place to be all UPPER CASE.
 /// @param[in,out] str  modifiable, null-terminated string
 /// @return a pointer to the modified string.
 CS
@@ -329,7 +330,7 @@ util_strup(CS str)
     return str;
 }
 
-/// Removes whitespace from both left and right ends of the passed string.
+/// Remove whitespace from both left and right ends of the passed string.
 /// @param[in,out] str  modifiable, null-terminated string
 /// @return a pointer to the modified string.
 CS
@@ -372,7 +373,7 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
 
 #endif /*linux*/
 
-/// Determines the textual name of the filesystem containing the
+/// Determine the textual name of the filesystem containing the
 /// specified path.
 /// @param[in] path     the path to be tested
 /// @param[out] buf     a buffer for the filesystem name
@@ -496,9 +497,9 @@ util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
     return total;
 }
 
-/// Reads "n" bytes from a descriptor.
-/// Adapted from Unix Network Programming. Takes care of interrupted
-/// system calls, short reads, etc and guarantees not to return until
+/// Read "n" bytes from a descriptor.
+/// Adapted from Unix Network Programming. Take care of interrupted
+/// system calls, short reads, etc and guarantee not to return until
 /// all "n" bytes have been read, or EOF or an error is encountered.
 /// @param[in] fd       file descriptor to read from
 /// @param[out] vptr    buffer for incoming data
@@ -537,9 +538,9 @@ util_read_all(int fd, void *vptr, size_t n)
     return n - nleft;		/* return >= 0 */
 }
 
-/// Writes "n" bytes to a descriptor.
-/// Adapted from Unix Network Programming. Takes care of interrupted
-/// system calls, short writes, etc and guarantees not to return until
+/// Write "n" bytes to a descriptor.
+/// Adapted from Unix Network Programming. Take care of interrupted
+/// system calls, short writes, etc and guarantee not to return until
 /// all "n" bytes have been read, or EOF or an error is encountered.
 /// @param[in] fd       file descriptor to read from
 /// @param[in] vptr     buffer for outgoing data
@@ -1068,7 +1069,7 @@ util_gzip_buffer(CCS name, unsigned const char *source, uint64_t slen, uint64_t 
 /// Borrowed from libcurl. Safe casting.
 #define ISXDIGIT(x) (isxdigit((int) ((unsigned char)x)))
 
-/// Undoes the URL encoding of the specified string.
+/// Undo the URL encoding of the specified string.
 /// This is taken from libcurl.
 /// If length == 0, the length is assumed to be strlen(string).
 /// If olen == NULL, no output length is stored.

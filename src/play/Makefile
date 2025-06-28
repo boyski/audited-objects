@@ -36,10 +36,15 @@ IFLAGS := -I$(OPS)include
 
 CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(DFLAGS) $(IFLAGS)))
 
+CJSON := $(patsubst %.c,%,$(wildcard cjson*.c))
+
 .PHONY: all
-all: cjson git2a
+all: $(CJSON) git2a
 
 cjson: cjson.c
+	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lcjson
+
+cjson%: cjson%.c
 	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lcjson
 
 git2a: git2a.c
@@ -47,7 +52,7 @@ git2a: git2a.c
 
 .PHONY: clean
 clean:
-	$(RM) cjson git2a
+	$(RM) cjson? git2a
 
 # This comment block must stay at the bottom of the file.
 # Local Variables:

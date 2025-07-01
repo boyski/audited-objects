@@ -251,11 +251,11 @@ _mon_clean_up_ca_table(void)
 
 /// Called for each line received from the auditor. Note: the
 /// passed-in string is mangled during parsing.
-/// Parses it and adds it to the appropriate data structure.
+/// Parse it and add it to the appropriate data structure.
 /// @param[in] buf      a string in the canonical CSV format
 /// @param[out] rcp     pointer to a place where a return code may be stored
 /// @param[out] cmdpidp pointer to a place where the ending pid may be stored
-/// @param[out] winner pointer to a place where the winning PTX may be stored
+/// @param[out] winner  pointer to a place where the winning PTX may be stored
 /// @return a bitmask describing what was learned from this line
 unsigned
 mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)

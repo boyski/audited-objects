@@ -11,13 +11,15 @@ static struct option long_options[] = {
     {0, 0, 0, 0}
 };
 
-void print_usage(const char *program_name) {
+void print_usage(const char *program_name)
+{
     printf("Usage: %s [OPTIONS] FILE1 [FILE2 ...]\n", program_name);
     printf("  -o, --output FILE      Output to file instead of stdout\n");
     printf("  -h, --help             Show this help message\n");
 }
 
-cJSON* create_file_json(const char *filepath) {
+cJSON* create_file_json(const char *filepath)
+{
     struct stat st;
     if (stat(filepath, &st) != 0) {
         return NULL;

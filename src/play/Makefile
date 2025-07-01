@@ -52,7 +52,7 @@ git2a: git2a.c
 
 .PHONY: clean
 clean:
-	$(RM) cjson? git2a
+	$(RM) cjson? git2?
 
 # This comment block must stay at the bottom of the file.
 # Local Variables:

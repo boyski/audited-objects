@@ -273,7 +273,7 @@ install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)
 
 .PHONY: release
 release:
-	$(MAKE) --no-print-directory CPUARCH=$(OS_CPU) -f GNUmakefile.pkg release
+	$(MAKE) --no-print-directory CPUARCH=$(OS_CPU) -f package.mk release
 
 .PHONY: roundtrip rt
 roundtrip rt: clean install

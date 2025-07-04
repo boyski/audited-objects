@@ -1,7 +1,7 @@
 #!/bin/sh
 
-for i in 1 2; do
+for i in $(seq 3); do
     echo "Build #$i:"
-    gmake clean all
+    make clean all
     sleep 1
 done

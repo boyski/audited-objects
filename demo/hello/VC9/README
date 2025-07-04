@@ -1,1 +1,0 @@
-Run "msbuild" to build and "msbuild /t:clean" to clean.

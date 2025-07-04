@@ -1,14 +1,8 @@
-.PHONY: all clean rt
-
 .ONESHELL:
-
-# Windows/MSVC compatibility.
-ifdef VSINSTALLDIR
-include NMakefile
-else	#VSINSTALLDIR
 
 CC	:= gcc
 
+.PHONY: all
 all: hello.exe
 
 hello.exe: hello.o goodbye.o
@@ -17,9 +11,9 @@ hello.exe: hello.o goodbye.o
 %.o: %.c
 	$(CC) -c $<
 
+.PHONY: clean
 clean:
 	-rm -f hello.exe *.o *.class
 
+.PHONY: rt
 rt: clean all
-
-endif	#VSINSTALLDIR

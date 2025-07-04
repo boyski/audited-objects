@@ -1,15 +1,10 @@
-.PHONY: all release clean
+TAR := gtar --owner=0 --group=0 --mode=u+rw --dereference
 
-TAR		:= gtar --owner=0 --group=0 --mode=u+rw --dereference
-
+.PHONY: all
 all: release
 
+.PHONY: release
 clean:
-	cd hello && $(MAKE) clean
+	$(MAKE) -C hello clean
 
-release: clean
-	cd .. &&\
-	    rm -f demo.tar.gz &&\
-	    cleartool ls -vob -r -s -nxn demo/hello |\
-	    egrep -v 'hello/VC|hello/ide\.' |\
-	    $(TAR) --files-from - --no-recursion -czf demo.tar.gz
+# vim: filetype=make sw=2 noet

@@ -5,6 +5,8 @@
 #define MESSAGE		"Hello, World"
 #endif
 
+void goodbye(void);
+
 int main(void)
 {
     printf(MESSAGE);

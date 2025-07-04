@@ -5,14 +5,13 @@
 <head>
 <meta http-equiv="content-type" content=
 "text/html; charset=us-ascii" />
-<title>A TOUR THROUGH THE BASICS OF AUDITED OBJECTS</title>
+<title>A TOUR OF AUDITED OBJECTS (AO) BASICS</title>
 <link href="mailto:" />
 <link href="../../styles/style.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <h1 style="text-align:center;"><a id=
-"a_tour_through_the_basics_of_audited_objects">A TOUR THROUGH THE
-BASICS OF AUDITED OBJECTS (AO)</a></h1>
+"a_tour_through_the_basics_of_audited_objects">A TOUR OF AUDITED OBJECTS (AO) BASICS</a></h1>
 <p>This document shows how a simple Hello World project can be
 built under AO control and how to extract metadata derived by it.
 It assumes you've already followed the installation procedures
@@ -24,9 +23,9 @@ Extract that to a location of your choice[*],
 resulting in a new directory called <em>demo</em>. Under that is
 another directory called <em>hello</em> which contains a tiny
 &quot;hello world&quot; application. In a shell prompt, cd into this directory.</p>
-<p>[*] <b>But not under /tmp or /var/tmp! Since AO contains code
-to ignore temp files, it will not function correctly when the
-project itself is located in a temp directory (defined to be any
+<p>[*] <b>But not under /tmp or /var/tmp! Since AO wants
+to ignore temp files, it cannot function correctly when the
+project itself is located in a temp dir (defined to be any
 path containing the string &quot;/tmp/&quot;).</b></p>
 <h2><a id=
 "testing_the_flat_build">TESTING THE &quot;FLAT&quot; BUILD</a></h2>
@@ -158,8 +157,7 @@ and of course uploaded the new result.</p>
 <p>It may be hard to see any speedup with such a tiny build since
 the effective build time is close to zero anyway, but on larger
 builds this can produce substantial improvements in build time.</p>
-<h2><a id="post_mortem_analysis">POST
-MORTEM ANALYSIS</a></h2>
+<h2><a id="post_mortem_analysis">POST-MORTEM ANALYSIS</a></h2>
 <p>OK, so now a couple of builds have been recorded. What can we
 learn about them? First we run the &quot;lsbuilds&quot; action:</p>
 <pre>
@@ -349,7 +347,7 @@ be back to the original behavior:</p>
 <h2><a id="vcs_integration">VCS
 INTEGRATION</a></h2>
 <p>AO should be easy to integrate with any version control system
-(VCS) capable of running triggers (aka hooks). The idea is to set
+(VCS) capable of running triggers (aka hooks). The idea would to set
 up a trigger script to map between AO metadata and VCS versions,
 with the result being that AO can report <em>versions</em> of
 source files rather than simple metadata. See the separate <a href=

@@ -12,12 +12,11 @@
 <body>
 <h1 style="text-align:center;"><a id=
 "a_tour_through_the_basics_of_audited_objects">A TOUR THROUGH THE
-BASICS OF AUDITED OBJECTS</a></h1>
+BASICS OF AUDITED OBJECTS (AO)</a></h1>
 <p>This document shows how a simple Hello World project can be
 built under AO control and how to extract metadata derived by it.
-It assumes you have already followed the installation procedures
-detailed in the <em>ao-install</em> document and that the server is
-running.</p>
+It assumes you've already followed the installation procedures
+detailed in the <em>ao-install</em> document.</p>
 <h2>Initial Setup</h2>
 <p>Within the AO package is a sub-package called
 <a href="../../demo/demo.tar.gz">demo.tar.gz</a>.
@@ -32,8 +31,7 @@ path containing the string &quot;/tmp/&quot;).</b></p>
 <h2><a id=
 "testing_the_flat_build">TESTING THE &quot;FLAT&quot; BUILD</a></h2>
 <p>The first task is to demonstrate that the standalone
-(&quot;flat&quot;) build works. On Unix try &quot;make clean; make&quot; or on
-Windows with Visual Studio[*] &quot;nmake -f NMakefile clean all&quot;:</p>
+build works. Try &quot;<code>make clean; make&quot;</code>:</p>
 <pre>
     % make clean
     rm -f hello hello.exe hello.o*
@@ -47,9 +45,7 @@ Windows with Visual Studio[*] &quot;nmake -f NMakefile clean all&quot;:</p>
 </pre>
 <p>As you can see this is quite a simple application and build
 model.</p>
-<p>[*] When using Visual Studio, all builds must take place in a
-Visual Studio-enabled console window. This is one of the VS menu
-options.</p>
+
 <h2><a id=
 "first_ao_build__to_generate_dependency_data">FIRST AO BUILD, TO
 GENERATE DEPENDENCY DATA</a></h2>
@@ -136,8 +132,7 @@ of two output files to the server and that the server saved
 <em>ao</em> accepts <code>ao make</code> as a shorthand for
 <code>ao run make</code>.</p>
 <h2><a id=
-"second_ao_build_using_the_server">RECYCLING AO BUILD USING THE
-SERVER</a></h2>
+"second_ao_build_using_the_server">RECYCLING AN AO BUILD</a></h2>
 <p>At this point the server database is primed with information
 about commands and file states and the relationships between them.
 Let's do a second build. We can also use this opportunity to show
@@ -360,17 +355,19 @@ with the result being that AO can report <em>versions</em> of
 source files rather than simple metadata. See the separate <a href=
 "ao-vcs.html">AO and Version Control</a> document for details.</p>
 <h2><a id="summary">SUMMARY</a></h2>
-<p>AO is not an enhancement to <em>make</em> or to any other build
+<p>AO isn't an enhancement specific to <em>make</em> or to any other build
 tool; it works with any deterministic program by sampling its
 inputs and outputs, recording that metadata, and playing it back
 upon request.</p>
+
 <p>You can run nearly any program under AO control by prepending
 &quot;ao run&quot; to its command line. There are a number of post-mortem
 commands which may then be used; a list of these is available via
 &quot;ao help&quot;, and detailed usage messages via &quot;ao help foo&quot; or
 &quot;ao foo -h&quot;.</p>
-<p>There are many more features of AO and a number of other
-documents which describe them. The purpose of this document is
+
+<p>AO has many more features and a number of 
+documents to describe them. The purpose of this document is
 simply to get you started.</p>
 
 <footer>

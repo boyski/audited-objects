@@ -41,6 +41,7 @@ build works. Try &quot;<code>make clean; make&quot;</code>:</p>
 <pre>
     % ./hello.exe
     Hello, World
+    Goodbye, World
 </pre>
 <p>As you can see this is quite a simple application and build
 model.</p>
@@ -54,7 +55,7 @@ configuration is kept. It's a good idea to create this directory at
 the root of each AO project, <em>even if it's empty</em>, because
 its presence &quot;anchors&quot; the project, telling AO where the project
 is rooted and thus helping it normalize pathnames. In this case the
-directory is not quite empty - we've chosen to customize the
+directory isn't quite empty - we've chosen to customize the
 project name by setting</p>
 <pre>
     Project.Name = HelloWorld
@@ -70,7 +71,7 @@ words to the command line:</p>
     gcc -c hello.c
     gcc -o hello.exe hello.o
 </pre>
-<p>The output is the same but here we have requested an audited
+<p>The output is the same but here we've requested an audited
 build and asked that the audit data be written out in makefile
 syntax as dependency information. Take a look at <i>hello.o.d</i> to
 see this. These files could subsequently be included within the

@@ -45,7 +45,7 @@
 #define NANOS_PER_SECOND				1000000000
 /// @endcond static
 
-/// Returns true if the provided time value is set to a legal time
+/// Return true if the provided time value is set to a legal time
 /// value later than the epoch.
 /// @param[in] moment   a moment_s struct to be checked
 /// @return 0 if the time value is at or before the epoch
@@ -55,7 +55,7 @@ moment_is_set(moment_s moment)
     return (moment.ntv_sec + (moment.ntv_nsec / NANOS_PER_SECOND)) > 0;
 }
 
-/// Returns the current system time as a 'moment'.
+/// Return the current system time as a 'moment'.
 /// Similar to gettimeofday() but (a) works on Windows and Unix and
 /// (b) uses nanosecond units rather than microseconds. Note that there's
 /// no magic; actual time resolution is that of the underlying platform
@@ -76,7 +76,7 @@ moment_get_systime(moment_s *mptr)
     return 0;
 }
 
-/// Sets the modification time of the specified file to the specified time.
+/// Set the modification time of the specified file to the specified time.
 /// A time parameter of NULL means 'right now'.
 /// @param[in] mptr     pointer to the new moment, or NULL
 /// @param[in] path     string representing the pathname to be changed
@@ -110,7 +110,7 @@ moment_set_mtime(moment_s *mptr, CCS path)
     return 0;
 }
 
-/// Subtracts the second time value from the first.
+/// Subtract the second time value from the first.
 /// The result is stored in the pointer if not null.
 /// @param[in] left     a moment_s representing the first time value
 /// @param[in] right    a moment_s representing the second time value
@@ -155,7 +155,7 @@ moment_cmp(moment_s left, moment_s right, moment_s *delta)
     }
 }
 
-/// Fills in a Moment describing the time since the supplied Moment.
+/// Fill in a new Moment describing the time since the supplied Moment.
 /// @param[in] delta  pointer to a moment_s which receives the delta
 /// @param[in] since  a moment_s representing the starting time
 /// @return the duration in milliseconds
@@ -168,7 +168,7 @@ moment_since(moment_s since, moment_s *delta)
     return moment_cmp(now, since, delta);
 }
 
-/// Subtracts a starting Moment from an ending Moment to derive the
+/// Subtract a starting Moment from an ending Moment to derive the
 /// duration of an event.
 /// @param[in] ended    a moment_s representing the ending time
 /// @param[in] started  a moment_s representing the starting time
@@ -187,9 +187,9 @@ moment_duration(moment_s ended, moment_s started)
     return duration;
 }
 
-/// Parses a textual moment_s field back into a binary form.
-/// @param[out] mptr    a pointer to the moment_s to be filled in
-/// @param[in] str      a stringified form of the moment_s format
+/// Parse a textual moment_s field back into a binary form.
+/// @param[out] mptr    pointer to the moment_s to be filled in
+/// @param[in] str      stringified form of the moment_s format
 /// @return 0 on success
 int
 moment_parse(moment_s *mptr, CCS str)
@@ -209,7 +209,7 @@ moment_parse(moment_s *mptr, CCS str)
     return 0;
 }
 
-/// Formats a Moment into the canonical string format. This may use
+/// Format a Moment into the canonical string format. May use
 /// a radix higher than 10, such as 36, for a more compact string.
 /// @param[in] moment   the moment struct to be formatted
 /// @param[out] buf     a buffer to hold the formatted string
@@ -242,7 +242,7 @@ moment_format_milli(moment_s moment, CS buf, size_t bufmax)
     return buf;
 }
 
-/// Formats a Moment into a human-readable ISO8601 string format.
+/// Format a Moment into a human-readable ISO8601 string format.
 /// @param[in] moment   the moment struct to be formatted
 /// @param[out] buf     a buffer to hold the formatted string
 /// @param[in] bufmax   the size of the passed-in buffer
@@ -269,7 +269,7 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
     return buf;
 }
 
-/// Formats a Moment into a standard id-style string
+/// Format a Moment into a standard id-style string
 /// If the parameter is NULL, the moment is 'now'.
 /// @param[in] mp   pointer to a struct to be formatted
 /// @return the allocated, formatted string
@@ -297,19 +297,6 @@ moment_format_id(moment_s *mp)
     }
 
     return putil_strdup(buf);
-}
-
-/// Sleeps for the specified number of milliseconds, barring signals.
-/// @param[in] millis   The number of milliseconds to sleep
-void
-moment_millisleep(int millis)
-{
-    struct timespec tspec;
-
-    tspec.tv_sec = millis / MILLIS_PER_SECOND;
-    tspec.tv_nsec = (millis % MILLIS_PER_SECOND) * NANOS_PER_MILLI;
-    //vb_printf(VB_OFF, "SLEEPING %d.%ld", tspec.tv_sec, tspec.tv_nsec);
-    (void)nanosleep(&tspec, NULL);
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

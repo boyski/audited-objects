@@ -49,7 +49,6 @@ extern CCS moment_format(moment_s, CS, size_t);
 extern CCS moment_format_milli(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
 extern CCS moment_format_id(moment_s *);
-extern void moment_millisleep(int millis);
 
 #endif				/*MOMENT_H */
 

@@ -92,7 +92,7 @@ struct cmd_audit_s {
     CCS ca_freetext;		///< free-form text "comment"
 } cmd_audit_s;
 
-/// Constructor for CmdKey class. A CmdKey is a small object which
+/// Constructor for CmdKey "class". A CmdKey is a small object which
 /// functions as the key to a full CmdAction in a hash table.
 /// @param[in] ccode    the command code of the CmdAction
 /// @param[in] depth    the depth of the CmdAction
@@ -112,7 +112,7 @@ ck_new(CCS ccode, unsigned long depth, unsigned long cmdid)
     return ck;
 }
 
-/// Constructor for CmdKey class. Given an existing CmdAction object,
+/// Constructor for CmdKey "class". Given an existing CmdAction object,
 /// create a CmdKey suitable for placing it in an external hash table.
 /// @param[in] ca       a CmdAction object from which to build the CmdKey
 /// @return a CmdKey object pointer
@@ -231,7 +231,7 @@ ca_o_hash_func(const void *key)
     return ckhash;
 }
 
-/// Constructor for CmdAction class.
+/// Constructor for CmdAction "class".
 /// @return a new, empty CmdAction object
 ca_o
 ca_new(void)
@@ -247,7 +247,7 @@ ca_new(void)
     return ca;
 }
 
-/// Constructor for CmdAction class.
+/// Constructor for CmdAction "class".
 /// Any change to the CSV format requires an equivalent change here.
 /// @param[in] csv      a string in the canonical CSV format for CAs
 /// @return a new, complete CmdAction object
@@ -449,7 +449,7 @@ ca_foreach_cooked_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
 }
 
 /// Serialize the CmdAction and write it to the specified file descriptor.
-/// On Windows this must send to a socket. On Unix it can use any
+/// On Windows this would have to send to a socket. On Unix it can use any
 /// kind of file descriptor.
 /// @param[in] ca       the object pointer
 /// @param[in] fd       file descriptor to which the serialized form is sent

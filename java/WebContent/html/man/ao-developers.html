@@ -54,10 +54,12 @@ or may not exist at any given time, and whose contents may vary
 when it does exist. A <i>PathState</i> contains a
 <i>PathName</i> and represents one actual version of that file;
 it describes a particular file state involving size, date stamp,
-checksum, etc. A <i>PathAction</i> contains a <i>PathState</i>
-and represents an actual <i>use</i> of that version. In other
-words every successful <code>open()</code> system call results in a
-new <i>PathAction</i>.</p>
+checksum, etc at a time when it existed. A <i>PathAction</i> contains a <i>PathState</i>
+and represents an actual <i>use</i> of that version.</p>
+<p>In other
+words, every time a <i>PathName</i> is created or modified it results in a new
+<i>PathState</i> and every successful <code>open()</code> system call on a
+<i>PathState</i> results in a new <i>PathAction</i>.</p>
 
 <p>There can be many <i>PathAction</i>s per <i>PathState</i>
 since a file may be read many times without being changed. However,
@@ -84,8 +86,8 @@ typically comprise the same file set. Fundamentally, an AO
 directory and which builds as a unit.</p>
 
 <p>A <i>Project</i> object will contain a set of Builds, although
-for historical reasons a Build is called a <i>PTX</i> or Project
-Transaction instead. A <i>PTX</i> contains an ordered list of
+for historical reasons a Build is called a <i>PTX</i> or <i>Project
+Transaction</i> instead. A <i>PTX</i> contains an ordered list of
 <i>CommandAction</i>s, and each <i>CommandAction</i> contains a
 <i>Command</i> and a set of <i>PathAction</i>s. These concepts
 are as described above.</p>
@@ -101,29 +103,14 @@ to <i>PathStates</i> which in turn have references to
 <i>prerequisites</i> or <i>targets</i> depending on whether
 they represent a read or a write action.</p>
 
-<p>Please take note of a subtlety: AO pays no attention to the
+<p>Note a subtlety: AO pays no attention to the
 <i>current working directory</i>. This is because not all
-commands are sensitive to CWD; a command such as &quot;/bin/gcc -c -o
-~/src/foo.o ~/src/foo.c&quot; will produce exactly the same output
+commands are sensitive to CWD; a command such as <code>&quot;/bin/gcc -c -o
+~/src/foo.o ~/src/foo.c&quot;</code> will produce exactly the same output
 regardless of CWD. Since it's impossible to determine textually
 whether a given command cares about CWD, AO ignores it and looks
 for better ways to distinguish commands. Thus a particular Command
-object is treated the same regardless of where it is run.</p>
-
-<h2><a id="client_vs_server">CLIENT VS SERVER</a></h2>
-
-<p>Though the AO client is written in C and the server in Java, and
-they have no code in common, both sides employ the same basic
-abstractions of Project, PTX, Command/CommandAction, and
-PathName/PathState/PathAction. There is wide variance in details,
-because some methods and attributes are of use only to one or the
-other, but the concepts are the same.</p>
-
-<h2><a id="character_sets">CHARACTER SETS</a></h2>
-
-<p>The auditor always uses 8-bit character widths and UTF-8
-for both internal representations and transmission over HTTP.
-</p>
+object is treated the same regardless of where it's run from.</p>
 
 <footer>
 AO is supplied under the following <a href="../../COPYRIGHT.html">copyright and

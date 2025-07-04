@@ -65,7 +65,7 @@ typedef enum {
     AGG_BREAK,			///< Forces an end to current aggregation
 } agg_e;
 
-/// Initializes monitor data structures.
+/// Initialize monitor data structures.
 void
 mon_init(void)
 {
@@ -101,7 +101,7 @@ _mon_verbosity(ca_o ca, CCS action)
     vb_printf(VB_CA, "%s: %s", action, ca_get_line(ca));
 }
 
-// This supports debugging/verbosity. It does not delete anything and
+// Support debugging/verbosity. Deletes nothing and
 // returns a string which must be freed manually.
 static CCS
 _mon_tostring(void)
@@ -133,7 +133,7 @@ _mon_tostring(void)
     return result;
 }
 
-/// For debugging support - dumps contents of a PTX to stderr. This is not
+/// For debugging support - dump contents of a PTX to stderr. This isn't
 /// really a "published" function but it must be global in order to be
 /// callable from a debugger.
 /*static*/ void

@@ -207,7 +207,7 @@ _name_pathstate(CCS name, CCS path, CS const *argv)
     return rc;
 }
 
-/// Prints the version of this application to stdout.
+/// Print the version of this application to stdout.
 /// @param[in] full      if true, print versions of all 3rd-party libs too
 static void
 _print_version(int full)
@@ -233,7 +233,7 @@ _print_version(int full)
 
 /// Internal service routine. Handles sub-commands.
 static int
-do_action(CCS action, int argc, CS const *argv)
+_action(CCS action, int argc, CS const *argv)
 {
     int rc = 0;
 
@@ -584,7 +584,7 @@ _make_clean(int argc, CS const *argv)
     }
 }
 
-/// This is the entry point for the client program.
+/// Entry point for the client program.
 /// @param[in] argc     the number of arguments
 /// @param[in] argv     the classic argument vector taken by every main routine
 /// @return the exit code of the process
@@ -613,8 +613,8 @@ main(int argc, CS const *argv)
     vb_init();
     atexit(vb_fini);
 
-    // Initialize the properties database and, at the same time,
-    // arrange for it to be finalized at exit time. Doing it this
+    // Initialize the properties database and at the same time
+    // arrange for it to be finalized at exit. Doing it this
     // way ensures that it will be finalized last, meaning that
     // other exit and error handling routines will have access
     // to properties until the bitter end. Really, the only reason
@@ -632,7 +632,7 @@ main(int argc, CS const *argv)
     // the environment.
     prefs_init(exe, PROP_EXT, NULL);
 
-    // Initialize the hash-code generation.
+    // Initialize the hash-code generator.
     code_init();
 
     // Default this to on; make auditing is tough without it.
@@ -748,7 +748,7 @@ main(int argc, CS const *argv)
 		prop_override_str(P_MONITOR_PLATFORM, bsd_optarg);
 		break;
 
-	    // Undocumented - used to debug downloads without modifying state.
+	    // Undocumented - debug downloads without modifying state.
 	    // We may not need this forever.
 	    case 'D':
 		prop_unset(P_DOWNLOAD_ONLY, 0);
@@ -1367,7 +1367,7 @@ main(int argc, CS const *argv)
 	}
 	shop_fini();
     } else {
-	rc = do_action(action, argc, argv);
+	rc = _action(action, argc, argv);
     }
 
     code_fini();

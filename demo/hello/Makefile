@@ -1,6 +1,6 @@
 .ONESHELL:
 
-CC	:= gcc
+CC := gcc
 
 .PHONY: all
 all: hello.exe
@@ -17,3 +17,5 @@ clean:
 
 .PHONY: rt
 rt: clean all
+
+# vim: filetype=make sw=2 noet

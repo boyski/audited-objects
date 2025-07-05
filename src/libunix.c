@@ -320,7 +320,7 @@ _pre_exec(const char *call, const char *path,
     return rc;
 }
 
-/// Interposes over the execv() function.
+/// Interpose over the execv() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     the pathname of the executable file
@@ -345,7 +345,7 @@ execv_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the execve() function.
+/// Interpose over the execve() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     the pathname of the executable file
@@ -414,7 +414,7 @@ execve_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the execvp() function.
+/// Interpose over the execvp() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] file     the name of the executable file
@@ -452,7 +452,7 @@ execvp_wrapper(const char *call,
  * corresponding execv*_wrapper() functions.
  **************************************************************/
 
-/// Interposes over the fork() function.
+/// Interpose over the fork() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @return same as the wrapped function
@@ -512,7 +512,7 @@ fork_wrapper(const char *call, pid_t(*next) (void))
     return pid;
 }
 
-/// Interposes over the vfork() function.
+/// Interpose over the vfork() function.
 /// It's nearly impossible to wrap vfork() since the docs say:
 /// "The procedure that called vfork() should not
 /// return while running in the child's context ...". Any
@@ -540,7 +540,7 @@ vfork(void)
     }
 }
 
-/// Interposes over the system() function.
+/// Interpose over the system() function.
 /// We intercept system() because it contains an implicit fork which
 /// requires an audit flush.
 /// @param[in] call     the name of the interposed function in string form
@@ -561,7 +561,7 @@ system_wrapper(const char *call, int (*next) (const char *), const char *str)
     return ret;
 }
 
-/// Interposes over the popen() function.
+/// Interpose over the popen() function.
 /// We intercept popen() because it contains an implicit fork which
 /// requires an audit flush.
 /// @param[in] call     the name of the interposed function in string form
@@ -612,7 +612,7 @@ _enable_thread_support(const char *call)
     }
 }
 
-/// Interposes over the pthread_create() function. Used to initialize
+/// Interpose over the pthread_create() function. Used to initialize
 /// certain thread interfaces, on the theory that we won't need them
 /// until we have multiple threads and we won't have multiple threads
 /// until pthread_create() is called for the first time.
@@ -645,7 +645,7 @@ pthread_create_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the pthread_exit() function. This is not currently
+/// Interpose over the pthread_exit() function. This is not currently
 /// of any use but may be needed if we can figure out how to do
 /// auditing at thread granularity, which would require some kind
 /// of deterministic thread id.
@@ -683,7 +683,7 @@ clone_wrapper(const char *call,
 }
 #endif				/*linux */
 
-/// Interposes over the open() function.
+/// Interpose over the open() function.
 /// Note: here, 'next' may refer to either open() or open64().
 /// Since they have the same signature they can share a wrapper.
 /// In fact all of open/open64/creat/creat64 come through here.
@@ -722,7 +722,7 @@ open_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the open64() function.
+/// Interpose over the open64() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -758,8 +758,7 @@ __open64_2_wrapper(const char *call,
 
 #if defined(AT_FDCWD)
 
-/// Interposes over the openat() function. This is currently a
-/// Solaris-only API but other platforms may imitate it someday.
+/// Interpose over the openat() function.
 /// Note: here, 'next' may refer to either openat() or openat64().
 /// Since they have the same signature they can share a wrapper.
 /// @param[in] call     the name of the interposed function in string form
@@ -816,7 +815,7 @@ openat_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the openat64() function.
+/// Interpose over the openat64() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] fildes   same as the wrapped function
@@ -850,7 +849,7 @@ __openat64_2_wrapper(const char *call,
 
 #endif	/*AT_FDCWD*/
 
-/// Interposes over the creat() function.
+/// Interpose over the creat() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -868,7 +867,7 @@ creat_wrapper(const char *call,
     return open_wrapper(call, open_real, path, oflag, mode);
 }
 
-/// Interposes over the creat64() function.
+/// Interpose over the creat64() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -907,7 +906,7 @@ _mode2op(const char *mode)
     }
 }
 
-/// Interposes over the fopen() function.
+/// Interpose over the fopen() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -933,7 +932,7 @@ fopen_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the fopen64() function.
+/// Interpose over the fopen64() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -948,7 +947,7 @@ fopen64_wrapper(const char *call,
     return fopen_wrapper(call, next, path, mode);
 }
 
-/// Interposes over the freopen() function.
+/// Interpose over the freopen() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -975,7 +974,7 @@ freopen_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the freopen64() function.
+/// Interpose over the freopen64() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -991,7 +990,7 @@ freopen64_wrapper(const char *call,
     return freopen_wrapper(call, next, path, mode, stream);
 }
 
-/// Interposes over the close() function. We don't actually need
+/// Interpose over the close() function. We don't actually need
 /// to track closes but we do need to make sure the host program
 /// doesn't inadvertently close the audit descriptor.
 /// @param[in] call     the name of the interposed function in string form
@@ -1017,7 +1016,7 @@ close_wrapper(const char *call, int (*next) (int), int fildes)
     return ret;
 }
 
-/// Interposes over the mkdir() function.
+/// Interpose over the mkdir() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
@@ -1039,7 +1038,7 @@ mkdir_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the mkdirp() function, if present.
+/// Interpose over the mkdirp() function, if present.
 /// Note a couple of special complications here: first, we do
 /// not explicitly record the creation of any directories but
 /// the last right now. Such logic could be added but the hope
@@ -1074,7 +1073,7 @@ mkdirp_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the link() function.
+/// Interpose over the link() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] existing same as the wrapped function
@@ -1096,7 +1095,7 @@ link_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the symlink() function.
+/// Interpose over the symlink() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] name1    same as the wrapped function
@@ -1118,7 +1117,7 @@ symlink_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the rename() function.
+/// Interpose over the rename() function.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] oldpath  same as the wrapped function
@@ -1163,7 +1162,7 @@ rename_wrapper(const char *call,
     return ret;
 }
 
-/// Interposes over the unlink() function.
+/// Interpose over the unlink() function.
 /// We try to record all unlinks. Say a build script does a
 /// "rm -f *.o core". During an audited build these files may or may
 /// not exist so the unlink may fail, but on a subsequent recycled
@@ -1260,7 +1259,7 @@ interposed_finalize(void)
     vb_fini();
 }
 
-/// Interposes over the _exit() function.
+/// Interpose over the _exit() function.
 /// Most exits are caught by interposed_finalize(), but an explicit
 /// call to _exit() skips the destructor, so we catch it here by
 /// interposition instead.
@@ -1287,7 +1286,7 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
     (*next)(status);
 }
 
-/// Interposes over the _Exit() function. Where present,
+/// Interpose over the _Exit() function. Where present,
 /// _Exit() is defined to have the same semantics as _exit().
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function

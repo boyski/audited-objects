@@ -99,16 +99,16 @@ MAKEFILE</a></h2>
 <p>With a slight modification of the above:</p>
 <pre>
     % make clean
-    % ao -F Makefile.new run make
+    % ao -F gen.mk run make
 </pre>
 <p>we can generate not just dependencies but a complete new
 Makefile. You may test that the generated Makefile works via
 something like:</p>
 <pre>
-    % make -f Makefile.new clean all
+    % make -f gen.mk clean all
 </pre>
 <p>Some users may find this is all they need from <em>AO</em> and
-can stop here, with no need to ever use the server.</p>
+can stop here, with no need to ever cache results.</p>
 <h2><a id=
 "first_ao_build_using_the_server">INITIAL CACHED AO BUILD</a></h2>
 

@@ -80,17 +80,13 @@ $(PKGS): $(wildcard $(SRCS)) | ${HOME}/$(TGTARCH)/etc ${HOME}/$(TGTARCH)/man/man
 	cd ${HOME} && $(GTAR) -czf $(CURDIR)/$@ $(PKGFILES)
 
 .PHONY: clean
+clean: cleanups := $(wildcard $(PKGS))
 clean:
-	$(RM) $(PKGS)
+	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
 
 .PHONY: realclean
+clean: cleanups := $(wildcard $(rdir)/*.gz $(rdir)/*.zip)
 realclean:
-	$(RM) $(rdir)/*.gz $(rdir)/*.zip
+	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
 
-# This comment block must stay at the bottom of the file.
-# Local Variables:
-# mode: makefile-gmake
-# fill-column: 100
-# End:
-#
-# vim: filetype=make sw=2 tw=100 cc=+1 noet
+# vim: filetype=make sw=2 noet

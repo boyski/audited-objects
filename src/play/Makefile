@@ -51,13 +51,8 @@ git2a: git2a.c
 	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lgit2 -lpcre -lpthread -lz
 
 .PHONY: clean
+clean: cleanups := $(wildcard cjson? git2?)
 clean:
-	$(RM) cjson? git2?
+	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
 
-# This comment block must stay at the bottom of the file.
-# Local Variables:
-# mode: makefile-gmake
-# fill-column: 100
-# End:
-#
-# vim: filetype=make sw=2 tw=100 cc=+1 noet
+# vim: filetype=make sw=2 noet

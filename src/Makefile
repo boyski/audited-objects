@@ -252,21 +252,10 @@ $(LIBAO): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS) | $$(@D)
 tags:
 	$(RM) tags && ectags *.h *.c
 
-.PHONY: cleantargets
-cleantargets:
-	-$(RM) $(TARGETS)
-
 .PHONY: clean
-clean: cleantargets
-	-$(RM) $(TGTDIR)/*.o core *.1 *.html HTML tags
-	-$(RM) -r HTML
-
-.PHONY: realclean
-realclean: clean
-	-$(RM) *.user .*/*.o .*/*.obj 2>/dev/null
-
-.PHONY: relink
-relink: cleantargets install
+clean: cleanups := $(wildcard $(TARGETS) $(TGTDIR)/*.o core *.1 *.html HTML tags)
+clean:
+	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
 
 .PHONY: install
 install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)
@@ -276,12 +265,6 @@ release:
 	$(MAKE) --no-print-directory CPUARCH=$(OS_CPU) -f package.mk release
 
 .PHONY: roundtrip rt
-roundtrip rt: clean install
+roundtrip rt: clean all
 
-# This comment block must stay at the bottom of the file.
-# Local Variables:
-# mode: makefile-gmake
-# fill-column: 100
-# End:
-#
-# vim: filetype=make sw=2 tw=100 cc=+1 noet
+# vim: filetype=make sw=2 noet

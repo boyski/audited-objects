@@ -12,8 +12,9 @@ hello.exe: hello.o goodbye.o
 	$(CC) -c $<
 
 .PHONY: clean
+clean: cleanups := $(wildcard hello.exe *.o *.d *.class)
 clean:
-	-rm -f hello.exe *.o *.d *.class
+	$(if $(cleanups),@set -x; $(RM) $(cleanups))
 
 .PHONY: rt
 rt: clean all

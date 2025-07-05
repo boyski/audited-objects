@@ -46,9 +46,7 @@ build works. Try &quot;<code>make clean; make&quot;</code>:</p>
 <p>As you can see this is quite a simple application and build
 model.</p>
 
-<h2><a id=
-"first_ao_build__to_generate_dependency_data">FIRST AO BUILD, TO
-GENERATE DEPENDENCY DATA</a></h2>
+<h2><a id="first AO build">FIRST AO BUILD</a></h2>
 <p>Notice that the hello app contains a directory called
 <em>.ao</em>. This is the only place where per-project
 configuration is kept. It's a good idea to create this directory at
@@ -63,7 +61,22 @@ project name by setting</p>
 <p>in a properties file. The default project name is that of its
 root directory; thus without this setting the project would be
 named &quot;hello&quot;.</p>
-<p>Now we can test dependency generation by simply prepending a few
+<p>The first build under AO control can simply dump raw audit data
+    to stdout by passing -o-. Run this and you should see some
+    inscrutable data:
+    <pre>
+    % make clean; ao -o- run make
+
+</pre>
+This same data could be saved to a file with "-o file" but it's
+not very useful as is.
+</p>
+
+<h2><a id=
+"first_ao_build__to_generate_dependency_data">FIRST AO BUILD TO
+GENERATE DEPENDENCY DATA</a></h2>
+
+<p>Next we can test dependency generation by simply prepending a few
 words to the command line:</p>
 <pre>
     % make clean

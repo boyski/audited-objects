@@ -217,7 +217,7 @@ ca_o_hash_cmp(const void *left, const void *right)
     }
 }
 
-/// Hashing function (NOT method) for CAs (returns a hash key).
+/// Hashing function (NOT method) for CAs.
 /// @param[in] key      the key to be hashed
 /// @return a hash value
 hash_val_t

@@ -28,7 +28,6 @@
 #include "CODE.h"
 #include "DOWN.h"
 #include "GIT.h"
-#include "HTTP.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PA.h"
@@ -63,7 +62,7 @@
 /// flags do not have a corresponding single-char name. We create an
 /// artificial name for these by combining the first letter of the
 /// long flag with an arbitrary second char. This provides a
-/// 'namespace' allowing up to 256 different long flags for each
+/// namespace allowing up to 256 different long flags for each
 /// leading letter.
 /// Note that the option.val member which holds this is really an int.
 #define LF(first, secondary)	(((first)<<8) + (secondary))
@@ -150,61 +149,6 @@ _usage(int rc)
     fprintf(fp, "   %s lsbuilds -s\n", prog);
 
     putil_exit(rc);
-}
-
-// Internal service routine. TODO Not yet re-enabled after persistence
-// changes - this is a stub left around pending server/schema work.
-static int
-_name_pathstate(CCS name, CCS path, CS const *argv)
-{
-    struct __stat64 stbuf;
-    ps_o ps;
-    CCS psbuf;
-    int rc = 0;
-
-    // If we can't resolve the file vs the cwd, try vs the rwd.
-    if (stat64(path, &stbuf)) {
-	if (putil_is_absolute(path)) {
-	    putil_syserr(0, path);
-	    return 2;
-	} else {
-	    CS abspath;
-
-	    asprintf(&abspath, "%s/%s", prop_get_str(P_BASE_DIR), path);
-	    if (stat64(abspath, &stbuf)) {
-		putil_syserr(0, path);	// NOT abspath
-		putil_free(abspath);
-		return 2;
-	    } else {
-		ps = ps_newFromPath(abspath);
-		putil_free(abspath);
-	    }
-	}
-    } else {
-	ps = ps_newFromPath(path);
-    }
-
-    if (!S_ISREG(stbuf.st_mode)) {
-	putil_error("not a regular file: %s", ps_get_abs(ps));
-	ps_destroy(ps);
-	return 2;
-    }
-
-    if (ps_stat(ps, 1)) {
-	putil_syserr(0, ps_get_abs(ps));
-	ps_destroy(ps);
-	return 2;
-    }
-
-    psbuf = ps_toCSVString(ps);
-
-    rc = http_namestate(name, psbuf, argv);
-
-    putil_free(psbuf);
-
-    ps_destroy(ps);
-
-    return rc;
 }
 
 /// Print the version of this application to stdout.
@@ -433,86 +377,8 @@ _action(CCS action, int argc, CS const *argv)
 	    fputs("This software incorporates all or parts ", stdout);
 	    fputs("of the following, whose\ncontributions ", stdout);
 	    fputs("are gratefully acknowledged:\n\n", stdout);
-
-	    if ((rc = http_ping())) {
-		about_client();
-	    } else {
-		rc = http_action(action, argv, 0);
-	    }
 	}
 	_print_version(0);
-    } else if (argv && *argv && (streq(*argv, "-h") || streq(*argv, "--help"))) {
-	// Always go to the server for help unless it's a pure client-side
-	// action. That's why this is midway down - pure client actions
-	// are above, anything requiring server interaction is below.
-	rc = http_action(action, argv, 0);
-    } else if (streq(action, "label")) {
-	CS const *targv;
-
-	for (bsd_getopt_reset(); argv && *argv; ) {
-	    int c;
-
-	    // *INDENT-OFF*
-	    static CS short_opts = "+sli:p:";
-	    static struct option long_opts[] = {
-		{"long",		no_argument,	   NULL, 'l'},
-		{"short",		no_argument,	   NULL, 's'},
-		{"id",		required_argument, NULL, 'i'},
-		{"project-name",	required_argument, NULL, 'p'},
-		{0,			0,		   NULL,  0 },
-	    };
-	    // *INDENT-ON*
-
-	    c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
-	    if (c == -1 || c == '?') {
-		break;
-	    }
-
-	    switch (c) {
-		default:
-		    break;
-	    }
-	}
-	targv = argv + (bsd_optind - 1);
-
-	if (!*targv) {
-	    putil_die("no label specified");
-	} else if (targv[1]) {
-	    putil_die("conflicting labels specified");
-	} else {
-	    if (http_label(*targv, argv)) {
-		rc = 2;
-	    }
-	}
-    } else if (!strncmp(action, "namestate", 4)) {
-	CS const *targv;
-	CCS name;
-
-	// HACK - skip past flags to reach files.
-	for (targv = argv; targv[0][0] == '-' && targv[1]; targv++) {
-	    if (streq(*targv, "-p") || streq(*targv, "-i")) {
-		targv++;
-	    }
-	}
-	name = *targv++;
-	if (!name) {
-	    putil_die("no label specified");
-	}
-	if (!*targv) {
-	    putil_die("no pathnames specified");
-	}
-
-	for (; *targv; targv++) {
-	    if (_name_pathstate(name, *targv, argv)) {
-		rc = 2;
-	    }
-	}
-    } else if (!strcmp(action, "Admin")) {
-	if (argv[0] && streq(argv[0], "restart")) {
-	    rc = http_restart();
-	} else {
-	    rc = http_action(action, argv, 0);
-	}
     } else {
 	if (streq(action, "help") && !argv[0]) {
 	    const char *fmt = "%-12s - %s\n";
@@ -527,12 +393,6 @@ _action(CCS action, int argc, CS const *argv)
 	    printf(fmt, "property", "print the value of the named property");
 	    printf(fmt, "substitute", "apply standard %-formatting to the input string");
 	    printf("\n");
-	}
-
-	if (!strncmp(action, "lsb", 3)) {
-	    rc = http_action(action, argv, 1);
-	} else {
-	    rc = http_action(action, argv, 0);
 	}
     }
 
@@ -681,7 +541,6 @@ main(int argc, CS const *argv)
 	    {"extra-quiet",	no_argument,	   NULL, 'Q'},
 	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
 	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
-	    {"restart",		no_argument,	   NULL, LF('R','L')},
 	    {"server",		required_argument, NULL, 's'},
 	    {"strict",		no_argument,	   NULL, 'S'},
 	    {"script",		required_argument, NULL, LF('s','c')},
@@ -876,12 +735,6 @@ main(int argc, CS const *argv)
 		prop_override_true(P_LEAVE_ROADMAP);
 		break;
 
-	    case LF('R', 'L'):
-		if ((rc = http_restart())) {
-		    exit(rc);
-		}
-		break;
-
 	    case 's':
 		prop_override_str(P_SERVER, bsd_optarg);
 		break;
@@ -1038,6 +891,7 @@ main(int argc, CS const *argv)
 
     // For convenience, the -o flag suppresses server interaction along
     // with specifying an output file.
+    // TODO - remove.
     if (no_server) {
 	prop_unset(P_SERVER, 1);
     }
@@ -1048,8 +902,7 @@ main(int argc, CS const *argv)
     }
 
     // Optionally run help output through a pager.
-    if (pager ||
-	(streq(action, "man") && (pager = prop_get_str(P_DOC_PAGER)))) {
+    if (pager || (streq(action, "man") && (pager = prop_get_str(P_DOC_PAGER)))) {
 	int pfd[2];
 	pid_t pid;
 
@@ -1090,31 +943,11 @@ main(int argc, CS const *argv)
 	}
     }
 
-    // For debugging convenience allow server=nnnn to mean "localhost:nnnn"
-    // and server=foo to mean "foo:8080" since those are the most common.
-    if (prop_has_value(P_SERVER)) {
-	const char *svr;
-
-	svr = prop_get_str(P_SERVER);
-	if (!strchr(svr, ':')) {
-	    char buf[256];
-
-	    if (isdigit((int)*svr)) {
-		snprintf(buf, sizeof(buf) - 1, "localhost:%s", svr);
-	    } else {
-		snprintf(buf, sizeof(buf) - 1, "%s:8080", svr);
-	    }
-	    prop_override_str(P_SERVER, buf);
-	}
-    }
-
     // Diagnostic: dump properties and quit.
     if (proplevel >= 0) {
 	prop_help(proplevel, vb_bitmatch(VB_STD), exe);
 	exit(0);
     }
-
-    http_init();
 
     // Arrange for the elapsed time to be printed out at exit time
     // if requested by user property. The property is not a boolean
@@ -1371,8 +1204,6 @@ main(int argc, CS const *argv)
     }
 
     code_fini();
-
-    http_fini();
 
     return rc;
 }

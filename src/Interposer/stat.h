@@ -35,8 +35,26 @@ WRAP(int, lstat, (const char *path, struct stat *buf), path, buf)
 WRAP(int, fstat, (int fildes, struct stat *buf), fildes, buf)
 #endif	/*_STAT_VER*/
 
+// Transitional lf64 stat calls for Solaris and Linux and ?? 32-bit objects.
+// Note that Solaris/X86 is very weird: the 32-bit environment looks like
+// Linux with *xstat() and _STAT_VER, while the 64-bit environment looks
+// like Solaris/Sparc. I.e there are no *xstat64() interfaces.
+#if defined(_STAT_VER)
+WRAP(int, __xstat64,  (int ver, const char *path, struct stat64 *buf), ver, path, buf)
+WRAP(int, __lxstat64, (int ver, const char *path, struct stat64 *buf), ver, path, buf)
+WRAP(int, __fxstat64, (int ver, int fildes, struct stat64 *buf), ver, fildes, buf)
+#else	/*_STAT_VER*/
+#if !defined(BSD)
+WRAP(int,  stat64, (const char *path, struct stat64 *buf), path, buf)
+WRAP(int, lstat64, (const char *path, struct stat64 *buf), path, buf)
+WRAP(int, fstat64, (int fildes, struct stat64 *buf), fildes, buf)
+#endif	/*BSD*/
+#endif	/*_STAT_VER*/
+
+// This is an additional suite introduced on Solaris.
 #ifdef AT_FDCWD
 WRAP(int, fstatat, (int fildes, const char *path, struct stat *buf, int flag), fildes, path, buf, flag)
+WRAP(int, fstatat64, (int fildes, const char *path, struct stat64 *buf, int flag), fildes, path, buf, flag)
 #endif	/*AT_FDCWD*/
 
 #ifdef  __cplusplus

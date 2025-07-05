@@ -13,7 +13,7 @@ hello.exe: hello.o goodbye.o
 
 .PHONY: clean
 clean:
-	-rm -f hello.exe *.o *.class
+	-rm -f hello.exe *.o *.d *.class
 
 .PHONY: rt
 rt: clean all

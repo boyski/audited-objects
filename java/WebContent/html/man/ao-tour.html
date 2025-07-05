@@ -46,7 +46,7 @@ build works. Try &quot;<code>make clean; make&quot;</code>:</p>
 <p>As you can see this is quite a simple application and build
 model.</p>
 
-<h2><a id="first AO build">FIRST AO BUILD</a></h2>
+<h2><a id="first AO build">FIRST AO BUILD WITH RAW DATA</a></h2>
 <p>Notice that the hello app contains a directory called
 <em>.ao</em>. This is the only place where per-project
 configuration is kept. It's a good idea to create this directory at
@@ -80,7 +80,7 @@ GENERATE DEPENDENCY DATA</a></h2>
 words to the command line:</p>
 <pre>
     % make clean
-    % ao -MD -o@ run make
+    % ao -MD run make
     gcc -c hello.c
     gcc -o hello.exe hello.o
 </pre>
@@ -89,13 +89,17 @@ build and asked that the audit data be written out in makefile
 syntax as dependency information. Take a look at <i>hello.o.d</i> to
 see this. These files could subsequently be included within the
 Makefile to provide it with complete dependency information.</p>
+<p>What's going on here, FWIW, is that the same -o- raw data shown
+    in the previous example is now being piped to a python script
+    called "ao2make" which translates it to make syntax.
+</p>
 <h2><a id=
 "using_ao_to_generate_a_new_makefile">USING AO TO GENERATE A NEW
 MAKEFILE</a></h2>
 <p>With a slight modification of the above:</p>
 <pre>
     % make clean
-    % ao -F Makefile.new -o@ run make
+    % ao -F Makefile.new run make
 </pre>
 <p>we can generate not just dependencies but a complete new
 Makefile. You may test that the generated Makefile works via
@@ -106,58 +110,17 @@ something like:</p>
 <p>Some users may find this is all they need from <em>AO</em> and
 can stop here, with no need to ever use the server.</p>
 <h2><a id=
-"first_ao_build_using_the_server">INITIAL AO BUILD USING THE
-SERVER</a></h2>
-<p>The &quot;<code>-o@</code>&quot; flag above suppressed all server
-interaction, but from here on a working server is required. Test
-for it by running:</p>
-<pre>
-    % ao ping
-    localhost:8080
-</pre>
-<p>
-You should get back a <code>server:port</code> string as shown above. If not,
-make sure the server is running and that the local Server property
-is configured to point to it. The current property settings can be
-checked via:
-</p>
-<pre>    % ao -H -q
-</pre>
-<p>AO will talk to a configured server automatically once we stop
-telling it not to:</p>
-<pre>
-    % make clean
-    % ao run make
-    gcc -c hello.c
-    ao: UPLOADING hello.o
-    ao: ARCHIVING hello.o
-    gcc -o hello.exe hello.o
-    ao: UPLOADING hello.exe
-    ao: ARCHIVING hello.exe
-</pre>
-<p>Notice that the output is the same as before with the addition
-of some UPLOADING and ARCHIVING messages. UPLOADING messages come
-from the client program while the ARCHIVING lines are responses
-from the server; together they say that the client uploaded copies
-of two output files to the server and that the server saved
-(archived) those copies.</p>
-<p>Note that since <em>make</em> is such a common build tool
-<em>ao</em> accepts <code>ao make</code> as a shorthand for
-<code>ao run make</code>.</p>
+"first_ao_build_using_the_server">INITIAL CACHED AO BUILD</a></h2>
+
 <h2><a id=
 "second_ao_build_using_the_server">RECYCLING AN AO BUILD</a></h2>
-<p>At this point the server database is primed with information
+<p>At this point the database is primed with information
 about commands and file states and the relationships between them.
 Let's do a second build. We can also use this opportunity to show
 the <code>ao make</code> shorthand. And for convenience we will
 fold the clean step into a single &quot;round trip&quot; build:</p>
 <pre>
-    % ao make clean all
-    rm -f hello hello.exe hello.o*
-    gcc -c hello.c
-    ao: DOWNLOADING hello.o@@20100704153239
-    gcc -o hello.exe hello.o
-    ao: DOWNLOADING hello.exe@@20100704153239
+TBD
 </pre>
 <p>What happened here is that the compiler and linker did not
 actually run; instead, AO intercepted them at startup, determined
@@ -167,8 +130,8 @@ parent program (make) continues to <em>believe</em> that the
 programs ran; from its perspective nothing is different.</p>
 <p>If either the command line or any of the input files had changed,
 AO would have skipped this optimization and proceeded with an actual rebuild,
-and of course uploaded the new result.</p>
-<p>It may be hard to see any speedup with such a tiny build since
+and of course recorded the new result.</p>
+<p>We may not see any speedup with such a tiny build since
 the effective build time is close to zero anyway, but on larger
 builds this can produce substantial improvements in build time.</p>
 <h2><a id="post_mortem_analysis">POST-MORTEM ANALYSIS</a></h2>

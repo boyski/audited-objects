@@ -173,10 +173,10 @@ def main():
         help='write Makefile data to the specified file')
     parser.add_argument(
         '--parallel', action='store_true',
-        help='TBD')
+        help=argparse.SUPPRESS)
     parser.add_argument(
         '-p', '--pdump', action='store_true',
-        help='(with -full) use variables extracted from GNU "make -p"')
+        help='(with -full) substitute variables extracted via GNU "make -p"')
     parser.add_argument(
         '--prqre',
         help='ignore prereqs which do not match this regex')
@@ -194,7 +194,7 @@ def main():
         help='enable exec verbosity')
     parser.add_argument(
         'input', nargs='*', default=['-'],
-        help='optional audit file')
+        help='audit file(s) (default: stdin)')
     opts = parser.parse_args()
 
     childx.set_xtrace(opts.verbosity)

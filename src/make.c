@@ -85,7 +85,7 @@ make_init(CCS exe)
 	if (str) {
 	    (void)util_substitute_params(str, &t);
 	    p = MakeCmd;
-	    asprintf(&MakeCmd, "%s --MF=\"%s\"", p, t);
+	    asprintf(&MakeCmd, "%s --output='%s'", p, t);
 	    putil_free(p);
 	    putil_free(t);
 	}
@@ -127,7 +127,7 @@ make_init(CCS exe)
 
     p = MakeCmd;
     if ((str = prop_get_str(P_BASE_DIR))) {
-	asprintf(&MakeCmd, "%s --base-dir=\"%s\" -", p, str);
+	asprintf(&MakeCmd, "%s --base-dir='%s' -", p, str);
     } else {
 	asprintf(&MakeCmd, "%s -", p);
     }

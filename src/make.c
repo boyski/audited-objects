@@ -79,15 +79,8 @@ make_init(CCS exe)
 	putil_warn(".ONESHELL mode suppressed, disaggregation likely");
     }
 
-    if ((str = prop_get_str(P_MAKE_FILE))
-	    || prop_has_value(P_MAKE_DEPENDS)) {
-	const char *perl;
-
-	if (!(perl = prop_get_str(P_PERL_CMD)) &&
-		!(perl = putil_getenv("PERL"))) {
-	    perl = "perl";
-	}
-	asprintf(&MakeCmd, "%s -S ao2make", perl);
+    if ((str = prop_get_str(P_MAKE_FILE)) || prop_has_value(P_MAKE_DEPENDS)) {
+	asprintf(&MakeCmd, "ao2make");
 
 	if (str) {
 	    (void)util_substitute_params(str, &t);
@@ -99,7 +92,7 @@ make_init(CCS exe)
 
 	p = MakeCmd;
 	if ((str = prop_get_str(P_MAKE_DEPENDS))) {
-	    asprintf(&MakeCmd, "%s --ext=%s", p, str);
+	    asprintf(&MakeCmd, "%s --extension=%s", p, str);
 	} else {
 	    asprintf(&MakeCmd, "%s --full", p);
 	}
@@ -134,7 +127,7 @@ make_init(CCS exe)
 
     p = MakeCmd;
     if ((str = prop_get_str(P_BASE_DIR))) {
-	asprintf(&MakeCmd, "%s --base=\"%s\" -", p, str);
+	asprintf(&MakeCmd, "%s --base-dir=\"%s\" -", p, str);
     } else {
 	asprintf(&MakeCmd, "%s -", p);
     }

@@ -822,7 +822,7 @@ main(int argc, CS const *argv)
 
 	    case 'M':
 		if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
-		    prop_override_str(P_MAKE_DEPENDS, "d");
+		    prop_override_str(P_MAKE_DEPENDS, ".d");
 		} else {
 		    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
 		}

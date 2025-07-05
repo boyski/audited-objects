@@ -10,11 +10,11 @@ EXAMPLES:
 
 To show all input files captured in an audit:
 
-    %(prog)s -S < audit-file
+    %(prog)s -S audit-file
 
 To show all commands matching a given pattern:
 
-    %(prog)s -C 'collect2$' < audit-file
+    %(prog)s -C 'collect2$' audit-file
 
 """
 
@@ -48,10 +48,10 @@ def pathdump(pfx, paths, opts):
     """Print a list of paths in standard format."""
     for path in paths:
         if not opts.short_format:
-            sys.stdout.write(pfx + ' ')
+            print(pfx + ' ', end='')
         if not opts.abs_paths and path.startswith(opts.base_dir):
             path = os.path.relpath(path, opts.base_dir)
-        sys.stdout.write(path + '\n')
+        print(path)
 
 
 def main():
@@ -101,7 +101,7 @@ def main():
 
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
-        opts.base_dir = childx.check_output(cmd).rstrip()
+        opts.base_dir = childx.check_output(cmd, text=True).rstrip()
     opts.base_dir = os.path.realpath(opts.base_dir)
 
     # Use a state machine to parse input data into a list of CAs.
@@ -145,7 +145,7 @@ def main():
                 if re.search(opts.cmd_path_regex, path):
                     tgtpaths.add(path)
             if srcpaths or tgtpaths:
-                sys.stdout.write('+ [{0}] {1}\n'.format(ca.rwd, ca.line))
+                print(f'+ [{ca.rwd}] {ca.line}')
                 pathdump('<', sorted(srcpaths), opts)
                 pathdump('>', sorted(tgtpaths), opts)
     else:

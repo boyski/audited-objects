@@ -204,7 +204,7 @@ def main():
 
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
-        opts.base_dir = childx.check_output(cmd).rstrip()
+        opts.base_dir = childx.check_output(cmd, text=True).rstrip()
 
     # Use a state machine to parse input data into a list of CAs.
     # TODO adapt DirTargets and DirLinkTargets logic.

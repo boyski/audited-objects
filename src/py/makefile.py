@@ -150,7 +150,8 @@ def desh(line):
             cmd = ['/bin/bash', '--norc', '--noprofile', '-nv', flags, text]
         else:
             cmd = ['/bin/sh', '-nv', flags, text]
-        line = childx.check_output(cmd, stderr=childx.STDOUT).rstrip()
+        line = childx.check_output(
+            cmd, stderr=childx.STDOUT, text=True).rstrip()
     return line
 
 

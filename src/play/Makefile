@@ -34,7 +34,7 @@ endef
 
 IFLAGS := -I$(OPS)include
 
-CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(DFLAGS) $(IFLAGS)))
+CFLAGS := $(filter-out \#%,$(strip $(WFLAGS) $(DFLAGS) $(IFLAGS)))
 
 CJSON := $(patsubst %.c,%,$(wildcard cjson*.c))
 

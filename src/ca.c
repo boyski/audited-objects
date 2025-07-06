@@ -1130,6 +1130,19 @@ ca_toCSVString(ca_o ca)
     return str;
 }
 
+#if 0
+/// Format the CA in JSON.
+/// @param[in] ca       the object pointer
+/// @return a string which should be freed when no longer needed
+CCS
+ca_toJSON(ca_o ca)
+{
+    CCS str = NULL;
+
+    return str;
+}
+#endif
+
 // Internal service routine. Support ca_dump() for debug purposes.
 static int
 _ca_dump_pa(pa_o pa, void *data)

@@ -26,15 +26,21 @@ define WFLAGS :=
 endef
 
 define FFLAGS :=
+  -g
   -fPIC
   -fstack-protector-strong
   -pedantic
   -std=c17
 endef
 
+define DFLAGS :=
+  -D_GNU_SOURCE
+endef
+
 IFLAGS := -I$(OPS)include
 
-CFLAGS := $(filter-out \#%,$(strip $(WFLAGS) $(DFLAGS) $(IFLAGS)))
+hash := \#
+CFLAGS := $(filter-out $(hash)%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
 
 CJSON := $(patsubst %.c,%,$(wildcard cjson*.c))
 

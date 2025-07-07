@@ -19,11 +19,13 @@
 /// @brief Support for JSON formatting.
 /// Wrapper over the cJSON open-source library.
 
+#include "Putil/putil.h"
+
 #include "cJSON.h"
 #include "JSON.h"
 
 // Parse a single CSV line and return a JSON object.
-cJSON *
+void *
 json_parse_csv_line(CCS *columns, CCS line)
 {
     cJSON *json_obj;
@@ -31,25 +33,29 @@ json_parse_csv_line(CCS *columns, CCS line)
     int i;
 
     json_obj = cJSON_CreateObject();
-    for (i = 0, copy = field = strdup(line); (sep = strchr(field, ',')); i++, field = sep + 1) {
+    for (i = 0, copy = field = putil_strdup(line);
+	    (sep = strchr(field, ','));
+	    i++, field = sep + 1) {
 	*sep = '\0';
 	cJSON_AddStringToObject(json_obj, columns[i], field);
     }
     cJSON_AddStringToObject(json_obj, columns[i], field);
-    free(copy);
+    putil_free(copy);
 
     return json_obj;
 }
 
 // Convert multiple lines of CSV data to a JSON array.
-cJSON *
+void *
 json_parse_csv_to_array(CCS *columns, CCS csv_data)
 {
     cJSON *json_array;
-    char *copy, *csv_line, *sep, *json;
+    char *copy, *csv_line, *sep;
 
     json_array = cJSON_CreateArray();
-    for (copy = csv_line = strdup(csv_data); (sep = strchr(csv_line, '\n')); csv_line = sep + 1) {
+    for (copy = csv_line = putil_strdup(csv_data);
+	    (sep = strchr(csv_line, '\n'));
+	    csv_line = sep + 1) {
 	cJSON *json_line;
 
 	*sep = '\0';
@@ -57,21 +63,21 @@ json_parse_csv_to_array(CCS *columns, CCS csv_data)
 	    cJSON_AddItemToArray(json_array, json_line);
 	}
     }
-    free(copy);
+    putil_free(copy);
 
     return json_array;
 }
 
 CCS
-json_tostr(cJSON *obj)
+json_tostr(void *obj)
 {
     return cJSON_Print(obj);
 }
 
 void
-json_free(cJSON *obj)
+json_free(void *obj)
 {
-    cJSON_Delete(json_array);
+    cJSON_Delete(obj);
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

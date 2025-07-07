@@ -159,7 +159,7 @@ BINS := $(AOTOOL)
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS := -lkaz -lpcre -lz -ltrio
+DLL_LIBS := -lcjson -lkaz -lpcre -lz -ltrio
 
 OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 

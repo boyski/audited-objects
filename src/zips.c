@@ -130,8 +130,8 @@ _zips_clear_one_file(unsigned char **p1, off_t *p2)
     ADVANCE(len);
     if (_zips_clear_file_extra(&data, &size_left,
 	    _get_u16(h.extra_length), &is_zip64,
-	    (memcmp(h.uncompressed_size, unset, sizeof(unset)) == 0
-	    && (memcmp(h.uncompressed_size, unset, sizeof(unset)) == 0))
+	    (memcmp(h.uncompressed_size, unset, sizeof(unset)) == 0 &&
+	    (memcmp(h.uncompressed_size, unset, sizeof(unset)) == 0))
 	    ? &compressed_size : NULL) != 0) {
 	return -1;
     }
@@ -140,8 +140,10 @@ _zips_clear_one_file(unsigned char **p1, off_t *p2)
     } else if (h.flags[0] & FLAGS_0_HAVE_DESCRIPTOR) {
 	size_t off;
 
-	/* Just search for the descriptor; perhaps we could start with the
-	   central directory and get the compressed size from there instead? */
+	/*
+     * Just search for the descriptor; perhaps we could start with the
+	 * central directory and get the compressed size from there instead?
+     */
 	off = 0;
 	while (off + sizeof(file_descriptor_signature)
 	       + sizeof(struct file_descriptor_zip32) < (size_t)size_left) {
@@ -158,9 +160,8 @@ _zips_clear_one_file(unsigned char **p1, off_t *p2)
 	}
     }
     if (h.flags[0] & FLAGS_0_HAVE_DESCRIPTOR) {
-	if ((size_t)size_left >= sizeof(file_descriptor_signature)
-	    && memcmp(data, file_descriptor_signature,
-		      sizeof(file_descriptor_signature)) == 0)
+	if ((size_t)size_left >= sizeof(file_descriptor_signature) &&
+		memcmp(data, file_descriptor_signature, sizeof(file_descriptor_signature)) == 0)
 	    ADVANCE(sizeof(file_descriptor_signature));
 	if (is_zip64)
 	    len = sizeof(struct file_descriptor_zip64);
@@ -226,35 +227,32 @@ zips_clear_file(void *data_, off_t total_size)
     data = (unsigned char *)data_;
     size_left = total_size;
     /* File data */
-    while (size_left >= (off_t)sizeof(struct file_header)
-	   && SIGNATURE_MATCHES(data, file_header)) {
+    while (size_left >= (off_t)sizeof(struct file_header) && SIGNATURE_MATCHES(data, file_header)) {
 	if (_zips_clear_one_file(&data, &size_left) != 0)
 	    return -1;
     }
     /* Archive decryption header would go here. */
-    if ((size_t)size_left >= sizeof(struct archive_extra_data)
-	&& SIGNATURE_MATCHES(data, archive_extra_data)) {
+    if ((size_t)size_left >= sizeof(struct archive_extra_data) &&
+	    SIGNATURE_MATCHES(data, archive_extra_data)) {
 	len = _get_u32(data + offsetof(struct archive_extra_data, extra_length));
 	ADVANCE(sizeof(struct archive_extra_data) + len);
     }
-    while ((size_t)size_left >= (off_t)sizeof(struct cd_file)
-	   && SIGNATURE_MATCHES(data, cd_file)) {
+    while ((size_t)size_left >= (off_t)sizeof(struct cd_file) &&
+	   SIGNATURE_MATCHES(data, cd_file)) {
 	if (_zips_clear_one_cd_file(&data, &size_left) != 0)
 	    return -1;
     }
-    if ((size_t)size_left >= sizeof(struct cd_signature)
-	&& SIGNATURE_MATCHES(data, cd_signature)) {
+    if ((size_t)size_left >= sizeof(struct cd_signature) && SIGNATURE_MATCHES(data, cd_signature)) {
 	len = _get_u16(data + offsetof(struct cd_signature, data_length));
 	ADVANCE(sizeof(struct cd_signature) + len);
     }
-    if ((size_t)size_left >= sizeof(struct cd_end_zip64_v1)
-	&& SIGNATURE_MATCHES(data, cd_end_zip64_v1)) {
-	len = 12 + (size_t)_get_u64(data + offsetof(struct cd_end_zip64_v1,
-						   cd_end_zip64_size));
+    if ((size_t)size_left >= sizeof(struct cd_end_zip64_v1) &&
+	SIGNATURE_MATCHES(data, cd_end_zip64_v1)) {
+	len = 12 + (size_t)_get_u64(data + offsetof(struct cd_end_zip64_v1, cd_end_zip64_size));
 	ADVANCE(len);
     }
-    if ((size_t)size_left >= sizeof(struct cd_end_locator_zip64)
-	&& SIGNATURE_MATCHES(data, cd_end_locator_zip64))
+    if ((size_t)size_left >= sizeof(struct cd_end_locator_zip64) &&
+	    SIGNATURE_MATCHES(data, cd_end_locator_zip64))
 	ADVANCE(sizeof(struct cd_end_locator_zip64));
     if ((size_t)size_left >= sizeof(struct cd_end) && SIGNATURE_MATCHES(data, cd_end)) {
 	    len = _get_u16(data + offsetof(struct cd_end, comment_length));
@@ -275,9 +273,9 @@ zips_is_zipfile(const void *data, off_t size)
     if (size == 0) {
 	return 0;
     } else {
-	return size >= (off_t)(sizeof(struct file_header)
-	    + sizeof(struct cd_end))
-	    && SIGNATURE_MATCHES(data, file_header);
+	return (size >= (off_t)(sizeof(struct file_header)
+	    + sizeof(struct cd_end))) &&
+	    SIGNATURE_MATCHES(data, file_header);
     }
 }
 

@@ -368,7 +368,7 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
 	    if (errno == EINTR) {
 		continue;
 	    }
-#endif	/*!EINTR*/
+#endif	// EINTR
 	    putil_syserr(2, "recv()");
 	    break;
 	} else if (ret == 0) {

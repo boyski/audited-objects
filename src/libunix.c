@@ -93,8 +93,8 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 #define open		open_real
 #define close		close_real
 #define rename		rename_real
-#define link(p1,p2)	link_real(p1,p2)
-#define symlink(p1,p2)	symlink_real(p1,p2)
+#define link(p1, p2)	link_real(p1, p2)
+#define symlink(p1, p2)	symlink_real(p1, p2)
 #define unlink(p1)	unlink_real(p1)
 #define _exit		_exit_real
 /// @endcond static
@@ -446,11 +446,11 @@ execvp_wrapper(const char *call,
     return ret;
 }
 
-/***************************************************************
+/*
  * There's no need for execl_wrapper(), execle_wrapper(), or
- * execlp_wrapper(); they are redirected automatically to the
+ * execlp_wrapper(); they're redirected automatically to the
  * corresponding execv*_wrapper() functions.
- **************************************************************/
+ */
 
 /// Interpose over the fork() function.
 /// @param[in] call     the name of the interposed function in string form

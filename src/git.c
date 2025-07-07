@@ -187,7 +187,7 @@ git_store_blob(ps_o ps)
     snprintf(hdr, charlen(hdr), "blob %lu", ps_get_size(ps));
     stream.next_in = (unsigned char *)hdr;
     stream.avail_in = strlen(hdr) + 1;
-    while(deflate(&stream, 0) == Z_OK);
+    while (deflate(&stream, 0) == Z_OK);
 
     stream.next_in = fdata;
     stream.avail_in = (uInt)fsize;

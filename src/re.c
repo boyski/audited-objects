@@ -35,10 +35,10 @@
 
 #include "pcre.h"
 
-/** @cond static*/
+/** @cond static */
 /* See pcreapi man page and pcredemo.c sample program (www.pcre.org). */
 #define OVECCNT					30
-/** @endcond static*/
+/** @endcond static */
 
 /* Documented in the header to avoid triggering some doxygen problem. */
 void *

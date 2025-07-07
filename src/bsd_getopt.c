@@ -47,8 +47,8 @@
 
 #ifndef HAVE_GETOPT_LONG
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
-#define PRINT_ERROR	((opterr) && ((*options != ':') \
-				      || (IGNORE_FIRST && options[1] != ':')))
+#define PRINT_ERROR	((opterr) && ((*options != ':') || \
+				      (IGNORE_FIRST && options[1] != ':')))
 #define IS_POSIXLY_CORRECT (getenv("POSIXLY_CORRECT") != NULL)
 #define PERMUTE         (!IS_POSIXLY_CORRECT && !IGNORE_FIRST)
 /* XXX: GNU ignores PC if *options == '-' */
@@ -56,8 +56,8 @@
 
 /* return values */
 #define	BADCH	(int)'?'
-#define	BADARG		((IGNORE_FIRST && options[1] == ':') \
-			 || (*options == ':') ? (int)':' : (int)'?')
+#define	BADARG		((IGNORE_FIRST && options[1] == ':') || \
+			 (*options == ':') ? (int)':' : (int)'?')
 #define INORDER (int)1
 
 #define	EMSG	""
@@ -374,8 +374,7 @@ bsd_getopt(int nargc, char * const *nargv, const char *options,
 			}
 		}
 		if (match != -1) {			/* option found */
-		        if (long_options[match].has_arg == no_argument
-			    && has_equal) {
+		        if (long_options[match].has_arg == no_argument && has_equal) {
 				if (PRINT_ERROR)
 					warnx(noarg, (int)current_argv_len,
 					     current_argv);
@@ -402,8 +401,8 @@ bsd_getopt(int nargc, char * const *nargv, const char *options,
 					optarg = nargv[optind++];
 				}
 			}
-			if ((long_options[match].has_arg == required_argument)
-			    && (optarg == NULL)) {
+			if ((long_options[match].has_arg == required_argument) &&
+			    (optarg == NULL)) {
 				/*
 				 * Missing argument; leading ':'
 				 * indicates no error should be generated

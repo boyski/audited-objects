@@ -193,8 +193,8 @@ ps_is_dir(ps_o ps)
 int
 ps_is_special(ps_o ps)
 {
-    return S_ISBLK(ps->ps_mode) || S_ISCHR(ps->ps_mode)
-	|| S_ISFIFO(ps->ps_mode) || S_ISSOCK(ps->ps_mode);
+    return S_ISBLK(ps->ps_mode) || S_ISCHR(ps->ps_mode) ||
+        S_ISFIFO(ps->ps_mode) || S_ISSOCK(ps->ps_mode);
 }
 
 /// Boolean - returns true iff this object is the result of a hard link op.

@@ -61,7 +61,7 @@
 /*
  *  Define the SHA1 circular left shift macro
  */
-#define SHA1CircularShift(bits,word) \
+#define SHA1CircularShift(bits, word) \
                 (((word) << (bits)) | ((word) >> (32-(bits))))
 
 /* Local Function Prototyptes */
@@ -125,7 +125,7 @@ int SHA1Reset(SHA1Context *context)
  *      sha Error Code.
  *
  */
-int SHA1Result( SHA1Context *context,
+int SHA1Result(SHA1Context *context,
                 uint8_t Message_Digest[SHA1HashSize])
 {
     int i;
@@ -143,7 +143,7 @@ int SHA1Result( SHA1Context *context,
     if (!context->Computed)
     {
         SHA1PadMessage(context);
-        for(i=0; i<64; ++i)
+        for(i=0; i < 64; ++i)
         {
             /* message may be sensitive, clear it out */
             context->Message_Block[i] = 0;

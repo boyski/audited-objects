@@ -88,7 +88,8 @@ _shop_ptx_contains(shopping_state_s *ssp, CCS key)
 // to lower case (lookups are case-insensitive so this is a no-op
 // from the POV of the table).
 static void
-_shop_ptx_mark_as_seen(shopping_state_s *ssp, CCS key) {
+_shop_ptx_mark_as_seen(shopping_state_s *ssp, CCS key)
+{
     dnode_t *dnp;
     CS realkey;
 

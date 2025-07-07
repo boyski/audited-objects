@@ -21,9 +21,9 @@
 /// @file
 /// @brief Declarations for json.c
 
-void *json_parse_csv(CCS);
 CCS json_to_str(void *);
 void json_free(void *);
+CCS json_parse_csv_to_str(CCS);
 
 #endif				/*JSON_H */
 

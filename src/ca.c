@@ -1134,7 +1134,7 @@ ca_to_str(ca_o ca)
 	
 	if ((ev = putil_getenv("OUTPUT_JSON"))) {
 	    if (*ev) {
-		return json_to_str(json_parse_csv(str));
+		return json_parse_csv_to_str(str);
 	    }
 	}
     }

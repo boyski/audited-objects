@@ -86,33 +86,6 @@ _json_parse_csv_line(CCS *columns, CCS line)
     return json_obj;
 }
 
-/// Convert multiple lines of CSV data to a JSON array.
-/// @param[in] csv_data  string containing potentially multiple CSV lines
-/// @return a JSON object containing the same data as the CSV
-void *
-json_parse_csv(CCS csv_data)
-{
-    cJSON *json_array;
-    char *copy, *csv_line, *sep;
-
-    json_array = cJSON_CreateArray();
-    for (copy = csv_line = putil_strdup(csv_data);
-	    (sep = strchr(csv_line, '\n'));
-	    csv_line = sep + 1) {
-	cJSON *json_line;
-	CCS *columns;
-
-	*sep = '\0';
-	columns = isdigit(*csv_line) ? ca_fields : pa_fields;
-	if ((json_line = _json_parse_csv_line(columns, csv_line))) {
-	    cJSON_AddItemToArray(json_array, json_line);
-	}
-    }
-    putil_free(copy);
-
-    return json_array;
-}
-
 /// Convert a cJSON object to a printable string
 /// @param[in] obj       the cJSON object
 /// @return a JSON object containing the same data as the CSV
@@ -135,6 +108,38 @@ void
 json_free(void *obj)
 {
     cJSON_Delete(obj);
+}
+
+/// Parse CSV data into a JSON-formatted string and return it
+/// @param[in] csv_data  string containing potentially multiple CSV lines
+/// @return a JSON string containing the same data as the CSV
+CCS
+json_parse_csv_to_str(CCS csv_data)
+{
+    cJSON *json_array;
+    CCS json_str;
+    char *copy, *csv_line, *sep;
+
+    json_array = cJSON_CreateArray();
+    for (copy = csv_line = putil_strdup(csv_data);
+	    (sep = strchr(csv_line, '\n'));
+	    csv_line = sep + 1) {
+	cJSON *json_line;
+	CCS *columns;
+
+	*sep = '\0';
+	columns = isdigit(*csv_line) ? ca_fields : pa_fields;
+	if ((json_line = _json_parse_csv_line(columns, csv_line))) {
+	    cJSON_AddItemToArray(json_array, json_line);
+	}
+    }
+    putil_free(copy);
+
+    json_str = json_to_str(json_array);
+
+    json_free(json_array);
+
+    return json_str;
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

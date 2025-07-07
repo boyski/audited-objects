@@ -15,19 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
-  * @brief Support for PCRE regular expressions.
-  * Note that although we try to encapsulate ancillary technologies
-  * such as HTTP, regular expressions, compression, hashing, etc.
-  * to make it easier to swap out one such library for another,
-  * full abstraction is not always possible. That applies here;
-  * even though all interaction with PCRE is channeled through
-  * this file, the regular expressions themselves are going to
-  * be in PCRE dialect and any change in the RE engine is likely
-  * to risk subtle incompatibilities. Fortunately PCRE is a very
-  * solid technology and there's no reason to think it will ever
-  * need to be replaced.
-**/
+/// @file
+/// @brief Support for PCRE regular expressions.
+/// Note that although we try to encapsulate ancillary technologies
+/// such as HTTP, regular expressions, compression, hashing, etc.
+/// to make it easier to swap out one such library for another,
+/// full abstraction is not always possible. That applies here;
+/// even though all interaction with PCRE is channeled through
+/// this file, the regular expressions themselves are going to
+/// be in PCRE dialect and any change in the RE engine is likely
+/// to risk subtle incompatibilities. Fortunately PCRE is a very
+/// solid technology and there's no reason to think it will ever
+/// need to be replaced.
 
 #include "AO.h"
 

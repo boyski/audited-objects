@@ -64,7 +64,7 @@ _maximize_fds(void)
     // No idea why but this is what they recommend.
 #if defined(__APPLE__)
     rlims.rlim_cur = OPEN_MAX < rlims.rlim_max ? OPEN_MAX : rlims.rlim_max;
-#else /*!APPLE*/
+#else // !APPLE
     rlims.rlim_cur = rlims.rlim_max;
 #endif // __APPLE__
 
@@ -128,7 +128,7 @@ _read_available(int fd)
 
     buf = putil_malloc(bufsize);
 
-    for (len = 0, buf[0] = '\0'; ;) {
+    for (len = 0, buf[0] = '\0';;) {
 	num = read(fd, buf + len, bufsize - len - 1);
 	if (num < 0) {
 	    if (errno != EAGAIN) {
@@ -358,9 +358,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	struct sockaddr_in dest_addr;
 	int nfd;
 
-	/*****************************************************************
-	 * CHILD
-	 *****************************************************************/
+	//////////////////////////////// CHILD ///////////////////////////
 
 	// Not needed on child side.
 	for (i = 0; i < ports; i++) {
@@ -398,8 +396,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_MONITOR_HOST));
 	dest_addr.sin_port = htons(strtoul(prop_get_str(P_MONITOR_PORT), NULL, 0));
 
-	if ((connect(nfd, (struct sockaddr *)&dest_addr,
-		     sizeof(struct sockaddr))) == -1) {
+	if ((connect(nfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) == -1) {
 	    putil_syserr(2, "connect()");
 	}
 
@@ -413,9 +410,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     putil_free(shlibdir);
 
-    /*********************************************************************
-     * PARENT
-     *********************************************************************/
+    //////////////////////////////// PARENT //////////////////////////////
 
     _sig_setup();
 
@@ -487,7 +482,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    if (errno == EINTR) {
 		continue;
 	    }
-#endif	/*!EINTR*/
+#endif // EINTR
 	    putil_syserr(2, "select");
 	} else {
 	    // We like to ping the server once in a while, partly

@@ -1151,7 +1151,7 @@ ca_toJSON(ca_o ca)
 
     return result;
 }
-#endif
+#endif // 0
 
 // Internal service routine. Support ca_dump() for debug purposes.
 static int
@@ -1229,8 +1229,7 @@ ca_set_line(ca_o ca, CCS line)
 	ca->ca_line = (CCS)putil_malloc((strlen(line) + 1) * CHARSIZE);
 	nlen = strlen(CSV_NEWLINE_TOKEN);
 	for (l1 = (CS)line, l2 = (CS)ca->ca_line; *l1; ) {
-	    if (l1[0] == CSV_NEWLINE_TOKEN[0] &&
-		    !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
+	    if (l1[0] == CSV_NEWLINE_TOKEN[0] && !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
 		l1 += nlen;
 		*l2++ = '\n';
 	    } else {
@@ -1379,8 +1378,7 @@ ca_destroy(ca_o ca)
 
     if ((hash = ca->ca_group_hash)) {
 	if (hash_count(hash)) {
-	    putil_warn("group destroyed with %d audits left",
-		       (int)hash_count(hash));
+	    putil_warn("group destroyed with %d audits left", (int)hash_count(hash));
 	}
 	hash_destroy(ca->ca_group_hash);
 	ca->ca_group_hash = NULL;

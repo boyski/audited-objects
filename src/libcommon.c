@@ -361,7 +361,7 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
 
     vb_printf(VB_MON, "RECVING FROM: SOCKET %d", *sockp);
     buf = (char *)vbuf;
-    for (p = buf; ;) {
+    for (p = buf;;) {
 	ret = recv(*sockp, p, len - (p - buf), 0);
 	if (ret == INVALID_SOCKET) {
 #if defined(EINTR)
@@ -678,7 +678,7 @@ _audit_end(CCS call, int exiting, long status)
 	sigpipe.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sigpipe, NULL);
     }
-#endif
+#endif // defined(SIGPIPE) && defined(SIG_IGN)
 
     if (!prop_is_true(P_NO_MONITOR)) {
 	if (AuditFD != -1 && CurrentCA && !ca_get_recycled(CurrentCA)) {
@@ -697,7 +697,7 @@ _audit_end(CCS call, int exiting, long status)
 		    if (errno == EINTR) {
 			continue;
 		    }
-#endif	/*!EINTR*/
+#endif	// EINTR
 		    putil_syserr(2, "read");
 		}
 		_monitor_send(&ReportSocket, buf, n);

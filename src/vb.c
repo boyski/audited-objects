@@ -43,9 +43,7 @@
 static long VerbosityMask = VBMASK_UNSET;
 static FILE *VerbosityStream;
 
-/**************************************************************************
-* It's important to keep this array in sync with the related #defines!
-**************************************************************************/
+/* It's important to keep this array in sync with the related #defines! */
 
 // *INDENT-OFF*
 

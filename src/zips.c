@@ -56,12 +56,13 @@ _get_u64(const byte *b)
 	    return -1;				\
 	size_left -= s__;			\
 	data += s__;				\
-    } while(0)
+    } while (0)
 /// @endcond static
 
 /* Clear per-file extra data;
-   Update compressed_size if it is not NULL, otherwise assume compressed_size
-   is not present in the zip64 header. */
+ * Update compressed_size if it is not NULL, otherwise assume compressed_size
+ * is not present in the zip64 header.
+ */
 static int
 _zips_clear_file_extra(unsigned char **p1, off_t *p2, size_t extra_len,
 	    int *is_zip64, unsigned long long *compressed_size)
@@ -211,7 +212,7 @@ _zips_clear_one_cd_file(unsigned char **p1, off_t *p2)
 	    return -1;				\
 	size_left -= s__;			\
 	data += s__;				\
-    } while(0)
+    } while (0)
 /// @endcond static
 
 /* Zero all known timestamps in data_.  Return zero if cleared successfully. */

@@ -1,6 +1,6 @@
 /*	$NetBSD: getopt_long.c,v 1.17 2004/06/20 22:20:15 jmc Exp $	*/
 
-/*-
+/*
  * Copyright (c) 2000 The NetBSD Foundation, Inc.
  * All rights reserved.
  *

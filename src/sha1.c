@@ -31,7 +31,7 @@
 
 /*
  * Copyright (C) The Internet Society (2001). All Rights Reserved.
- * 
+ *
  * This document and translations of it may be copied and furnished to
  * others, and derivative works that comment on or otherwise explain it
  * or assist in its implementation may be prepared, copied, published
@@ -44,10 +44,10 @@
  * in which case the procedures for copyrights defined in the Internet
  * Standards process must be followed, or as required to translate it into
  * languages other than English.
- * 
+ *
  * The limited permissions granted above are perpetual and will not be
  * revoked by the Internet Society or its successors or assigns.
- * 
+ *
  * This document and the information contained herein is provided on an
  * "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
  * TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT
@@ -537,7 +537,6 @@ int main(int argc, char *argv[])
     printf ("\nError %d. Should be %d.\n", err, shaNull );
     return 0;
 }
-#endif /*SHA1TEST*/
-// vim: ts=8:sw=4:et:
+#endif // SHA1TEST
 
 // vim: sw=4 ts=8 tw=100 cc=+1

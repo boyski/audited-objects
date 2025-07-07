@@ -52,7 +52,7 @@ re_init__(CCS name, CCS restr)
 
 #if defined(__APPLE__)
     opts |= PCRE_CASELESS;
-#endif	/*__APPLE__*/
+#endif	// __APPLE__
 
     vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
 

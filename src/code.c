@@ -89,7 +89,7 @@
 
 #if !defined(BSD)
 #include <alloca.h>
-#endif	/*BSD*/
+#endif // BSD
 
 #include "AO.h"
 
@@ -109,8 +109,7 @@
 /// Return true iff the file looks like the kind with an embedded
 /// timestamp based on its name.
 /// Files with timestamps require special handling.
-#define HAS_TIMESTAMP(path)	(!strcmp(strchr(path, '\0') - 2, ".a")\
-				    && !access(path, F_OK))
+#define HAS_TIMESTAMP(path) (!strcmp(strchr(path, '\0') - 2, ".a") && !access(path, F_OK))
 
 /// Initialize hash-code data structures.
 void
@@ -186,7 +185,7 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 	if ((err = SHA1Result(&sha, Message_Digest))) {
 	    putil_die("SHA1Result() error %d", err);
 	}
-	for(i = 0; i < 20 ; i++) {
+	for (i = 0; i < 20; i++) {
 	    snprintf(buf + (i * 2), 3, "%02x", (CCS)(intptr_t)(Message_Digest[i]));
 	}
     }
@@ -275,8 +274,7 @@ _code_needs_patching(const void *data, off_t size)
 /// @param[in] buflen   the length of the passed-in buffer
 /// @return a pointer to the buffer if successful, else NULL
 CCS
-code_from_buffer(const unsigned char *data, off_t size,
-		 CCS path, CS buf, size_t buflen)
+code_from_buffer(const unsigned char *data, off_t size, CCS path, CS buf, size_t buflen)
 {
     if (size == 0) {
 	// No sense comparing this...
@@ -388,7 +386,7 @@ code_from_path(CCS path, CS buf, size_t len)
 	    if (madvise((char *)fdata, size, MADV_SEQUENTIAL)) {
 		putil_syserr(0, path);
 	    }
-#endif	/*MADV_SEQUENTIAL*/
+#endif	// MADV_SEQUENTIAL
 
 	    if (fdata) {
 		vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);

@@ -129,15 +129,15 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 #include <sys/mount.h>
 #if !defined(__APPLE__)
 #include <elf.h>
-#endif /*APPLE*/
-#else	/*BSD*/
+#endif // __APPLE__
+#else	// BSD
 #include <sys/statvfs.h>
 #include <sys/vfs.h>
-#endif	/*BSD*/
+#endif	// BSD
 
 #if !defined(__APPLE__)
 #include <link.h>
-#endif /*APPLE*/
+#endif // __APPLE__
 
 // Request the address of the "real" (system-supplied-and-documented)
 // function of the specified name.
@@ -161,7 +161,7 @@ _get_real(const char *fcn)
 /// way to get earlier, e.g. to interpose on main() itself, but
 /// for now this is the best we have and it seems to work fine.
 /// @param[in] call     the name of the interposed function call
-/*static*/ void
+/* static */ void
 interposed_late_init(const char *call)
 {
     const char *exe;
@@ -230,7 +230,7 @@ _ignore_path(const char *path)
     } else if (!strncmp(path, "/cores/", 7)) {
 	// Vide infra. This is where OS X puts its core files.
 	rc = 1;
-#endif	/*__APPLE__*/
+#endif	// __APPLE__
     } else if ((pend - 5) >= path && !strcmp(pend - 5, "/core")) {
 	// Nothing more embarrassing than dumping core (esp. if it's
 	// our fault) and then uploading the core file ...
@@ -326,7 +326,7 @@ _pre_exec(const char *call, const char *path,
 /// @param[in] path     the pathname of the executable file
 /// @param[in] argv     an argument vector for the new command
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 execv_wrapper(const char *call,
 	      int (*next) (const char *, char *const argv[]),
 	      const char *path, char *const argv[])
@@ -352,7 +352,7 @@ execv_wrapper(const char *call,
 /// @param[in] argv     an argument vector for the new command
 /// @param[in] envp     an environment vector for the new command
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 execve_wrapper(const char *call,
 	       int (*next) (const char *, char *const argv[],
 			    char *const envp[]), const char *path,
@@ -420,7 +420,7 @@ execve_wrapper(const char *call,
 /// @param[in] file     the name of the executable file
 /// @param[in] argv     an argument vector for the new command
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 execvp_wrapper(const char *call,
 	       int (*next) (const char *, char *const argv[]),
 	       const char *file, char *const argv[])
@@ -456,7 +456,7 @@ execvp_wrapper(const char *call,
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
 /// @return same as the wrapped function
-/*static*/ pid_t
+/* static */ pid_t
 fork_wrapper(const char *call, pid_t(*next) (void))
 {
     pid_t pid;
@@ -526,7 +526,7 @@ fork_wrapper(const char *call, pid_t(*next) (void))
 /// stack. See a response by Jonathan Adams in comp.unix.solaris
 /// from 2004-09-17, subject 'how to "wrap" vfork?'
 /// @return same as the wrapped function
-/*static*/ pid_t
+/* static */ pid_t
 vfork(void)
 {
     const char *call = "vfork";
@@ -547,7 +547,7 @@ vfork(void)
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] str      the shell command
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 system_wrapper(const char *call, int (*next) (const char *), const char *str)
 {
     int ret;
@@ -569,7 +569,7 @@ system_wrapper(const char *call, int (*next) (const char *), const char *str)
 /// @param[in] command  the shell command
 /// @param[in] mode     the mode in which the pipe is opened
 /// @return same as the wrapped function
-/*static*/ FILE *
+/* static */ FILE *
 popen_wrapper(const char *call,
 	      FILE *(*next)(const char *, const char *),
 	      const char *command, const char *mode)
@@ -681,7 +681,7 @@ clone_wrapper(const char *call,
     pid = (*next)(fn, child_stack, flags, arg);
     return pid;
 }
-#endif				/*linux */
+#endif // linux
 
 /// Interpose over the open() function.
 /// Note: here, 'next' may refer to either open() or open64().
@@ -693,7 +693,7 @@ clone_wrapper(const char *call,
 /// @param[in] oflag    same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 open_wrapper(const char *call,
 	     int (*next) (const char *, int, ...),
 	     const char *path, int oflag, mode_t mode)
@@ -729,7 +729,7 @@ open_wrapper(const char *call,
 /// @param[in] oflag    same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 open64_wrapper(const char *call,
 	       int (*next) (const char *, int, ...),
 	       const char *path, int oflag, mode_t mode)
@@ -768,7 +768,7 @@ __open64_2_wrapper(const char *call,
 /// @param[in] oflag    same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 openat_wrapper(const char *call,
 	     int (*next) (int, const char *, int, ...),
 	     int fildes, const char *path, int oflag, mode_t mode)
@@ -823,7 +823,7 @@ openat_wrapper(const char *call,
 /// @param[in] oflag    same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 openat64_wrapper(const char *call,
 	       int (*next) (int, const char *, int, ...),
 	       int fildes, const char *path, int oflag, mode_t mode)
@@ -847,7 +847,7 @@ __openat64_2_wrapper(const char *call,
     return openat_wrapper(call, next, fildes, path, oflag, mode);
 }
 
-#endif	/*AT_FDCWD*/
+#endif	// AT_FDCWD
 
 /// Interpose over the creat() function.
 /// @param[in] call     the name of the interposed function in string form
@@ -855,7 +855,7 @@ __openat64_2_wrapper(const char *call,
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 creat_wrapper(const char *call,
 	      int (*next) (const char *, mode_t), const char *path, mode_t mode)
 {
@@ -873,7 +873,7 @@ creat_wrapper(const char *call,
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 creat64_wrapper(const char *call,
 		int (*next) (const char *, mode_t),
 		const char *path, mode_t mode)
@@ -912,7 +912,7 @@ _mode2op(const char *mode)
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ FILE *
+/* static */ FILE *
 fopen_wrapper(const char *call,
 	      FILE *(*next)(const char *, const char *),
 	      const char *path, const char *mode)
@@ -938,7 +938,7 @@ fopen_wrapper(const char *call,
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ FILE *
+/* static */ FILE *
 fopen64_wrapper(const char *call,
 		FILE *(*next)(const char *, const char *),
 		const char *path, const char *mode)
@@ -954,7 +954,7 @@ fopen64_wrapper(const char *call,
 /// @param[in] mode     same as the wrapped function
 /// @param[in] stream   same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ FILE *
+/* static */ FILE *
 freopen_wrapper(const char *call,
 		FILE *(*next)(const char *, const char *, FILE *),
 		const char *path, const char *mode, FILE *stream)
@@ -981,7 +981,7 @@ freopen_wrapper(const char *call,
 /// @param[in] mode     same as the wrapped function
 /// @param[in] stream   same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ FILE *
+/* static */ FILE *
 freopen64_wrapper(const char *call,
 		  FILE *(*next)(const char *, const char *, FILE *),
 		  const char *path, const char *mode, FILE *stream)
@@ -997,7 +997,7 @@ freopen64_wrapper(const char *call,
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] fildes   same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 close_wrapper(const char *call, int (*next) (int), int fildes)
 {
     int ret;
@@ -1022,7 +1022,7 @@ close_wrapper(const char *call, int (*next) (int), int fildes)
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 mkdir_wrapper(const char *call,
 	     int (*next) (const char *, mode_t),
 	     const char *path, mode_t mode)
@@ -1057,7 +1057,7 @@ mkdir_wrapper(const char *call,
 /// @param[in] path     same as the wrapped function
 /// @param[in] mode     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 mkdirp_wrapper(const char *call,
 	     int (*next) (const char *, mode_t),
 	     const char *path, mode_t mode)
@@ -1079,7 +1079,7 @@ mkdirp_wrapper(const char *call,
 /// @param[in] existing same as the wrapped function
 /// @param[in] newpath  same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 link_wrapper(const char *call,
 	     int (*next) (const char *, const char *),
 	     const char *existing, const char *newpath)
@@ -1101,7 +1101,7 @@ link_wrapper(const char *call,
 /// @param[in] name1    same as the wrapped function
 /// @param[in] name2    same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 symlink_wrapper(const char *call,
 		int (*next) (const char *, const char *),
 		const char *name1, const char *name2)
@@ -1123,7 +1123,7 @@ symlink_wrapper(const char *call,
 /// @param[in] oldpath  same as the wrapped function
 /// @param[in] newpath  same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 rename_wrapper(const char *call,
 	       int (*next) (const char *, const char *),
 	       const char *oldpath, const char *newpath)
@@ -1174,7 +1174,7 @@ rename_wrapper(const char *call,
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] path     same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ int
+/* static */ int
 unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 {
     int ret;
@@ -1201,7 +1201,7 @@ unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 /// This finalizer is called automatically as the auditor library
 /// is being unmapped, but only if interception is on (aka active)
 /// and only on "normal" exit as described in Interposer/exit.h.
-/*static*/ void
+/* static */ void
 interposed_finalize(void)
 {
     if (_auditor_isActiveByRequest()) {
@@ -1267,7 +1267,7 @@ interposed_finalize(void)
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] status   same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ void
+/* static */ void
 _exit_wrapper(const char *call, void (*next) (int), int status)
 {
     WRAPPER_DEBUG("ENTERING _exit_wrapper() => %p [%d]\n", next, status);
@@ -1292,7 +1292,7 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
 /// @param[in] next     a pointer to the interposed function
 /// @param[in] status   same as the wrapped function
 /// @return same as the wrapped function
-/*static*/ void
+/* static */ void
 _Exit_wrapper(const char *call, void (*next) (int), int status)
 {
     // Since both signature and semantics are guaranteed identical

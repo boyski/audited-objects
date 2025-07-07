@@ -51,7 +51,7 @@ tee_into(const char *into)
     setvbuf(teeout, NULL, _IONBF, 0);
 
     while (1) {
-	nread = read(0, buf, sizeof buf);
+	nread = read(0, buf, sizeof(buf));
 	if (nread == 0) {
 	    break;
 	} else if (nread < 0) {

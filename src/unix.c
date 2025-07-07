@@ -66,7 +66,7 @@ _maximize_fds(void)
     rlims.rlim_cur = OPEN_MAX < rlims.rlim_max ? OPEN_MAX : rlims.rlim_max;
 #else /*!APPLE*/
     rlims.rlim_cur = rlims.rlim_max;
-#endif /*APPLE*/
+#endif // __APPLE__
 
     if (setrlimit(RLIMIT_NOFILE, &rlims)) {
 	putil_syserr(0, "setrlimit()");
@@ -327,7 +327,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
 		putil_syserr(2, "SO_REUSEPORT");
 	    }
-#endif	/*SO_REUSEPORT*/
+#endif	// SO_REUSEPORT
 
 	    addrlen = sizeof(addr);
 	    memset(&addr, 0, addrlen);

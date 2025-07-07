@@ -45,7 +45,7 @@
 
 #if  !defined(BSD)
 #include <alloca.h>
-#endif	/*BSD*/
+#endif	// BSD
 /// @cond static
 extern char **environ;
 /// @endcond static

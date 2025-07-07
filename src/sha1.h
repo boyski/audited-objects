@@ -16,7 +16,7 @@
 
 /*
  * Copyright (C) The Internet Society (2001). All Rights Reserved.
- * 
+ *
  * This document and translations of it may be copied and furnished to
  * others, and derivative works that comment on or otherwise explain it
  * or assist in its implementation may be prepared, copied, published
@@ -29,10 +29,10 @@
  * in which case the procedures for copyrights defined in the Internet
  * Standards process must be followed, or as required to translate it into
  * languages other than English.
- * 
+ *
  * The limited permissions granted above are perpetual and will not be
  * revoked by the Internet Society or its successors or assigns.
- * 
+ *
  * This document and the information contained herein is provided on an
  * "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
  * TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT

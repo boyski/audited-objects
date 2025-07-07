@@ -136,7 +136,7 @@ _mon_tostring(void)
 /// For debugging support - dump contents of a PTX to stderr. This isn't
 /// really a "published" function but it must be global in order to be
 /// callable from a debugger.
-/*static*/ void
+/* static */ void
 mon_dump(void)
 {
     CCS str;

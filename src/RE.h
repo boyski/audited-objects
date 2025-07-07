@@ -5,12 +5,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -53,7 +53,7 @@ extern void *re_init_prop__(prop_e prop);
 
 /// Matches the provided regular expression against the provided string.
 /// Returns the matched substring or NULL on no match. If either
-/// parameter is NULL, the result is NULL. 
+/// parameter is NULL, the result is NULL.
 /// NOTE: the <I>value</I> of the returned match is not thread-safe
 /// because it is written to a static buffer. When used in a boolean
 /// (match/no match) fashion, however, the result can be considered

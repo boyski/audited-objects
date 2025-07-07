@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #if  !defined(BSD)
 #include <alloca.h>
-#endif	/*BSD*/
+#endif	// BSD
 
 /// @cond static
 #define PTX_PREFIX		"X"

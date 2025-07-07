@@ -89,7 +89,7 @@ util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
     // Everything we do is sequential so might as well handle this
     // in one place.
     madvise((char *)fdata, extent, MADV_SEQUENTIAL);
-#endif	/*MADV_SEQUENTIAL*/
+#endif	// MADV_SEQUENTIAL
 
     vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
 
@@ -219,7 +219,7 @@ util_get_cwd(void)
     if (!getcwd(cwd, len)) {
 	putil_free(cwd);
 	cwd = NULL;
-    } 
+    }
 #endif
     return cwd;
 }
@@ -348,11 +348,11 @@ util_strtrim(CS str)
 #include <sys/mount.h>
 #if !defined(__APPLE__)
 #include <elf.h>
-#endif /*APPLE*/
-#else /*BSD*/
+#endif // __APPLE__
+#else // BSD
 #include <sys/statvfs.h>
 #include <sys/vfs.h>
-#endif /*BSD*/
+#endif // BSD
 
 #if defined(linux)
 #include <search.h>
@@ -371,7 +371,7 @@ _util_linux_fstype_cmp(const void *node1, const void *node2)
     return (((fstypes *) node1)->f_type != ((fstypes *) node2)->f_type);
 }
 
-#endif /*linux*/
+#endif // linux
 
 /// Determine the textual name of the filesystem containing the
 /// specified path.
@@ -458,10 +458,10 @@ util_find_fsname(CCS path, CS buf, size_t len)
 	    strcpy(buf, fnd->f_name);
 	}
     }
-#else	/*linux*/
+#else	// linux
     // Don't know how to get fs name on other platforms ...
     UNUSED(path);
-#endif	/*linux*/
+#endif	// linux
     return buf;
 }
 
@@ -487,9 +487,9 @@ util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
 	    if (errno != EINTR) {
 		return -1;
 	    }
-#else	     /*EINTR*/
+#else // EINTR
 		return -1;
-#endif	     /*EINTR*/
+#endif // EINTR
 	}
 	total += n;
     }
@@ -525,9 +525,9 @@ util_read_all(int fd, void *vptr, size_t n)
 	    } else {
 		return -1;
 	    }
-#else	     /*EINTR*/
+#else	     // EINTR
 		return -1;
-#endif	     /*EINTR*/
+#endif	     // EINTR
 	} else if (nread == 0) {
 	    break;		/* EOF */
 	}
@@ -875,7 +875,7 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
     return buf;
 }
 
-/*-
+/*
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -931,7 +931,7 @@ util_strsep(char **stringp, const char *delim)
 	return (NULL);
     }
 
-    for (tok = s; ;) {
+    for (tok = s;;) {
 	c = *s++;
 	spanp = delim;
 	do {

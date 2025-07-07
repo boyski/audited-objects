@@ -52,7 +52,7 @@
 
 #if !defined(BSD)
 #include <alloca.h>
-#endif	/*BSD*/
+#endif	// BSD
 
 /// @cond static
 #define ROADMAP_DEFAULT_NAME		"roadmap.cdb"
@@ -156,14 +156,13 @@ _usage(int rc)
 static void
 _print_version(int full)
 {
-    printf("%s=%s\n",
-	     APPLICATION_NAME, APPLICATION_VERSION);
+    printf("%s=%s\n", APPLICATION_NAME, APPLICATION_VERSION);
 
     if (full) {
 	fputs(putil_builton(), stdout);
 #if defined(_DEBUG)
 	fputs(" (DEBUG)", stdout);
-#endif	/*_DEBUG*/
+#endif	// _DEBUG
 	fputs("\n", stdout);
 	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", re_version());
@@ -181,8 +180,7 @@ _action(CCS action, int argc, CS const *argv)
 {
     int rc = 0;
 
-    if (streq(action, "Property") ||
-	    streq(action, "property")) {
+    if (streq(action, "Property") || streq(action, "property")) {
 	// Print the current value of the named property.
 	int i;
 	CCS str;
@@ -422,10 +420,8 @@ _make_clean(int argc, CS const *argv)
 
     if (pathMF) {
 	snprintf(clean, sizeof(clean) - 1, "%s -s -f %s clean", mkprog, pathMF);
-    } else if (access("Makefile", R_OK) &&
-	    access("makefile", R_OK) &&
-	    access("GNUmakefile", R_OK) &&
-	    !access("build.xml", R_OK)) {
+    } else if (access("Makefile", R_OK) && access("makefile", R_OK) &&
+	    access("GNUmakefile", R_OK) && !access("build.xml", R_OK)) {
 	snprintf(clean, sizeof(clean) - 1, "ant -q clean");
     } else {
 	snprintf(clean, sizeof(clean) - 1, "%s -s clean", mkprog);
@@ -510,46 +506,46 @@ main(int argc, CS const *argv)
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
-	    {"agg-level",	required_argument, NULL, LF('A','G')},
+	    {"agg-level",	required_argument, NULL, LF('A', 'G')},
 	    {"audit-only",	no_argument,	   NULL, 'A'},
 	    {"make-clean",	no_argument,	   NULL, 'c'},
 	    {"directory",	required_argument, NULL, 'C'},
 	    {"download-only",	no_argument,	   NULL, 'd'},
 	    {"download-silent",	no_argument,	   NULL, 'D'},
-	    {"dtrace",		required_argument, NULL, LF('D','T')},
-	    {"client-platform",	required_argument, NULL, LF('C','P')},
+	    {"dtrace",		required_argument, NULL, LF('D', 'T')},
+	    {"client-platform",	required_argument, NULL, LF('C', 'P')},
 	    {"error-strict",	no_argument,	   NULL, 'E'},
 	    {"make-file",	required_argument, NULL, 'F'},
 	    {"git",		no_argument,	   NULL, 'G'},
 	    {"help",		no_argument,	   NULL, 'h'},
 	    {"Help",		optional_argument, NULL, 'H'},
-	    {"properties",	optional_argument, NULL, LF('P','*')},
+	    {"properties",	optional_argument, NULL, LF('P', '*')},
 	    {"identity-hash",	required_argument, NULL, 'I'},
 	    {"log-file",	required_argument, NULL, 'l'},
 	    {"log-file-temp",	no_argument,	   NULL, 'L'},
-	    {"log-tee",		no_argument,	   NULL, LF('L','T')},
-	    {"log-time-stamp",	no_argument,	   NULL, LF('L','S')},
+	    {"log-tee",		no_argument,	   NULL, LF('L', 'T')},
+	    {"log-time-stamp",	no_argument,	   NULL, LF('L', 'S')},
 	    {"make-depends",	optional_argument, NULL, 'M'},
-	    {"mem-debug",	optional_argument, NULL, LF('D','M')},
+	    {"mem-debug",	optional_argument, NULL, LF('D', 'M')},
 	    {"members-only",	no_argument,	   NULL, 'm'},
 	    {"output-file",	required_argument, NULL, 'o'},
 	    {"Output-file",	required_argument, NULL, 'O'},
 	    {"project-name",	required_argument, NULL, 'p'},
 	    {"pager",		no_argument,	   NULL, 'P'},
-	    {"profile",		no_argument,	   NULL, LF('P','%')},
+	    {"profile",		no_argument,	   NULL, LF('P', '%')},
 	    {"quiet",		no_argument,	   NULL, 'q'},
 	    {"extra-quiet",	no_argument,	   NULL, 'Q'},
 	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
 	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
 	    {"server",		required_argument, NULL, 's'},
 	    {"strict",		no_argument,	   NULL, 'S'},
-	    {"script",		required_argument, NULL, LF('s','c')},
+	    {"script",		required_argument, NULL, LF('s', 'c')},
 	    {"print-elapsed",	no_argument,	   NULL, 't'},
 	    {"upload-only",	no_argument,	   NULL, 'u'},
-	    {"uncompressed-transfers",no_argument, NULL, 'U'},
+	    {"uncompressed-transfers", no_argument, NULL, 'U'},
 	    {"verbosity",	optional_argument, NULL, 'v'},
 	    {"local-verbosity",	required_argument, NULL, 'V'},
-	    {"version",		optional_argument, NULL, LF('v','n')},
+	    {"version",		optional_argument, NULL, LF('v', 'n')},
 	    {"why",		no_argument,	   NULL, 'w'},
 	    {"WFlag",		required_argument, NULL, 'W'},
 	    {"exec-verbosity",	required_argument, NULL, 'x'},
@@ -574,7 +570,7 @@ main(int argc, CS const *argv)
 		prop_override_true(P_ABSOLUTE_PATHS);
 		break;
 
-	    case LF('A','G'):
+	    case LF('A', 'G'):
 		prop_override_str(P_AGGREGATION_STYLE, bsd_optarg);
 		break;
 
@@ -634,8 +630,7 @@ main(int argc, CS const *argv)
 		{
 		    char buf[1024];
 
-		    snprintf(buf, 1024, "%s.%lu.log",
-			       prop_get_str(P_APP), (unsigned long)getpid());
+		    snprintf(buf, 1024, "%s.%lu.log", prop_get_str(P_APP), (unsigned long)getpid());
 		    prop_override_str(P_LOG_FILE, buf);
 		    prop_override_ulong(P_LOG_FILE_TEMP, 1);
 		}
@@ -781,9 +776,9 @@ main(int argc, CS const *argv)
 		//putil_putenv("MallocCheckHeapEach=1000");
 		//putil_putenv("MallocCheckHeapSleep=-200");
 		//(void)system("env | grep '^Malloc'");
-#else	/*__APPLE__*/
+#else	// __APPLE__
 		putil_die("no malloc debugger implemented");
-#endif	/*__APPLE__*/
+#endif	// __APPLE__
 		break;
 
 	    case LF('v', 'n'):
@@ -831,7 +826,7 @@ main(int argc, CS const *argv)
 		_usage(0);
 		break;
 
-	    case LF('P','*'):	// alias to --Help for mnemonic reasons
+	    case LF('P', '*'):	// alias to --Help for mnemonic reasons
 	    case 'H':
 		// Put off printing properties till they're all filled in.
 		if (bsd_optarg && *bsd_optarg == '+') {
@@ -1036,8 +1031,7 @@ main(int argc, CS const *argv)
 
 	if (prop_has_value(P_SERVER)) {
 	    // Get the new roadmap.
-	    if (!prop_is_true(P_REUSE_ROADMAP) &&
-		    !prop_is_true(P_UPLOAD_ONLY)) {
+	    if (!prop_is_true(P_REUSE_ROADMAP) && !prop_is_true(P_UPLOAD_ONLY)) {
 		mon_get_roadmap();
 	    }
 
@@ -1046,8 +1040,7 @@ main(int argc, CS const *argv)
 	    // That would only be a risk for a very slow roadmap or a
 	    // very fast session expiration but it could happen.
 	    if ((rc = mon_begin_session())) {
-		putil_die("can't get a session at %s",
-			  prop_get_str(P_SERVER));
+		putil_die("can't get a session at %s", prop_get_str(P_SERVER));
 	    }
 	}
 
@@ -1072,9 +1065,9 @@ main(int argc, CS const *argv)
 		fprintf(fp, "#!/bin/sh\n\n");
 
 		if (!putil_uname(&sysdata)) {
-		    fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
-			sysdata.sysname, sysdata.nodename, sysdata.release,
-			sysdata.version, sysdata.machine);
+			fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
+				sysdata.sysname, sysdata.nodename, sysdata.release,
+				sysdata.version, sysdata.machine);
 		}
 
 		fprintf(fp, "# Original environment settings:\n");

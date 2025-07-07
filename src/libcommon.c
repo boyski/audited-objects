@@ -305,7 +305,7 @@ _monitor_open(SOCKET *sockp, CCS call)
 		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
 	putil_syserr(2, "SO_REUSEPORT");
     }
-#endif	/*SO_REUSEPORT*/
+#endif	// SO_REUSEPORT
 
     host = prop_get_str(P_MONITOR_HOST);
     portstr = prop_get_str(P_MONITOR_PORT);

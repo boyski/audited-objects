@@ -369,10 +369,10 @@ _ps_set_modtime(CCS path, moment_s *mptr, struct __stat64 *stp)
 #if defined(st_mtime)
     mptr->ntv_sec = stp->st_mtim.tv_sec;
     mptr->ntv_nsec = stp->st_mtim.tv_nsec;
-#else	/*st_mtime*/
+#else	// st_mtime
     mptr->ntv_sec = stp->st_mtime;
     mptr->ntv_nsec = 0;
-#endif	/*st_mtime*/
+#endif	// st_mtime
 
     return 0;
 }

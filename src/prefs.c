@@ -35,9 +35,9 @@
 #define PROJ_EXT			".project"
 /// @endcond prefs
 
-// Searches upward from the current working directory toward the
-// filesystem root looking for the named file. Returns the path
-// to said file in buf if found, or NULL if not found.
+// Search upward from the current working directory toward the
+// filesystem root looking for the named file. Return the path
+// to said file in buf if found or NULL if not found.
 static CS
 _find_file_up(CCS name)
 {
@@ -149,11 +149,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	app = prop_get_app();
 	len = putil_path_max() + 1;
 
-	// Check for a personal ~/.<app>.properties file. Since
-	// Windows makes it hard to create a file with a leading dot
-	// (you can do it at the command line but not in the GUI)
-	// we also allow the ~/<app>.properties version. And we do that
-	// for both U and W to allow for a consistent site standard.
+	// Check for a personal ~/.<app>.properties file.
 	home = (CS)putil_malloc(len);
 	if (putil_get_homedir(home, len)) {
 	    asprintf(&cfgpath, "%s%s.%s%s", home, DIRSEP(), app, ext);
@@ -177,8 +173,8 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	}
 	putil_free(sysdir);
 
-	// Try a truly global properties file from the dir
-	// the executable is in (Windows) or ../etc from there (Unix).
+	// Try a truly global properties file at ../etc from the directory
+	// the executable is in.
 	if ((exedir = putil_dirname(exe))) {
 	    CS globalcfg = NULL;
 	    CS appdir;

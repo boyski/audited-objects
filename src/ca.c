@@ -1130,10 +1130,10 @@ ca_to_str(ca_o ca)
 
     // Experimental JSON bridge support.
     {
-	CS ev;
+	CCS val;
 	
-	if ((ev = putil_getenv("OUTPUT_JSON"))) {
-	    if (*ev) {
+	if ((val = prop_get_str(P_JSON))) {
+	    if (*val) {
 		return json_parse_csv_to_str(str);
 	    }
 	}

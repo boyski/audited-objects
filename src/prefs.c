@@ -229,7 +229,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 	putil_free(cfgname);
     }
 
-    // "Strict" is a shorthand for all strict options.
+    // "Strict" is a convenience shorthand for all strict options.
     if (prop_is_true(P_STRICT)) {
 	prop_set_true(P_STRICT_UPLOAD);
 	prop_set_true(P_STRICT_DOWNLOAD);

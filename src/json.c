@@ -23,6 +23,7 @@
 
 #include "cJSON.h"
 #include "JSON.h"
+#include "PROP.h"
 
 static CCS pa_fields[] = {
     "OP",
@@ -92,10 +93,9 @@ _json_parse_csv_line(CCS *columns, CCS line)
 CCS
 json_to_str(void *obj)
 {
-    char *ev = putil_getenv("OUTPUT_JSON");
+    CCS val = prop_get_str(P_JSON);
 
-    assert(ev);
-    if (!atoi(ev)) {
+    if (val && !atoi(val)) {
 	return cJSON_PrintUnformatted(obj);
     } else {
 	return cJSON_Print(obj);

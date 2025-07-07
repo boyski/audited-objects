@@ -30,9 +30,9 @@
 /// on whether the user is likely to have an interest in them. The
 /// difference between private and internal is that private properties
 /// could be promoted to public, whereas internal properties would
-/// make no sense to expose.
+/// never make sense to expose.
 ///
-/// Properties may optionally be exported, which causes them to be
+/// Properties may optionally be exported which causes them to be
 /// made available to child processes (typically via the auditor).
 ///
 /// All property names are case-insensitive but by convention we use
@@ -323,6 +323,15 @@ static struct {
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_IDENTITY_HASH,
+    },
+    {
+	"JSON",
+	NULL,
+	"Transitional flag to use JSON in place of CSV",
+	NULL,
+	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
+	0,
+	P_JSON,
     },
     {
 	"Leave.Roadmap",

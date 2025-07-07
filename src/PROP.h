@@ -28,9 +28,9 @@
 #include <sys/types.h>
 
 /// The set of defined properties, not all of them published to users.
-/// We keep the list in alphabetical order after a couple of special
-/// cases; it makes the help output more readable, among other things.
-/// <B>NOTE: THESE MUST BE KEPT IN SYNC WITH 'proptab' in prop.c!</B>
+/// The list is kept in alphabetical order after a couple of special
+/// cases which makes the help output more readable among other things.
+/// <B>NOTE: THESE MUST BE KEPT IN SYNC WITH 'proptab' IN prop.c!</B>
 typedef enum {
     P_BADPROP = -1,
     P_APP,
@@ -60,6 +60,7 @@ typedef enum {
     P_GIT,
     P_GIT_DIR,
     P_IDENTITY_HASH,
+    P_JSON,
     P_LEAVE_ROADMAP,
     P_LOG_FILE,
     P_LOG_FILE_TEMP,

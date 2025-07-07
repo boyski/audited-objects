@@ -1,7 +1,7 @@
 .SECONDEXPANSION:
 .SUFFIXES:
 
-OPS := ../../OPS/
+OPS := ../OPS/
 
 CC := gcc
 

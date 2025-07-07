@@ -25,8 +25,6 @@ import site
 # Update sys.path to find required library modules.
 site.addsitedir(op.dirname(op.realpath(__file__)))
 
-PFX = 'AO_'
-
 
 def find_file_up(wanted, start_dir='.'):
     """Search upward from start_dir toward the root for a named file."""
@@ -46,31 +44,36 @@ def find_file_up(wanted, start_dir='.'):
 class Properties():
     """Parse AO .properties files and allow lookups."""
 
-    def __init__(self):
+    def __init__(self, pfx='ao'):
+        self.pfx = pfx
         self.cfg = configparser.ConfigParser()
 
-        # Highly unlikely but for completeness ...
-        if op.isfile('/etc/ao.properties'):
-            self.parse('/etc/ao.properties')
+        # Highly unlikely to exist but for completeness ...
+        etc_props = f'/etc/{self.pfx}.properties'
+        if op.isfile(etc_props):
+            self.parse(etc_props)
 
         # Look for a properties file at the base of the project.
-        proj_props = find_file_up(op.join('.ao', 'ao.properties'))
+        proj_props = find_file_up(
+            op.join(f'.{self.pfx}', f'{self.pfx}.properties'))
         if proj_props:
             self.parse(proj_props)
 
         # Let exported properties win.
+        pfxup = self.pfx.upper() + '_'
         for ev, value in os.environ.items():
-            if ev.startswith((PFX, '_' + PFX)):
-                name = ev.split(PFX, 1)[1]
+            if ev.startswith((pfxup, '_' + pfxup)):
+                name = ev.split(pfxup, 1)[1]
                 self.cfg['UNNAMED'][name] = value
+
+    def get(self, prop, default=None):
+        """Return the value of the named property."""
+        return self.cfg['UNNAMED'].get(prop, default)
 
     def parse(self, path):
         """Parse the provided properties file."""
         with open(path, encoding='utf-8') as f:
             self.cfg.read_string('[UNNAMED]\n' + f.read())
-
-    def __getattr__(self, attr):
-        return self.cfg['UNNAMED'].get(attr)
 
 
 # Local Variables:

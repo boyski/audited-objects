@@ -49,10 +49,8 @@ parse_csv_line(const char* csv_line)
 
 // Function to convert multiple lines of CSV data to JSON array
 char *
-csv_to_json_array(const char* csv_data)
+csv_to_json_array(const char *csv_data)
 {
-    if (!csv_data) return NULL;
-    
     // Create JSON array to hold all lines
     cJSON *json_array = cJSON_CreateArray();
     if (!json_array) return NULL;

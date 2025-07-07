@@ -382,10 +382,10 @@ _action(CCS action, int argc, CS const *argv)
 	    const char *fmt = "%-12s - %s\n";
 
 	    // This documents actions which are PURELY client-side
-	    // aside from the "run" variants.
+	    // aside from the "--" variants.
 	    // If they have any server part, e.g. "label" or "ADMIN",
 	    // then let the server document them.
-	    printf(fmt, "run", "run and audit the specified command");
+	    printf(fmt, "--", "run and audit the specified command");
 	    printf(fmt, "make", "shorthand for 'run make'");
 	    printf(fmt, "stat", "print vital statistics for specified files");
 	    printf(fmt, "property", "print the value of the named property");
@@ -863,13 +863,8 @@ main(int argc, CS *argv)
 
     // The command we've been asked to invoke.
     if ((action = argv[0])) {
-	// Hack for typing ease: "make" is a synonym for "run make".
-	if (strstr(action, "make")) {
-	    action = "run";
-	} else {
-	    argv++;
-	    argc--;
-	}
+	argv++;
+	argc--;
     } else {
 	// The default command.
 	action = "help";

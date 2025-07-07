@@ -445,7 +445,7 @@ _make_clean(int argc, CS const *argv)
 /// @param[in] argv     the classic argument vector taken by every main routine
 /// @return the exit code of the process
 int
-main(int argc, CS const *argv)
+main(int argc, CS *argv)
 {
     CCS exe;
     CCS action;
@@ -493,6 +493,14 @@ main(int argc, CS const *argv)
 
     // Default this to on; make auditing is tough without it.
     prop_override_true(P_MAKE_ONESHELL);
+
+    // Ugly hack. There may be a better way to handle this within the getopt
+    // API but for now this fixes the UI.
+    for (int i = 0; argv[i]; i++) {
+	if (streq(argv[i], "--")) {
+	    argv[i] = "run";
+	}
+    }
 
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse

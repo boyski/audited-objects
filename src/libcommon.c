@@ -18,12 +18,14 @@
 /// @file
 /// @brief The part of the auditor library which is common across platforms.
 /// Combines with libunix.c to form the auditing shared object. There used
-/// to be a Windows file too but since Windows support was dropped the split
+/// to be a LibWin.cpp too but since Windows support was dropped the split
 /// is merely historical.
 
 #include "ca.c"
 
 #include "code.c"
+
+#include "json.c"
 
 #include "moment.c"
 

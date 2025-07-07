@@ -30,11 +30,11 @@
 
 #include "CA.h"
 #include "CODE.h"
+#include "JSON.h"
 #include "PA.h"
 #include "PN.h"
 #include "PS.h"
 
-#include "cJSON.h"
 #include "dict.h"
 #include "hash.h"
 

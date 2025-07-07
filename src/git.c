@@ -93,7 +93,7 @@ git_deliver(ca_o ca)
 {
     CCS cmdbuf;
 
-    if (GitFP && (cmdbuf = ca_toCSVString(ca))) {
+    if (GitFP && (cmdbuf = ca_to_str(ca))) {
 	fflush(GitFP);
 	if (fprintf(GitFP, "%s\n", cmdbuf) < 0) {
 	    putil_syserr(0, "fprintf");

@@ -149,7 +149,7 @@ make_file(ca_o ca)
 {
     CCS cmdbuf;
 
-    if (MakeFP && (cmdbuf = ca_toCSVString(ca))) {
+    if (MakeFP && (cmdbuf = ca_to_str(ca))) {
 	if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
 	    putil_syserr(0, "fputs(cmdbuf)");
 	}

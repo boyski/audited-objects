@@ -1105,7 +1105,7 @@ _ca_format_cooked_palist(ca_o ca)
 /// @param[in] ca       the object pointer
 /// @return a string which should be freed when no longer needed
 CCS
-ca_toCSVString(ca_o ca)
+ca_to_str(ca_o ca)
 {
     CCS str, subs, pas;
     size_t len;
@@ -1128,30 +1128,19 @@ ca_toCSVString(ca_o ca)
     strcat((CS)str, pas);
     putil_free(pas);
 
+    // Experimental JSON bridge support.
+    {
+	CS ev;
+	
+	if ((ev = putil_getenv("OUTPUT_JSON"))) {
+	    if (*ev) {
+		return json_to_str(json_parse_csv(str));
+	    }
+	}
+    }
+
     return str;
 }
-
-#if 0
-/// Format the CA in JSON.
-/// @param[in] ca       the object pointer
-/// @return a string which should be freed when no longer needed
-CCS
-ca_toJSON(ca_o ca)
-{
-    CCS data, result;
-    cJSON *doc;
-
-    data = putil_strdup(ca_toCSVString(ca));
-    doc = cJSON_CreateObject();
-    putil_free(data);
-
-    result = cJSON_Print(doc);
-
-    cJSON_Delete(doc);
-
-    return result;
-}
-#endif // 0
 
 // Internal service routine. Support ca_dump() for debug purposes.
 static int

@@ -24,9 +24,50 @@
 #include "cJSON.h"
 #include "JSON.h"
 
-// Parse a single CSV line and return a JSON object.
-void *
-json_parse_csv_line(CCS *columns, CCS line)
+static CCS pa_fields[] = {
+    "OP",
+    "CALL",
+    "TIMESTAMP",
+    "PID",
+    "DEPTH",
+    "PPID",
+    "TID",
+    "PCCODE",
+    "CCODE",
+    "DATATYPE",
+    "FSNAME",
+    "MTIME",
+    "SIZE",
+    "MODE",
+    "DCODE",
+    "PATH2",
+    "PATH"
+};
+
+static CCS ca_fields[] = {
+    "PID",
+    "DEPTH",
+    "PPID",
+    "STARTED",
+    "DURATION",
+    "HOST",
+    "RECYCLED",
+    "FREETEXT",
+    // Divider - CommandAction above, Command below
+    "PROG",
+    "RWD",
+    "PCCODE",
+    "CCODE",
+    "PATHCODE",
+    "CMDLINE"
+};
+
+/// Parse a single CSV line and return it as a JSON object.
+/// @param[in] columns   table of column names
+/// @param[in] line      string containing a CSV line
+/// @return a JSON object containing the same data as the CSV
+static void *
+_json_parse_csv_line(CCS *columns, CCS line)
 {
     cJSON *json_obj;
     char *copy, *sep, *field;
@@ -45,9 +86,11 @@ json_parse_csv_line(CCS *columns, CCS line)
     return json_obj;
 }
 
-// Convert multiple lines of CSV data to a JSON array.
+/// Convert multiple lines of CSV data to a JSON array.
+/// @param[in] csv_data  string containing potentially multiple CSV lines
+/// @return a JSON object containing the same data as the CSV
 void *
-json_parse_csv_to_array(CCS *columns, CCS csv_data)
+json_parse_csv(CCS csv_data)
 {
     cJSON *json_array;
     char *copy, *csv_line, *sep;
@@ -57,9 +100,11 @@ json_parse_csv_to_array(CCS *columns, CCS csv_data)
 	    (sep = strchr(csv_line, '\n'));
 	    csv_line = sep + 1) {
 	cJSON *json_line;
+	CCS *columns;
 
 	*sep = '\0';
-	if ((json_line = json_parse_csv_line(columns, csv_line))) {
+	columns = isdigit(*csv_line) ? ca_fields : pa_fields;
+	if ((json_line = _json_parse_csv_line(columns, csv_line))) {
 	    cJSON_AddItemToArray(json_array, json_line);
 	}
     }
@@ -68,12 +113,24 @@ json_parse_csv_to_array(CCS *columns, CCS csv_data)
     return json_array;
 }
 
+/// Convert a cJSON object to a printable string
+/// @param[in] obj       the cJSON object
+/// @return a JSON object containing the same data as the CSV
 CCS
-json_tostr(void *obj)
+json_to_str(void *obj)
 {
-    return cJSON_Print(obj);
+    char *ev = putil_getenv("OUTPUT_JSON");
+
+    assert(ev);
+    if (!atoi(ev)) {
+	return cJSON_PrintUnformatted(obj);
+    } else {
+	return cJSON_Print(obj);
+    }
 }
 
+/// Free a cJSON object
+/// @param[in] obj       the cJSON object
 void
 json_free(void *obj)
 {

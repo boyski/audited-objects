@@ -119,7 +119,7 @@ _mon_tostring(void)
 	    size_t num;
 
 	    ca = (ca_o)hnode_get(hnp);
-	    str = ca_toCSVString(ca);
+	    str = ca_to_str(ca);
 	    num = strlen(result) + strlen(str) + strlen(sep) + 1;
 	    result = (CCS)putil_realloc((void *)result, num * CHARSIZE);
 	    strcat((CS)result, str);
@@ -187,7 +187,7 @@ _mon_process_ca(ca_o ca)
 	ca_derive_pathcode(ca);
     }
 
-    cabuf = (CS)ca_toCSVString(ca);
+    cabuf = (CS)ca_to_str(ca);
 
     if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
 	if (cabuf && *cabuf) {
@@ -300,7 +300,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    ca_set_started(ca, 1);
 
 	    if (hash_lookup(AuditHash, ck)) {
-		putil_int("double delivery: '%s'", ca_toCSVString(ca));
+		putil_int("double delivery: '%s'", ca_to_str(ca));
 	    }
 
 	    // Find the immediate ancestor CA, if any. This should have
@@ -422,18 +422,16 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		    _mon_verbosity(ca, "PUSH WEAK");
 		    ca_aggregate(ca_get_leader(pred), ca);
 		} else {
-		    putil_int("impossible agglevel: '%s'",
-			      ca_toCSVString(ca));
+		    putil_int("impossible agglevel: '%s'", ca_to_str(ca));
 		}
-	    } else if (agglevel == AGG_NONE ||
-		       agglevel == AGG_NEUTRAL || agglevel == AGG_BREAK) {
+	    } else if (agglevel == AGG_NONE || agglevel == AGG_NEUTRAL || agglevel == AGG_BREAK) {
 		_mon_verbosity(ca, "SINGULAR");
 	    } else if (agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
 		// Start a new group with ourself as the leader.
 		_mon_verbosity(ca, "PUSH NEW");
 		ca_start_group(ca, agglevel == AGG_STRONG);
 	    } else {
-		putil_int("impossible agg state: '%s'", ca_toCSVString(ca));
+		putil_int("impossible agg state: '%s'", ca_to_str(ca));
 	    }
 
 	    if (ca_is_top(ca)) {
@@ -527,7 +525,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		CCS str;
 
 		// Whoops.
-		str = ca_toCSVString(eoa);
+		str = ca_to_str(eoa);
 		putil_warn("EOA skew: %s", str);
 		putil_free(str);
 		mon_dump();

@@ -56,7 +56,7 @@ extern void ca_disband(ca_o, void (*)(ca_o));
 extern void ca_publish(ca_o, void (*)(ca_o));
 extern void ca_derive_pathcode(ca_o);
 extern CCS ca_format_header(ca_o);
-extern CCS ca_toCSVString(ca_o);
+extern CCS ca_to_str(ca_o);
 extern int ca_o_hash_cmp(const void *, const void *);
 extern hash_val_t ca_o_hash_func(const void *);
 extern void ca_clear_pa(ca_o);

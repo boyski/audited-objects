@@ -34,6 +34,7 @@
 #include "PN.h"
 #include "PS.h"
 
+#include "cJSON.h"
 #include "dict.h"
 #include "hash.h"
 
@@ -1137,9 +1138,18 @@ ca_toCSVString(ca_o ca)
 CCS
 ca_toJSON(ca_o ca)
 {
-    CCS str = NULL;
+    CCS data, result;
+    cJSON *doc;
 
-    return str;
+    data = putil_strdup(ca_toCSVString(ca));
+    doc = cJSON_CreateObject();
+    putil_free(data);
+
+    result = cJSON_Print(doc);
+
+    cJSON_Delete(doc);
+
+    return result;
 }
 #endif
 

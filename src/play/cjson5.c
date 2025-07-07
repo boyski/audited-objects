@@ -3,25 +3,20 @@
 #include <string.h>
 #include "cJSON.h"
 
+static const char *pa_fields[] = {"1", "2", "3", "four", "5", "6", "7", "8", "9",
+    "10", "11", "12", "13", "14", "15", "16", "17", "18"};
+
 // Function to parse a single CSV line and return a JSON object
 cJSON*
 parse_csv_line(const char* csv_line)
 {
-    if (!csv_line) return NULL;
-    
     // Create JSON object for this line
     cJSON *json_line = cJSON_CreateObject();
-    if (!json_line) return NULL;
     
     // Make a copy of the input string for parsing
     char *line_copy = strdup(csv_line);
-    if (!line_copy) {
-        cJSON_Delete(json_line);
-        return NULL;
-    }
     
-    int field_count = 1;
-    char field_name[20];
+    int field_count = 0;
     
     // Manually parse CSV to preserve empty fields
     char *current = line_copy;
@@ -32,11 +27,8 @@ parse_csv_line(const char* csv_line)
             // Found a delimiter, process the field
             *current = '\0';  // Null-terminate the field
             
-            // Create field name (field1, field2, etc.)
-            snprintf(field_name, sizeof(field_name), "field%d", field_count);
-            
             // Add all fields as strings
-            cJSON_AddStringToObject(json_line, field_name, field_start);
+            cJSON_AddStringToObject(json_line, pa_fields[field_count], field_start);
             
             field_count++;
             current++;
@@ -47,8 +39,7 @@ parse_csv_line(const char* csv_line)
     }
     
     // Handle the last field (after the last comma or the only field if no commas)
-    snprintf(field_name, sizeof(field_name), "field%d", field_count);
-    cJSON_AddStringToObject(json_line, field_name, field_start);
+    cJSON_AddStringToObject(json_line, pa_fields[field_count], field_start);
     
     // Clean up
     free(line_copy);
@@ -57,7 +48,7 @@ parse_csv_line(const char* csv_line)
 }
 
 // Function to convert multiple lines of CSV data to JSON array
-char*
+char *
 csv_to_json_array(const char* csv_data)
 {
     if (!csv_data) return NULL;
@@ -98,7 +89,7 @@ csv_to_json_array(const char* csv_data)
     }
     
     // Convert JSON array to string
-    char *json_string = cJSON_PrintUnformatted(json_array);
+    char *json_string = cJSON_Print(json_array);
     
     // Clean up
     free(data_copy);
@@ -112,11 +103,10 @@ int
 main(void)
 {
     const char* csv_data = 
-        "X,init,0.0,513467,1,513453,0,91ad7d96e56ad37b229d455243e14e67+23,f1437cce3e5bd9d60d47f56041f9ee16+15,f,?,ro2lun.0,50752,pnx,,,/bin/cut\n"
-        "Y,start,1.5,513468,2,513454,1,abc123def456,ghi789jkl012,g,test,ro2lun.1,50753,pny,data,,/bin/grep\n"
-        "Z,end,2.0,513469,3,513455,2,xyz987wvu654,mno321qrs098,h,?,ro2lun.2,50754,pnz,,,/bin/sort";
+        "X,init,0.0,513467,1,513453,0,91ad7d96e56ad37b229d455243e14e67+23,f1437cce3e5bd9d60d47f56041f9ee16+15,f,?,ro2lun.0,50752,pnx,,,/bin/cut -n -s\n"
+        "Z,end,2.0,513469,3,513455,2,xyz987wvu654,mno321qrs098,h,?,ro2lun.2,50754,pnz,,,/bin/sort\n";
     
-    char* json_result = csv_to_json_array(csv_data);
+    char *json_result = csv_to_json_array(csv_data);
     
     if (json_result) {
         printf("JSON output:\n%s\n", json_result);

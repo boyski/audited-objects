@@ -85,9 +85,9 @@ import argparse
 import os
 import sys
 
-import aoparse
 import childx
 import makefile
+import parse_ao
 
 
 def full(calist, opts):
@@ -202,7 +202,7 @@ def main():
         cmd = ['ao', '-q', 'property', 'Base.Dir']
         opts.base_dir = childx.check_output(cmd, text=True).rstrip()
 
-    calist = aoparse.parse(opts.input)
+    calist = parse_ao.parse(opts.input)
     if opts.full:
         full(calist, opts)
     else:

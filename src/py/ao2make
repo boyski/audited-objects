@@ -86,35 +86,35 @@ import os
 import sys
 
 import childx
-import makefile
+import makefile_ao
 import parse_ao
 
 
 def full(calist, opts):
     """Print a full makefile to output."""
-    mf = makefile.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
+    mf = makefile_ao.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
     mf.append('.SUFFIXES:\n')
     mf.append('.ONESHELL:\n')
-    mf.append(makefile.Phony('all'))
+    mf.append(makefile_ao.Phony('all'))
 
     tgts = set()
     for ca in calist:
         if not ca.targets():
             continue
-        rule = makefile.Rule(
+        rule = makefile_ao.Rule(
             ca.targets(), prereqs=ca.prereqs(), recipe=ca.line)
         mf.append(rule)
         tgts |= set(ca.targets())
 
-    pfx = mf.basevar.expand() + makefile.SEP
-    tgtvar = makefile.Variable(
+    pfx = mf.basevar.expand() + makefile_ao.SEP
+    tgtvar = makefile_ao.Variable(
         name='FILETARGETS',
         val=[os.path.join(pfx, tgt.path) for tgt in sorted(tgts)])
     mf.append(tgtvar)
 
     mf.append(f'all: {tgtvar.expand()}\n')
 
-    clean = makefile.Phony('clean', recipe=f'$(RM) {tgtvar.expand()}')
+    clean = makefile_ao.Phony('clean', recipe=f'$(RM) {tgtvar.expand()}')
     mf.append(clean)
 
     if opts.output and opts.output != '-':
@@ -132,8 +132,8 @@ def includes(calist, opts):
     for ca in calist:
         if not ca.targets():
             continue
-        mf = makefile.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
-        rule = makefile.Rule(ca.targets(), prereqs=ca.prereqs())
+        mf = makefile_ao.Makefile(basevar=opts.srcbase, basedir=opts.base_dir)
+        rule = makefile_ao.Rule(ca.targets(), prereqs=ca.prereqs())
         mf.append(rule)
         fragment = os.path.basename(ca.targets()[0].path) + opts.extension
         with open(fragment, mode='w', encoding='utf-8') as f:

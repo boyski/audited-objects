@@ -22,7 +22,7 @@ TBD.
 
 import json
 
-import actions
+import actions_ao
 
 
 def is_vcs(path):
@@ -40,10 +40,10 @@ def parse_csv(data, members_only=False):
             ca = None
         elif line[0].isdigit():
             if not ca:
-                ca = actions.CommandAction(line)
+                ca = actions_ao.CommandAction(line)
                 calist.append(ca)
         elif line[0].isupper():
-            pa = actions.PathAction(line)
+            pa = actions_ao.PathAction(line)
             if is_vcs(pa.path):
                 continue
             if pa.is_unlink:

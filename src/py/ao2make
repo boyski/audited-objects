@@ -82,13 +82,10 @@ EXAMPLES:
 #############################################################################
 
 import argparse
-# import json
 import os
-import re
 import sys
 
 import actions
-import aoprops
 import childx
 import makefile
 
@@ -145,9 +142,8 @@ def includes(calist, opts):
 
 def is_vcs(path):
     """Return True if the path looks like version-control metadata."""
-    return ('.git' in path or '.svn' in path or
-            '.bzr' in path or '.hg' in path or
-            'CVS/' in path)
+
+    return '.git' in path or '.svn' in path
 
 
 def main():
@@ -180,9 +176,6 @@ def main():
         '-p', '--pdump', action='store_true',
         help='(with -full) substitute variables extracted via GNU "make -p"')
     parser.add_argument(
-        '--prqre',
-        help='ignore prereqs which do not match this regex')
-    parser.add_argument(
         '--srcbase', default='SRCBASE',
         help='the name of the base variable (default: %(default)s)')
     parser.add_argument(
@@ -204,11 +197,7 @@ def main():
     if opts.output or opts.pdump or opts.vars:
         opts.full = True
 
-    properties = aoprops.Properties()
-
-    json_mode = bool(properties.get('JSON'))
-
-    # Can't be looked up directly because it may be derived.
+    # Can't be looked up directly in properties because it may be derived.
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
         opts.base_dir = childx.check_output(cmd, text=True).rstrip()
@@ -226,7 +215,7 @@ def main():
                     calist.append(ca)
             elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
                 pa = actions.PathAction(line)
-                if is_vcs(path):
+                if is_vcs(pa.path):
                     continue
                 if pa.is_unlink:
                     continue
@@ -234,10 +223,7 @@ def main():
                     continue
                 if opts.survivors_only and not pa.exists():
                     continue
-                if pa.is_target:
-                    ca.add(pa)
-                elif not opts.prqre or re.match(opts.prqre, pa.path):
-                    ca.add(pa)
+                ca.add(pa)
             else:
                 ca = None
         if f != sys.stdin:
@@ -258,11 +244,4 @@ if __name__ == '__main__':
         if 'Broken pipe' not in e.strerror:
             raise
 
-# Local Variables:
-# mode: Python
-# indent-tabs-mode: nil
-# python-indent: 4
-# fill-column: 79
-# End:
-#
 # vim: sw=4:et:tw=79:cc=+1

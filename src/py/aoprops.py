@@ -76,11 +76,4 @@ class Properties():
             self.cfg.read_string('[UNNAMED]\n' + f.read())
 
 
-# Local Variables:
-# mode: Python
-# indent-tabs-mode: nil
-# python-indent: 4
-# fill-column: 79
-# End:
-#
 # vim: sw=4:et:tw=79:cc=+1

@@ -167,11 +167,4 @@ class CommandAction():
         """Return the list of target PathActions."""
         return sorted([pa for pa in self.pa_set if pa.is_target])
 
-# Local Variables:
-# mode: Python
-# indent-tabs-mode: nil
-# python-indent: 4
-# fill-column: 79
-# End:
-#
 # vim: sw=4:et:tw=79:cc=+1

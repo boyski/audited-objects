@@ -182,11 +182,4 @@ if __name__ == '__main__':
         if 'Broken pipe' not in e.strerror:
             raise
 
-# Local Variables:
-# mode: Python
-# indent-tabs-mode: nil
-# python-indent: 4
-# fill-column: 79
-# End:
-#
 # vim: sw=4:et:tw=79:cc=+1

@@ -304,11 +304,4 @@ class Makefile():
         """Add a new item to the end of the makefile object."""
         self.items.append(item)
 
-# Local Variables:
-# mode: Python
-# indent-tabs-mode: nil
-# python-indent: 4
-# fill-column: 79
-# End:
-#
 # vim: sw=4:et:tw=79:cc=+1

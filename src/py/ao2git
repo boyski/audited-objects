@@ -46,7 +46,7 @@ def main():
         help='optional audit file')
     opts = parser.parse_args()
 
-    print('stub for now {0}'.format(opts.audit))
+    print(f'stub for now {opts.audit}')
 
 
 if __name__ == '__main__':

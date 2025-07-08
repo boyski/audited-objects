@@ -163,7 +163,7 @@ class Path():
         self.path = path
         self.ppath = None
         if begin and self.path.startswith(begin):
-            self.ppath = quote(path.replace(begin, '$({})'.format(macro), 1))
+            self.ppath = quote(path.replace(begin, f'$({macro})', 1))
 
 
 class Variable():
@@ -183,7 +183,7 @@ class Variable():
             self.name, self.eq, self.val = name, eq, val
 
     def __repr__(self):
-        result = '{} {}'.format(self.name, self.eq)
+        result = f'{self.name} {self.eq}'
         if isinstance(self.val, str):
             result += SP + self.val
         else:
@@ -198,7 +198,7 @@ class Variable():
 
     def expand(self):
         """Return the variable name in expandable make syntax."""
-        return '${{{}}}'.format(self.name)
+        return f'$({self.name})'
 
     def format(self):
         """Dump this variable in make syntax.."""
@@ -215,7 +215,7 @@ class Phony():
         self.recipe = recipe
 
     def __repr__(self):
-        result = '.PHONY: {0}\n{0}:'.format(self.tgt)
+        result = f'.PHONY: {self.tgt}\n{self.tgt}:'
         if self.prqs:
             result += SP + SP.join(self.prqs)
         if self.recipe:

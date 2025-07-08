@@ -1,4 +1,4 @@
-"""Classes to support AO post-processing."""
+"""Classes to work with raw audit data from libAO.so."""
 
 #############################################################################
 # Copyright (c) 2005-2025 David Boyce.  All rights reserved.
@@ -30,7 +30,7 @@ SEP = ','
 
 class PathAction():
 
-    """Parse the AO file-access CSV format into its component parts."""
+    """Parse the file-access CSV format into its component parts."""
 
     def __init__(self, csv):
         fields = csv.rstrip().split(SEP, PA_SPLITS)
@@ -54,7 +54,7 @@ class PathAction():
         # similar because in the case of a symlink to a symlink it
         # would lose the dependency on the intermediate link.
 
-        # The next-to-last slot is reserved for a possible symlink target.
+        # The next-to-last (path2) slot is reserved for a symlink target.
         if self.path2:
             if not op.isabs(self.path2):
                 self.path2 = op.join(op.dirname(self.path), self.path2)
@@ -65,19 +65,19 @@ class PathAction():
 
         Sometimes it's helpful to treat one among multiple sibling
         targets as "primary". There's some black magic to deciding which
-        that should be. First we have some special cases: directories
-        are pushed to the back of the list as are files whose name
-        starts with ".". Members are pushed to the front of the list.
+        one that should be. First we have some special cases: directories
+        are pushed to the back of the pack as are files whose name
+        starts with ".". Members are pushed to the front of the pack.
         Files newly created are preferred over files merely appended to.
         Next we observe that generated "frill" files (.pdb and so on)
         tend to be distinguished by additional extensions or placement
-        in subdirectories, so we favor shorter paths.  The target at
-        the front of the list after all this is considered primary.
+        in subdirectories, so we favor shorter paths.  The first target
+        in the list after all this is considered primary.
 
-        Still, this is just a heuristic and subject to breakage.
+        This is just a heuristic and subject to breakage and change.
         Always looking for a better way.
 
-        This logic is available for sorting any PA set but is important
+        Similar logic is available for sorting any PA set but is important
         primarily for targets.
         """
         if self.is_member != other.is_member:
@@ -108,17 +108,17 @@ class PathAction():
 
     @property
     def is_prereq(self):
-        """Report whether this path action represents a prereq read."""
+        """Report whether this path action represents a prereq (read)."""
         return self.op in 'RX'
 
     @property
     def is_target(self):
-        """Report whether this path action represents a target write."""
+        """Report whether this path action represents a target (write)."""
         return self.op not in 'RXU'
 
     @property
     def is_append(self):
-        """Report whether this path action represents a file append."""
+        """Report whether this path action represents a file append (write)."""
         return self.op == 'A'
 
     @property
@@ -149,15 +149,15 @@ class CommandAction():
         self.pa_set = set()
 
     def __repr__(self):
-        return '[{0}] {1}'.format(self.rwd, self.line)
+        return f'[{self.rwd}] {self.line}'
 
     def add(self, pa):
         """Add a PathAction object to the involved set."""
         self.pa_set.add(pa)
 
     def paths(self):
-        """Return the set of paths involved in PathActions."""
-        return {pa.path for pa in self.pa_set}
+        """Return a list of paths involved in PathActions."""
+        return sorted({pa.path for pa in self.pa_set})
 
     def prereqs(self):
         """Return the list of prereq PathActions."""

@@ -112,9 +112,9 @@ def full(calist, opts):
         val=[os.path.join(pfx, tgt.path) for tgt in sorted(tgts)])
     mf.append(tgtvar)
 
-    mf.append('all: {}\n'.format(tgtvar.expand()))
+    mf.append(f'all: {tgtvar.expand()}\n')
 
-    clean = makefile.Phony('clean', recipe='$(RM) {}'.format(tgtvar.expand()))
+    clean = makefile.Phony('clean', recipe=f'$(RM) {tgtvar.expand()}')
     mf.append(clean)
 
     if opts.output and opts.output != '-':

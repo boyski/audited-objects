@@ -85,7 +85,7 @@ import argparse
 import os
 import sys
 
-import actions
+import aoparse
 import childx
 import makefile
 
@@ -202,33 +202,7 @@ def main():
         cmd = ['ao', '-q', 'property', 'Base.Dir']
         opts.base_dir = childx.check_output(cmd, text=True).rstrip()
 
-    # Use a state machine to parse input data into a list of CAs.
-    # TODO adapt DirTargets and DirLinkTargets logic.
-    calist = []
-    ca = None
-    for path in opts.input:
-        f = sys.stdin if path == '-' else open(path, encoding='utf-8')
-        for line in f:
-            if line[0] in '0123456789':
-                if not ca:
-                    ca = actions.CommandAction(line)
-                    calist.append(ca)
-            elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                pa = actions.PathAction(line)
-                if is_vcs(pa.path):
-                    continue
-                if pa.is_unlink:
-                    continue
-                if opts.members_only and not pa.is_member:
-                    continue
-                if opts.survivors_only and not pa.exists():
-                    continue
-                ca.add(pa)
-            else:
-                ca = None
-        if f != sys.stdin:
-            f.close()
-
+    calist = aoparse.parse(opts.input)
     if opts.full:
         full(calist, opts)
     else:

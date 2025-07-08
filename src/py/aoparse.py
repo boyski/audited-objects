@@ -34,9 +34,11 @@ def is_vcs(path):
 def parse_csv(data, members_only=False):
     """Parse old-style CSV data into a list of CommandActions."""
 
-    calist = []
+    ca, calist = None, []
     for line in data.splitlines():
-        if line[0].isdigit():
+        if not line:
+            ca = None
+        elif line[0].isdigit():
             if not ca:
                 ca = actions.CommandAction(line)
                 calist.append(ca)

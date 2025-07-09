@@ -63,6 +63,9 @@ static CCS ca_fields[] = {
     "CMDLINE"
 };
 
+// There's another copy in python.
+#define SEP "\n=-=-=-=-=-=-="
+
 /// Parse CSV data into a JSON-formatted string and return it
 /// @param[in] csv_data  string containing potentially multiple CSV lines
 /// @return a JSON string containing the same data as the CSV
@@ -70,7 +73,7 @@ CCS
 json_from_ca_csv(CCS ca_csv)
 {
     char *copy, *line, *nl, *comma, *fld;
-    const char *jsonstr;
+    char *jsonstr;
     int i;
 
     cJSON *root = cJSON_CreateObject();
@@ -103,9 +106,11 @@ json_from_ca_csv(CCS ca_csv)
 	}
     }
     putil_free(copy);
-    jsonstr = json_to_str(root);
+    jsonstr = (CS)json_to_str(root);
     json_free(root);
-    return jsonstr;
+    jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
+    (void)strcat(jsonstr, SEP);
+    return (CCS)jsonstr;
 }
 
 /// Convert a cJSON object to a printable string

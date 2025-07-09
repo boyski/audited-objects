@@ -24,6 +24,9 @@ import json
 
 import actions_ao
 
+# There's another copy in C.
+SEP = '=-=-=-=-=-=-='
+
 
 def is_vcs(path):
     """Return True if the path looks like version-control metadata."""
@@ -60,11 +63,16 @@ def parse_csv(data, members_only=False):
 def parse_json(data):
     """Parse JSON data into a list of CommandActions."""
 
-    doc = json.loads(data)
-    ca = actions_ao.CommandAction(doc['CommandActions'][0])
-    for pa in doc['PathActions']:
-        ca.add(actions_ao.PathAction(pa))
-    return [ca]
+    calist = []
+    for para in data.split(SEP):
+        if len(para) < 2:
+            continue
+        doc = json.loads(para)
+        ca = actions_ao.CommandAction(doc['CommandActions'][0])
+        for pa in doc['PathActions']:
+            ca.add(actions_ao.PathAction(pa))
+        calist.append(ca)
+    return calist
 
 
 def parse(infiles):

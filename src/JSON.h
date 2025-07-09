@@ -23,7 +23,7 @@
 
 CCS json_to_str(void *);
 void json_free(void *);
-CCS json_parse_csv_to_str(CCS);
+CCS json_from_ca_csv(CCS);
 
 #endif				/*JSON_H */
 

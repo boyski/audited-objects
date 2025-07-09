@@ -63,28 +63,47 @@ static CCS ca_fields[] = {
     "CMDLINE"
 };
 
-/// Parse a single CSV line and return it as a JSON object.
-/// @param[in] columns   table of column names
-/// @param[in] line      string containing a CSV line
-/// @return a JSON object containing the same data as the CSV
-static void *
-_json_parse_csv_line(CCS *columns, CCS line)
+/// Parse CSV data into a JSON-formatted string and return it
+/// @param[in] csv_data  string containing potentially multiple CSV lines
+/// @return a JSON string containing the same data as the CSV
+CCS
+json_from_ca_csv(CCS ca_csv)
 {
-    cJSON *json_obj;
-    char *copy, *sep, *field;
+    char *copy, *line, *nl, *comma, *fld;
+    const char *jsonstr;
     int i;
 
-    json_obj = cJSON_CreateObject();
-    for (i = 0, copy = field = putil_strdup(line);
-	    (sep = strchr(field, ','));
-	    i++, field = sep + 1) {
-	*sep = '\0';
-	cJSON_AddStringToObject(json_obj, columns[i], field);
-    }
-    cJSON_AddStringToObject(json_obj, columns[i], field);
-    putil_free(copy);
+    cJSON *root = cJSON_CreateObject();
 
-    return json_obj;
+    cJSON *calist = cJSON_CreateArray();
+    cJSON_AddItemToObject(root, "CommandActions", calist);
+
+    cJSON *palist = cJSON_CreateArray();
+    cJSON_AddItemToObject(root, "PathActions", palist);
+
+    for (copy = line = putil_strdup(ca_csv); (nl = strchr(line, '\n')); line = nl + 1) {
+	*nl = '\0';
+	assert(isdigit(*line) || isupper(*line));
+	if isdigit(*line) {
+	    cJSON *ca = cJSON_CreateObject();
+	    for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
+		*comma = '\0';
+		cJSON_AddStringToObject(ca, ca_fields[i], fld);
+	    }
+	    cJSON_AddItemToArray(calist, ca);
+	} else {
+	    cJSON *pa = cJSON_CreateObject();
+	    for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
+		*comma = '\0';
+		cJSON_AddStringToObject(pa, pa_fields[i], fld);
+	    }
+	    cJSON_AddItemToArray(palist, pa);
+	}
+    }
+    putil_free(copy);
+    jsonstr = json_to_str(root);
+    json_free(root);
+    return jsonstr;
 }
 
 /// Convert a cJSON object to a printable string
@@ -108,38 +127,6 @@ void
 json_free(void *obj)
 {
     cJSON_Delete(obj);
-}
-
-/// Parse CSV data into a JSON-formatted string and return it
-/// @param[in] csv_data  string containing potentially multiple CSV lines
-/// @return a JSON string containing the same data as the CSV
-CCS
-json_parse_csv_to_str(CCS csv_data)
-{
-    cJSON *json_array;
-    CCS json_str;
-    char *copy, *csv_line, *sep;
-
-    json_array = cJSON_CreateArray();
-    for (copy = csv_line = putil_strdup(csv_data);
-	    (sep = strchr(csv_line, '\n'));
-	    csv_line = sep + 1) {
-	cJSON *json_line;
-	CCS *columns;
-
-	*sep = '\0';
-	columns = isdigit(*csv_line) ? ca_fields : pa_fields;
-	if ((json_line = _json_parse_csv_line(columns, csv_line))) {
-	    cJSON_AddItemToArray(json_array, json_line);
-	}
-    }
-    putil_free(copy);
-
-    json_str = json_to_str(json_array);
-
-    json_free(json_array);
-
-    return json_str;
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

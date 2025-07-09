@@ -141,12 +141,15 @@ class CommandAction():
 
     """Parse the AO command-line CSV format into its component parts."""
 
-    def __init__(self, csv):
-        fields = csv.rstrip().split(SEP, CA_SPLITS)
-        self.prog = fields[8]
-        self.rwd = fields[9]
-        self.line = fields[-1]
-        self.pa_set = set()
+    def __init__(self, desc):
+        if desc[0].isdigit():
+            fields = desc.rstrip().split(SEP, CA_SPLITS)
+            self.prog = fields[8]
+            self.rwd = fields[9]
+            self.line = fields[-1]
+            self.pa_set = set()
+        else:
+            raise RuntimeError('TBD')
 
     def __repr__(self):
         return f'[{self.rwd}] {self.line}'

@@ -1134,7 +1134,7 @@ ca_to_str(ca_o ca)
 	
 	if ((val = prop_get_str(P_JSON))) {
 	    if (*val) {
-		return json_parse_csv_to_str(str);
+		return json_from_ca_csv(str);
 	    }
 	}
     }

@@ -29,15 +29,20 @@ SEP = ','
 
 
 class PathAction():
+    """Parse PA data into its component parts."""
 
-    """Parse the file-access CSV format into its component parts."""
-
-    def __init__(self, csv):
-        fields = csv.rstrip().split(SEP, PA_SPLITS)
-        self.op = fields[0]
-        self.dcode = fields[14]
-        self.path2 = fields[-2]
-        self.path = fields[-1]
+    def __init__(self, desc):
+        if isinstance(desc, str):
+            fields = desc.rstrip().split(SEP, PA_SPLITS)
+            self.op = fields[0]
+            self.dcode = fields[14]
+            self.path2 = fields[-2]
+            self.path = fields[-1]
+        else:
+            self.op = desc['OP']
+            self.path = desc['PATH']
+            self.path2 = desc['PATH2']
+            self.dcode = desc['DCODE']
         self.is_member = not op.isabs(self.path)
 
         # The whole area of symlinks in AO is complicated. From a
@@ -138,18 +143,19 @@ class PathAction():
 
 
 class CommandAction():
-
-    """Parse the AO command-line CSV format into its component parts."""
+    """Parse CA data into its component parts."""
 
     def __init__(self, desc):
-        if desc[0].isdigit():
+        if isinstance(desc, str):
             fields = desc.rstrip().split(SEP, CA_SPLITS)
             self.prog = fields[8]
             self.rwd = fields[9]
             self.line = fields[-1]
-            self.pa_set = set()
         else:
-            raise RuntimeError('TBD')
+            self.line = desc['CMDLINE']
+            self.prog = desc['PROG']
+            self.rwd = desc['RWD']
+        self.pa_set = set()
 
     def __repr__(self):
         return f'[{self.rwd}] {self.line}'

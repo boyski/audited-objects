@@ -90,6 +90,7 @@ json_from_ca_csv(CCS ca_csv)
 		*comma = '\0';
 		cJSON_AddStringToObject(ca, ca_fields[i], fld);
 	    }
+	    cJSON_AddStringToObject(ca, ca_fields[i], fld);
 	    cJSON_AddItemToArray(calist, ca);
 	} else {
 	    cJSON *pa = cJSON_CreateObject();
@@ -97,6 +98,7 @@ json_from_ca_csv(CCS ca_csv)
 		*comma = '\0';
 		cJSON_AddStringToObject(pa, pa_fields[i], fld);
 	    }
+	    cJSON_AddStringToObject(pa, pa_fields[i], fld);
 	    cJSON_AddItemToArray(palist, pa);
 	}
     }

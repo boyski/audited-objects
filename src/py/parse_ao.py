@@ -61,8 +61,10 @@ def parse_json(data):
     """Parse JSON data into a list of CommandActions."""
 
     doc = json.loads(data)
-    calist = [doc]
-    return calist
+    ca = actions_ao.CommandAction(doc['CommandActions'][0])
+    for pa in doc['PathActions']:
+        ca.add(actions_ao.PathAction(pa))
+    return [ca]
 
 
 def parse(infiles):

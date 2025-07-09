@@ -27,7 +27,6 @@
 #include "CA.h"
 #include "CODE.h"
 #include "DOWN.h"
-#include "GIT.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PA.h"
@@ -207,7 +206,6 @@ _action(CCS action, int argc, CS const *argv)
 	    putil_free(subs);
 	}
     } else if (streq(action, "hash")) {
-	int write_flag = 0;
 	CCS dcode = NULL;
 	ps_o ps;
 
@@ -215,10 +213,9 @@ _action(CCS action, int argc, CS const *argv)
 	    int c;
 
 	    // *INDENT-OFF*
-	    static CS short_opts = "+s:w";
+	    static CS short_opts = "+s:";
 	    static struct option long_opts[] = {
 		{"sha1",		required_argument, NULL, 's'},
-		{"write",		no_argument,	   NULL, 'w'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -231,9 +228,6 @@ _action(CCS action, int argc, CS const *argv)
 	    switch (c) {
 		case 's':
 		    dcode = putil_strdup(bsd_optarg);
-		    break;
-		case 'w':
-		    write_flag = 1;
 		    break;
 		default:
 		    break;
@@ -249,11 +243,7 @@ _action(CCS action, int argc, CS const *argv)
 	    putil_syserr(2, *argv);
 	}
 
-	if (write_flag) {
-	    git_store_blob(ps);
-	} else {
-	    printf("%s\n", ps_get_dcode(ps));
-	}
+	printf("%s\n", ps_get_dcode(ps));
 
 	ps_destroy(ps);
 	putil_free(dcode);
@@ -453,7 +443,6 @@ main(int argc, CS *argv)
     CS dscript = NULL;
     CS redo_script = NULL;
     int proplevel = -1;
-    int no_server = 0;
     int make_clean = 0;
     int teeflag = 0;
     int rc = 0;
@@ -510,7 +499,7 @@ main(int argc, CS *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:GH::I:LM:O:PQRSTUV:W:XY";
+	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:H::I:LM:O:PQRSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
@@ -524,7 +513,6 @@ main(int argc, CS *argv)
 	    {"client-platform",	required_argument, NULL, LF('C', 'P')},
 	    {"error-strict",	no_argument,	   NULL, 'E'},
 	    {"make-file",	required_argument, NULL, 'F'},
-	    {"git",		no_argument,	   NULL, 'G'},
 	    {"help",		no_argument,	   NULL, 'h'},
 	    {"Help",		optional_argument, NULL, 'H'},
 	    {"properties",	optional_argument, NULL, LF('P', '*')},
@@ -677,11 +665,6 @@ main(int argc, CS *argv)
 		prop_override_str(P_MAKE_FILE, bsd_optarg);
 		break;
 
-	    case 'G':
-		prop_override_true(P_GIT);
-		no_server = 1;
-		break;
-
 	    case 'M':
 		if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
 		    prop_override_str(P_MAKE_DEPENDS, ".d");
@@ -695,7 +678,6 @@ main(int argc, CS *argv)
 		break;
 
 	    case 'o':
-		no_server = 1;
 		// fallthrough
 	    case 'O':
 		if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
@@ -885,13 +867,6 @@ main(int argc, CS *argv)
 	    prop_put_str(P_PROJECT_NAME, ptr);
 	    putil_free(ptr);
 	}
-    }
-
-    // For convenience, the -o flag suppresses server interaction along
-    // with specifying an output file.
-    // TODO - remove.
-    if (no_server) {
-	prop_unset(P_SERVER, 1);
     }
 
     // Recycling would break full-makefile generation.
@@ -1114,18 +1089,10 @@ main(int argc, CS *argv)
 
 	make_init(exe);
 
-	if (prop_is_true(P_GIT)) {
-	    git_init(exe);
-	}
-
 	// RUN AND AUDIT THE COMMAND.
 	rc = run_cmd(exe, (CS *)argv, logfile);
 
 	putil_free(logfile);
-
-	if (prop_is_true(P_GIT)) {
-	    git_fini();
-	}
 
 	make_fini();
 

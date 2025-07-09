@@ -138,7 +138,7 @@ else
 endif
 
 OBJS := \
-  aotool.o bsd_getopt.o ca.o code.o down.o git.o json.o http.o \
+  aotool.o bsd_getopt.o ca.o code.o down.o json.o http.o \
   make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
   putil.o re.o sha1.o shop.o tee.o unix.o up.o util.o \
   vb.o zips.o

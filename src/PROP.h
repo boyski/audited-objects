@@ -57,8 +57,6 @@ typedef enum {
     P_DOC_PAGER,
     P_DOWNLOAD_ONLY,
     P_EXECUTE_ONLY,
-    P_GIT,
-    P_GIT_DIR,
     P_IDENTITY_HASH,
     P_JSON,
     P_LEAVE_ROADMAP,

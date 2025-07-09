@@ -111,11 +111,7 @@ static CCS
 git_path_to_blob(CCS sha1)
 {
     CS blob;
-    CCS git_dir;
-
-    if (!(git_dir = prop_get_str(P_GIT_DIR))) {
-	putil_die("no Git repository");
-    }
+    CCS git_dir = "/tmp";  // placeholder
 
     if (putil_is_absolute(git_dir)) {
 	if (asprintf(&blob, "%s/objects/%c%c/%s",

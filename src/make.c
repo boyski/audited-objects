@@ -27,7 +27,7 @@
 static CS MakeCmd;
 static FILE *MakeFP;
 
-/// Initializes make-dependency and makefile-generation data structures.
+/// Initialize make-dependency and makefile-generation data structures.
 void
 make_init(CCS exe)
 {
@@ -142,7 +142,7 @@ make_init(CCS exe)
     }
 }
 
-/// Generates partial Makefile data from a command action object.
+/// Generate partial Makefile data from a CA object.
 /// @param[in] ca       a CmdAction object from which to derive makefile data
 void
 make_file(ca_o ca)
@@ -162,7 +162,7 @@ make_file(ca_o ca)
     return;
 }
 
-/// Finalizes makefile-generation data structures.
+/// Finalize makefile-generation data structures.
 void
 make_fini(void)
 {

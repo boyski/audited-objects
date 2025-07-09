@@ -41,8 +41,6 @@
 
 #include "re.c"
 
-#include "sha1.c"
-
 #include "util.c"
 
 #include "vb.c"

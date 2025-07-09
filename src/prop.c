@@ -239,6 +239,15 @@ static struct {
 	P_BASE_DIR,
     },
     {
+	"CSV",
+	NULL,
+	"Transitional flag to use the older CSV format instead of JSON",
+	NULL,
+	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
+	0,
+	P_CSV,
+    },
+    {
 	"Dcode.All",
 	NULL,
 	"Derive the data-code for all involved files",
@@ -300,20 +309,11 @@ static struct {
     {
 	"Identity.Hash",
 	NULL,
-	"Name of identity hash (CRC, SHA1, GIT, XXHASH)",
+	"Name of identity hash (CRC, XXHASH)",
 	"XXHASH",
 	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
 	0,
 	P_IDENTITY_HASH,
-    },
-    {
-	"JSON",
-	NULL,
-	"Transitional flag to use JSON in place of CSV",
-	NULL,
-	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
-	0,
-	P_JSON,
     },
     {
 	"Leave.Roadmap",

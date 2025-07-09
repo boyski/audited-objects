@@ -1128,14 +1128,17 @@ ca_to_str(ca_o ca)
     strcat((CS)str, pas);
     putil_free(pas);
 
-    // Experimental JSON bridge support.
+    // Experimental JSON bridge support. The current situation is ugly
+    // and hacky with some CSV and some JSON. Once JSON proves out I hope
+    // to use it exclusively and maybe improve the schema. One problem
+    // is that we currently have to deliver a series of different JSON
+    // documents with an artificial separator. It would be better to
+    // deliver a single complete document.
     {
 	CCS val;
 	
-	if ((val = prop_get_str(P_JSON))) {
-	    if (*val) {
-		return json_from_ca_csv(str);
-	    }
+	if (!((val = prop_get_str(P_CSV)) && *val)) {
+	    return json_from_ca_csv(str);
 	}
     }
 

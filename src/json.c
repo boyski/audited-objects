@@ -63,6 +63,7 @@ static CCS ca_fields[] = {
     "CMDLINE"
 };
 
+// Used to separate a sequence of JSON documents.
 // There's another copy in python.
 #define SEP "\n=-=-=-=-=-=-="
 
@@ -119,13 +120,8 @@ json_from_ca_csv(CCS ca_csv)
 CCS
 json_to_str(void *obj)
 {
-    CCS val = prop_get_str(P_JSON);
-
-    if (val && !atoi(val)) {
-	return cJSON_PrintUnformatted(obj);
-    } else {
-	return cJSON_Print(obj);
-    }
+    // return cJSON_PrintUnformatted(obj); // may prefer this eventually
+    return cJSON_Print(obj);
 }
 
 /// Free a cJSON object

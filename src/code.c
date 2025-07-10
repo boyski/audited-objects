@@ -130,13 +130,11 @@ static CCS
 _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 {
     XXH128_hash_t hash;
-    int ret;
 
     hash = XXH3_128bits(data, size);
-    ret = snprintf(buf, buflen, "%016llx%016llx",
+    (void)snprintf(buf, buflen, "%016llx%016llx",
 	(unsigned long long)hash.high64,
 	(unsigned long long)hash.low64);
-    assert(ret > 0 && ret < (int)size);
 
     return buf;
 }

@@ -1107,11 +1107,11 @@ _ca_format_cooked_palist(ca_o ca)
 CCS
 ca_to_str(ca_o ca)
 {
-    CCS str, subs, pas;
+    CCS csv, subs, pas, oldfmt;
     size_t len;
 
-    str = ca_format_header(ca);
-    len = strlen(str);
+    csv = ca_format_header(ca);
+    len = strlen(csv);
 
     subs = ca_get_subs(ca);
     len += subs ? strlen(subs) : 0;
@@ -1119,30 +1119,28 @@ ca_to_str(ca_o ca)
     pas = _ca_format_cooked_palist(ca);
     len += strlen(pas);
 
-    str = (CCS)putil_realloc((void *)str, (len + 1) * CHARSIZE);
+    csv = (CCS)putil_realloc((void *)csv, (len + 1) * CHARSIZE);
 
     if (subs) {
-	strcat((CS)str, subs);
+	strcat((CS)csv, subs);
     }
 
-    strcat((CS)str, pas);
+    strcat((CS)csv, pas);
     putil_free(pas);
 
-    // Experimental JSON bridge support. The current situation is ugly
+    // JSON bridge support. The current situation is ugly
     // and hacky with some CSV and some JSON. Once JSON proves out I hope
     // to use it exclusively and maybe improve the schema. One problem
     // is that we currently have to deliver a series of different JSON
     // documents with an artificial separator. It would be better to
     // deliver a single complete document.
-    {
-	CCS val;
-	
-	if (!((val = prop_get_str(P_CSV)) && *val)) {
-	    return json_from_ca_csv(str);
-	}
+    if (((oldfmt = prop_get_str(P_CSV)) && *oldfmt)) {
+	return csv;
+    } else {
+	CCS json = json_from_ca_csv(csv);
+	putil_free(csv);
+	return json;
     }
-
-    return str;
 }
 
 // Internal service routine. Support ca_dump() for debug purposes.

@@ -477,7 +477,7 @@ def main():
     if opts.output or opts.pdump or opts.vars:
         opts.full = True
 
-    # Can't be looked up directly in properties because it may be derived.
+    # This can't be looked up directly in properties because it may be derived.
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
         opts.base_dir = childx.check_output(cmd, text=True).rstrip()

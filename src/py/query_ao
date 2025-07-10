@@ -15,7 +15,6 @@ To show all input files captured in an audit:
 To show all commands matching a given pattern:
 
     %(prog)s -C 'collect2$' audit-file
-
 """
 
 #############################################################################
@@ -38,10 +37,9 @@ To show all commands matching a given pattern:
 import argparse
 import os
 import re
-import sys
 
-import actions_ao
 import childx
+import parse_ao
 
 
 def pathdump(pfx, paths, opts):
@@ -99,30 +97,13 @@ def main():
             opts.tgt_paths or opts.cmd_path_regex):
         opts.src_paths = opts.int_paths = opts.tgt_paths = True
 
+    # This can't be looked up directly in properties because it may be derived.
     if not opts.base_dir:
         cmd = ['ao', '-q', 'property', 'Base.Dir']
         opts.base_dir = childx.check_output(cmd, text=True).rstrip()
     opts.base_dir = os.path.realpath(opts.base_dir)
 
-    # Use a state machine to parse input data into a list of CAs.
-    calist = []
-    ca = None
-    for path in opts.input:
-        f = sys.stdin if path == '-' else open(path, encoding='utf-8')
-        for line in f:
-            if line[0] in '0123456789':
-                if not ca:
-                    ca = actions_ao.CommandAction(line)
-                    calist.append(ca)
-            elif line[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                pa = actions_ao.PathAction(line)
-                if opts.members_only and not pa.is_member:
-                    continue
-                ca.add(pa)
-            else:
-                ca = None
-        if f != sys.stdin:
-            f.close()
+    calist = parse_ao.parse(opts.input)
 
     # pylint: disable=too-many-nested-blocks
     if opts.cmd_path_regex:
@@ -132,6 +113,8 @@ def main():
                 if opts.tgt_paths:
                     continue
                 path = prq.path
+                if opts.members_only and not prq.is_member:
+                    continue
                 if not opts.abs_paths and not prq.is_member:
                     path = os.path.relpath(path, opts.base_dir)
                 if re.search(opts.cmd_path_regex, path):
@@ -140,6 +123,8 @@ def main():
                 if opts.src_paths:
                     continue
                 path = tgt.path
+                if opts.members_only and not tgt.is_member:
+                    continue
                 if not opts.abs_paths and not tgt.is_member:
                     path = os.path.relpath(path, opts.base_dir)
                 if re.search(opts.cmd_path_regex, path):
@@ -153,11 +138,15 @@ def main():
         # Get the set of targets.
         for ca in calist:
             for tgt in ca.targets():
+                if opts.members_only and not tgt.is_member:
+                    continue
                 tgtpaths.add(tgt.path)
 
         if opts.src_paths or opts.int_paths:
             for ca in calist:
                 for prq in ca.prereqs():
+                    if opts.members_only and not prq.is_member:
+                        continue
                     if prq.path in tgtpaths:
                         intpaths.add(prq.path)
                         if opts.int_paths:

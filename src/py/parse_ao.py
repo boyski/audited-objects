@@ -34,7 +34,7 @@ def is_vcs(path):
     return '.git' in path or '.svn' in path
 
 
-def parse_csv(data, members_only=False):
+def parse_csv(data):
     """Parse old-style CSV data into a list of CommandActions."""
 
     ca, calist = None, []
@@ -47,11 +47,7 @@ def parse_csv(data, members_only=False):
                 calist.append(ca)
         elif line[0].isupper():
             pa = actions_ao.PathAction(line)
-            if is_vcs(pa.path):
-                continue
-            if pa.is_unlink:
-                continue
-            if members_only and not pa.is_member:
+            if is_vcs(pa.path) or pa.is_unlink:
                 continue
             ca.add(pa)
         else:

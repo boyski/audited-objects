@@ -129,33 +129,16 @@ code_init(void)
 static CCS
 _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 {
-    CCS algorithm;
+    XXH128_hash_t hash;
+    int ret;
 
-    buf[0] = '\0';
+    hash = XXH3_128bits(data, size);
+    ret = snprintf(buf, buflen, "%016llx%016llx",
+	(unsigned long long)hash.high64,
+	(unsigned long long)hash.low64);
+    assert(ret > 0 && ret < (int)size);
 
-    algorithm = prop_get_str(P_IDENTITY_HASH);
-
-    if (!algorithm || !*algorithm || !strnicmp(algorithm, "crc", 3)) {
-	uint32_t hash;
-
-	// Old reliable CRC32. Said to be a bad choice for an identity
-	// hash as the distribution is not great. It's not really a hash
-	// algorithm at all, it's an error checker. That said, it's
-	// easy to use, bundled with zlib, pretty fast, and probably
-	// won't fail most of the time :-)
-	hash = crc32(crc32(0L, Z_NULL, 0), data, size);
-	(void)util_format_to_radix(CSV_RADIX, buf, buflen, hash);
-    } else {
-	XXH128_hash_t hash;
-
-	hash = XXH3_128bits(data, size);
-	(void)snprintf(buf, buflen, "%016llx%016llx",
-		(unsigned long long)hash.high64,
-		(unsigned long long)hash.low64);
-    }
-
-    // An empty string from the formatter signals a failure.
-    return buf[0] ? buf : NULL;
+    return buf;
 }
 
 /* Return nonzero if the data looks like an archive. */

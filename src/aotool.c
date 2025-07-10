@@ -499,7 +499,7 @@ main(int argc, CS *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:H::I:LM:O:PQRSTUV:W:XY";
+	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:H::LM:O:PQRSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
@@ -516,7 +516,6 @@ main(int argc, CS *argv)
 	    {"help",		no_argument,	   NULL, 'h'},
 	    {"Help",		optional_argument, NULL, 'H'},
 	    {"properties",	optional_argument, NULL, LF('P', '*')},
-	    {"identity-hash",	required_argument, NULL, 'I'},
 	    {"log-file",	required_argument, NULL, 'l'},
 	    {"log-file-temp",	no_argument,	   NULL, 'L'},
 	    {"log-tee",		no_argument,	   NULL, LF('L', 'T')},
@@ -616,10 +615,6 @@ main(int argc, CS *argv)
 
 	    case 'E':
 		prop_put_long(P_STRICT_ERROR, 1);
-		break;
-
-	    case 'I':
-		prop_override_str(P_IDENTITY_HASH, bsd_optarg);
 		break;
 
 	    case 'L':

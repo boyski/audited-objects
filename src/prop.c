@@ -307,15 +307,6 @@ static struct {
 	P_EXECUTE_ONLY,
     },
     {
-	"Identity.Hash",
-	NULL,
-	"Name of identity hash (CRC, XXHASH)",
-	"XXHASH",
-	PROP_FLAG_PRIVATE | PROP_FLAG_EXPORT,
-	0,
-	P_IDENTITY_HASH,
-    },
-    {
 	"Leave.Roadmap",
 	NULL,
 	"Boolean - don't unlink roadmap file when done",

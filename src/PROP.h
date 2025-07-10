@@ -58,7 +58,6 @@ typedef enum {
     P_DOC_PAGER,
     P_DOWNLOAD_ONLY,
     P_EXECUTE_ONLY,
-    P_IDENTITY_HASH,
     P_LEAVE_ROADMAP,
     P_LOG_FILE,
     P_LOG_FILE_TEMP,

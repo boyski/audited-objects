@@ -138,10 +138,25 @@ else
 endif
 
 OBJS := \
-  aotool.o bsd_getopt.o ca.o code.o down.o json.o http.o \
-  make.o moment.o mon.o pn.o prefs.o prop.o pa.o ps.o \
-  putil.o re.o shop.o tee.o unix.o up.o util.o \
-  vb.o zips.o
+  aotool.o \
+  bsd_getopt.o \
+  ca.o \
+  code.o \
+  json.o \
+  make.o \
+  moment.o \
+  mon.o \
+  pn.o \
+  prefs.o \
+  prop.o \
+  pa.o \
+  ps.o \
+  putil.o \
+  re.o \
+  unix.o \
+  util.o \
+  vb.o \
+  zips.o
 
 IFLAGS := -I. -I$(OPS)/include
 
@@ -180,7 +195,7 @@ else ifneq ($(DARWIN),)
   DLL_LIBS := -Wl,-search_paths_first -Wl,-Z $(DLL_LIBS)
 endif
 
-EXE_LIBS := -lcurl -lcdb $(DLL_LIBS)
+EXE_LIBS := $(DLL_LIBS)
 
 ifneq (,$(MEMDBG))
   # Likely values are MEMDBG=-lumem, MEMDBG=-ldmalloc, and MEMDBG=-lwatchmalloc

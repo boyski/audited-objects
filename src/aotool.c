@@ -26,7 +26,6 @@
 
 #include "CA.h"
 #include "CODE.h"
-#include "DOWN.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PA.h"
@@ -39,7 +38,6 @@
 #include "TEE.h"
 #include "UW.h"
 
-#include "cdb.h"
 #include "curl/curl.h"
 #include "pcre.h"
 // #include "git2.h"  /* not yet in use */
@@ -163,11 +161,8 @@ _print_version(int full)
 	fputs(" (DEBUG)", stdout);
 #endif	// _DEBUG
 	fputs("\n", stdout);
-	printf("libcurl=%s\n", curl_version());
 	printf("pcre=%s\n", re_version());
-	// printf("libgit2=%s\n", LIBGIT2_VERSION);
 	printf("zlib=%s\n", (const char *)zlibVersion());
-	printf("tinycdb=%.3f\n", TINYCDB_VERSION);
 	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
     }
@@ -444,7 +439,6 @@ main(int argc, CS *argv)
     CS redo_script = NULL;
     int proplevel = -1;
     int make_clean = 0;
-    int teeflag = 0;
     int rc = 0;
 
     // Figure out the full path to the current executable program.
@@ -518,7 +512,6 @@ main(int argc, CS *argv)
 	    {"properties",	optional_argument, NULL, LF('P', '*')},
 	    {"log-file",	required_argument, NULL, 'l'},
 	    {"log-file-temp",	no_argument,	   NULL, 'L'},
-	    {"log-tee",		no_argument,	   NULL, LF('L', 'T')},
 	    {"log-time-stamp",	no_argument,	   NULL, LF('L', 'S')},
 	    {"make-depends",	optional_argument, NULL, 'M'},
 	    {"mem-debug",	optional_argument, NULL, LF('D', 'M')},
@@ -625,10 +618,6 @@ main(int argc, CS *argv)
 		    prop_override_str(P_LOG_FILE, buf);
 		    prop_override_ulong(P_LOG_FILE_TEMP, 1);
 		}
-		break;
-
-	    case LF('L', 'T'):
-		teeflag = 1;
 		break;
 
 	    case LF('L', 'S'):
@@ -827,12 +816,6 @@ main(int argc, CS *argv)
     }
     argc -= bsd_optind;
     argv += bsd_optind;
-
-    // Special case - this program can turn into a "tee"
-    // if requested. DOES NOT RETURN!
-    if (teeflag) {
-	tee_into(prop_get_str(P_LOG_FILE));
-    }
 
     if (make_clean) {
 	_make_clean(argc, argv);
@@ -1102,61 +1085,6 @@ main(int argc, CS *argv)
 	prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
 	prop_override_true(P_LEAVE_ROADMAP);
 	mon_get_roadmap();
-    } else if (streq(action, "shop")) {
-	int cflag = 0;
-	int gflag = 0;
-	ca_o ca;
-	CCS rwd;
-
-	// This special action is useful for internal tests of shopping
-	// capabilities without changing server state, using a saved
-	// roadmap file.
-
-	while (*argv && **argv == '-') {
-	    if (!strcmp(*argv, "-C")) {
-		// Work with a predetermined cmd index rather than a cmd line.
-		cflag = 1;
-	    } else if (!strcmp(*argv, "-G")) {
-		// Actually get files (default is to not change local state).
-		gflag = 1;
-	    }
-	    argv++;
-	}
-
-	if (!argv[0]) {
-	    putil_die("Usage: shop [-G] -C index | cmd...");
-	}
-
-	// Assume the pre-existence of a roadmap with the default name.
-	prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
-	prop_override_true(P_LEAVE_ROADMAP);
-
-	ca = ca_new();
-	ca_set_pccode(ca, CSV_NULL_FIELD);
-	ca_set_prog(ca, prop_get_str(P_PROGNAME));
-	ca_set_host(ca, "localhost");
-	ca_set_cmdid(ca, getpid());
-	ca_set_pcmdid(ca, prop_get_ulong(P_PCMDID));
-	ca_set_rwd(ca, rwd = util_get_rwd());
-	putil_free(rwd);
-	ca_set_started(ca, 1);
-
-	// We almost always want these while debugging...
-	vb_addbit(VB_SHOP);
-	vb_addbit(VB_WHY);
-
-	shop_init();
-	if (cflag) {
-	    rc = shop(ca, argv[0], gflag);
-	} else {
-	    CCS cmdline;
-
-	    cmdline = util_requote_argv(argv);
-	    ca_set_line(ca, cmdline);
-	    putil_free(cmdline);
-	    rc = shop(ca, NULL, gflag);
-	}
-	shop_fini();
     } else {
 	rc = _action(action, argc, argv);
     }

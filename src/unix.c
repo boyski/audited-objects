@@ -24,7 +24,6 @@
 
 #include "ACK.h"
 #include "CA.h"
-#include "HTTP.h"
 #include "MON.h"
 #include "PROP.h"
 #include "UW.h"
@@ -170,7 +169,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     CS path;
     pid_t childpid;
     struct timeval master_timeout, timeout;
-    int64_t session_timeout, last_heartbeat, heartbeat_interval;
     int sockmin = 3, sockmax = 0;
     int *listeners;
     unsigned long ports;
@@ -258,25 +256,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    }
 	    return ExitStatus;
 	}
-    }
-
-    // The heartbeat interval is the number of seconds allowed
-    // before we send a server heartbeat ping to keep the server
-    // HTTP session alive.  The Tomcat default is 30 minutes
-    // but there's no standard default, so we set the default
-    // expicitly in the server's web.xml file. This allows us to
-    // assume that default via HTTP_SESSION_TIMEOUT_SECS_DEFAULT.
-
-    master_timeout.tv_sec = prop_get_ulong(P_MONITOR_TIMEOUT_SECS);
-    master_timeout.tv_usec = 0;
-    session_timeout = prop_get_ulong(P_SESSION_TIMEOUT_SECS);
-    if (session_timeout) {
-	if ((session_timeout / 4 < master_timeout.tv_sec)) {
-	    master_timeout.tv_sec = session_timeout / 4;
-	}
-	heartbeat_interval = session_timeout / 2;
-    } else {
-	heartbeat_interval = HTTP_SESSION_TIMEOUT_SECS_DEFAULT / 2;
     }
 
     // The grandparent dir of this exe becomes the base where
@@ -414,8 +393,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     _sig_setup();
 
-    last_heartbeat = time(NULL);
-
     // Bump the number of allowed file descriptors to the maximum,
     // because the monitor is likely to use a fair number. There
     // is no real bound on fds in use since the monitor may behave
@@ -484,24 +461,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    }
 #endif // EINTR
 	    putil_syserr(2, "select");
-	} else {
-	    // We like to ping the server once in a while, partly
-	    // to make sure it's still there but primarily to keep
-	    // its session alive.
-	    if (prop_has_value(P_SERVER)) {
-		int64_t now;
-
-		now = time(NULL);
-		if ((now - last_heartbeat) >= heartbeat_interval) {
-		    http_heartbeat(now - last_heartbeat);
-		    last_heartbeat = now;
-		}
-	    }
-
-	    // Continue on select timeout.
-	    if (sret == 0) {
-		continue;
-	    }
 	}
 
 	for (i = 0; i < ports; i++) {
@@ -615,7 +574,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    putil_free(buffer);
 	}
 
-	http_async_transfer(0);
+	// http_async_transfer(0);
     }
 
     // Wait for ending child, reap its exit code.

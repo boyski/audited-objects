@@ -33,19 +33,15 @@
 
 #include "curl/curl.h"
 
-#include "cdb.h"
 #include "hash.h"
 
 #include "CA.h"
 #include "CODE.h"
-#include "DOWN.h"
-#include "HTTP.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PROP.h"
 #include "RE.h"
 #include "SHOP.h"
-#include "UP.h"
 
 #include <time.h>
 
@@ -86,7 +82,7 @@ mon_init(void)
     if (prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
 	prop_unset(P_ROADMAPFILE, 0);
     } else {
-	shop_init();
+	// shop_init();
     }
 
     // Enable dcode cache management based on property settings.
@@ -167,7 +163,7 @@ _mon_process_pa(pa_o pa, void *data)
     } else if (prop_is_true(P_DOWNLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
 	return 0;
     } else {
-	up_load_file(pa_get_ps(pa), 0);
+	// up_load_file(pa_get_ps(pa), 0);
     }
 
     return 0;
@@ -203,7 +199,7 @@ _mon_process_ca(ca_o ca)
     }
 
     if (prop_has_value(P_SERVER) && !_mon_no_ptx()) {
-	up_load_audit(cabuf);
+	// up_load_audit(cabuf);
 	// Take each file marked for upload and tell libcurl to send it.
 	(void)ca_foreach_cooked_pa(ca, _mon_process_pa, NULL);
     }
@@ -440,7 +436,8 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 	    if (prop_has_value(P_SERVER) && !no_shop) {
 		shop_e shoprc;
 
-		shoprc = shop(ca, NULL, 1);
+		// shoprc = shop(ca, NULL, 1);
+		shoprc = SHOP_NOMATCH;
 
 		if (shoprc == SHOP_RECYCLED) {
 		    rc |= MON_RECYCLED;
@@ -705,38 +702,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 int
 mon_begin_session(void)
 {
-    char *url;
-    CURL *curl;
-    int rc = 0;
-
-    if (_mon_no_ptx()) {
-	return rc;
-    }
-
-    url = http_make_url(SESSION_SERVLET_NICKNAME);
-
-    http_add_param(&url, HTTP_PROJECT_NAME_PARAM, prop_get_str(P_PROJECT_NAME));
-    http_add_param(&url, HTTP_SESSION_TIMEOUT_SECS_PARAM,
-		   prop_get_str(P_SESSION_TIMEOUT_SECS));
-
-    // If this property is set it will override the default logging
-    // level over on the server side. The values are the public
-    // fields of org.apache.log4j.Level in string form.
-    http_add_param(&url, HTTP_LOG_LEVEL_PARAM,
-		   prop_get_str(P_SERVER_LOG_LEVEL));
-
-    curl = http_get_curl_handle(1);
-
-    // This is where we pick up special property-setting headers ...
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, http_parse_startup_headers);
-
-    // Make the connection to start a new HTTP session ...
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rc);
-    if (http_connect(curl, url, 0)) {
-	rc = 1;
-    }
-
-    return rc;
+    return 0;
 }
 
 /// Communicate with the server to establish a new PTX.
@@ -744,140 +710,12 @@ mon_begin_session(void)
 void
 mon_ptx_start(void)
 {
-    char *url;
-    struct utsname sysdata;
-    CCS rwd;
-    CURL *curl;
-    int rc = 0;
-
-    if (!prop_has_value(P_SERVER)) {
-	return;
-    }
-
-    if (_mon_no_ptx()) {
-	return;
-    }
-
-    url = http_make_url(START_SERVLET_NICKNAME);
-
-    http_add_param(&url, HTTP_PROJECT_NAME_PARAM, prop_get_str(P_PROJECT_NAME));
-    http_add_param(&url, HTTP_BASE_DIR_PARAM, prop_get_str(P_BASE_DIR));
-    http_add_param(&url, HTTP_LOGIN_NAME_PARAM, util_get_logname());
-    http_add_param(&url, HTTP_GROUP_NAME_PARAM, util_get_groupname());
-    http_add_param(&url, HTTP_RWD_PARAM, rwd = util_get_rwd());
-    putil_free(rwd);
-    if (putil_uname(&sysdata) != -1) {
-	http_add_param(&url, HTTP_SYSTEM_NAME_PARAM, sysdata.sysname);
-	http_add_param(&url, HTTP_HOST_NAME_PARAM, sysdata.nodename);
-	http_add_param(&url, HTTP_OS_RELEASE_PARAM, sysdata.release);
-	http_add_param(&url, HTTP_MACHINE_TYPE_PARAM, sysdata.machine);
-    } else {
-	putil_syserr(2, "uname");
-    }
-
-    // Provide the starting time from the client's POV. The server
-    // can determine start time on its own but clock skew may exist
-    // between client and server.
-    {
-	moment_s ptx_start_time;
-	char startbuf[MOMENT_BUFMAX];
-
-	moment_get_systime(&ptx_start_time);
-	(void)moment_format(ptx_start_time, startbuf, charlen(startbuf));
-	http_add_param(&url, HTTP_CLIENT_START_TIME_PARAM, startbuf);
-    }
-
-    // If there's no way we're going to be contributing anything,
-    // the server needs to know that. This flag tells the server not
-    // to make any changes to the persistent state; thus it would not
-    // be appropriate for Audit.Only, for instance.
-    if (prop_is_true(P_DOWNLOAD_ONLY)) {
-	http_add_param(&url, HTTP_READ_ONLY_PARAM, HTTP_TRUE);
-    }
-
-    curl = http_get_curl_handle(1);
-
-    // This is where we pick up special property-setting headers ...
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, http_parse_startup_headers);
-
-    // Normally, reusing the curl connection is a good thing. However,
-    // since this is the last control connection until the build
-    // finishes, the socket could be held open for a very long time.
-    // I've been told there's no big harm in that but at the least
-    // it would leave one less file descriptor free for other tasks,
-    // and there's no great downside to re-establishing the socket
-    // at finish-up time either, so we turn off socket reuse for this
-    // connection.
-    curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
-
-    // Make the connection to start a new PTX ...
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rc);
-    if (http_connect(curl, url, 0)) {
-	rc = 1;
-    }
-
-    if (rc) {
-	putil_die("can't find a server at %s", prop_get_str(P_SERVER));
-    }
-
-    // Initialize the uploader module.
-    up_init();
 }
 
 /// Communicate with the server to get a roadmap for the current project.
 void
 mon_get_roadmap(void)
 {
-    char *url;
-    struct utsname sysdata;
-    CURL *curl;
-    CCS rmap;
-    FILE *fp;
-
-    url = http_make_url(ROADMAP_SERVLET_NICKNAME);
-
-    http_add_param(&url, HTTP_PROJECT_NAME_PARAM, prop_get_str(P_PROJECT_NAME));
-
-    // Optional override of PTX selection criteria.
-    http_add_param(&url, HTTP_PTX_STRATEGY_PARAM, prop_get_str(P_PTX_STRATEGY));
-
-    http_add_param(&url, HTTP_LOGIN_NAME_PARAM, util_get_logname());
-    http_add_param(&url, HTTP_GROUP_NAME_PARAM, util_get_groupname());
-
-    if (putil_uname(&sysdata) != -1) {
-	http_add_param(&url, HTTP_HOST_NAME_PARAM, sysdata.nodename);
-    }
-
-    // Tell the server we want to see only members in
-    // the roadmap. Currently, this boolean is handled server
-    // side while the RE-based filtering is done client side.
-    // This allows optional warnings to be issued for
-    // non-matches, at the cost of bigger roadmaps and
-    // unnecessary comparisons. Subject to redesign.
-    if (prop_is_true(P_MEMBERS_ONLY)) {
-	http_add_param(&url, HTTP_SHOP_MEMBERS_ONLY_PARAM, HTTP_TRUE);
-    }
-
-    curl = http_get_curl_handle(1);
-
-    prop_assert(P_ROADMAPFILE);
-    rmap = prop_get_str(P_ROADMAPFILE);
-    vb_printf(VB_SHOP, "GETTING ROADMAP FILE %s", rmap);
-
-    if ((fp = fopen(rmap, "wb"))) {
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-
-	if (http_connect(curl, url, 0)) {
-	    putil_exit(2);
-	}
-
-	if (fclose(fp)) {
-	    putil_syserr(2, rmap);
-	}
-    } else {
-	putil_syserr(2, rmap);
-    }
 }
 
 /// Communicate with the server to close the session for this PTX.
@@ -887,56 +725,8 @@ mon_get_roadmap(void)
 void
 mon_ptx_end(int rc, CCS logfile)
 {
-    char *url;
-    CURL *curl;
-    char numbuf[32];
-
-    if (!prop_has_value(P_SESSIONID)) {
-	return;
-    }
-
-    // Make sure all async libcurl transfer are completed.
-    http_async_transfer(1);
-
-    if (_mon_no_ptx()) {
-	return;
-    }
-
-    if (logfile) {
-	ps_o ps;
-
-	ps = ps_newFromPath(logfile);
-	up_load_file(ps, 1);
-	ps_destroy(ps);
-    }
-
-    // Finalize upload stuff.
-    up_fini();
-
-    // Make the connection to end the PTX ...
-    url = http_make_url(END_SERVLET_NICKNAME);
-
-    if (prop_is_true(P_AGGRESSIVE_SERVER)) {
-	http_add_param(&url, HTTP_AGGRESSIVE_PARAM, "1");
-    }
-
-    curl = http_get_curl_handle(1);
-
-    // Indicate whether the PTX provided a successful return code.
-    snprintf(numbuf, charlen(numbuf), "%d", rc);
-    http_add_header(curl, X_CLIENT_STATUS_HEADER, numbuf);
-
-    snprintf(numbuf, charlen(numbuf), "%d", shop_get_count());
-    http_add_header(curl, X_RECYCLED_COUNT_HEADER, numbuf);
-
-    (void)http_connect(curl, url, 0);
-
-    // If there's a chance of another cycle, refresh the roadmap
-    // to include the PTX just finished.
-    if (prop_has_value(P_ACTIVATION_PROG_RE) &&
-	    !prop_is_true(P_REUSE_ROADMAP)) {
-	(void)mon_get_roadmap();
-    }
+    (void)rc;
+    (void)logfile;
 }
 
 /// Communicate with the server to end the session, and finalize
@@ -965,7 +755,7 @@ mon_fini(void)
     // Finalize dcode cache management if in use.
     ps_dcode_cache_fini();
 
-    shop_fini();
+    // shop_fini();
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

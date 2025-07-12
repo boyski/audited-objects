@@ -361,21 +361,21 @@ _action(CCS action, int argc, CS const *argv)
 	    fputs("are gratefully acknowledged:\n\n", stdout);
 	}
 	_print_version(0);
-    } else {
-	if (streq(action, "help") && !argv[0]) {
-	    const char *fmt = "%-12s - %s\n";
+    } else if (streq(action, "help")) {
+	const char *fmt = "%-12s - %s\n";
 
-	    // This documents actions which are PURELY client-side
-	    // aside from the "--" variants.
-	    // If they have any server part, e.g. "label" or "ADMIN",
-	    // then let the server document them.
-	    printf(fmt, "--", "run and audit the specified command");
-	    printf(fmt, "make", "shorthand for 'run make'");
-	    printf(fmt, "stat", "print vital statistics for specified files");
-	    printf(fmt, "property", "print the value of the named property");
-	    printf(fmt, "substitute", "apply standard %-formatting to the input string");
-	    printf("\n");
-	}
+	// This documents actions which are PURELY client-side
+	// aside from the "--" variants.
+	// If they have any server part, e.g. "label" or "ADMIN",
+	// then let the server document them.
+	printf(fmt, "--", "run and audit the specified command");
+	printf(fmt, "hash", "print the AO hash for each named file");
+	printf(fmt, "property", "print the value of the named property");
+	printf(fmt, "stat", "print vital statistics for specified files");
+	printf(fmt, "substitute", "apply standard %-formatting to the input string");
+	printf("\n");
+    } else {
+	fprintf(stderr, "%s: Error: unrecognized action '%s'\n", prop_get_str(P_PROGNAME), action);
     }
 
     return rc;
@@ -1079,11 +1079,6 @@ main(int argc, CS *argv)
 	}
 
 	putil_free(cwd);
-    } else if (streq(action, "roadmap")) {
-	// Useful while testing roadmaps. May be dispensed with later.
-	prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
-	prop_override_true(P_LEAVE_ROADMAP);
-	mon_get_roadmap();
     } else {
 	rc = _action(action, argc, argv);
     }

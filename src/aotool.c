@@ -162,7 +162,6 @@ _print_version(int full)
 #endif	// _DEBUG
 	fputs("\n", stdout);
 	printf("pcre=%s\n", re_version());
-	printf("zlib=%s\n", (const char *)zlibVersion());
 	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
     }

@@ -167,14 +167,14 @@ LIBAO := $(addprefix $(LIBDIR)/,$(AUDITOR))
 INST_LIBS += $(addprefix $(INST_PREFIX)/lib64/,$(notdir $(LIBAO)))
 
 AOTOOL := $(BINDIR)/ao
-BINS := $(AOTOOL)
+TARGETS := $(AOTOOL) $(LIBAO)
 
 # In general it's believed best to link the auditor with static libs
 # for faster startup time, whereas the driver program starts only
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS := -lcjson -lkaz -lpcre -lz -ltrio
+DLL_LIBS := -lcjson -lkaz -lpcre -ltrio
 
 OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 
@@ -207,8 +207,6 @@ ifneq (,$(MEMDBG))
   endif   #dmalloc
 endif   #MEMDBG
 
-TARGETS := $(BINS) $(LIBAO)
-
 # The list of source files included by libAO.so.
 COMMINCS := \
   libcommon.c \
@@ -228,7 +226,7 @@ COMMINCS := \
 
 INTERPOSERS := $(wildcard Interposer/*.h)
 
-INST_BINS := $(addprefix $(INST_PREFIX)/bin/,$(notdir $(BINS)))
+INST_BINS := $(addprefix $(INST_PREFIX)/bin/,$(notdir $(TARGETS)))
 INST_SCRIPTS := $(addprefix $(INST_PREFIX)/bin/,ao2make aoquery)
 
 #############################################################################
@@ -262,6 +260,13 @@ $(AOTOOL): $(addprefix $(TGTDIR)/,$(OBJS)) | $$(@D)
 $(LIBAO): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))
+
+.PHONY: _relink
+_relink:
+	$(RM) $(TARGETS)
+
+.PHONY: relink
+relink: _relink all
 
 .PHONY: tags
 tags:

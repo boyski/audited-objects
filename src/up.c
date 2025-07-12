@@ -27,6 +27,89 @@
 
 #include "curl/curl.h"
 
+/// The Zlib documentation (and API) is a mess. You have to read zlib.h
+/// to get the details. This uses some hackery derived from zlib.h
+/// to compress a provided buffer into a gzip-compatible format; without
+/// these hacks you get a deflate format which is legal but less common
+/// and less well recognized (and which gunzip does not understand).
+/// @param name        a name associated with the input (pathname etc)
+/// @param source      the input (uncompressed) buffer
+/// @param slen        the size of the input buffer
+/// @param dlen        ptr to ulong which receives final compressed length
+/// @return the compressed buffer, which must be freed after use
+static unsigned char *
+_up_gzip_buffer(CCS name, unsigned const char *source, uint64_t slen, uint64_t *dlen)
+{
+    z_stream stream;
+    unsigned char *dest;
+    int rc;
+
+    memset(&stream, 0, sizeof(stream));
+
+    stream.next_in = (Bytef *) source;
+    stream.avail_in = (uInt) slen;
+    stream.avail_out = (uInt) (slen + (slen/1000 + 1) + 12);
+
+    // We deliberately use the native allocator here because we may
+    // attempt to survive a failure.
+    stream.next_out = dest = (unsigned char *)malloc(stream.avail_out);
+    if (!dest) {
+	putil_syserr(0, "malloc()");
+	return NULL;
+    }
+
+    // See zlib.h for deflateInit2/windowBits.
+    rc = deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+			       MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY);
+    if (rc != Z_OK) {
+	putil_warn("unable to compress %s: %s",
+	    name, stream.msg ? stream.msg : "unknown error");
+	putil_free(dest);
+	return NULL;
+    }
+
+    while (1) {
+	rc = deflate(&stream, Z_FINISH);
+	if (rc == Z_STREAM_END) {
+	    break;
+	} else if (rc == Z_OK) {
+	    if (stream.avail_out == 0) {
+		// Not sure this makes sense ... it avoids an apparently
+		// spurious warning on Ubuntu 9.04 x86_64, but I don't
+		// understand the zlib API so it may not be the right fix.
+		break;
+	    }
+	    stream.avail_out *= 2;
+	    stream.next_out = dest =
+		(unsigned char *)realloc(dest, stream.avail_out);
+	    if (!dest) {
+		putil_warn("unable to compress %s: %s",
+		    name, stream.msg ? stream.msg : "unknown error");
+		return NULL;
+	    }
+	} else {
+	    putil_warn("unable to compress %s: %s",
+		name, stream.msg ? stream.msg : "unknown error");
+	}
+    }
+
+    *dlen = stream.total_out;
+
+    if (deflateEnd(&stream) != Z_OK) {
+	putil_warn("unable to compress %s: %s",
+	    name, stream.msg ? stream.msg : "unknown error");
+	putil_free(dest);
+	return NULL;
+    }
+
+    // Shrink to fit.
+    if (!(dest = (unsigned char *)putil_realloc(dest, stream.total_out))) {
+	putil_syserr(0, "realloc()");
+    }
+
+    return dest;
+}
+
 /// Files smaller than this are not compressed for upload, because
 /// it becomes counterproductive for very small files.
 #define UPLOAD_COMPRESS_MIN_SIZE		512UL
@@ -66,7 +149,7 @@ up_load_audit(CCS cabuf)
 
     bufsize = strlen(cabuf);
     if (!prop_is_true(P_UNCOMPRESSED_TRANSFERS) &&
-	    (zdata = util_gzip_buffer("AUDIT",
+	    (zdata = _up_gzip_buffer("AUDIT",
 	    (unsigned const char *)cabuf, bufsize, &zsize))) {
 	http_add_header(curl, X_GZIPPED_HEADER, "1");
 	cip->ci_malloced = zdata;
@@ -154,7 +237,7 @@ up_load_file(ps_o ps, int logfile)
     close(fd);
 
     if ((fsize > UPLOAD_COMPRESS_MIN_SIZE) &&
-	    (zdata = util_gzip_buffer(path, fdata, fsize, &zsize))) {
+	    (zdata = _up_gzip_buffer(path, fdata, fsize, &zsize))) {
 	// If compression succeeded, we can unmap the file and
 	// proceed to upload the compression buffer.
 	util_unmap_file(fdata, fsize);

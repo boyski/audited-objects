@@ -25,119 +25,6 @@ You should have received a copy of the GNU Affero General Public License\n\
 along with this program.  If not, see <http://www.gnu.org/licenses/>.\n\
 ";
 
-static char cjson_license[] = "\
-Copyright (c) 2009-2017 Dave Gamble and cJSON contributors\n\
-\n\
-Permission is hereby granted, free of charge, to any person obtaining a copy\n\
-of this software and associated documentation files (the \"Software\"), to deal\n\
-in the Software without restriction, including without limitation the rights\n\
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n\
-copies of the Software, and to permit persons to whom the Software is\n\
-furnished to do so, subject to the following conditions:\n\
-\n\
-The above copyright notice and this permission notice shall be included in\n\
-all copies or substantial portions of the Software.\n\
-\n\
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n\
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n\
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n\
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n\
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n\
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n\
-THE SOFTWARE.\n\
-";
-
-static char trio_license[] = "\
-Trio is a package with portable string functions. Including printf() clones\n\
-and others.\n\
-\n\
- Copyright (C) 1998-2006 by Bjorn Reese and Daniel Stenberg.\n\
-\n\
- Permission to use, copy, modify, and distribute this software for any\n\
- purpose with or without fee is hereby granted, provided that the above\n\
- copyright notice and this permission notice appear in all copies.\n\
-\n\
- THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED\n\
- WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF\n\
- MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND\n\
- CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.\n\
-";
-
-static char pcre_license[] = "\
-PCRE LICENCE\n\
-------------\n\
-\n\
-PCRE is a library of functions to support regular expressions whose syntax\n\
-and semantics are as close as possible to those of the Perl 5 language.\n\
-\n\
-Release 6 of PCRE is distributed under the terms of the 'BSD' licence, as\n\
-specified below. The documentation for PCRE, supplied in the 'doc'\n\
-directory, is distributed under the same terms as the software itself.\n\
-\n\
-The basic library functions are written in C and are freestanding. Also\n\
-included in the distribution is a set of C++ wrapper functions.\n\
-\n\
-\n\
-THE BASIC LIBRARY FUNCTIONS\n\
----------------------------\n\
-\n\
-Written by:       Philip Hazel\n\
-Email local part: ph10\n\
-Email domain:     cam.ac.uk\n\
-\n\
-University of Cambridge Computing Service,\n\
-Cambridge, England. Phone: +44 1223 334714.\n\
-\n\
-Copyright (c) 1997-2008 University of Cambridge\n\
-All rights reserved.\n\
-\n\
-\n\
-THE C++ WRAPPER FUNCTIONS\n\
--------------------------\n\
-\n\
-Contributed by:   Google Inc.\n\
-\n\
-Copyright (c) 2005, Google Inc.\n\
-All rights reserved.\n\
-\n\
-\n\
-THE 'BSD' LICENCE\n\
------------------\n\
-"
-
-// Windows has a dumb restriction on the length of literal strings ...
-
-"\n\
-Redistribution and use in source and binary forms, with or without\n\
-modification, are permitted provided that the following conditions are met:\n\
-\n\
-    * Redistributions of source code must retain the above copyright notice,\n\
-      this list of conditions and the following disclaimer.\n\
-\n\
-    * Redistributions in binary form must reproduce the above copyright\n\
-      notice, this list of conditions and the following disclaimer in the\n\
-      documentation and/or other materials provided with the distribution.\n\
-\n\
-    * Neither the name of the University of Cambridge nor the name of Google\n\
-      Inc. nor the names of their contributors may be used to endorse or\n\
-      promote products derived from this software without specific prior\n\
-      written permission.\n\
-\n\
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS'\n\
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n\
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE\n\
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE\n\
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR\n\
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF\n\
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS\n\
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN\n\
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)\n\
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n\
-POSSIBILITY OF SUCH DAMAGE.\n\
-\n\
-End\n\
-";
-
 static char bsd_license[] = "\
 Copyright (c) 1990, 2008\n\
     The Regents of the University of California.  All rights reserved.\n\
@@ -169,6 +56,75 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT\n\
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY\n\
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF\n\
 SUCH DAMAGE.\n\
+";
+
+static char cjson_license[] = "\
+Copyright (c) 2009-2017 Dave Gamble and cJSON contributors\n\
+\n\
+Permission is hereby granted, free of charge, to any person obtaining a copy\n\
+of this software and associated documentation files (the \"Software\"), to deal\n\
+in the Software without restriction, including without limitation the rights\n\
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n\
+copies of the Software, and to permit persons to whom the Software is\n\
+furnished to do so, subject to the following conditions:\n\
+\n\
+The above copyright notice and this permission notice shall be included in\n\
+all copies or substantial portions of the Software.\n\
+\n\
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n\
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n\
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n\
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n\
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n\
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n\
+THE SOFTWARE.\n\
+";
+
+static char pcre2_license[] = "\
+           Copyright (c) 2016-2024 University of Cambridge\n\
+\n\
+-----------------------------------------------------------------------------\n\
+Redistribution and use in source and binary forms, with or without\n\
+modification, are permitted provided that the following conditions are met:\n\
+\n\
+    * Redistributions of source code must retain the above copyright notice,\n\
+      this list of conditions and the following disclaimer.\n\
+\n\
+    * Redistributions in binary form must reproduce the above copyright\n\
+      notice, this list of conditions and the following disclaimer in the\n\
+      documentation and/or other materials provided with the distribution.\n\
+\n\
+    * Neither the name of the University of Cambridge nor the names of its\n\
+      contributors may be used to endorse or promote products derived from\n\
+      this software without specific prior written permission.\n\
+\n\
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\n\
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n\
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE\n\
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE\n\
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR\n\
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF\n\
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS\n\
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN\n\
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)\n\
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n\
+POSSIBILITY OF SUCH DAMAGE.\n\
+";
+
+static char trio_license[] = "\
+Trio is a package with portable string functions. Including printf() clones\n\
+and others.\n\
+\n\
+ Copyright (C) 1998-2006 by Bjorn Reese and Daniel Stenberg.\n\
+\n\
+ Permission to use, copy, modify, and distribute this software for any\n\
+ purpose with or without fee is hereby granted, provided that the above\n\
+ copyright notice and this permission notice appear in all copies.\n\
+\n\
+ THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED\n\
+ WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF\n\
+ MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND\n\
+ CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.\n\
 ";
 
 static char xxhash_license[] = "\
@@ -229,7 +185,7 @@ about_client(void)
 {
     print_license("BSD", bsd_license);
     print_license("cJSON", cjson_license);
-    print_license("PCRE", pcre_license);
+    print_license("PCRE", pcre2_license);
     print_license("TRIO", trio_license);
     print_license("XXHASH", xxhash_license);
 }

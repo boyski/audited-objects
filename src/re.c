@@ -16,15 +16,15 @@
  */
 
 /// @file
-/// @brief Support for PCRE regular expressions.
+/// @brief Support for PCRE2 regular expressions.
 /// Note that although we try to encapsulate ancillary technologies
 /// such as HTTP, regular expressions, compression, hashing, etc.
 /// to make it easier to swap out one such library for another,
 /// full abstraction is not always possible. That applies here;
-/// even though all interaction with PCRE is channeled through
+/// even though all interaction with PCRE2 is channeled through
 /// this file, the regular expressions themselves are going to
-/// be in PCRE dialect and any change in the RE engine is likely
-/// to risk subtle incompatibilities. Fortunately PCRE is a very
+/// be in PCRE2 dialect and any change in the RE engine is likely
+/// to risk subtle incompatibilities. Fortunately PCRE2 is a very
 /// solid technology and there's no reason to think it will ever
 /// need to be replaced.
 
@@ -33,31 +33,45 @@
 #include "PROP.h"
 #include "RE.h"
 
-#include "pcre.h"
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include "pcre2.h"
 
 /** @cond static */
-/* See pcreapi man page and pcredemo.c sample program (www.pcre.org). */
-#define OVECCNT					30
+/* PCRE2 uses a different approach for output vectors */
+#define OVECCNT 15  /* PCRE2 uses pairs - 15 pairs == 30 elements */
 /** @endcond static */
 
 /* Documented in the header to avoid triggering some doxygen problem. */
 void *
 re_init__(CCS name, CCS restr)
 {
-    pcre *re = NULL;
-    const char *error;
-    int erroffset;
-    int opts = PCRE_UTF8;
+    pcre2_code *re = NULL;
+    PCRE2_SIZE erroffset;
+    int errorcode;
+    uint32_t opts = PCRE2_UTF;
 
 #if defined(__APPLE__)
-    opts |= PCRE_CASELESS;
-#endif	// __APPLE__
+    opts |= PCRE2_CASELESS;
+#endif // __APPLE__
 
     vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
 
-    if (*restr && !(re = pcre_compile(restr, opts, &error, &erroffset, NULL))) {
-	putil_warn("compilation of RE '%s' failed at offset %d: %s",
-		   name, erroffset, error);
+    if (*restr) {
+        re = pcre2_compile(
+            (PCRE2_SPTR8)restr,      /* pattern */
+            PCRE2_ZERO_TERMINATED,   /* length */
+            opts,                    /* options */
+            &errorcode,              /* error code */
+            &erroffset,              /* error offset */
+            NULL                     /* compile context */
+        );
+
+        if (!re) {
+            PCRE2_UCHAR buffer[256];
+            pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
+            putil_warn("compilation of RE '%s' failed at offset %zu: %s",
+                       name, erroffset, buffer);
+        }
     }
 
     return re;
@@ -99,7 +113,8 @@ re_init_prop__(prop_e prop)
 CCS
 re_match__(void *re, CCS str)
 {
-    int ovec[OVECCNT];
+    pcre2_match_data *match_data;
+    PCRE2_SIZE *ovector;
     int rc;
     static char match[256];
 
@@ -110,13 +125,38 @@ re_match__(void *re, CCS str)
 	return NULL;
     }
 
-    rc = pcre_exec((pcre *) re, NULL, str, (int)strlen(str),
-		   0, 0, ovec, OVECCNT);
+    /* Create match data block */
+    match_data = pcre2_match_data_create_from_pattern((pcre2_code *)re, NULL);
+    if (!match_data) {
+        return NULL;
+    }
+
+    rc = pcre2_match(
+        (pcre2_code *)re,           /* compiled pattern */
+        (PCRE2_SPTR8)str,           /* subject string */
+        strlen(str),                /* subject length */
+        0,                          /* start offset */
+        0,                          /* options */
+        match_data,                 /* match data */
+        NULL                        /* match context */
+    );
+
     if (rc < 0) {
-	return NULL;
+        pcre2_match_data_free(match_data);
+        return NULL;
     } else {
-	(void)pcre_copy_substring(str, ovec, rc, 0, match, charlen(match));
-	return match;
+        ovector = pcre2_get_ovector_pointer(match_data);
+        PCRE2_SIZE length = ovector[1] - ovector[0];
+
+        /* Copy the matched substring */
+        if (length >= sizeof(match)) {
+            length = sizeof(match) - 1;
+        }
+        memcpy(match, str + ovector[0], length);
+        match[length] = '\0';
+
+        pcre2_match_data_free(match_data);
+        return match;
     }
 }
 
@@ -124,14 +164,20 @@ re_match__(void *re, CCS str)
 void
 re_fini__(void **re)
 {
-    pcre_free(*re);
+    pcre2_code_free((pcre2_code *)*re);
     *re = NULL;
 }
 
 const char *
 re_version(void)
 {
-    return pcre_version();
+    static char version_buffer[64];
+
+    if (pcre2_config(PCRE2_CONFIG_VERSION, version_buffer) >= 0) {
+        return version_buffer;
+    } else {
+        return "PCRE2 (version unknown)";
+    }
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

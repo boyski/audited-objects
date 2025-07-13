@@ -174,7 +174,7 @@ TARGETS := $(AOTOOL) $(LIBAO)
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS := -lcjson -lkaz -lpcre -ltrio
+DLL_LIBS := -lcjson -lkaz -lpcre2-8 -ltrio
 
 OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 

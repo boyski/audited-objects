@@ -30,11 +30,11 @@
 /// The set of defined properties, not all of them published to users.
 /// The list is kept in alphabetical order after a couple of special
 /// cases which makes the help output more readable among other things.
-/// <B>NOTE: THESE MUST BE KEPT IN SYNC WITH 'proptab' IN prop.c!</B>
+/// *NOTE: THESE MUST BE KEPT IN SYNC WITH 'proptab' in prop.c!*
 typedef enum {
     P_BADPROP = -1,
     P_APP,
-    // Alphabetical from here ...
+    // Alphabetical from here.
     P_ABSOLUTE_PATHS,
     P_ACTIVATION_PROG_RE,
     P_AGGREGATED_SUBCMD,

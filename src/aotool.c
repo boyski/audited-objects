@@ -38,10 +38,8 @@
 #include "TEE.h"
 #include "UW.h"
 
-#include "curl/curl.h"
-#include "pcre.h"
-// #include "git2.h"  /* not yet in use */
-#include "zlib.h"
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include "pcre2.h"
 
 #include "About/about.c"	// NOTE: including a .c file!
 
@@ -161,7 +159,7 @@ _print_version(int full)
 	fputs(" (DEBUG)", stdout);
 #endif	// _DEBUG
 	fputs("\n", stdout);
-	printf("pcre=%s\n", re_version());
+	printf("pcre2=%s\n", re_version());
 	printf("kazlib=1.20\n"); // Abandoned, will never change
 	printf("trio=1.14\n");	// TODO - hack
     }

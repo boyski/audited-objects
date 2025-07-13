@@ -23,21 +23,30 @@ import site
 # Update sys.path to find required library modules.
 site.addsitedir(op.dirname(op.realpath(__file__)))
 
-CA_SPLITS = 13
-PA_SPLITS = 16
-SEP = ','
-
 
 class PathAction():
     """Parse PA data into its component parts."""
 
     def __init__(self, desc):
         if isinstance(desc, str):
-            fields = desc.rstrip().split(SEP, PA_SPLITS)
-            self.dcode = fields[14]
+            fields = desc.rstrip().split(',', 16)
             self.op = fields[0]
-            self.path2 = fields[-2]
-            self.path = fields[-1]
+            self.call = fields[1]
+            self.ccode = fields[8]
+            self.datatype = fields[9]
+            self.dcode = fields[14]
+            self.depth = fields[4]
+            self.fsname = fields[10]
+            self.mode = fields[13]
+            self.mtime = fields[11]
+            self.path = fields[16]
+            self.path2 = fields[15]
+            self.pccode = fields[7]
+            self.pid = fields[3]
+            self.ppid = fields[5]
+            self.size = fields[12]
+            self.tid = fields[6]
+            self.timestamp = fields[2]
         else:
             self.call = desc['CALL']
             self.ccode = desc['CCODE']
@@ -160,10 +169,21 @@ class CommandAction():
 
     def __init__(self, desc):
         if isinstance(desc, str):
-            fields = desc.rstrip().split(SEP, CA_SPLITS)
-            self.cmdline = fields[-1]
+            fields = desc.rstrip().split(',', 13)
+            self.cmdline = fields[13]
+            self.depth = fields[1]
+            self.duration = fields[4]
+            self.freetext = fields[7]
+            self.host = fields[5]
+            self.pathcode = fields[12]
+            self.ccode = fields[11]
+            self.pccode = fields[10]
+            self.pid = fields[0]
+            self.ppid = fields[2]
             self.prog = fields[8]
+            self.recycled = fields[6]
             self.rwd = fields[9]
+            self.started = fields[3]
         else:
             self.cmdline = desc['CMDLINE']
             self.depth = desc['DEPTH']

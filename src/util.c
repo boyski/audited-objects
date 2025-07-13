@@ -484,13 +484,9 @@ util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
     for (total = 0; total < len;) {
 	n = send(fd, (const char *)buf + total, len - total, flags);
 	if (n < 0) {
-#if defined(EINTR)
 	    if (errno != EINTR) {
 		return -1;
 	    }
-#else // EINTR
-		return -1;
-#endif // EINTR
 	}
 	total += n;
     }
@@ -521,15 +517,11 @@ util_read_all(int fd, void *vptr, size_t n)
     nleft = n;
     while (nleft > 0) {
 	if ((nread = read(fd, ptr, nleft)) < 0) {
-#if defined(EINTR)
 	    if (errno == EINTR) {
 		nread = 0;	/* and call read() again */
 	    } else {
 		return -1;
 	    }
-#else	     // EINTR
-		return -1;
-#endif	     // EINTR
 	} else if (nread == 0) {
 	    break;		/* EOF */
 	}

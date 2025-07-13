@@ -453,11 +453,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	sret = select(sockmax + 1, &read_fds, NULL, NULL, &timeout);
 
 	if (sret == SOCKET_ERROR) {
-#if defined(EINTR)
 	    if (errno == EINTR) {
 		continue;
 	    }
-#endif // EINTR
 	    putil_syserr(2, "select");
 	}
 

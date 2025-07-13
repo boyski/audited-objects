@@ -362,11 +362,9 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
     for (p = buf;;) {
 	ret = recv(*sockp, p, len - (p - buf), 0);
 	if (ret == INVALID_SOCKET) {
-#if defined(EINTR)
 	    if (errno == EINTR) {
 		continue;
 	    }
-#endif	// EINTR
 	    putil_syserr(2, "recv()");
 	    break;
 	} else if (ret == 0) {
@@ -691,11 +689,9 @@ _audit_end(CCS call, int exiting, long status)
 
 	    while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
 		if (n == -1) {
-#if defined(EINTR)
 		    if (errno == EINTR) {
 			continue;
 		    }
-#endif	// EINTR
 		    putil_syserr(2, "read");
 		}
 		_monitor_send(&ReportSocket, buf, n);

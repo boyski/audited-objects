@@ -55,12 +55,9 @@ tee_into(const char *into)
 	if (nread == 0) {
 	    break;
 	} else if (nread < 0) {
-#ifdef EINTR
-	    if (errno == EINTR)
-		continue;
-	    else
-#endif
+	    if (errno != EINTR) {
 		putil_syserr(2, "read");
+	    }
 	}
 
 	if (timestamp_prefix) {

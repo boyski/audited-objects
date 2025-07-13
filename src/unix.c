@@ -156,7 +156,7 @@ static FILE *logfp = NULL;
 /// child command. The child command is run via fork/exec/wait while
 /// this process sticks around to become the "monitor".
 /// The monitor waits for the child to exit and in the meantime it
-/// processes audit reports sent from exiting subordinate commands.
+/// processes audit reports sent from subordinate commands as they exit.
 /// @param[in] exe      the path to this program (not the audited program)
 /// @param[in] argv     a standard arg vector such as is passed to main()
 /// @param[in] logfile  the name of a file to which log data is written, or NULL
@@ -483,8 +483,10 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		found++;
 	    }
 
-	    if (found)
+	    // ????
+	    if (found) {
 		continue;
+	    }
 	}
 
 	// This can be turned on with a signal.

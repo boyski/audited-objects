@@ -237,8 +237,9 @@ util_get_rwd(void)
 	CCS pbase;
 	size_t plen;
 
-	if ((pbase = prop_get_str(P_BASE_DIR)))
+	if ((pbase = prop_get_str(P_BASE_DIR))) {
 	    plen = strlen(pbase);
+	}
 
 	if (pbase && !pathncmp(cwd, pbase, plen)) {
 	    CCS p;
@@ -512,8 +513,9 @@ util_read_all(int fd, void *vptr, size_t n)
     ssize_t nread;
     char *ptr;
 
-    if (fd < 0)
+    if (fd < 0) {
 	return -1;
+    }
 
     ptr = (char *)vptr;
     nleft = n;
@@ -560,8 +562,9 @@ util_write_all(int fd, const void *vptr, size_t n)
 
 	    w = write(fd, p, n);
 	    if (w < 0) {
-		if (errno != EAGAIN && errno != EINTR)
+		if (errno != EAGAIN && errno != EINTR) {
 		    return -1;
+		}
 		continue;
 	    }
 	    sofar += w;
@@ -1003,8 +1006,9 @@ util_unescape(const char *string, int length, int *olen)
     int strindex = 0;
     long hex;
 
-    if (!ns)
+    if (!ns) {
 	return NULL;
+    }
 
     while (--alloc > 0) {
 	in = *string;
@@ -1030,9 +1034,10 @@ util_unescape(const char *string, int length, int *olen)
     }
     ns[strindex] = 0;		/* terminate it */
 
-    if (olen)
+    if (olen) {
 	/* store output size */
 	*olen = strindex;
+    }
     return ns;
 }
 

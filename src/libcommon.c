@@ -949,8 +949,9 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Push the current ccode into the environment as the
     // parent ccode. From here on the environment will be a lie
     // but we have the truth in the CA object.
-    if (prop_has_value(P_PCCODE))
+    if (prop_has_value(P_PCCODE)) {
 	prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
+    }
 
     // Special case - show the program itself as a file that we read
     // (because it is and we did).

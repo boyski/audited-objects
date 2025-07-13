@@ -79,26 +79,30 @@ _zips_clear_file_extra(unsigned char **p1, off_t *p2, size_t extra_len,
 	memcpy(&eh, data, sizeof(eh));
 	ADVANCE(sizeof(eh));
 	len = _get_u16(eh.data_size);
-	if (extra_len < sizeof(eh) + len)
+	if (extra_len < sizeof(eh) + len) {
 	    return -1;
+	}
 	extra_len -= sizeof(eh) + len;
 	if (memcmp(eh.id, eh_id_zip64, sizeof(eh_id_zip64)) == 0) {
 	    *is_zip64 = 1;
-	    if (compressed_size != NULL)
+	    if (compressed_size != NULL) {
 		*compressed_size = _get_u64(data + 8);
+	    }
 	    ADVANCE(len);
-	} else if (memcmp(eh.id, eh_id_ext_timestamp,
-			  sizeof(eh_id_ext_timestamp)) == 0) {
-	    if (len < 1)
+	} else if (memcmp(eh.id, eh_id_ext_timestamp, sizeof(eh_id_ext_timestamp)) == 0) {
+	    if (len < 1) {
 		return -1;
+	    }
 	    ADVANCE(1);		/* Time presence flags */
 	    memset(data, 0, len - 1);	/* mtime, atime, ctime - if present */
 	    ADVANCE(len - 1);
-	} else
+	} else {
 	    ADVANCE(len);
+	}
     }
-    if (extra_len != 0)
+    if (extra_len != 0) {
 	return -1;
+    }
     *p1 = data;
     *p2 = size_left;
     return 0;
@@ -163,10 +167,11 @@ _zips_clear_one_file(unsigned char **p1, off_t *p2)
 	if ((size_t)size_left >= sizeof(file_descriptor_signature) &&
 		memcmp(data, file_descriptor_signature, sizeof(file_descriptor_signature)) == 0)
 	    ADVANCE(sizeof(file_descriptor_signature));
-	if (is_zip64)
+	if (is_zip64) {
 	    len = sizeof(struct file_descriptor_zip64);
-	else
+	} else {
 	    len = sizeof(struct file_descriptor_zip32);
+	}
 	ADVANCE(len);
     }
     *p1 = data;
@@ -228,8 +233,9 @@ zips_clear_file(void *data_, off_t total_size)
     size_left = total_size;
     /* File data */
     while (size_left >= (off_t)sizeof(struct file_header) && SIGNATURE_MATCHES(data, file_header)) {
-	if (_zips_clear_one_file(&data, &size_left) != 0)
+	if (_zips_clear_one_file(&data, &size_left) != 0) {
 	    return -1;
+	}
     }
     /* Archive decryption header would go here. */
     if ((size_t)size_left >= sizeof(struct archive_extra_data) &&
@@ -239,8 +245,9 @@ zips_clear_file(void *data_, off_t total_size)
     }
     while ((size_t)size_left >= (off_t)sizeof(struct cd_file) &&
 	   SIGNATURE_MATCHES(data, cd_file)) {
-	if (_zips_clear_one_cd_file(&data, &size_left) != 0)
+	if (_zips_clear_one_cd_file(&data, &size_left) != 0) {
 	    return -1;
+	}
     }
     if ((size_t)size_left >= sizeof(struct cd_signature) && SIGNATURE_MATCHES(data, cd_signature)) {
 	len = _get_u16(data + offsetof(struct cd_signature, data_length));

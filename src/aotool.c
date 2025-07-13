@@ -905,8 +905,9 @@ main(int argc, CS *argv)
 	if ((logprop = prop_get_str(P_LOG_FILE))) {
 	    (void)util_substitute_params(logprop, &logfile);
 	    // In case it's present but unwriteable.
-	    if (logfile)
+	    if (logfile && access(logfile, W_OK)) {
 		(void)unlink(logfile);
+	    }
 	}
 
 	// Work out the name of the roadmap file and store the result.
@@ -970,8 +971,9 @@ main(int argc, CS *argv)
 		for (envp = pblock + 1; *envp; envp++) {
 		    char *t;
 
-		    if (**envp == '_')
+		    if (**envp == '_') {
 			continue;
+		    }
 
 		    fputs(": export ", fp);
 		    for (t = *envp; *t && *t != '='; t++) {

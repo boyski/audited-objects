@@ -25,28 +25,26 @@ You should have received a copy of the GNU Affero General Public License\n\
 along with this program.  If not, see <http://www.gnu.org/licenses/>.\n\
 ";
 
-static char curl_license[] = "\
-COPYRIGHT AND PERMISSION NOTICE\n\
+static char cjson_license[] = "\
+Copyright (c) 2009-2017 Dave Gamble and cJSON contributors\n\
 \n\
-Copyright (c) 1996 - 2008, Daniel Stenberg, <daniel@haxx.se>.\n\
+Permission is hereby granted, free of charge, to any person obtaining a copy\n\
+of this software and associated documentation files (the \"Software\"), to deal\n\
+in the Software without restriction, including without limitation the rights\n\
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n\
+copies of the Software, and to permit persons to whom the Software is\n\
+furnished to do so, subject to the following conditions:\n\
 \n\
-All rights reserved.\n\
-\n\
-Permission to use, copy, modify, and distribute this software for any purpose\n\
-with or without fee is hereby granted, provided that the above copyright\n\
-notice and this permission notice appear in all copies.\n\
+The above copyright notice and this permission notice shall be included in\n\
+all copies or substantial portions of the Software.\n\
 \n\
 THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n\
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n\
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN\n\
-NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,\n\
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR\n\
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE\n\
-OR OTHER DEALINGS IN THE SOFTWARE.\n\
-\n\
-Except as contained in this notice, the name of a copyright holder shall not\n\
-be used in advertising or otherwise to promote the sale, use or other dealings\n\
-in this Software without prior written authorization of the copyright holder.\n\
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n\
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n\
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n\
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n\
+THE SOFTWARE.\n\
 ";
 
 static char trio_license[] = "\
@@ -63,29 +61,6 @@ and others.\n\
  WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF\n\
  MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND\n\
  CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.\n\
-";
-
-static char zlib_license[] = "\
-Copyright (C) 1995-2003 Jean-loup Gailly and Mark Adler\n\
-\n\
-This software is provided 'as-is', without any express or implied\n\
-warranty.  In no event will the authors be held liable for any damages\n\
-arising from the use of this software.\n\
-\n\
-Permission is granted to anyone to use this software for any purpose,\n\
-including commercial applications, and to alter it and redistribute it\n\
-freely, subject to the following restrictions:\n\
-\n\
-1. The origin of this software must not be misrepresented; you must not\n\
-   claim that you wrote the original software. If you use this software\n\
-   in a product, an acknowledgment in the product documentation would be\n\
-   appreciated but is not required.\n\
-2. Altered source versions must be plainly marked as such, and must not be\n\
-   misrepresented as being the original software.\n\
-3. This notice may not be removed or altered from any source distribution.\n\
-\n\
-Jean-loup Gailly        Mark Adler\n\
-jloup@gzip.org          madler@alumni.caltech.edu\n\
 ";
 
 static char pcre_license[] = "\
@@ -252,16 +227,10 @@ void about_client(void);
 void
 about_client(void)
 {
-    print_license("CURL", curl_license);
-
-    print_license("TRIO", trio_license);
-
-    print_license("ZLIB", zlib_license);
-
-    print_license("PCRE", pcre_license);
-
     print_license("BSD", bsd_license);
-
+    print_license("cJSON", cjson_license);
+    print_license("PCRE", pcre_license);
+    print_license("TRIO", trio_license);
     print_license("XXHASH", xxhash_license);
 }
 

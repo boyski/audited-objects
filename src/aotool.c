@@ -359,6 +359,7 @@ _action(CCS action, int argc, CS const *argv)
 	    fputs("This software incorporates all or parts ", stdout);
 	    fputs("of the following, whose\ncontributions ", stdout);
 	    fputs("are gratefully acknowledged:\n\n", stdout);
+	    about_client();
 	}
 	_print_version(0);
     } else if (streq(action, "help")) {

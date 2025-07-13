@@ -1,11 +1,12 @@
+# There are some obsolete symbols mentioned here but they do no harm.
+# TODO clean them up eventually.
 V1.0 {
     local:
 	_libinterposer_*;
 	_pcre_*;
 	_putil_*;
 	_real_*;
-	Curl_*;
-	MurmurHash2;
+	XXH3_*;
 	adler*;
 	auditor_*;
 	ca_*;

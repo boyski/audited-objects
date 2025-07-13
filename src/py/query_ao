@@ -87,8 +87,8 @@ def main():
         '-V', '--verbosity', action='store_true',
         help='enable exec verbosity')
     parser.add_argument(
-        'input', nargs='*', default=['-'],
-        help='optional audit file')
+        'input', nargs='*', default=['/dev/stdin'],
+        help='audit file (default: stdin)')
     opts = parser.parse_args()
 
     childx.set_xtrace(opts.verbosity)

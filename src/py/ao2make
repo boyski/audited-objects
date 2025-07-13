@@ -395,14 +395,10 @@ def full(calist, opts):
     clean = Phony('clean', recipe=f'$(RM) {tgtvar.expand()}')
     mf.append(clean)
 
-    if opts.output and opts.output != '-':
-        f = open(opts.output, mode='w', encoding='utf-8')
-    else:
-        f = sys.stdout
-
-    if mf.basevar:
-        f.write(repr(mf.basevar) + '\n\n')
-    f.write(repr(mf))
+    with open(opts.output, mode='w', encoding='utf-8') as f:
+        if mf.basevar:
+            f.write(repr(mf.basevar) + '\n\n')
+        f.write(repr(mf))
 
 
 def includes(calist, opts):
@@ -447,7 +443,7 @@ def main():
         '--no-gnu', action='store_true',
         help='avoid GNU make features')
     parser.add_argument(
-        '-o', '--output',
+        '-o', '--output', default='/dev/stdout',
         help='write Makefile data to the specified file')
     parser.add_argument(
         '--parallel', action='store_true',
@@ -468,7 +464,7 @@ def main():
         '-V', '--verbosity', action='store_true',
         help='enable exec verbosity')
     parser.add_argument(
-        'input', nargs='*', default=['-'],
+        'input', nargs='*', default=['/dev/stdin'],
         help='audit file(s) (default: stdin)')
     opts = parser.parse_args()
 

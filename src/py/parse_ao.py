@@ -76,6 +76,8 @@ def parse(infiles):
 
     calist = []
     for path in infiles:
+        if path == '-':
+            path = '/dev/stdin'
         with open(path, encoding='utf-8') as f:
             contents = f.read()
 

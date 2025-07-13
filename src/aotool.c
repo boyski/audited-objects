@@ -126,7 +126,6 @@ _usage(int rc)
     _usg_line(fp, "-o file", P_OUTPUT_FILE, NULL);
     _usg_line(fp, "-p name", P_PROJECT_NAME, NULL);
     fprintf(fp, USAGE_FMT, "-q", "Quiet mode: suppress verbosity");
-    _usg_line(fp, "-s host:port", P_SERVER, NULL);
     _usg_line(fp, "-t", P_PRINT_ELAPSED, NULL);
     _usg_line(fp, "-u", P_UPLOAD_ONLY, NULL);
     fprintf(fp, USAGE_FMT, "-vXX,YY,ZZ", "Set verbosity flags (use -v? to see choices");
@@ -443,8 +442,7 @@ main(int argc, CS *argv)
 	int c;
 
 	// *INDENT-OFF*
-	static CS short_opts =
-	    "+1adhl:mo:p:qrs:tuv::wxAC:DEF:H::LM:O:PQRSTUV:W:XY";
+	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::LM:O:PRSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
@@ -456,7 +454,7 @@ main(int argc, CS *argv)
 	    {"dtrace",		required_argument, NULL, LF('D', 'T')},
 	    {"client-platform",	required_argument, NULL, LF('C', 'P')},
 	    {"error-strict",	no_argument,	   NULL, 'E'},
-	    {"make-file",	required_argument, NULL, 'F'},
+	    {"make-file",	required_argument, NULL, 'f'},
 	    {"help",		no_argument,	   NULL, 'h'},
 	    {"Help",		optional_argument, NULL, 'H'},
 	    {"properties",	optional_argument, NULL, LF('P', '*')},
@@ -472,10 +470,8 @@ main(int argc, CS *argv)
 	    {"pager",		no_argument,	   NULL, 'P'},
 	    {"profile",		no_argument,	   NULL, LF('P', '%')},
 	    {"quiet",		no_argument,	   NULL, 'q'},
-	    {"extra-quiet",	no_argument,	   NULL, 'Q'},
 	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
 	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
-	    {"server",		required_argument, NULL, 's'},
 	    {"strict",		no_argument,	   NULL, 'S'},
 	    {"script",		required_argument, NULL, LF('s', 'c')},
 	    {"print-elapsed",	no_argument,	   NULL, 't'},
@@ -589,7 +585,7 @@ main(int argc, CS *argv)
 		}
 		break;
 
-	    case 'F':
+	    case 'f':
 		prop_override_str(P_MAKE_FILE, bsd_optarg);
 		break;
 
@@ -630,9 +626,6 @@ main(int argc, CS *argv)
 		putil_putenv("LD_PROFILE=" AUDITOR);
 		break;
 
-	    case 'Q':
-		prop_override_str(P_SERVER_LOG_LEVEL, "WARN");
-		// fallthrough
 	    case 'q':
 		QuietMode = 1;
 		vb_addstr("-");
@@ -646,10 +639,6 @@ main(int argc, CS *argv)
 	    case 'r':
 		prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
 		prop_override_true(P_LEAVE_ROADMAP);
-		break;
-
-	    case 's':
-		prop_override_str(P_SERVER, bsd_optarg);
 		break;
 
 	    case 'S':
@@ -733,7 +722,6 @@ main(int argc, CS *argv)
 	    case 'X':
 		prop_override_true(P_EXECUTE_ONLY);
 		prop_put_ulong(P_PRINT_ELAPSED, 1);
-		prop_unset(P_SERVER, 1);
 		break;
 
 	    case 'Y':

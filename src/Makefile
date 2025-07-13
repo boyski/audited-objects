@@ -52,7 +52,7 @@ define WFLAGS :=
   -Wcast-align
   -Werror
   -Wextra
-  -Wformat=2 -Wno-format-nonliteral
+  -Wformat=2
   -Winit-self
   -Wmissing-prototypes
   -Wno-ignored-qualifiers

@@ -51,6 +51,9 @@
 
 /// @cond static
 #define ROADMAP_DEFAULT_NAME		"roadmap.cdb"
+
+#define HELP_FMT "%-12s - %s\n"
+#define USAGE_FMT "   %-15s %s\n"
 /// @endcond static
 
 /// Macro for making unique long flags with getopt_long(). Some long
@@ -78,20 +81,20 @@ _print_elapsed_time(void)
 
 // Internal service routine. Print a usage message line for a property.
 static void
-_usg_line(FILE *fp, CCS fmt, CCS flag, prop_e prop, CCS desc)
+_usg_line(FILE *fp, CCS flag, prop_e prop, CCS desc)
 {
     if (!prop_is_public(prop)) {
 	return;
     }
 
     if (desc) {
-	fprintf(fp, fmt, flag, desc);
+	fprintf(fp, USAGE_FMT, flag, desc);
     } else {
 	char buf[1024];
 
 	snprintf(buf, charlen(buf), "%s [=%s]",
 	    prop_desc(prop), prop_to_name(prop));
-	fprintf(fp, fmt, flag, buf);
+	fprintf(fp, USAGE_FMT, flag, buf);
     }
 }
 
@@ -100,7 +103,6 @@ static void
 _usage(int rc)
 {
     FILE *fp;
-    CCS fmt = "   %-15s %s\n";
     CCS prog;
 
     prog = prop_get_str(P_PROGNAME);
@@ -111,30 +113,28 @@ _usage(int rc)
     fprintf(fp, " { make | run <prog> | <action> } [args...]\n");
     fprintf(fp, "FLAGS:\n");
 
-    fprintf(fp, fmt, "-h", "Print this usage summary");
-    fprintf(fp, fmt, "-H", "Print current properties");
-    _usg_line(fp, fmt, "-a", P_ABSOLUTE_PATHS, NULL);
-    fprintf(fp, fmt, "-C dir", "Change to dir before doing anything");
-    _usg_line(fp, fmt, "-d", P_DOWNLOAD_ONLY, NULL);
-    _usg_line(fp, fmt, "-F file", P_MAKE_FILE, NULL);
-    _usg_line(fp, fmt, "-l file", P_LOG_FILE, NULL);
-    _usg_line(fp, fmt, "-L", P_LOG_FILE_TEMP, NULL);
-    _usg_line(fp, fmt, "-MD", P_MAKE_DEPENDS, NULL);
-    _usg_line(fp, fmt, "-m", P_MEMBERS_ONLY, NULL);
-    _usg_line(fp, fmt, "-o file", P_OUTPUT_FILE, NULL);
-    _usg_line(fp, fmt, "-p name", P_PROJECT_NAME, NULL);
-    fprintf(fp, fmt, "-q", "Quiet mode: suppress verbosity");
-    _usg_line(fp, fmt, "-s host:port", P_SERVER, NULL);
-    _usg_line(fp, fmt, "-t", P_PRINT_ELAPSED, NULL);
-    _usg_line(fp, fmt, "-u", P_UPLOAD_ONLY, NULL);
-    fprintf(fp, fmt, "-vXX,YY,ZZ",
-	"Set verbosity flags (use -v? to see choices");
-    fprintf(fp, fmt, "--version", "Print version and exit");
-    fprintf(fp, fmt, "-w", "Explain why commands cannot be recycled");
-    fprintf(fp, fmt, "-Wm,flag,value",
-	"Pass -flag=value to makefile generator");
-    fprintf(fp, fmt, "-x", "Print each command line as executed");
-    _usg_line(fp, fmt, "-X", P_EXECUTE_ONLY, NULL);
+    fprintf(fp, USAGE_FMT, "-h", "Print this usage summary");
+    fprintf(fp, USAGE_FMT, "-H", "Print current properties");
+    _usg_line(fp, "-a", P_ABSOLUTE_PATHS, NULL);
+    fprintf(fp, USAGE_FMT, "-C dir", "Change to dir before doing anything");
+    _usg_line(fp, "-d", P_DOWNLOAD_ONLY, NULL);
+    _usg_line(fp, "-F file", P_MAKE_FILE, NULL);
+    _usg_line(fp, "-l file", P_LOG_FILE, NULL);
+    _usg_line(fp, "-L", P_LOG_FILE_TEMP, NULL);
+    _usg_line(fp, "-MD", P_MAKE_DEPENDS, NULL);
+    _usg_line(fp, "-m", P_MEMBERS_ONLY, NULL);
+    _usg_line(fp, "-o file", P_OUTPUT_FILE, NULL);
+    _usg_line(fp, "-p name", P_PROJECT_NAME, NULL);
+    fprintf(fp, USAGE_FMT, "-q", "Quiet mode: suppress verbosity");
+    _usg_line(fp, "-s host:port", P_SERVER, NULL);
+    _usg_line(fp, "-t", P_PRINT_ELAPSED, NULL);
+    _usg_line(fp, "-u", P_UPLOAD_ONLY, NULL);
+    fprintf(fp, USAGE_FMT, "-vXX,YY,ZZ", "Set verbosity flags (use -v? to see choices");
+    fprintf(fp, USAGE_FMT, "--version", "Print version and exit");
+    fprintf(fp, USAGE_FMT, "-w", "Explain why commands cannot be recycled");
+    fprintf(fp, USAGE_FMT, "-Wm,flag,value", "Pass -flag=value to makefile generator");
+    fprintf(fp, USAGE_FMT, "-x", "Print each command line as executed");
+    _usg_line(fp, "-X", P_EXECUTE_ONLY, NULL);
 
     fprintf(fp, "EXAMPLES:\n");
     fprintf(fp, "   %s help\n", prog);
@@ -360,17 +360,15 @@ _action(CCS action, int argc, CS const *argv)
 	}
 	_print_version(0);
     } else if (streq(action, "help")) {
-	const char *fmt = "%-12s - %s\n";
-
 	// This documents actions which are PURELY client-side
 	// aside from the "--" variants.
 	// If they have any server part, e.g. "label" or "ADMIN",
 	// then let the server document them.
-	printf(fmt, "--", "run and audit the specified command");
-	printf(fmt, "hash", "print the AO hash for each named file");
-	printf(fmt, "property", "print the value of the named property");
-	printf(fmt, "stat", "print vital statistics for specified files");
-	printf(fmt, "substitute", "apply standard %-formatting to the input string");
+	printf(HELP_FMT, "--", "run and audit the specified command");
+	printf(HELP_FMT, "hash", "print the AO hash for each named file");
+	printf(HELP_FMT, "property", "print the value of the named property");
+	printf(HELP_FMT, "stat", "print vital statistics for specified files");
+	printf(HELP_FMT, "substitute", "apply standard %-formatting to the input string");
 	printf("\n");
     } else {
 	fprintf(stderr, "%s: Error: unrecognized action '%s'\n", prop_get_str(P_PROGNAME), action);

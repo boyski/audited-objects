@@ -165,6 +165,8 @@ vb_get_stream(void)
     return VerbosityStream ? VerbosityStream : stderr;
 }
 
+#define VB_FMT "%-8s %s\n"
+
 /// Add the named verbosity flags in string form. Verbosity flags are
 /// always appended to existing ones, but the special values "-" or
 /// "off" reset the state to off. Thus the string "xxx,yyy,-,zzz"
@@ -189,12 +191,10 @@ vb_addstr(CCS vbstr)
     if (!vbstr || !*vbstr || (*vbstr == '?') || all) {
 	int i;
 
-	CCS fmt = "%-8s %s\n";
-
-	fprintf(stdout, fmt, "OFF", "No verbosity messages");
+	fprintf(stdout, VB_FMT, "OFF", "No verbosity messages");
 	for (i = 0; vbtab[i].vb_name; i++) {
 	    if (all || (vbtab[i].vb_flags & VBFLAG_PUBLIC)) {
-		fprintf(stdout, fmt, vbtab[i].vb_name, vbtab[i].vb_desc);
+		fprintf(stdout, VB_FMT, vbtab[i].vb_name, vbtab[i].vb_desc);
 	    }
 	}
 	exit(0);

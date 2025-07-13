@@ -130,7 +130,7 @@ def main():
                 if re.search(opts.cmd_path_regex, path):
                     tgtpaths.add(path)
             if srcpaths or tgtpaths:
-                print(f'+ [{ca.rwd}] {ca.line}')
+                print(f'+ [{ca.rwd}] {ca.cmdline}')
                 pathdump('<', sorted(srcpaths), opts)
                 pathdump('>', sorted(tgtpaths), opts)
     else:

@@ -34,15 +34,28 @@ class PathAction():
     def __init__(self, desc):
         if isinstance(desc, str):
             fields = desc.rstrip().split(SEP, PA_SPLITS)
-            self.op = fields[0]
             self.dcode = fields[14]
+            self.op = fields[0]
             self.path2 = fields[-2]
             self.path = fields[-1]
         else:
+            self.call = desc['CALL']
+            self.ccode = desc['CCODE']
+            self.datatype = desc['DATATYPE']
+            self.dcode = desc['DCODE']
+            self.depth = desc['DEPTH']
+            self.fsname = desc['FSNAME']
+            self.mode = desc['MODE']
+            self.mtime = desc['MTIME']
             self.op = desc['OP']
             self.path = desc['PATH']
             self.path2 = desc['PATH2']
-            self.dcode = desc['DCODE']
+            self.pccode = desc['PCCODE']
+            self.pid = desc['PID']
+            self.ppid = desc['PPID']
+            self.size = desc['SIZE']
+            self.tid = desc['TID']
+            self.timestamp = desc['TIMESTAMP']
         self.is_member = not op.isabs(self.path)
 
         # The whole area of symlinks in AO is complicated. From a
@@ -148,15 +161,15 @@ class CommandAction():
     def __init__(self, desc):
         if isinstance(desc, str):
             fields = desc.rstrip().split(SEP, CA_SPLITS)
-            self.line = fields[-1]
+            self.cmdline = fields[-1]
             self.prog = fields[8]
             self.rwd = fields[9]
         else:
-            self.line = desc['CMDLINE']
+            self.cmdline = desc['CMDLINE']
             self.depth = desc['DEPTH']
             self.duration = desc['DURATION']
-            self.host = desc['HOST']
             self.freetext = desc['FREETEXT']
+            self.host = desc['HOST']
             self.pathcode = desc['PATHCODE']
             self.ccode = desc['CCODE']
             self.pccode = desc['PCCODE']
@@ -164,12 +177,12 @@ class CommandAction():
             self.ppid = desc['PPID']
             self.prog = desc['PROG']
             self.recycled = desc['RECYCLED']
-            self.started = desc['STARTED']
             self.rwd = desc['RWD']
+            self.started = desc['STARTED']
         self.pa_set = set()
 
     def __repr__(self):
-        return f'[{self.rwd}] {self.line}'
+        return f'[{self.rwd}] {self.cmdline}'
 
     def add_pa(self, pa):
         """Add a PathAction object to the involved set."""

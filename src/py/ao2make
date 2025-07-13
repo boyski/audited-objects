@@ -380,7 +380,7 @@ def full(calist, opts):
     for ca in calist:
         if not ca.targets():
             continue
-        rule = Rule(ca.targets(), prereqs=ca.prereqs(), recipe=ca.line)
+        rule = Rule(ca.targets(), prereqs=ca.prereqs(), recipe=ca.cmdline)
         mf.append(rule)
         tgts |= set(ca.targets())
 

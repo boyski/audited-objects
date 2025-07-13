@@ -153,7 +153,18 @@ class CommandAction():
             self.rwd = fields[9]
         else:
             self.line = desc['CMDLINE']
+            self.depth = desc['DEPTH']
+            self.duration = desc['DURATION']
+            self.host = desc['HOST']
+            self.freetext = desc['FREETEXT']
+            self.pathcode = desc['PATHCODE']
+            self.ccode = desc['CCODE']
+            self.pccode = desc['PCCODE']
+            self.pid = desc['PID']
+            self.ppid = desc['PPID']
             self.prog = desc['PROG']
+            self.recycled = desc['RECYCLED']
+            self.started = desc['STARTED']
             self.rwd = desc['RWD']
         self.pa_set = set()
 

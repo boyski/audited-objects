@@ -391,6 +391,5 @@ pcre-*
 postgresql-*
 qpopper*
 tar-*
-trio-*
 wget-*
 zlib-*

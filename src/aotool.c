@@ -161,7 +161,6 @@ _print_version(int full)
 	fputs("\n", stdout);
 	printf("pcre2=%s\n", re_version());
 	printf("kazlib=1.20\n"); // Abandoned, will never change
-	printf("trio=1.14\n");	// TODO - hack
     }
 }
 

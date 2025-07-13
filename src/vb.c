@@ -25,6 +25,7 @@
 #include "MOMENT.h"
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <time.h>
 
 #include <grp.h>

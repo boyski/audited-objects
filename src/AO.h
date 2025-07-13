@@ -198,8 +198,6 @@
 
 #include "Putil/putil.h"
 
-#include "trio.h"
-
 /// Support for the dmalloc library...
 #if defined(DMALLOC)
 #include "dmalloc.h"

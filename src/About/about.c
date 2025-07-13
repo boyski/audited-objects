@@ -111,22 +111,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n\
 POSSIBILITY OF SUCH DAMAGE.\n\
 ";
 
-static char trio_license[] = "\
-Trio is a package with portable string functions. Including printf() clones\n\
-and others.\n\
-\n\
- Copyright (C) 1998-2006 by Bjorn Reese and Daniel Stenberg.\n\
-\n\
- Permission to use, copy, modify, and distribute this software for any\n\
- purpose with or without fee is hereby granted, provided that the above\n\
- copyright notice and this permission notice appear in all copies.\n\
-\n\
- THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED\n\
- WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF\n\
- MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND\n\
- CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.\n\
-";
-
 static char xxhash_license[] = "\
 Copyright (C) 2012-2023 Yann Collet\n\
 \n\
@@ -185,8 +169,7 @@ about_client(void)
 {
     print_license("BSD", bsd_license);
     print_license("cJSON", cjson_license);
-    print_license("PCRE", pcre2_license);
-    print_license("TRIO", trio_license);
+    print_license("PCRE2", pcre2_license);
     print_license("XXHASH", xxhash_license);
 }
 

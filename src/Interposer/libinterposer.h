@@ -86,11 +86,11 @@ libinterposer_preload_on(const char *so, const char *base)
     if (ldp && *ldp) {
 	// Currently we put our .so after any existing libraries.
 	// It remains to be seen whether before or after is a better plan.
-	if (trio_asprintf(&nldp, "%s=%s:%s", PRELOAD_EV, ldp, lib_buf) < 0) {
+	if (asprintf(&nldp, "%s=%s:%s", PRELOAD_EV, ldp, lib_buf) < 0) {
 	    _libinterposer_die(NULL);
 	}
     } else {
-	if (trio_asprintf(&nldp, "%s=%s", PRELOAD_EV, lib_buf) < 0) {
+	if (asprintf(&nldp, "%s=%s", PRELOAD_EV, lib_buf) < 0) {
 	    _libinterposer_die(NULL);
 	}
     }

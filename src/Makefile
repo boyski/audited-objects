@@ -52,7 +52,7 @@ define WFLAGS :=
   -Wcast-align
   -Werror
   -Wextra
-  -Wformat=2
+  -Wformat=2 -Wno-format-nonliteral
   -Winit-self
   -Wmissing-prototypes
   -Wno-ignored-qualifiers
@@ -68,9 +68,6 @@ INST_PREFIX := ${HOME}/$(TGTARCH)
 
 GFLAGS := -g
 
-DFLAGS := -D_REENTRANT -DFILE_OFFSET_BITS=64 -DTRIO_REPLACE_STDIO
-DFLAGS += -D_GNU_SOURCE
-
 SHLIBDIR := /lib
 
 ifneq (,$(findstring Linux,$(TGTARCH)))
@@ -79,6 +76,18 @@ ifneq (,$(findstring Linux,$(TGTARCH)))
     SHLIBDIR := /lib64
     LINUX_X86_64 := 1
   endif
+endif
+
+DFLAGS := -D_REENTRANT
+DFLAGS += -DFILE_OFFSET_BITS=64
+DFLAGS += -D_GNU_SOURCE
+
+# Compile in the version number if accessible.
+include App.properties
+ifneq ($(APPLICATION_VERSION),)
+  DFLAGS += -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
+else
+  APPLICATION_VERSION := 0.0
 endif
 
 # Really just used by one target but passed to all for now.
@@ -129,14 +138,6 @@ $(INST_PREFIX)/bin/%: py/% | $$(@D)
 	@chmod u+wx $?
 	@test -L $@ || (set -x; cp -p $< $@)
 
-# Compile in the version number if accessible.
-include App.properties
-ifneq ($(APPLICATION_VERSION),)
-  DFLAGS += -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
-else
-  APPLICATION_VERSION := 0.0
-endif
-
 OBJS := \
   aotool.o \
   bsd_getopt.o \
@@ -174,7 +175,7 @@ TARGETS := $(AOTOOL) $(LIBAO)
 # once so it doesn't matter. Though linking them both statically
 # may be logistically simpler.
 
-DLL_LIBS := -lcjson -lkaz -lpcre2-8 -ltrio
+DLL_LIBS := -lcjson -lkaz -lpcre2-8
 
 OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 

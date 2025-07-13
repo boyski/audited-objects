@@ -31,7 +31,7 @@
 /// in theory need to be signed, since time_t is signed we use a signed
 /// type too which avoids some signed/unsigned comparison warning,
 typedef struct {
-    int64_t ntv_sec;		///< Seconds since the (Unix) epoch
+    long long ntv_sec;		///< Seconds since the (Unix) epoch
     long ntv_nsec;		///< Nanoseconds since ntv_sec.
 } moment_s;
 

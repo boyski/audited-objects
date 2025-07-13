@@ -120,8 +120,8 @@ int
 moment_cmp(moment_s left, moment_s right, moment_s *delta)
 {
     static long roundoff = -1;
-    uint64_t l, r;
-    int64_t d;
+    unsigned long long l, r;
+    long long d;
 
     // Initialize this on the first pass through.
     if (roundoff == -1) {

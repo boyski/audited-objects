@@ -49,7 +49,7 @@ def parse_csv(data):
             pa = actions_ao.PathAction(line)
             if is_vcs(pa.path) or pa.is_unlink:
                 continue
-            ca.add(pa)
+            ca.add_pa(pa)
         else:
             ca = None
 
@@ -66,7 +66,7 @@ def parse_json(data):
         doc = json.loads(para)
         ca = actions_ao.CommandAction(doc['CommandActions'][0])
         for pa in doc['PathActions']:
-            ca.add(actions_ao.PathAction(pa))
+            ca.add_pa(actions_ao.PathAction(pa))
         calist.append(ca)
     return calist
 

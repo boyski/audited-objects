@@ -148,9 +148,9 @@ class CommandAction():
     def __init__(self, desc):
         if isinstance(desc, str):
             fields = desc.rstrip().split(SEP, CA_SPLITS)
+            self.line = fields[-1]
             self.prog = fields[8]
             self.rwd = fields[9]
-            self.line = fields[-1]
         else:
             self.line = desc['CMDLINE']
             self.prog = desc['PROG']
@@ -160,12 +160,12 @@ class CommandAction():
     def __repr__(self):
         return f'[{self.rwd}] {self.line}'
 
-    def add(self, pa):
+    def add_pa(self, pa):
         """Add a PathAction object to the involved set."""
         self.pa_set.add(pa)
 
     def paths(self):
-        """Return a list of paths involved in PathActions."""
+        """Return the list of paths involved in PathActions."""
         return sorted({pa.path for pa in self.pa_set})
 
     def prereqs(self):

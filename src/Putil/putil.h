@@ -306,7 +306,7 @@ PUTIL_API int putil_uname(struct utsname *);
 // Call the function and check whether condition is true.
 // If not, call the DIE_() macro above with "cond" as a string
 // and optional supporting arguments.
-#define CALL(cond, ...) if (!(cond)) {DIE_(#cond, ##__VA_ARGS__);}
+#define TRY(cond, ...) if (!(cond)) {DIE_(#cond, ##__VA_ARGS__);}
 
 // We try not to use stdio functions anywhere in this file, because
 // FILEs are limited to (256-3) in most Unix implementations. But of

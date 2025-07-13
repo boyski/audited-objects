@@ -50,7 +50,7 @@ static int Started = 0;
 
 // Request the maximum number of file descriptors allowed by the kernel.
 static void
-_maximize_fds(void)
+_unix_maximize_fds(void)
 {
     struct rlimit rlims = {0, 0};
 
@@ -59,10 +59,8 @@ _maximize_fds(void)
 	return;
     }
 
-    // getrlimit seems to produce a bogus value for rlim_max on OS X.
-    // No idea why but this is what they recommend.
 #if defined(__APPLE__)
-    rlims.rlim_cur = OPEN_MAX < rlims.rlim_max ? OPEN_MAX : rlims.rlim_max;
+    rlims.rlim_cur = min(OPEN_MAX, rlims.rlim_max)
 #else // !APPLE
     rlims.rlim_cur = rlims.rlim_max;
 #endif // __APPLE__
@@ -74,7 +72,7 @@ _maximize_fds(void)
 
 // Used to alert the monitor that the top-level child has ended.
 static void
-_sigchld(int signum)
+_unix_sigchld(int signum)
 {
     UNUSED(signum);
     doneflag = 1;
@@ -90,19 +88,19 @@ _sigchld(int signum)
 // Used to dump debug data from a signal.
 static volatile sig_atomic_t dumpflag;
 static void
-_sigusr1(int signum)
+_unix_sigusr1(int signum)
 {
     dumpflag = signum;
 }
 
 static void
-_sig_setup(void)
+_unix_sig_setup(void)
 {
     struct sigaction sa;
 
     // Alert the monitor loop when the child is no longer alive.
     memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = _sigchld;
+    sa.sa_handler = _unix_sigchld;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_RESETHAND;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -111,7 +109,7 @@ _sig_setup(void)
 
     // Debug feature: dump the current audit DB upon catching a signal.
     memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = _sigusr1;
+    sa.sa_handler = _unix_sigusr1;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
@@ -120,7 +118,7 @@ _sig_setup(void)
 }
 
 static CS
-_read_available(int fd)
+_unix_read_available(int fd)
 {
     CS buf;
     ssize_t bufsize = 1024, len, num;
@@ -391,14 +389,14 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
     //////////////////////////////// PARENT //////////////////////////////
 
-    _sig_setup();
+    _unix_sig_setup();
 
     // Bump the number of allowed file descriptors to the maximum,
     // because the monitor is likely to use a fair number. There
     // is no real bound on fds in use since the monitor may behave
     // asynchronously with respect to both audited child processes
     // and HTTP connections to the server.
-    _maximize_fds();
+    _unix_maximize_fds();
 
     // Perform any one-time initializations related to the monitor.
     mon_init();
@@ -503,7 +501,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 		continue;
 	    }
 
-	    buffer = _read_available(fd);
+	    buffer = _unix_read_available(fd);
 
 	    for (buftmp = buffer, line = util_strsep(&buftmp, "\n");
 		     line && *line; line = util_strsep(&buftmp, "\n")) {

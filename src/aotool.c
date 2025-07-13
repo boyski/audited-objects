@@ -380,49 +380,6 @@ _action(CCS action, int argc, CS const *argv)
     return rc;
 }
 
-// Do a quiet "make clean" or "ant clean" before kicking off build.
-// This is useful for debug/devel work. Note that this time is
-// deliberately not counted (i.e. we do not set StartTime until
-// after it runs). This can lead to confusion when compared with
-// actual wall-clock time but the clean really should not count
-// when gathering timing statistics.
-static void
-_make_clean(int argc, CS const *argv)
-{
-    int i = 0;
-    char clean[1024];
-    char *pathMF = NULL;
-    char *mkprog = "make";
-
-    for (i = 0; i < argc - 1; i++) {
-	if (!strcmp("-f", argv[i])) {
-	    pathMF = argv[i + 1];
-	    break;
-	}
-    }
-
-    if (pathMF) {
-	snprintf(clean, sizeof(clean) - 1, "%s -s -f %s clean", mkprog, pathMF);
-    } else if (access("Makefile", R_OK) && access("makefile", R_OK) &&
-	    access("GNUmakefile", R_OK) && !access("build.xml", R_OK)) {
-	snprintf(clean, sizeof(clean) - 1, "ant -q clean");
-    } else {
-	snprintf(clean, sizeof(clean) - 1, "%s -s clean", mkprog);
-    }
-
-    strcat(clean, " >");
-    strcat(clean, DEVNULL);
-    if (QuietMode) {
-	strcat(clean, " 2>&1");
-    } else {
-	fprintf(stderr, "+ %s\n", clean);
-    }
-
-    if (system(clean)) {
-	exit(2);
-    }
-}
-
 /// Entry point for the client program.
 /// @param[in] argc     the number of arguments
 /// @param[in] argv     the classic argument vector taken by every main routine
@@ -436,7 +393,6 @@ main(int argc, CS *argv)
     CS dscript = NULL;
     CS redo_script = NULL;
     int proplevel = -1;
-    int make_clean = 0;
     int rc = 0;
 
     // Figure out the full path to the current executable program.
@@ -491,13 +447,12 @@ main(int argc, CS *argv)
 
 	// *INDENT-OFF*
 	static CS short_opts =
-	    "+1acdhl:mo:p:qrs:tuv::wxAC:DEF:H::LM:O:PQRSTUV:W:XY";
+	    "+1adhl:mo:p:qrs:tuv::wxAC:DEF:H::LM:O:PQRSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
 	    {"agg-level",	required_argument, NULL, LF('A', 'G')},
 	    {"audit-only",	no_argument,	   NULL, 'A'},
-	    {"make-clean",	no_argument,	   NULL, 'c'},
 	    {"directory",	required_argument, NULL, 'C'},
 	    {"download-only",	no_argument,	   NULL, 'd'},
 	    {"download-silent",	no_argument,	   NULL, 'D'},
@@ -562,12 +517,6 @@ main(int argc, CS *argv)
 
 	    case 'A':
 		prop_override_true(P_AUDIT_ONLY);
-		break;
-
-	    // Undocumented hack - allows an automatic "make clean" which
-	    // is not audited or counted in elapsed time.
-	    case 'c':
-		make_clean = 1;
 		break;
 
 	    case 'C':
@@ -814,10 +763,6 @@ main(int argc, CS *argv)
     }
     argc -= bsd_optind;
     argv += bsd_optind;
-
-    if (make_clean) {
-	_make_clean(argc, argv);
-    }
 
     // The command we've been asked to invoke.
     if ((action = argv[0])) {

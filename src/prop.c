@@ -325,15 +325,6 @@ static struct {
 	P_LOG_FILE,
     },
     {
-	"Log.File.Temp",
-	NULL,
-	"Log to a temp file, uploaded and removed",
-	PROP_FALSE,
-	PROP_FLAG_PUBLIC,
-	0,
-	P_LOG_FILE_TEMP,
-    },
-    {
 	"Log.Time.Stamp",
 	NULL,
 	"Prepend a timestamp to each line of logfile",

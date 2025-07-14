@@ -243,8 +243,8 @@ instance, -Mprq to request a .prq extension.
 
 =item -F|--make-file
 
-Generates a single, self-contained, non-recursive, working Makefile with
-full dependency information. The Makefile is designed for GNU make by default.
+Generate a single, self-contained, non-recursive, working Makefile with
+full dependency information in GNU make syntax.
 If used in combination with I<--make-depends> the generated file will contain
 only I<include> statements pulling in the dependency fragments.
 
@@ -252,11 +252,6 @@ only I<include> statements pulling in the dependency fragments.
 
 Save all output to the specified logfile. This logfile is also promoted
 to the server when done and stored with the build it describes.
-
-=item -L|--log-file-temp
-
-Similar to I<--log-file> but saves output to a temp file which is removed
-after its contents are saved on the server.
 
 =item -m|--members-only
 
@@ -271,11 +266,6 @@ all server contact.>
 =item -q|--quiet
 
 Suppress UPLOAD/DOWNLOAD messages.
-
-=item -s|--server I<server-string>
-
-Specify an alternate server to communicate with. The server string is
-in a composite I<host:port> form, e.g. mervyn:8283.
 
 =item -T|--print-elapsed
 

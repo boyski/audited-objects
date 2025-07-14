@@ -120,7 +120,6 @@ _usage(int rc)
     _usg_line(fp, "-d", P_DOWNLOAD_ONLY, NULL);
     _usg_line(fp, "-F file", P_MAKE_FILE, NULL);
     _usg_line(fp, "-l file", P_LOG_FILE, NULL);
-    _usg_line(fp, "-L", P_LOG_FILE_TEMP, NULL);
     _usg_line(fp, "-MD", P_MAKE_DEPENDS, NULL);
     _usg_line(fp, "-m", P_MEMBERS_ONLY, NULL);
     _usg_line(fp, "-o file", P_OUTPUT_FILE, NULL);
@@ -251,7 +250,7 @@ _action(CCS action, int argc, CS const *argv)
 		{"absolute-paths",	no_argument,	   NULL, 'a'},
 		{"long",		no_argument,	   NULL, 'l'},
 		{"short",		no_argument,	   NULL, 's'},
-		{"dereference",	no_argument,	   NULL, 'L'},
+		{"dereference",		no_argument,	   NULL, 'L'},
 		{0,			0,		   NULL,  0 },
 	    };
 	    // *INDENT-ON*
@@ -442,7 +441,7 @@ main(int argc, CS *argv)
 	int c;
 
 	// *INDENT-OFF*
-	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::LM:O:PRSTUV:W:XY";
+	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:PRSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
@@ -459,7 +458,6 @@ main(int argc, CS *argv)
 	    {"Help",		optional_argument, NULL, 'H'},
 	    {"properties",	optional_argument, NULL, LF('P', '*')},
 	    {"log-file",	required_argument, NULL, 'l'},
-	    {"log-file-temp",	no_argument,	   NULL, 'L'},
 	    {"log-time-stamp",	no_argument,	   NULL, LF('L', 'S')},
 	    {"make-depends",	optional_argument, NULL, 'M'},
 	    {"mem-debug",	optional_argument, NULL, LF('D', 'M')},
@@ -548,16 +546,6 @@ main(int argc, CS *argv)
 
 	    case 'E':
 		prop_put_long(P_STRICT_ERROR, 1);
-		break;
-
-	    case 'L':
-		{
-		    char buf[1024];
-
-		    snprintf(buf, 1024, "%s.%lu.log", prop_get_str(P_APP), (unsigned long)getpid());
-		    prop_override_str(P_LOG_FILE, buf);
-		    prop_override_ulong(P_LOG_FILE_TEMP, 1);
-		}
 		break;
 
 	    case LF('L', 'S'):
@@ -1003,11 +991,6 @@ main(int argc, CS *argv)
 	putil_free(logfile);
 
 	make_fini();
-
-	// If using a temp logfile, remove it now.
-	if (prop_is_true(P_LOG_FILE_TEMP)) {
-	    unlink(prop_get_str(P_LOG_FILE));
-	}
 
 	putil_free(cwd);
     } else {

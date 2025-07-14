@@ -60,7 +60,6 @@ typedef enum {
     P_EXECUTE_ONLY,
     P_LEAVE_ROADMAP,
     P_LOG_FILE,
-    P_LOG_FILE_TEMP,
     P_LOG_TIME_STAMP,
     P_MAKE_DEPENDS,
     P_MAKE_FILE,

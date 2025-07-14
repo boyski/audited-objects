@@ -47,6 +47,9 @@ define FFLAGS :=
   #-fdiagnostics-show-option
 endef
 
+# Static analysis, finds leaks and bugs.
+#FFLAGS := $(FFLAGS) -fanalyzer -Wno-error
+
 define WFLAGS :=
   -Wall
   -Wcast-align
@@ -161,7 +164,7 @@ OBJS := \
 
 IFLAGS := -I. -I$(OPS)/include
 
-CFLAGS := $(filter-out #%,$(strip $(FFLAGS) $(WFLAGS) $(DFLAGS) $(IFLAGS)))
+CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
 
 AUDITOR	:= libAO.so
 LIBAO := $(addprefix $(LIBDIR)/,$(AUDITOR))

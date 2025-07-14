@@ -35,7 +35,6 @@
 #include "PROP.h"
 #include "RE.h"
 #include "TEE.h"
-#include "UW.h"
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include "pcre2.h"

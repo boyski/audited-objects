@@ -29,9 +29,14 @@
 /// @file
 /// @brief Declarations for util.c
 
+/// Special "everything is done" marker.
+#define DONE_TOKEN				"{DONE}"
+
 /// @cond UTIL
 
 /// @endcond UTIL
+
+extern int run_cmd(CCS, CS *, CCS);
 
 extern int util_pathcmp(const void *, const void *);
 unsigned char * util_map_file(CCS, int, off_t, uint64_t);

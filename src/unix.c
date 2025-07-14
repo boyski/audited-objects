@@ -433,6 +433,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     close(sync_pipe[0]);
     close(sync_pipe[1]);
 
+    master_timeout.tv_sec = prop_get_ulong(P_MONITOR_TIMEOUT_SECS);
+    master_timeout.tv_usec = 0;
+
     // The select loop.
     // Some network gurus argue that select should never be used
     // with blocking descriptors, but that's what we do here. Never looked

@@ -274,15 +274,6 @@ static struct {
 	10,
 	P_DEPTH,
     },
-    {
-	"Doc.Pager",
-	NULL,
-	"Pipe help output through specified pager",
-	NULL,
-	PROP_FLAG_PRIVATE,
-	0,
-	P_DOC_PAGER,
-    },
     // Documented as a boolean but there's an additional undocumented "2"
     // value which means to run without changing any server state at all.
     // In other words 2 allows us to query the server for the roadmap

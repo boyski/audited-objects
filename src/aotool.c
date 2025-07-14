@@ -766,48 +766,6 @@ main(int argc, CS *argv)
 	prop_override_ulong(P_UPLOAD_ONLY, 1);
     }
 
-    // Optionally run help output through a pager.
-    if (pager || (streq(action, "man") && (pager = prop_get_str(P_DOC_PAGER)))) {
-	int pfd[2];
-	pid_t pid;
-
-	// Allow indirection through standard $PAGER EV.
-	if (*pager == '$') {
-	    if (!(pager = getenv(pager + 1))) {
-		pager = prop_get_str(P_DOC_PAGER);
-	    }
-	}
-
-	fflush(NULL);
-
-	if (pipe(pfd) < 0) {
-	    putil_syserr(2, "pipe");
-	}
-
-	// Note that the *parent* process becomes the pager.
-	if ((pid = fork()) == 0) {
-	    // Child
-	    close(pfd[0]);
-	    if (pfd[1] != STDOUT_FILENO) {
-		dup2(pfd[1], STDOUT_FILENO);
-		close(pfd[1]);
-	    }
-	} else if (pid > 0) {
-	    // Parent
-	    close(pfd[1]);
-	    if (pfd[0] != STDIN_FILENO) {
-		dup2(pfd[0], STDIN_FILENO);
-		close(pfd[0]);
-	    }
-
-	    execlp(pager, pager, (char *)0);
-	    putil_syserr(0, pager);
-	    _exit(2);
-	} else {
-	    putil_syserr(2, "fork");
-	}
-    }
-
     // Diagnostic: dump properties and quit.
     if (proplevel >= 0) {
 	prop_help(proplevel, vb_bitmatch(VB_STD), exe);

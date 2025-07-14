@@ -55,7 +55,6 @@ typedef enum {
     P_DCODE_ALL,
     P_DCODE_CACHE_SECS,
     P_DEPTH,
-    P_DOC_PAGER,
     P_DOWNLOAD_ONLY,
     P_EXECUTE_ONLY,
     P_LEAVE_ROADMAP,

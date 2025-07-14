@@ -689,27 +689,28 @@ util_hash_fun_default(const void *key)
 /// both upper/lower case and short/long name issues.
 /// On Unix it's a simple matter of being in or under a
 /// directory named "/tmp" while not being in the project.
-/// Assume a name ending with ".tmp" is always a temp file.
+/// But assume a name ending with ".tmp" is always a temp file.
 /// @param path the pathname to check
 /// @return true iff the path is within a known temp dir.
 int
 util_is_tmp(CCS path)
 {
     static const char *basedir;
-    size_t baselen;
     int rc = 0;
 
-    if (! basedir) {
-	if ((basedir = prop_get_str(P_BASE_DIR))) {
-	    baselen = strlen(basedir);
-	}
+    // Cache this property value.
+    if (!basedir) {
+	basedir = prop_get_str(P_BASE_DIR);
     }
 
     // If the path is under the project's basedir, assume it
     // cannot be a temp file; this allows builds to be done in
     // a directory like, say, /var/tmp/foo/bar.
-    if (basedir && !strncmp(basedir, path, baselen)) {
-	return 0;
+    if (basedir) {
+	size_t baselen = strlen(basedir);
+	if (!strncmp(basedir, path, baselen)) {
+	    return 0;
+	}
     }
 
     rc = strstr(path, "/tmp/") ||

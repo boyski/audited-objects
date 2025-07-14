@@ -48,7 +48,9 @@ define FFLAGS :=
 endef
 
 # Static analysis, finds leaks and bugs.
-#FFLAGS := $(FFLAGS) -fanalyzer -Wno-error
+ifneq ($(ENABLE_GCC_ANALYZER),)
+  FFLAGS := $(FFLAGS) -fanalyzer -Wno-error
+endif
 
 define WFLAGS :=
   -Wall

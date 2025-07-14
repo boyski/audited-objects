@@ -41,7 +41,6 @@
 #include "MON.h"
 #include "PROP.h"
 #include "RE.h"
-#include "SHOP.h"
 
 #include <time.h>
 
@@ -259,7 +258,6 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 
     if (buf[0] == '<') {
 	if (buf[1] == 'S' || buf[1] == 's') {		// SOA
-	    int no_shop;
 	    moment_s ca_start_time;
 	    ca_o pred = NULL;
 	    hnode_t *hnp;
@@ -269,13 +267,13 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 
 	    rc = MON_SOA;
 
+#if 0
 	    // The difference between 'S' and 's' above is that the
 	    // lower-case version tells us not to bother shopping.
 	    // Sometimes the auditor knows something we don't.
 	    // Note that there's a matching 's' in the auditor!
-	    no_shop = (buf[1] == 's') ||
-		prop_is_true(P_UPLOAD_ONLY) ||
-		prop_is_true(P_AUDIT_ONLY);
+	    no_shop = (buf[1] == 's') || prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY);
+#endif
 
 	    ca = ca_newFromCSVString(buf + strlen(SOA));
 	    assert(ca);
@@ -430,6 +428,8 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		rc |= MON_TOP;
 	    }
 
+#if 0
+
 	    // Here is where recycling takes place. If shopping was
 	    // successful, tell the command it's done. If not, let
 	    // it run unless we're in strict mode.
@@ -475,6 +475,9 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 		    putil_int("unknown shopping result: %d", (int)shoprc);
 		}
 	    }
+#else
+	    (void)winner;
+#endif
 	} else if (buf[1] == 'E') {			// EOA
 	    moment_s ca_end_time;
 	    CS csv;

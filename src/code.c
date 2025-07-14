@@ -103,7 +103,6 @@
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
-#include "sha1.h"
 #include "zlib.h"
 
 /// Return true iff the file looks like the kind with an embedded

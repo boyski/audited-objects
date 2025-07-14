@@ -34,7 +34,6 @@
 #include "PREFS.h"
 #include "PROP.h"
 #include "RE.h"
-#include "SHOP.h"
 #include "TEE.h"
 #include "UW.h"
 

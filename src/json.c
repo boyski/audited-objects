@@ -67,6 +67,24 @@ static CCS ca_fields[] = {
 // There's another copy in python.
 #define SEP "\n=-=-=-=-=-=-="
 
+/// Convert a cJSON object to a printable string
+/// @param[in] obj       the cJSON object
+/// @return a JSON object containing the same data as the CSV
+static CCS
+_json_to_str(void *obj)
+{
+    // return cJSON_PrintUnformatted(obj); // may prefer this eventually
+    return cJSON_Print(obj);
+}
+
+/// Free a cJSON object
+/// @param[in] obj       the cJSON object
+static void
+_json_free(void *obj)
+{
+    cJSON_Delete(obj);
+}
+
 /// Parse CSV data into a JSON-formatted string and return it
 /// @param[in] csv_data  string containing potentially multiple CSV lines
 /// @return a JSON string containing the same data as the CSV
@@ -107,29 +125,11 @@ json_from_ca_csv(CCS ca_csv)
 	}
     }
     putil_free(copy);
-    jsonstr = (CS)json_to_str(root);
-    json_free(root);
+    jsonstr = (CS)_json_to_str(root);
+    _json_free(root);
     jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;
-}
-
-/// Convert a cJSON object to a printable string
-/// @param[in] obj       the cJSON object
-/// @return a JSON object containing the same data as the CSV
-CCS
-json_to_str(void *obj)
-{
-    // return cJSON_PrintUnformatted(obj); // may prefer this eventually
-    return cJSON_Print(obj);
-}
-
-/// Free a cJSON object
-/// @param[in] obj       the cJSON object
-void
-json_free(void *obj)
-{
-    cJSON_Delete(obj);
 }
 
 // vim: sw=4 ts=8 tw=100 cc=+1

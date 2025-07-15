@@ -166,7 +166,7 @@ _action(CCS action, int argc, CS const *argv)
 {
     int rc = 0;
 
-    if (streq(action, "Property") || streq(action, "property")) {
+    if (!strcmp(action, "Property") || !strcmp(action, "property")) {
 	// Print the current value of the named property.
 	int i;
 	CCS str;
@@ -181,7 +181,7 @@ _action(CCS action, int argc, CS const *argv)
 		printf("\n");
 	    }
 	}
-    } else if (streq(action, "Substitute") || streq(action, "substitute")) {
+    } else if (!strcmp(action, "Substitute") || !strcmp(action, "substitute")) {
 	// Apply standard %-substitutions to the input string.
 	int i;
 
@@ -192,7 +192,7 @@ _action(CCS action, int argc, CS const *argv)
 	    printf("%s\n", subs);
 	    putil_free(subs);
 	}
-    } else if (streq(action, "hash")) {
+    } else if (!strcmp(action, "hash")) {
 	CCS dcode = NULL;
 	ps_o ps;
 
@@ -234,7 +234,7 @@ _action(CCS action, int argc, CS const *argv)
 
 	ps_destroy(ps);
 	putil_free(dcode);
-    } else if (streq(action, "Stat") || streq(action, "stat")) {
+    } else if (!strcmp(action, "Stat") || !strcmp(action, "stat")) {
 	// print vital statistics for specified files.
 	int long_flag = 0, short_flag = 0, deref_flag = 0;
 	CCS path;
@@ -318,7 +318,7 @@ _action(CCS action, int argc, CS const *argv)
 
 	    ps_destroy(ps);
 	}
-    } else if (streq(action, "about")) {
+    } else if (!strcmp(action, "about")) {
 	int short_flag = 0;
 
 	for (bsd_getopt_reset(); argv && *argv; ) {
@@ -355,7 +355,7 @@ _action(CCS action, int argc, CS const *argv)
 	    about_client();
 	}
 	_print_version(0);
-    } else if (streq(action, "help")) {
+    } else if (!strcmp(action, "help")) {
 	// This documents actions which are PURELY client-side
 	// aside from the "--" variants.
 	// If they have any server part, e.g. "label" or "ADMIN",
@@ -427,7 +427,7 @@ main(int argc, CS *argv)
     // Ugly hack. There may be a better way to handle this within the getopt
     // API but for now this fixes the UI.
     for (int i = 0; argv[i]; i++) {
-	if (streq(argv[i], "--")) {
+	if (!strcmp(argv[i], "--")) {
 	    argv[i] = "run";
 	}
     }
@@ -781,7 +781,7 @@ main(int argc, CS *argv)
 	atexit(_print_elapsed_time);
     }
 
-    if (streq(action, "run")) {
+    if (!strcmp(action, "run")) {
 	CCS cwd = NULL;
 	CCS logfile = NULL;
 	CCS rmap;

@@ -947,7 +947,7 @@ _prop_get_str(prop_e prop, int isfatal)
 	result = dflt;
     }
 
-    if (!result && dflt && streq(dflt, PROP_REQUIRED)) {
+    if (!result && dflt && !strcmp(dflt, PROP_REQUIRED)) {
 	_prop_report_missing(prop, isfatal);
     }
 

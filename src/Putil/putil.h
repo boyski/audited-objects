@@ -201,8 +201,8 @@ typedef unsigned long ULONG64;
 /* Return the end of a null-terminated string */
 #define endof(str)		strchr(str, '\0')
 
-/* True if the string ends with "ext" */
-#define endswith(str, ext)	(!strcmp(endof(str) - strlen(ext), ext))
+/* True if "str" ends with "ext" */
+#define endswith(str, ext)	((str) && (ext) && !strcmp(endof(str) - strlen(ext), ext))
 
 // Windows-specific name hacks.
 #define SOCKET					int

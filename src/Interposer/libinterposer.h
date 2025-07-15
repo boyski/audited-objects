@@ -61,21 +61,6 @@ libinterposer_preload_on(const char *so, const char *base)
     char *ldp, *nldp;
     char lib_buf[PATH_MAX];
 
-    // In case PRELOAD_EV is present but turned off by a leading '_',
-    // restoring its correct name should be enough.
-
-    if (!base) {
-	extern char **environ;
-	char **ep;
-
-	for (ep = environ; *ep; ep++) {
-	    if (**ep == '_' && (strstr(*ep, PRELOAD_EV + 1) == *ep + 1)) {
-		**ep = (PRELOAD_EV)[0];
-	    }
-	}
-	return;
-    }
-
     (void)snprintf(lib_buf, sizeof(lib_buf), "%s/lib64/%s", base, so);
 
     ldp = getenv(PRELOAD_EV);
@@ -111,15 +96,12 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 {
     extern char **environ;
     char **env;
-    size_t solen;
-
-    solen = strlen(so);
 
     env = envp ? (char **)envp : environ;
 
     for (; *env; env++) {
 	// Match any EV beginning with LD_PRELOAD=.
-	if (!strcmp(*env, PRELOAD_EV "=")) {
+	if (!strncmp(*env, PRELOAD_EV "=", sizeof(PRELOAD_EV) + 1)) {
 	    char *ev, *ldpname, *nbuf, *lib, *ldpath, *e;
 	    size_t evlen;
 
@@ -133,32 +115,31 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 
 	    // Copy the EV into a buffer we can modify with impunity,
 	    // then snip it into a name/value pair.
-	    ldpname = malloc(evlen + 2);
+	    ldpname = putil_malloc(evlen + 2);
 	    strcpy(ldpname, ev);
-	    ldpath = strchr(ldpname, '=');
-	    *ldpath++ = '\0';
+	    if (!(ldpath = strchr(ldpname, '='))) {
+		return; // can't happen but makes gcc -fanalyzer happier
+	    }
 
 	    // Start the new construction buffer with "<EV>=" ...
-	    nbuf = malloc(evlen + 2);
+	    nbuf = putil_malloc(evlen + 2);
 	    strcpy(nbuf, ldpname);
 	    strcat(nbuf, "=");
 
 	    // Work our way through the space-separated list with strtok().
-	    // Actually, since in practice colon-separated lists also work,
-	    // we handle them too.
-	    // Any path that ends with our shared-object name is skipped,
+	    // Since colon-separated lists also work they're handled too.
+	    // Paths ending with our shared-object name are skipped,
 	    // anything else is copied to the new buffer.
-	    // Pathnames containing spaces are SOL, but blame that
+	    // Pathnames containing spaces are SOL but blame that
 	    // on whoever decided LD_PRELOAD* was a space-separated list.
 	    for (lib = strtok(ldpath, " :"); lib; lib = strtok(NULL, " :")) {
-		e = strchr(lib, '\0');
-		if (!streq(e - solen, so)) {
+		if (!endswith(lib, so)) {
 		    strcat(nbuf, lib);
 		    strcat(nbuf, " ");
 		}
 	    }
 
-	    // Trim the trailing space.
+	    // Trim trailing space.
 	    e = strchr(nbuf, '\0');
 	    while (isspace((int)*--e))
 		*e = '\0';

@@ -149,7 +149,7 @@ _unix_read_available(int fd)
 }
 
 // Making this static instead of automatic makes Coverity happy.
-static FILE *logfp = NULL;
+static FILE *LogFP = NULL;
 
 /// The Unix version of the function which actually runs and audits the
 /// child command. The child command is run via fork/exec/wait while
@@ -195,7 +195,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 	loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
 	if (loglevel && !strcmp(loglevel, "OFF")) {
-	    if (!(logfp = fopen(logfile, "w"))) {
+	    if (!(LogFP = fopen(logfile, "w"))) {
 		putil_syserr(2, logfile);
 	    }
 	} else {
@@ -204,19 +204,21 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    tsf = prop_is_true(P_LOG_TIME_STAMP) ? " --log-time-stamp" : "";
 	    if (asprintf(&tcmd, "%s --log-file \"%s\" --log-tee%s",
 		    exe, logfile, tsf) >= 0) {
-		if (!(logfp = popen(tcmd, "w"))) {
+		if (!(LogFP = popen(tcmd, "w"))) {
 		    putil_syserr(2, logfile);
 		}
 		putil_free(tcmd);
 	    }
 	}
 
-	if (logfp) {
-	    if ((dup2(fileno(logfp), fileno(stdout)) == -1)) {
+	if (LogFP) {
+	    int stdout_dup, stderr_dup;
+
+	    if (((stdout_dup = dup2(fileno(LogFP), fileno(stdout))) == -1)) {
 		putil_syserr(2, logfile);
 	    }
 
-	    if ((dup2(fileno(logfp), fileno(stderr)) == -1)) {
+	    if (((stderr_dup = dup2(fileno(LogFP), fileno(stderr))) == -1)) {
 		putil_syserr(2, logfile);
 	    }
 	}
@@ -251,7 +253,11 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    } else {
 		ExitStatus = 2;
 	    }
+// Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-fd-leak"
 	    return ExitStatus;
+#pragma GCC diagnostic pop
 	}
     }
 
@@ -270,7 +276,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	putil_syserr(2, path);
     }
 
-    // This pipe will be used to ensure that the child doesn't get rolling
+    // This pipe is only used to ensure that the child doesn't get rolling
     // before the parent process is ready for its audits.
     if (pipe(sync_pipe) == -1) {
 	putil_syserr(2, "pipe(sync_pipe)");
@@ -344,9 +350,13 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	// We must wait till the parent has established its socket
 	// before letting the build run. Otherwise we might try to
 	// connect to it before it's ready.
+// Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-use-of-uninitialized-value"
 	close(sync_pipe[1]);
 	read(sync_pipe[0], sync_buf, 1);
 	close(sync_pipe[0]);
+#pragma GCC diagnostic pop
 
 	// Turn on the auditor.
 	if (shlibdir) {
@@ -376,8 +386,12 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    putil_syserr(2, "connect()");
 	}
 
+// Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-fd-use-without-check"
 	// Tell the parent to abort the mission.
 	write(nfd, "!\n", 2);
+#pragma GCC diagnostic pop
 
 	close(nfd);
 
@@ -429,9 +443,13 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	sockmax = (listeners[i] > sockmax) ? listeners[i] : sockmax;
     }
 
+// Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-use-of-uninitialized-value"
     // Alert the child that we're ready to roll.
-    close(sync_pipe[0]);
-    close(sync_pipe[1]);
+    (void)close(sync_pipe[0]);
+    (void)close(sync_pipe[1]);
+#pragma GCC diagnostic pop
 
     master_timeout.tv_sec = prop_get_ulong(P_MONITOR_TIMEOUT_SECS);
     master_timeout.tv_usec = 0;
@@ -602,6 +620,10 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	if (close(listeners[i]) == SOCKET_ERROR) {
 	    putil_syserr(0, "close(socket)");
 	}
+    }
+
+    if (LogFP) {
+	(void)fclose(LogFP);
     }
 
     return ExitStatus;

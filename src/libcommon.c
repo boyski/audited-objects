@@ -180,8 +180,8 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 	// certain funky loops, such as when ao is run under the OS X
 	// malloc debugger which writes a malloc_history file into /tmp
 	// during exit processing.
-	putil_int("PA after EOA: call=%s pid=%lu path=%s",
-		  call, (unsigned long)getpid(), path);
+	putil_int("PA after EOA: call=%s pid=%lu path=%s", call, (unsigned long)getpid(), path);
+	pn_destroy(pn);
     } else {
 	vb_printf(VB_REC, "recording: %c,%s,%s", op, call, path);
 
@@ -290,18 +290,21 @@ _monitor_open(SOCKET *sockp, CCS call)
     }
 
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-	putil_syserr(2, "socket");
+	putil_syserr(0, "socket");
+	exit(2);
     }
 
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
 		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-	putil_syserr(2, "SO_REUSEADDR");
+	putil_syserr(0, "SO_REUSEADDR");
+	exit(2);
     }
 
 #if defined(SO_REUSEPORT)
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
 		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-	putil_syserr(2, "SO_REUSEPORT");
+	putil_syserr(0, "SO_REUSEPORT");
+	exit(2);
     }
 #endif	// SO_REUSEPORT
 
@@ -337,7 +340,8 @@ _monitor_open(SOCKET *sockp, CCS call)
 	}
     }
 
-    putil_syserr(2, host_port);
+    putil_syserr(0, host_port);
+    exit(2);
 }
 
 // Internal service routine.
@@ -346,7 +350,8 @@ _monitor_send(SOCKET *sockp, const void *buf, size_t len)
 {
     vb_printf(VB_MON, "SENDING TO: SOCKET %d", *sockp);
     if (util_send_all(*sockp, buf, len, 0) < 0) {
-	putil_syserr(2, "send");
+	putil_syserr(0, "send");
+	exit(2);
     }
 }
 
@@ -365,7 +370,8 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
 	    if (errno == EINTR) {
 		continue;
 	    }
-	    putil_syserr(2, "recv()");
+	    putil_syserr(0, "recv()");
+	    exit(2);
 	    break;
 	} else if (ret == 0) {
 	    break;
@@ -438,7 +444,8 @@ _audit_open(void)
 		    asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
 		    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
 		    if (fd == -1) {
-			putil_syserr(2, obuf);
+			putil_syserr(0, obuf);
+			exit(2);
 		    }
 		    putil_free(obuf);
 		}
@@ -458,7 +465,8 @@ _audit_open(void)
 	// so we convert it to a high-numbered descriptor and close
 	// the stream.
 	if (!(tfp = tmpfile())) {
-	    putil_syserr(2, "tmpfile");
+	    putil_syserr(0, "tmpfile");
+	    exit(2);
 	}
 
 	// If our preferred fd is not in use, try using it.
@@ -479,13 +487,15 @@ _audit_open(void)
 	// for the next available descriptor.
 	if (fd == -1) {
 	    if ((fd = dup(fileno(tfp))) == -1) {
-		putil_syserr(2, "dup");
+		putil_syserr(0, "dup");
+		exit(2);
 	    }
 	}
 
 	// Now the stream can go away to preserve limited stdio count.
 	if (fclose(tfp)) {
-	    putil_syserr(2, "fclose");
+	    putil_syserr(0, "fclose");
+	    exit(2);
 	}
 
 	// Each new cmd and/or process must create its own temp file.
@@ -510,7 +520,8 @@ _audit_start(CCS call)
     // Allocate and format the cmdline SOA header.
     hdr = ca_format_header(CurrentCA);
     if (!hdr || asprintf(&soa_hdr, "%s%s", SOA, hdr) < 0) {
-	putil_syserr(2, NULL);
+	putil_syserr(0, NULL);
+	exit(2);
     }
     putil_free(hdr);
 
@@ -582,7 +593,8 @@ _audit_start(CCS call)
 	}
     } else {
 	if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
-	    putil_syserr(2, "write");
+	    putil_syserr(0, "write");
+	    exit(2);
 	}
 	putil_free(soa_hdr);
     }
@@ -684,7 +696,8 @@ _audit_end(CCS call, int exiting, long status)
 
 	    // Rewind the temp file and send its contents to the monitor.
 	    if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-		putil_syserr(2, "lseek");
+		putil_syserr(0, "lseek");
+		exit(2);
 	    }
 
 	    while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
@@ -692,7 +705,8 @@ _audit_end(CCS call, int exiting, long status)
 		    if (errno == EINTR) {
 			continue;
 		    }
-		    putil_syserr(2, "read");
+		    putil_syserr(0, "read");
+		    exit(2);
 		}
 		_monitor_send(&ReportSocket, buf, n);
 	    }
@@ -708,13 +722,15 @@ _audit_end(CCS call, int exiting, long status)
 	hdr = ca_format_header(CurrentCA);
 	assert(hdr);
 	if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
-	    putil_syserr(2, NULL);
+	    putil_syserr(0, NULL);
+	    exit(2);
 	}
 	putil_free(hdr);
 
 	if (ReportSocket == INVALID_SOCKET) {
 	    if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
-		putil_syserr(2, "write");
+		putil_syserr(0, "write");
+		exit(2);
 	    }
 	} else {
 	    _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
@@ -729,10 +745,12 @@ _audit_end(CCS call, int exiting, long status)
 	// In case more data is written to the temp file, reposition
 	// its pointer at the beginning.
 	if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-	    putil_syserr(2, "lseek");
+	    putil_syserr(0, "lseek");
+	    exit(2);
 	}
 	if (ftruncate(AuditFD, 0)) {
-	    putil_syserr(2, "ftruncate");
+	    putil_syserr(0, "ftruncate");
+	    exit(2);
 	}
     }
 
@@ -861,7 +879,8 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 	char hostbuf[HOST_NAME_MAX];
 
 	if (gethostname(hostbuf, sizeof(hostbuf))) {
-	    putil_syserr(2, "gethostname()");
+	    putil_syserr(0, "gethostname()");
+	    exit(2);
 	}
 
 	ca_set_host(CurrentCA, hostbuf);

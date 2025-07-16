@@ -51,6 +51,8 @@ static void _thread_mutex_unlock(void);
 #include <unistd.h>
 #include <pthread.h>
 
+#include <assert.h>
+
 // Here we declare alternate names for some functions we'll be
 // intercepting in order that we can still call them directly as
 // needed within the auditor.
@@ -203,7 +205,7 @@ interposed_late_init(const char *call)
 static int
 _ignore_path(const char *path)
 {
-    int rc = 0;
+    int rc = 1;
     const char *pend;
 
     pend = endof(path);
@@ -211,25 +213,20 @@ _ignore_path(const char *path)
     if (!strncmp(path, "/proc/", 6) || !strncmp(path, "/xfn/", 5) ||
 	!strncmp(path, "/dev/", 5) || !strncmp(path, "/devices/", 9)) {
 	// Typical "special" Unix file-like items.
-	rc = 1;
     } else if (strstr(path, "/.ccache/")) {
 	// There's no good reason to use ccache with AO but try to
 	// behave reasonably if it happens anyway.
-	rc = 1;
 #if defined(linux)
     } else if (!strcmp(path, "/etc/mtab") || !strcmp(path, "/proc/mounts")) {
 	// On Linux all processes seem to open /etc/mtab.
 	// And we ourselves need to open /proc/mounts.
-	rc = 1;
 #elif defined(__APPLE__)
     } else if (strstr(path, "-Tmp-")) {
 	// There's a lot of screwy stuff going on under /private/var/...
 	// in OS X 10.5. No idea what these files are but they certainly
 	// appear to be temp files based on their names.
-	rc = 1;
     } else if (!strncmp(path, "/cores/", 7)) {
 	// Vide infra. This is where OS X puts its core files.
-	rc = 1;
 #endif	// __APPLE__
     } else if ((pend - 5) >= path && !strcmp(pend - 5, "/core")) {
 	// Nothing more embarrassing than dumping core (esp. if it's
@@ -237,7 +234,6 @@ _ignore_path(const char *path)
 	// IDEA but it may be better to skip these only at upload time
 	// (i.e. record the action but don't save the result).
 	// There are legitimate operations which *read* a core file.
-	rc = 1;
     } else if (util_is_tmp(path)) {
 	// We used to not trust this, on the theory that data is often
 	// communicated between processes in the form of temp files,
@@ -246,16 +242,15 @@ _ignore_path(const char *path)
 	// the test suite still passes, so left in at least until
 	// it causes trouble. If we stop filtering tmp files here we
 	// need to start filtering them at upload time.
-	rc = 1;
-    } else if (!strncmp(path, "/tmp/sh", 7) && isdigit((int)path[7])) {
+    } else if (!strncmp(path, "/tmp/sh", 7) && atoi(path + 7) > 0) {
 	// The shell tends to keep here-documents in a file called
 	// "/tmp/shnnnnn" where "nnnnn" is based on the pid.
-	rc = 1;
     } else if (IgnorePathRE && re_match__(IgnorePathRE, path)) {
 	// User-configurable set of ignorable files. We may
 	// eventually want to shift the hard-wired patterns
 	// above to this model.
-	rc = 1;
+    } else {
+	rc = 0;
     }
 
     return rc;
@@ -701,6 +696,7 @@ open_wrapper(const char *call,
     int ret, saved_errno;
     WRAPPER_DEBUG("ENTERING open_wrapper() => %p [%s ...]\n", next, path);
 
+    assert(next);
     ret = (*next)(path, oflag, mode);
     saved_errno = errno;
 

@@ -1267,6 +1267,7 @@ _prop_export(prop_e prop)
 
     if (!(val = prop_get_str(prop))) {
 	_prop_report_missing(prop, 1);
+	exit(2);
     }
     _prop_to_ev(prop, namebuf, charlen(namebuf));
     name = namebuf;
@@ -1276,7 +1277,8 @@ _prop_export(prop_e prop)
 	name++;
     }
 
-    if ((str = putil_getenv(name)) && !strcmp(str, val)) {
+    str = putil_getenv(name);
+    if (str && !strcmp(str, val)) {
 	return;
     }
     str = (CS)putil_calloc(strlen(name) + strlen(val) + 2, CHARSIZE);

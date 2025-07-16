@@ -957,6 +957,8 @@ util_encode_minimal(CCS instring)
 {
     size_t inlen, outlen, i, j;
     CS outstring;
+    
+    assert(instring);
 
     inlen = outlen = strlen(instring) + CHARSIZE;
     outstring = (CS)putil_malloc(inlen);
@@ -1049,9 +1051,14 @@ util_tempnam(const char *dir, const char *pfx)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
     (void)dlerror();
-    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam")) &&
-	    (err = dlerror())) {
-	putil_syserr(2, err);
+    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam"))) {
+	err = dlerror();
+	if (err) {
+	    putil_syserr(0, err);
+	} else {
+	    putil_syserr(0, "dlsym");
+	}
+	exit(2);
     }
 #pragma GCC diagnostic pop
 

@@ -46,7 +46,8 @@ _find_file_up(CCS name)
     CS result;
 
     if (!(dir = (CS)util_get_cwd())) {
-	putil_syserr(2, "util_get_cwd");
+	putil_syserr(0, "util_get_cwd");
+	exit(2);
     }
 
     project_base_glob = prop_get_str(P_PROJECT_BASE_GLOB);

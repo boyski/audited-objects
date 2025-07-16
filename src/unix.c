@@ -76,10 +76,12 @@ _unix_sigchld(int signum)
     UNUSED(signum);
     doneflag = 1;
     if (write(done_pipe[1], DONE_TOKEN, strlen(DONE_TOKEN)) == -1) {
-	putil_syserr(2, "write(done_pipe[1])");
+	putil_syserr(0, "write(done_pipe[1])");
+	exit(2);
     }
     if (write(done_pipe[1], "\n", 1) == -1) {
-	putil_syserr(2, "write(done_pipe[1])");
+	putil_syserr(0, "write(done_pipe[1])");
+	exit(2);
     }
     close(done_pipe[1]);
 }
@@ -103,7 +105,8 @@ _unix_sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_RESETHAND;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-	putil_syserr(2, "sigaction(SIGCHLD)");
+	putil_syserr(0, "sigaction(SIGCHLD)");
+	exit(2);
     }
 
     // Debug feature: dump the current audit DB upon catching a signal.
@@ -112,7 +115,8 @@ _unix_sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-	putil_syserr(2, "sigaction(SIGUSR1)");
+	putil_syserr(0, "sigaction(SIGUSR1)");
+	exit(2);
     }
 }
 
@@ -128,7 +132,8 @@ _unix_read_available(int fd)
 	num = read(fd, buf + len, bufsize - len - 1);
 	if (num < 0) {
 	    if (errno != EAGAIN) {
-		putil_syserr(2, "read");
+		putil_syserr(0, "read");
+		exit(2);
 	    }
 	} else if (num == 0) {
 	    if (len && buf[len - 1] != '\n') {
@@ -196,7 +201,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
 	if (loglevel && !strcmp(loglevel, "OFF")) {
 	    if (!(LogFP = fopen(logfile, "w"))) {
-		putil_syserr(2, logfile);
+		putil_syserr(0, logfile);
+		exit(2);
 	    }
 	} else {
 	    char *tcmd, *tsf;
@@ -205,21 +211,22 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    if (asprintf(&tcmd, "%s --log-file \"%s\" --log-tee%s",
 		    exe, logfile, tsf) >= 0) {
 		if (!(LogFP = popen(tcmd, "w"))) {
-		    putil_syserr(2, logfile);
+		    putil_syserr(0, logfile);
+		    exit(2);
 		}
 		putil_free(tcmd);
 	    }
 	}
 
 	if (LogFP) {
-	    int stdout_dup, stderr_dup;
-
-	    if (((stdout_dup = dup2(fileno(LogFP), fileno(stdout))) == -1)) {
-		putil_syserr(2, logfile);
+	    if (dup2(fileno(LogFP), fileno(stdout)) == -1) {
+		putil_syserr(0, logfile);
+		exit(2);
 	    }
 
-	    if (((stderr_dup = dup2(fileno(LogFP), fileno(stderr))) == -1)) {
-		putil_syserr(2, logfile);
+	    if (dup2(fileno(LogFP), fileno(stderr)) == -1) {
+		putil_syserr(0, logfile);
+		exit(2);
 	    }
 	}
 
@@ -240,10 +247,12 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // we simply run the specified command, wait for it, and return.
     if (prop_is_true(P_EXECUTE_ONLY)) {
 	if ((childpid = fork()) < 0) {
-	    putil_syserr(2, "fork");
+	    putil_syserr(0, "fork");
+	    exit(2);
 	} else if (childpid == 0) {
 	    execvp(path, argv);
-	    putil_syserr(2, path);
+	    putil_syserr(0, path);
+	    exit(2);
 	} else {
 	    if (waitpid(childpid, &wstat, 0) == -1) {
 		putil_syserr(0, path);
@@ -264,7 +273,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // The grandparent dir of this exe becomes the base where
     // we look for the preloaded library.
     if (!(pdir = putil_dirname(exe)) || !(shlibdir = putil_dirname(pdir))) {
-	putil_syserr(2, "dirname(exe)");
+	putil_syserr(0, "dirname(exe)");
+	exit(2);
     }
     putil_free(pdir);
 
@@ -273,13 +283,15 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     if (shlibdir && prop_is_true(P_NO_MONITOR)) {
 	libinterposer_preload_on(AUDITOR, shlibdir);
 	execvp(path, argv);
-	putil_syserr(2, path);
+	putil_syserr(0, path);
+	exit(2);
     }
 
     // This pipe is only used to ensure that the child doesn't get rolling
     // before the parent process is ready for its audits.
     if (pipe(sync_pipe) == -1) {
-	putil_syserr(2, "pipe(sync_pipe)");
+	putil_syserr(0, "pipe(sync_pipe)");
+	exit(2);
     }
 
     {
@@ -296,18 +308,21 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 	for (i = 0; i < ports; i++) {
 	    if ((listeners[i] = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-		putil_syserr(2, "socket()");
+		putil_syserr(0, "socket()");
+		exit(2);
 	    }
 
 	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
 			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-		putil_syserr(2, "SO_REUSEADDR");
+		putil_syserr(0, "SO_REUSEADDR");
+		exit(2);
 	    }
 
 #if defined(SO_REUSEPORT)
 	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEPORT,
 			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-		putil_syserr(2, "SO_REUSEPORT");
+		putil_syserr(0, "SO_REUSEPORT");
+		exit(2);
 	    }
 #endif	// SO_REUSEPORT
 
@@ -318,11 +333,13 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    addr.sin_port = htons(0);
 
 	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen)) {
-		putil_syserr(2, "bind()");
+		putil_syserr(0, "bind()");
+		exit(2);
 	    }
 
 	    if (getsockname(listeners[i], (struct sockaddr *)&addr, &addrlen)) {
-		putil_syserr(2, "getsockname");
+		putil_syserr(0, "getsockname");
+		exit(2);
 	    }
 
 	    port = ntohs(addr.sin_port);
@@ -334,7 +351,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     }
 
     if ((childpid = fork()) < 0) {
-	putil_syserr(2, "fork");
+	putil_syserr(0, "fork");
+	exit(2);
     } else if (childpid == 0) {
 	char sync_buf[2];
 	struct sockaddr_in dest_addr;
@@ -374,7 +392,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	// to hear from us on exec error. Send a special code telling
 	// it to shut down gracefully.
 	if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-	    putil_syserr(2, "socket()");
+	    putil_syserr(0, "socket()");
+	    exit(2);
 	}
 
 	memset(&dest_addr, 0, sizeof(dest_addr));
@@ -383,7 +402,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	dest_addr.sin_port = htons(strtoul(prop_get_str(P_MONITOR_PORT), NULL, 0));
 
 	if ((connect(nfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) == -1) {
-	    putil_syserr(2, "connect()");
+	    putil_syserr(0, "connect()");
+	    exit(2);
 	}
 
 // Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
@@ -417,7 +437,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // This pipe is used as a belt-and-suspenders method for letting
     // the monitor know that the build is done.
     if (pipe(done_pipe) == -1) {
-	putil_syserr(2, "pipe(done_pipe)");
+	putil_syserr(0, "pipe(done_pipe)");
+	exit(2);
     }
 
     FD_ZERO(&master_read_fds);
@@ -430,7 +451,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     for (i = 0; i < ports; i++) {
 	// Set up these sockets as listeners.
 	if (listen(listeners[i], SOMAXCONN) == SOCKET_ERROR) {
-	    putil_syserr(2, "listen");
+	    putil_syserr(0, "listen");
+	    exit(2);
 	}
 
 	// Add the listening sockets to the master set.
@@ -476,7 +498,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 	    if (errno == EINTR) {
 		continue;
 	    }
-	    putil_syserr(2, "select");
+	    putil_syserr(0, "select");
+	    exit(2);
 	}
 
 	for (i = 0; i < ports; i++) {
@@ -487,7 +510,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
 		// Accept a new connection.
 		if ((newfd = accept(listeners[i], NULL, NULL)) == INVALID_SOCKET) {
-		    putil_syserr(2, "accept");
+		    putil_syserr(0, "accept");
+		    exit(2);
 		}
 
 		// Add it to the master set

@@ -469,7 +469,7 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext,
 	spath = putil_strdup(p);
     }
 
-    for (p = spath, e = strchr(p, ':'); p; p = e + 1) {
+    for (p = spath; p; p = e + 1) {
 
 	if ((e = strchr(p, ':')))
 	    *e = '\0';

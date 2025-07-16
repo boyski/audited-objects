@@ -220,7 +220,6 @@ _action(CCS action, int argc, CS const *argv)
 		    break;
 	    }
 	}
-	argc -= (bsd_optind - 1);
 	argv += (bsd_optind - 1);
 
 	ps = ps_newFromPath(*argv);
@@ -275,7 +274,6 @@ _action(CCS action, int argc, CS const *argv)
 		    break;
 	    }
 	}
-	argc -= (bsd_optind - 1);
 	argv += (bsd_optind - 1);
 
 	// Let the user see the data we'd derive for the specified local file.
@@ -382,7 +380,6 @@ main(int argc, CS *argv)
 {
     CCS exe;
     CCS action;
-    CCS pager = NULL;
     CS dscript = NULL;
     CS redo_script = NULL;
     int proplevel = -1;
@@ -439,7 +436,7 @@ main(int argc, CS *argv)
 	int c;
 
 	// *INDENT-OFF*
-	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:PRSTUV:W:XY";
+	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:RSTUV:W:XY";
 	static struct option long_opts[] = {
 	    {"oneshell",	no_argument,	   NULL, '1'},
 	    {"absolute-paths",	no_argument,	   NULL, 'a'},
@@ -463,7 +460,6 @@ main(int argc, CS *argv)
 	    {"output-file",	required_argument, NULL, 'o'},
 	    {"Output-file",	required_argument, NULL, 'O'},
 	    {"project-name",	required_argument, NULL, 'p'},
-	    {"pager",		no_argument,	   NULL, 'P'},
 	    {"profile",		no_argument,	   NULL, LF('P', '%')},
 	    {"quiet",		no_argument,	   NULL, 'q'},
 	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
@@ -599,12 +595,6 @@ main(int argc, CS *argv)
 
 	    case 'p':
 		prop_override_str(P_PROJECT_NAME, bsd_optarg);
-		break;
-
-	    case 'P':
-		if (!(pager = getenv("PAGER"))) {
-		    pager = "less";
-		}
 		break;
 
 		// Generate runtime linker profile output.
@@ -792,7 +782,8 @@ main(int argc, CS *argv)
 	}
 
 	if (!(cwd = util_get_cwd())) {
-	    putil_syserr(2, "getcwd()");
+	    putil_syserr(0, "getcwd()");
+	    exit(2);
 	}
 
 	// The auditor ignores anything it considers to be a temp
@@ -868,7 +859,7 @@ main(int argc, CS *argv)
 	    // to avoid session expiration during roadmap-getting.
 	    // That would only be a risk for a very slow roadmap or a
 	    // very fast session expiration but it could happen.
-	    if ((rc = mon_begin_session())) {
+	    if (mon_begin_session()) {
 		putil_die("can't get a session at %s", prop_get_str(P_SERVER));
 	    }
 	}

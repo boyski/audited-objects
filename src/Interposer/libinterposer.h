@@ -155,12 +155,12 @@ libinterposer_preload_off(const char *so, char *const envp[], int all)
 	    // This is where we miss the BSD unsetenv() function.
 	    if (envp) {
 		strcpy(ev, nbuf);
-		free(nbuf);
+		putil_free(nbuf);
 	    } else {
 		putenv(nbuf);
 	    }
 
-	    free(ldpname);
+	    putil_free(ldpname);
 	}
     }
 }

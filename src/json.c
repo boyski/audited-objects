@@ -80,7 +80,7 @@ _json_to_str(void *obj)
 /// Free a cJSON object
 /// @param[in] obj       the cJSON object
 static void
-_json_free(void *obj)
+_json_delete(void *obj)
 {
     cJSON_Delete(obj);
 }
@@ -126,7 +126,7 @@ json_from_ca_csv(CCS ca_csv)
     }
     putil_free(copy);
     jsonstr = (CS)_json_to_str(root);
-    _json_free(root);
+    _json_delete(root);
     jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;

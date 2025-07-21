@@ -97,7 +97,7 @@ _unix_sigusr1(int signum)
 static void
 _unix_sig_setup(void)
 {
-    struct sigaction sa;
+    struct sigaction sa = {0};
 
     // Alert the monitor loop when the child is no longer alive.
     memset(&sa, 0, sizeof(sa));

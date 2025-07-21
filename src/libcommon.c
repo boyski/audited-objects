@@ -681,7 +681,7 @@ _audit_end(CCS call, int exiting, long status)
     // A downloading build of OpenSSL 1.0 demo-ed this problem
     // back in the day.
     {
-        struct sigaction sigpipe;
+        struct sigaction sigpipe = {0};
 
         sigpipe.sa_handler = SIG_IGN;
         sigaction(SIGPIPE, &sigpipe, NULL);

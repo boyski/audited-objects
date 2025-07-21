@@ -30,7 +30,7 @@
 /// @brief Declarations for util.c
 
 /// Special "everything is done" marker.
-#define DONE_TOKEN				"{DONE}"
+#define DONE_TOKEN              "{DONE}"
 
 /// @cond UTIL
 
@@ -66,6 +66,6 @@ extern CS util_encode_minimal(CCS);
 extern char *util_unescape(const char *, int, int *);
 extern char *util_tempnam(const char *, const char *);
 
-#endif				/*UTIL_H */
+#endif // UTIL_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

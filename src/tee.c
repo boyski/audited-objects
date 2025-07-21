@@ -37,43 +37,43 @@ tee_into(const char *into)
     int timestamp_prefix = 0;
 
     if (prop_is_true(P_LOG_TIME_STAMP)) {
-	timestamp_prefix = 1;
-	moment_get_systime(&start);
+        timestamp_prefix = 1;
+        moment_get_systime(&start);
     }
 
     teeout = fopen(into, "w");
 
     if (!teeout) {
-	putil_syserr(2, into);
+        putil_syserr(2, into);
     }
 
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(teeout, NULL, _IONBF, 0);
 
     while (1) {
-	nread = read(0, buf, sizeof(buf));
-	if (nread == 0) {
-	    break;
-	} else if (nread < 0) {
-	    if (errno != EINTR) {
-		putil_syserr(2, "read");
-	    }
-	}
+        nread = read(0, buf, sizeof(buf));
+        if (nread == 0) {
+            break;
+        } else if (nread < 0) {
+            if (errno != EINTR) {
+                putil_syserr(2, "read");
+            }
+        }
 
-	if (timestamp_prefix) {
-	    moment_since(start, &delta);
-	    (void)moment_format_milli(delta, tstamp, charlen(tstamp));
-	}
+        if (timestamp_prefix) {
+            moment_since(start, &delta);
+            (void)moment_format_milli(delta, tstamp, charlen(tstamp));
+        }
 
-	for (i = 0; i < nread; i++) {
-	    if (timestamp_prefix && prev_char == '\n') {
-		fprintf(stdout, "%s: ", tstamp);
-		fprintf(teeout, "%s: ", tstamp);
-	    }
-	    prev_char = buf[i];
-	    putc(buf[i], stdout);
-	    putc(buf[i], teeout);
-	}
+        for (i = 0; i < nread; i++) {
+            if (timestamp_prefix && prev_char == '\n') {
+                fprintf(stdout, "%s: ", tstamp);
+                fprintf(teeout, "%s: ", tstamp);
+            }
+            prev_char = buf[i];
+            putc(buf[i], stdout);
+            putc(buf[i], teeout);
+        }
     }
 
     fflush(NULL);
@@ -83,4 +83,4 @@ tee_into(const char *into)
     exit(0);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

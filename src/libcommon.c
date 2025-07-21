@@ -56,7 +56,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define DONE				"{DONE}\n"
+#define DONE                            "{DONE}\n"
 
 // These may require some fancy stepping in order to maintain
 // thread safety within a potentially multithreaded host program.
@@ -86,9 +86,9 @@ SOCKET ReportSocket = INVALID_SOCKET;
 // The other is when the IDE makes an explicit call saying "start
 // auditing now". Neither is well tested though.
 static enum {
-    LIBAO_INACTIVE,		///< The auditor is not active.
-    LIBAO_ACTIVE_BY_DEFAULT,	///< The auditor is active throughout.
-    LIBAO_ACTIVE_BY_REQUEST,	///< The auditor was turned on by request.
+    LIBAO_INACTIVE,             ///< The auditor is not active.
+    LIBAO_ACTIVE_BY_DEFAULT,    ///< The auditor is active throughout.
+    LIBAO_ACTIVE_BY_REQUEST,    ///< The auditor was turned on by request.
 } Activated = LIBAO_INACTIVE;
 
 /// From each audited command the auditor library must "steal"
@@ -99,13 +99,13 @@ static enum {
 /// 256,255,etc in case some clever tool likes to start at the
 /// top and work downwards. So we begin by using an ordinary,
 /// undistinguished descriptor such as this one.
-#define PREFERRED_FD		212
+#define PREFERRED_FD            212
 
 /// A flag to _audit_end() indicating that we do not expect to exit.
-#define NOT_EXITING		0
+#define NOT_EXITING             0
 
 /// A flag to _audit_end() indicating that we're about to exit.
-#define EXITING			1
+#define EXITING                 1
 
 static void _audit_end(CCS, int, long);
 
@@ -164,88 +164,88 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
     pa_o pa;
 
     if (!_auditor_isActive()) {
-	vb_printf(VB_REC, "not active: %c,%s,%s", op, call, path);
-	return;
+        vb_printf(VB_REC, "not active: %c,%s,%s", op, call, path);
+        return;
     }
 
     pn = pn_new(path, 1);
     path = pn_get_abs(pn);
 
     if (_ignore_path(path)) {
-	// We needed to derive a fully qualified path before doing this check.
-	vb_printf(VB_REC, "ignoring: %c,%s,%s", op, call, path);
-	pn_destroy(pn);
+        // We needed to derive a fully qualified path before doing this check.
+        vb_printf(VB_REC, "ignoring: %c,%s,%s", op, call, path);
+        pn_destroy(pn);
     } else if (!CurrentCA) {
-	// This was moved down to after _ignore_path() to avoid
-	// certain funky loops, such as when ao is run under the OS X
-	// malloc debugger which writes a malloc_history file into /tmp
-	// during exit processing.
-	putil_int("PA after EOA: call=%s pid=%lu path=%s", call, (unsigned long)getpid(), path);
-	pn_destroy(pn);
+        // This was moved down to after _ignore_path() to avoid
+        // certain funky loops, such as when ao is run under the OS X
+        // malloc debugger which writes a malloc_history file into /tmp
+        // during exit processing.
+        putil_int("PA after EOA: call=%s pid=%lu path=%s", call, (unsigned long)getpid(), path);
+        pn_destroy(pn);
     } else {
-	vb_printf(VB_REC, "recording: %c,%s,%s", op, call, path);
+        vb_printf(VB_REC, "recording: %c,%s,%s", op, call, path);
 
-	pa = pa_new();
-	pa_set_op(pa, op);
-	pa_set_call(pa, call);
-	pa_set_pid(pa, ca_get_cmdid(CurrentCA));
-	pa_set_ppid(pa, ca_get_pcmdid(CurrentCA));
-	pa_set_depth(pa, ca_get_depth(CurrentCA));
-	pa_set_pccode(pa, ca_get_pccode(CurrentCA));
-	pa_set_ccode(pa, ca_get_ccode(CurrentCA));
-	pa_set_fd(pa, fd);
+        pa = pa_new();
+        pa_set_op(pa, op);
+        pa_set_call(pa, call);
+        pa_set_pid(pa, ca_get_cmdid(CurrentCA));
+        pa_set_ppid(pa, ca_get_pcmdid(CurrentCA));
+        pa_set_depth(pa, ca_get_depth(CurrentCA));
+        pa_set_pccode(pa, ca_get_pccode(CurrentCA));
+        pa_set_ccode(pa, ca_get_ccode(CurrentCA));
+        pa_set_fd(pa, fd);
 
-	// Only store the thread id for a threaded program (on Windows
-	// they're all threaded). We believe 0 to be an invalid thread
-	// id which is thus used to indicate "unthreaded".
-	if (pthread_self_real) {
-	    pa_set_tid(pa, (unsigned long)pthread_self_real());
-	} else {
-	    pa_set_tid(pa, 0);
-	}
+        // Only store the thread id for a threaded program (on Windows
+        // they're all threaded). We believe 0 to be an invalid thread
+        // id which is thus used to indicate "unthreaded".
+        if (pthread_self_real) {
+            pa_set_tid(pa, (unsigned long)pthread_self_real());
+        } else {
+            pa_set_tid(pa, 0);
+        }
 
-	ps = ps_new();
-	ps_set_pn(ps, pn);
+        ps = ps_new();
+        ps_set_pn(ps, pn);
 
-	// If this was a link op we may have a 2nd path to remember.
-	if (extra) {
-	    if (op == OP_SYMLINK) {
-		ps_set_target(ps, extra);
-	    } else {
-		ps_set_pn2(ps, pn_new(extra, 1));
-	    }
-	}
+        // If this was a link op we may have a 2nd path to remember.
+        if (extra) {
+            if (op == OP_SYMLINK) {
+                ps_set_target(ps, extra);
+            } else {
+                ps_set_pn2(ps, pn_new(extra, 1));
+            }
+        }
 
-	pa_set_ps(pa, ps);
+        pa_set_ps(pa, ps);
 
-	if (op == OP_UNLINK) {
-	    ps_set_unlinked(ps);
-	} else if (op == OP_MKDIR) {
-	    ps_set_dir(ps);
-	} else if (op == OP_SYMLINK) {
-	    ps_set_symlinked(ps);
-	} else if (op == OP_LINK) {
-	    ps_set_linked(ps);
-	}
+        if (op == OP_UNLINK) {
+            ps_set_unlinked(ps);
+        } else if (op == OP_MKDIR) {
+            ps_set_dir(ps);
+        } else if (op == OP_SYMLINK) {
+            ps_set_symlinked(ps);
+        } else if (op == OP_LINK) {
+            ps_set_linked(ps);
+        }
 
-	if (!pa_is_read(pa)) {
-	    moment_s tstamp;
+        if (!pa_is_read(pa)) {
+            moment_s tstamp;
 
-	    // Read ops don't need to be time-stamped.
-	    moment_get_systime(&tstamp);
-	    pa_set_timestamp(pa, tstamp);
+            // Read ops don't need to be time-stamped.
+            moment_get_systime(&tstamp);
+            pa_set_timestamp(pa, tstamp);
 
-	    // User may choose to limit legal pathnames for writes.
-	    if (AllowedWritePathRE && !re_match__(AllowedWritePathRE, path)) {
-		putil_die("disallowed write to '%s' per /%s/", path,
-		    prop_get_str(P_ALLOWED_WRITE_PATH_RE));
-	    }
-	}
+            // User may choose to limit legal pathnames for writes.
+            if (AllowedWritePathRE && !re_match__(AllowedWritePathRE, path)) {
+                putil_die("disallowed write to '%s' per /%s/", path,
+                    prop_get_str(P_ALLOWED_WRITE_PATH_RE));
+            }
+        }
 
-	// Finish by recording this path action.
-	_thread_mutex_lock();
-	ca_record_pa(CurrentCA, pa);
-	_thread_mutex_unlock();
+        // Finish by recording this path action.
+        _thread_mutex_lock();
+        ca_record_pa(CurrentCA, pa);
+        _thread_mutex_unlock();
     }
 }
 
@@ -285,59 +285,59 @@ _monitor_open(SOCKET *sockp, CCS call)
     UNUSED(call);
 
     if (*sockp != INVALID_SOCKET) {
-	vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
-	return;
+        vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
+        return;
     }
 
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-	putil_syserr(0, "socket");
-	exit(2);
+        putil_syserr(0, "socket");
+        exit(2);
     }
 
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
-		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-	putil_syserr(0, "SO_REUSEADDR");
-	exit(2);
+                   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+        putil_syserr(0, "SO_REUSEADDR");
+        exit(2);
     }
 
 #if defined(SO_REUSEPORT)
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
-		   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-	putil_syserr(0, "SO_REUSEPORT");
-	exit(2);
+                   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+        putil_syserr(0, "SO_REUSEPORT");
+        exit(2);
     }
-#endif	// SO_REUSEPORT
+#endif  // SO_REUSEPORT
 
     host = prop_get_str(P_MONITOR_HOST);
     portstr = prop_get_str(P_MONITOR_PORT);
 
     for (tries = 0; portstr && *portstr; tries++) {
-	port = (u_short)strtoul(portstr, &nextport, 0);
-	portstr = nextport + 1;
-	snprintf(host_port, charlen(host_port), "%s:%u", host, port);
+        port = (u_short)strtoul(portstr, &nextport, 0);
+        portstr = nextport + 1;
+        snprintf(host_port, charlen(host_port), "%s:%u", host, port);
 
-	if (tries) {
-	    vb_printf(VB_MON, "Retrying on %s in %lu",
-		host_port, (unsigned long)getpid());
-	}
+        if (tries) {
+            vb_printf(VB_MON, "Retrying on %s in %lu",
+                host_port, (unsigned long)getpid());
+        }
 
-	memset(&dest_addr, 0, sizeof(dest_addr));
-	dest_addr.sin_family = PF_INET;
-	dest_addr.sin_addr.s_addr = inet_addr(host);
-	dest_addr.sin_port = htons(port);
+        memset(&dest_addr, 0, sizeof(dest_addr));
+        dest_addr.sin_family = PF_INET;
+        dest_addr.sin_addr.s_addr = inet_addr(host);
+        dest_addr.sin_port = htons(port);
 
-	if (!connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) {
-	    vb_printf(VB_MON, "OPENED: SOCKET %d", *sockp);
-	    return;
-	}
+        if (!connect(*sockp, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) {
+            vb_printf(VB_MON, "OPENED: SOCKET %d", *sockp);
+            return;
+        }
 
-	if (errno == ETIMEDOUT || errno == EINTR) {
-	    vb_printf(VB_STD, "RETRY CONNECT");
-	    continue;
-	} else if (errno == EISCONN) {
-	    vb_printf(VB_MON, "CONNECTED: SOCKET %d", *sockp);
-	    return;
-	}
+        if (errno == ETIMEDOUT || errno == EINTR) {
+            vb_printf(VB_STD, "RETRY CONNECT");
+            continue;
+        } else if (errno == EISCONN) {
+            vb_printf(VB_MON, "CONNECTED: SOCKET %d", *sockp);
+            return;
+        }
     }
 
     putil_syserr(0, host_port);
@@ -350,8 +350,8 @@ _monitor_send(SOCKET *sockp, const void *buf, size_t len)
 {
     vb_printf(VB_MON, "SENDING TO: SOCKET %d", *sockp);
     if (util_send_all(*sockp, buf, len, 0) < 0) {
-	putil_syserr(0, "send");
-	exit(2);
+        putil_syserr(0, "send");
+        exit(2);
     }
 }
 
@@ -365,26 +365,26 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
     vb_printf(VB_MON, "RECVING FROM: SOCKET %d", *sockp);
     buf = (char *)vbuf;
     for (p = buf;;) {
-	ret = recv(*sockp, p, len - (p - buf), 0);
-	if (ret == INVALID_SOCKET) {
-	    if (errno == EINTR) {
-		continue;
-	    }
-	    putil_syserr(0, "recv()");
-	    exit(2);
-	    break;
-	} else if (ret == 0) {
-	    break;
-	} else {
-	    char *e;
+        ret = recv(*sockp, p, len - (p - buf), 0);
+        if (ret == INVALID_SOCKET) {
+            if (errno == EINTR) {
+                continue;
+            }
+            putil_syserr(0, "recv()");
+            exit(2);
+            break;
+        } else if (ret == 0) {
+            break;
+        } else {
+            char *e;
 
-	    if ((e = strchr(p, '\n'))) {
-		*e = '\0';
-		break;
-	    } else {
-		p += ret;
-	    }
-	}
+            if ((e = strchr(p, '\n'))) {
+                *e = '\0';
+                break;
+            } else {
+                p += ret;
+            }
+        }
     }
 }
 
@@ -404,7 +404,7 @@ _monitor_close(SOCKET *sockp, int exiting)
 
     vb_printf(VB_MON, "CLOSING: SOCKET %d", *sockp);
     if (*sockp == INVALID_SOCKET) {
-	return;
+        return;
     }
 
     close(*sockp);
@@ -420,86 +420,86 @@ _audit_open(void)
     int fd;
 
     if (!_auditor_isActive()) {
-	return -1;
+        return -1;
     }
 
     // For debugging purposes we allow a mode where output is written
     // directly to a file descriptor. In the normal case it's sent to
     // a socket and received by the monitor.
     if (prop_is_true(P_NO_MONITOR)) {
-	CCS ofile;
+        CCS ofile;
 
-	if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
-	    if (!strcmp(ofile, "-")) {
-		fd = STDOUT_FILENO;
-	    } else if (!strcmp(ofile, "=")) {
-		fd = STDERR_FILENO;
-	    } else {
-		// If the file already exists, just append to it.
-		// If not, make a new file with the pid appended.
-		fd = open_real(ofile, O_WRONLY | O_APPEND, 0);
-		if (fd == -1) {
-		    char *obuf;
+        if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
+            if (!strcmp(ofile, "-")) {
+                fd = STDOUT_FILENO;
+            } else if (!strcmp(ofile, "=")) {
+                fd = STDERR_FILENO;
+            } else {
+                // If the file already exists, just append to it.
+                // If not, make a new file with the pid appended.
+                fd = open_real(ofile, O_WRONLY | O_APPEND, 0);
+                if (fd == -1) {
+                    char *obuf;
 
-		    asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
-		    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
-		    if (fd == -1) {
-			putil_syserr(0, obuf);
-			exit(2);
-		    }
-		    putil_free(obuf);
-		}
-		fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-	    }
-	} else {
-	    fd = STDERR_FILENO;
-	}
+                    asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
+                    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
+                    if (fd == -1) {
+                        putil_syserr(0, obuf);
+                        exit(2);
+                    }
+                    putil_free(obuf);
+                }
+                fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+            }
+        } else {
+            fd = STDERR_FILENO;
+        }
     } else {
-	int i;
+        int i;
 
-	FILE *tfp;
+        FILE *tfp;
 
-	// Create an unnamed/unlinked temp file. Unfortunately this
-	// returns us a stream and not a descriptor. We try not to use
-	// up stdio streams because they're limited to 256 in many cases,
-	// so we convert it to a high-numbered descriptor and close
-	// the stream.
-	if (!(tfp = tmpfile())) {
-	    putil_syserr(0, "tmpfile");
-	    exit(2);
-	}
+        // Create an unnamed/unlinked temp file. Unfortunately this
+        // returns us a stream and not a descriptor. We try not to use
+        // up stdio streams because they're limited to 256 in many cases,
+        // so we convert it to a high-numbered descriptor and close
+        // the stream.
+        if (!(tfp = tmpfile())) {
+            putil_syserr(0, "tmpfile");
+            exit(2);
+        }
 
-	// If our preferred fd is not in use, try using it.
-	// Try a few above that next - this is in case of a
-	// fork where we want the child side to have its own
-	// temp file in order to keep the contents from being
-	// scrambled.
-	for (fd = -1, i = 0; i < 10; i++) {
-	    if (lseek(PREFERRED_FD + i, 0, SEEK_CUR) == -1) {
-		if (dup2(fileno(tfp), PREFERRED_FD + i) != -1) {
-		    fd = PREFERRED_FD + i;
-		    break;
-		}
-	    }
-	}
+        // If our preferred fd is not in use, try using it.
+        // Try a few above that next - this is in case of a
+        // fork where we want the child side to have its own
+        // temp file in order to keep the contents from being
+        // scrambled.
+        for (fd = -1, i = 0; i < 10; i++) {
+            if (lseek(PREFERRED_FD + i, 0, SEEK_CUR) == -1) {
+                if (dup2(fileno(tfp), PREFERRED_FD + i) != -1) {
+                    fd = PREFERRED_FD + i;
+                    break;
+                }
+            }
+        }
 
-	// If all the above efforts failed, just ask the system
-	// for the next available descriptor.
-	if (fd == -1) {
-	    if ((fd = dup(fileno(tfp))) == -1) {
-		putil_syserr(0, "dup");
-		exit(2);
-	    }
-	}
+        // If all the above efforts failed, just ask the system
+        // for the next available descriptor.
+        if (fd == -1) {
+            if ((fd = dup(fileno(tfp))) == -1) {
+                putil_syserr(0, "dup");
+                exit(2);
+            }
+        }
 
-	// Now the stream can go away to preserve limited stdio count.
-	if (fclose(tfp)) {
-	    putil_syserr(0, "fclose");
-	    exit(2);
-	}
+        // Now the stream can go away to preserve limited stdio count.
+        if (fclose(tfp)) {
+            putil_syserr(0, "fclose");
+            exit(2);
+        }
 
-	// Each new cmd and/or process must create its own temp file.
-	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+        // Each new cmd and/or process must create its own temp file.
+        fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
 
     return fd;
@@ -514,14 +514,14 @@ _audit_start(CCS call)
     CS soa_hdr;
 
     if (!_auditor_isActive()) {
-	return;
+        return;
     }
 
     // Allocate and format the cmdline SOA header.
     hdr = ca_format_header(CurrentCA);
     if (!hdr || asprintf(&soa_hdr, "%s%s", SOA, hdr) < 0) {
-	putil_syserr(0, NULL);
-	exit(2);
+        putil_syserr(0, NULL);
+        exit(2);
     }
     putil_free(hdr);
 
@@ -529,7 +529,7 @@ _audit_start(CCS call)
     // that this command is part of an aggregation and thus need not
     // be shopped for.
     if (prop_is_true(P_AGGREGATED_SUBCMD)) {
-	soa_hdr[1] = 's';
+        soa_hdr[1] = 's';
     }
 
     // Acquire the descriptor we'll be using for audit reporting.
@@ -539,64 +539,64 @@ _audit_start(CCS call)
     // Writes and sends are separated because you can't write()
     // to a socket on Windows and can't send() to a file anywhere.
     if (!prop_is_true(P_NO_MONITOR)) {
-	char ack_soa[ACK_BUFFER_SIZE], *p;
+        char ack_soa[ACK_BUFFER_SIZE], *p;
 
-	// The SOA must arrive at the monitor before the SOAs of any
-	// children.  Thus we do not stash it for later delivery
-	// but send it synchronously now. This is unfortunate
-	// since two socket negotiations may be significantly more
-	// expensive than one, though that has not been proven.
-	// It's worth thinking this through again to see if there's
-	// way around it, either by keeping the socket open or
-	// allowing SOA to be sent in the same packet as EOA.
-	_monitor_open(&ReportSocket, call);
-	_monitor_send(&ReportSocket, soa_hdr, strlen(soa_hdr));
-	putil_free(soa_hdr);
+        // The SOA must arrive at the monitor before the SOAs of any
+        // children.  Thus we do not stash it for later delivery
+        // but send it synchronously now. This is unfortunate
+        // since two socket negotiations may be significantly more
+        // expensive than one, though that has not been proven.
+        // It's worth thinking this through again to see if there's
+        // way around it, either by keeping the socket open or
+        // allowing SOA to be sent in the same packet as EOA.
+        _monitor_open(&ReportSocket, call);
+        _monitor_send(&ReportSocket, soa_hdr, strlen(soa_hdr));
+        putil_free(soa_hdr);
 
-	// Block until monitor acknowledges receipt of SOA.
-	// This is needed to make sure it doesn't see EOA first.
-	// We require the received message to be terminated with a newline;
-	// we don't actually want the newline but it's a good way to
-	// be sure we've read the whole message.
-	_monitor_flush(&ReportSocket);
-	_monitor_recv_line(&ReportSocket, ack_soa, sizeof(ack_soa));
-	_monitor_close(&ReportSocket, 0);
+        // Block until monitor acknowledges receipt of SOA.
+        // This is needed to make sure it doesn't see EOA first.
+        // We require the received message to be terminated with a newline;
+        // we don't actually want the newline but it's a good way to
+        // be sure we've read the whole message.
+        _monitor_flush(&ReportSocket);
+        _monitor_recv_line(&ReportSocket, ack_soa, sizeof(ack_soa));
+        _monitor_close(&ReportSocket, 0);
 
-	vb_printf(VB_MON, "CONTINUING [%s] WITH %s",
-	    ack_soa, ca_get_line(CurrentCA));
+        vb_printf(VB_MON, "CONTINUING [%s] WITH %s",
+            ack_soa, ca_get_line(CurrentCA));
 
-	if (!strcmp(ack_soa, ACK_FAILURE)) {
-	    _audit_end("exit", EXITING, 2);
-	    exit(2);
-	} else if (!strcmp(ack_soa, ACK_OK_AGG)) {
-	    // Optimization: suppress shopping in aggregated children.
-	    if (prop_has_value(P_AGGREGATED_SUBCMD)) {
-		prop_mod_ulong(P_AGGREGATED_SUBCMD, 1, NULL);
-	    }
-	} else if (!strcmp(ack_soa, ACK_OK)) {
-	    // Everything normal - carry on.
-	} else {
-	    // We now know the command was successfully recycled so
-	    // we can quit and go home early.
-	    if ((p = strstr(ack_soa, FS1))) {
-		*p = '\0';
-		ca_set_recycled(CurrentCA, ack_soa);
-	    }
+        if (!strcmp(ack_soa, ACK_FAILURE)) {
+            _audit_end("exit", EXITING, 2);
+            exit(2);
+        } else if (!strcmp(ack_soa, ACK_OK_AGG)) {
+            // Optimization: suppress shopping in aggregated children.
+            if (prop_has_value(P_AGGREGATED_SUBCMD)) {
+                prop_mod_ulong(P_AGGREGATED_SUBCMD, 1, NULL);
+            }
+        } else if (!strcmp(ack_soa, ACK_OK)) {
+            // Everything normal - carry on.
+        } else {
+            // We now know the command was successfully recycled so
+            // we can quit and go home early.
+            if ((p = strstr(ack_soa, FS1))) {
+                *p = '\0';
+                ca_set_recycled(CurrentCA, ack_soa);
+            }
 
-	    // This should trigger an immediate EOA with a
-	    // field showing which PTX it was recycled from.
-	    // Exiting is VERY tricky here with all the variants
-	    // and hooks.
-	    // This seems to work but could maybe be done better.
-	    _audit_end("exit", EXITING, 0);
-	    exit(0);
-	}
+            // This should trigger an immediate EOA with a
+            // field showing which PTX it was recycled from.
+            // Exiting is VERY tricky here with all the variants
+            // and hooks.
+            // This seems to work but could maybe be done better.
+            _audit_end("exit", EXITING, 0);
+            exit(0);
+        }
     } else {
-	if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
-	    putil_syserr(0, "write");
-	    exit(2);
-	}
-	putil_free(soa_hdr);
+        if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
+            putil_syserr(0, "write");
+            exit(2);
+        }
+        putil_free(soa_hdr);
     }
 
     return;
@@ -620,7 +620,7 @@ _audit_flush(CCS call)
     UNUSED(call);
 
     if (!_auditor_isActive()) {
-	return;
+        return;
     }
 
     // Technically we may not need to synchronize here when called
@@ -640,7 +640,7 @@ _audit_flush(CCS call)
     // Walk the tree, printing each pa node to the fd.
     // Note - ca_get_recycled is most likely redundant with ca_get_pa_count.
     if (!ca_get_recycled(CurrentCA) && ca_get_pa_count(CurrentCA)) {
-	ca_write(CurrentCA, AuditFD);
+        ca_write(CurrentCA, AuditFD);
     }
 
     // Let the lock go.
@@ -657,7 +657,7 @@ _audit_end(CCS call, int exiting, long status)
     char ack_eoa[ACK_BUFFER_SIZE];
 
     if (!_auditor_isActive()) {
-	return;
+        return;
     }
 
     // This will start and/or flush the audit as required.
@@ -681,82 +681,82 @@ _audit_end(CCS call, int exiting, long status)
     // A downloading build of OpenSSL 1.0 demo-ed this problem
     // back in the day.
     {
-	struct sigaction sigpipe;
+        struct sigaction sigpipe;
 
-	sigpipe.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &sigpipe, NULL);
+        sigpipe.sa_handler = SIG_IGN;
+        sigaction(SIGPIPE, &sigpipe, NULL);
     }
 #endif // defined(SIGPIPE) && defined(SIG_IGN)
 
     if (!prop_is_true(P_NO_MONITOR)) {
-	if (AuditFD != -1 && CurrentCA && !ca_get_recycled(CurrentCA)) {
-	    char buf[1024];
+        if (AuditFD != -1 && CurrentCA && !ca_get_recycled(CurrentCA)) {
+            char buf[1024];
 
-	    _monitor_open(&ReportSocket, call);
+            _monitor_open(&ReportSocket, call);
 
-	    // Rewind the temp file and send its contents to the monitor.
-	    if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-		putil_syserr(0, "lseek");
-		exit(2);
-	    }
+            // Rewind the temp file and send its contents to the monitor.
+            if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
+                putil_syserr(0, "lseek");
+                exit(2);
+            }
 
-	    while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
-		if (n == -1) {
-		    if (errno == EINTR) {
-			continue;
-		    }
-		    putil_syserr(0, "read");
-		    exit(2);
-		}
-		_monitor_send(&ReportSocket, buf, n);
-	    }
-	}
+            while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
+                if (n == -1) {
+                    if (errno == EINTR) {
+                        continue;
+                    }
+                    putil_syserr(0, "read");
+                    exit(2);
+                }
+                _monitor_send(&ReportSocket, buf, n);
+            }
+        }
     }
 
     // Write the EOA marker if we're exiting AND an SOA was sent.
     if (exiting && ca_get_started(CurrentCA)) {
-	CCS hdr;
-	CS eoa_hdr;
+        CCS hdr;
+        CS eoa_hdr;
 
-	// Allocate and format the cmdline header.
-	hdr = ca_format_header(CurrentCA);
-	assert(hdr);
-	if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
-	    putil_syserr(0, NULL);
-	    exit(2);
-	}
-	putil_free(hdr);
+        // Allocate and format the cmdline header.
+        hdr = ca_format_header(CurrentCA);
+        assert(hdr);
+        if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
+            putil_syserr(0, NULL);
+            exit(2);
+        }
+        putil_free(hdr);
 
-	if (ReportSocket == INVALID_SOCKET) {
-	    if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
-		putil_syserr(0, "write");
-		exit(2);
-	    }
-	} else {
-	    _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
-	}
+        if (ReportSocket == INVALID_SOCKET) {
+            if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
+                putil_syserr(0, "write");
+                exit(2);
+            }
+        } else {
+            _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
+        }
 
-	putil_free(eoa_hdr);
-	ca_destroy(CurrentCA);
-	CurrentCA = NULL;
-	close(AuditFD);
-	AuditFD = -1;
+        putil_free(eoa_hdr);
+        ca_destroy(CurrentCA);
+        CurrentCA = NULL;
+        close(AuditFD);
+        AuditFD = -1;
     } else if (!prop_is_true(P_NO_MONITOR)) {
-	// In case more data is written to the temp file, reposition
-	// its pointer at the beginning.
-	if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-	    putil_syserr(0, "lseek");
-	    exit(2);
-	}
-	if (ftruncate(AuditFD, 0)) {
-	    putil_syserr(0, "ftruncate");
-	    exit(2);
-	}
+        // In case more data is written to the temp file, reposition
+        // its pointer at the beginning.
+        if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
+            putil_syserr(0, "lseek");
+            exit(2);
+        }
+        if (ftruncate(AuditFD, 0)) {
+            putil_syserr(0, "ftruncate");
+            exit(2);
+        }
     }
 
     // No ACK needed in no-monitor mode ...
     if (ReportSocket == INVALID_SOCKET) {
-	return;
+        return;
     }
 
     // Block until monitor acknowledges receipt of EOA by closing
@@ -809,17 +809,17 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     prefs_init(exe, NULL, NULL);
 
     if (prop_has_value(P_DEPTH)) {
-	// Find the current depth and increment it for child cmds.
-	// From here on P_DEPTH is a lie for the current cmd.
-	Depth = prop_get_ulong(P_DEPTH);
-	prop_mod_ulong(P_DEPTH, Depth + 1, NULL);
+        // Find the current depth and increment it for child cmds.
+        // From here on P_DEPTH is a lie for the current cmd.
+        Depth = prop_get_ulong(P_DEPTH);
+        prop_mod_ulong(P_DEPTH, Depth + 1, NULL);
 
-	pccode = prop_get_str(P_PCCODE);
+        pccode = prop_get_str(P_PCCODE);
     } else {
-	// Special case to allow "naked" testing of the auditor via e.g.
-	// "LD_PRELOAD=/path/to/libAO.so some-command".
-	prop_override_true(P_NO_MONITOR);
-	vb_printf(VB_OFF, "running in %s mode", prop_to_name(P_NO_MONITOR));
+        // Special case to allow "naked" testing of the auditor via e.g.
+        // "LD_PRELOAD=/path/to/libAO.so some-command".
+        prop_override_true(P_NO_MONITOR);
+        vb_printf(VB_OFF, "running in %s mode", prop_to_name(P_NO_MONITOR));
     }
 
     // Initialize the hash-code generation.
@@ -830,30 +830,30 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     // Optionally show commands as executed.
     if (vb_bitmatch(VB_EXEC)) {
-	fprintf(vb_get_stream(), "+ %s\n", cmdstr);
+        fprintf(vb_get_stream(), "+ %s\n", cmdstr);
     }
 
     // If full auditing is already activated, keep it going.
     // If not, and we have no activation RE, activate by default.
     // If we have an RE, apply it.
     if (!_auditor_isActive()) {
-	void *re;
+        void *re;
 
-	if ((re = re_init_prop__(P_ACTIVATION_PROG_RE))) {
-	    if (re_match__(re, exe)) {
-		vb_printf(VB_OFF, "ACTIVATED ON [%ld] '%s'", pid, exe);
-		auditor_setActive();
-		// Can't remove this EV - must change it in place.
-		prop_mod_str(P_ACTIVATION_PROG_RE, "", NULL);
-	    } else {
-		vb_printf(VB_OFF, "INACTIVATED ON [%ld] '%s'", pid, exe);
-		return pid;
-	    }
-	    re_fini__(&re);
-	} else {
-	    vb_printf(VB_OFF, "ACTIVE ON [%ld] '%s'", pid, exe);
-	    _auditor_setActiveByDefault();
-	}
+        if ((re = re_init_prop__(P_ACTIVATION_PROG_RE))) {
+            if (re_match__(re, exe)) {
+                vb_printf(VB_OFF, "ACTIVATED ON [%ld] '%s'", pid, exe);
+                auditor_setActive();
+                // Can't remove this EV - must change it in place.
+                prop_mod_str(P_ACTIVATION_PROG_RE, "", NULL);
+            } else {
+                vb_printf(VB_OFF, "INACTIVATED ON [%ld] '%s'", pid, exe);
+                return pid;
+            }
+            re_fini__(&re);
+        } else {
+            vb_printf(VB_OFF, "ACTIVE ON [%ld] '%s'", pid, exe);
+            _auditor_setActiveByDefault();
+        }
     }
 
     // Set up a new audit object with starting values. The cmdid
@@ -876,14 +876,14 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     // Derive the current hostname.
     if (!ca_get_host(CurrentCA)) {
-	char hostbuf[HOST_NAME_MAX];
+        char hostbuf[HOST_NAME_MAX];
 
-	if (gethostname(hostbuf, sizeof(hostbuf))) {
-	    putil_syserr(0, "gethostname()");
-	    exit(2);
-	}
+        if (gethostname(hostbuf, sizeof(hostbuf))) {
+            putil_syserr(0, "gethostname()");
+            exit(2);
+        }
 
-	ca_set_host(CurrentCA, hostbuf);
+        ca_set_host(CurrentCA, hostbuf);
     }
 
     ca_set_line(CurrentCA, cmdstr);
@@ -891,58 +891,58 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // If requested, and if the RE matches the current command,
     // record the current environment in the freetext field.
     if ((str = prop_get_str(P_TRACK_ENV_RE))) {
-	void *cmd_re, *var_re;
+        void *cmd_re, *var_re;
 
-	if (strrchr(str, ':')) {
-	    CS tstr, p;
+        if (strrchr(str, ':')) {
+            CS tstr, p;
 
-	    tstr = putil_strdup(str);
-	    p = strrchr(tstr, ':');
-	    *p = '\0';
-	    cmd_re = re_init__("TRACK_ENV_CMD", tstr);
-	    var_re = re_init__("TRACK_ENV_VAR", p + 1);
-	    putil_free(tstr);
-	} else {
-	    cmd_re = re_init__("TRACK_ENV_CMD", str);
-	    var_re = NULL;
-	}
+            tstr = putil_strdup(str);
+            p = strrchr(tstr, ':');
+            *p = '\0';
+            cmd_re = re_init__("TRACK_ENV_CMD", tstr);
+            var_re = re_init__("TRACK_ENV_VAR", p + 1);
+            putil_free(tstr);
+        } else {
+            cmd_re = re_init__("TRACK_ENV_CMD", str);
+            var_re = NULL;
+        }
 
-	if (re_match__(cmd_re, cmdstr)) {
-	    CS eblock, encoded;
-	    size_t elen;
-	    char **envp;
-	    CS end;
+        if (re_match__(cmd_re, cmdstr)) {
+            CS eblock, encoded;
+            size_t elen;
+            char **envp;
+            CS end;
 
-	    for (envp = environ, elen = 1; *envp; envp++) {
-		elen += strlen(*envp) + 1;
-	    }
+            for (envp = environ, elen = 1; *envp; envp++) {
+                elen += strlen(*envp) + 1;
+            }
 
-	    eblock = (CS)putil_malloc(elen);
+            eblock = (CS)putil_malloc(elen);
 
-	    for (envp = environ, end = eblock; *envp && elen > 0; envp++) {
-		if (!strstr(*envp, "TRACK_ENV")) {
-		    if (!var_re || re_match__(var_re, *envp)) {
-			int n;
+            for (envp = environ, end = eblock; *envp && elen > 0; envp++) {
+                if (!strstr(*envp, "TRACK_ENV")) {
+                    if (!var_re || re_match__(var_re, *envp)) {
+                        int n;
 
-			n = snprintf(end, elen, "%s\n", *envp);
-			end += n;
-			elen -= n;
-		    }
-		}
-	    }
+                        n = snprintf(end, elen, "%s\n", *envp);
+                        end += n;
+                        elen -= n;
+                    }
+                }
+            }
 
-	    encoded = util_encode_minimal(eblock);
-	    putil_free(eblock);
-	    ca_set_freetext(CurrentCA, encoded);
-	    putil_free(encoded);
-	}
+            encoded = util_encode_minimal(eblock);
+            putil_free(eblock);
+            ca_set_freetext(CurrentCA, encoded);
+            putil_free(encoded);
+        }
 
-	if (cmd_re) {
-	    re_fini__(&cmd_re);
-	}
-	if (var_re) {
-	    re_fini__(&var_re);
-	}
+        if (cmd_re) {
+            re_fini__(&cmd_re);
+        }
+        if (var_re) {
+            re_fini__(&var_re);
+        }
     }
 
     // Retrieve the grandparent and parent cmd codes from the
@@ -951,12 +951,12 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     // Parent command ...
     if (!pccode || CSV_FIELD_IS_NULL(pccode)) {
-	ca_set_pccode(CurrentCA, NULL);
+        ca_set_pccode(CurrentCA, NULL);
     } else {
-	char pccbuf[256];
+        char pccbuf[256];
 
-	snprintf(pccbuf, charlen(pccbuf), "%s", pccode);
-	ca_set_pccode(CurrentCA, util_strtrim(pccbuf));
+        snprintf(pccbuf, charlen(pccbuf), "%s", pccode);
+        ca_set_pccode(CurrentCA, util_strtrim(pccbuf));
     }
 
     _audit_start(call);
@@ -965,7 +965,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // parent ccode. From here on the environment will be a lie
     // but we have the truth in the CA object.
     if (prop_has_value(P_PCCODE)) {
-	prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
+        prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
     }
 
     // Special case - show the program itself as a file that we read
@@ -984,4 +984,4 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     return pid;
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

@@ -24,23 +24,23 @@
 /// These are bits which may be set in the return code from mon_record().
 
 /// Line parsed successfully, hit me again.
-#define MON_NEXT			(1<<0)
+#define MON_NEXT            (1<<0)
 /// The received line represents a top-level command.
-#define MON_TOP				(1<<1)
+#define MON_TOP             (1<<1)
 /// The received line was a start-of-audit.
-#define MON_SOA				(1<<2)
+#define MON_SOA             (1<<2)
 /// The received line was an end-of-audit.
-#define MON_EOA				(1<<3)
+#define MON_EOA             (1<<3)
 /// The received line represents an aggregating command.
-#define MON_AGG				(1<<4)
+#define MON_AGG             (1<<4)
 /// The received line represents a recycled command.
-#define MON_RECYCLED			(1<<5)
+#define MON_RECYCLED            (1<<5)
 /// The command was unable to fulfill a requirement and must die.
-#define MON_STRICT			(1<<6)
+#define MON_STRICT          (1<<6)
 /// An unspecified error occurred and has been handled.
-#define MON_ERR				(1<<7)
+#define MON_ERR             (1<<7)
 /// The top-level monitored process was unable to start.
-#define MON_CANTRUN			(1<<8)
+#define MON_CANTRUN         (1<<8)
 
 extern void mon_init(void);
 extern void mon_get_roadmap(void);
@@ -51,6 +51,6 @@ extern unsigned mon_record(CS, int *, unsigned long *, CCS *);
 extern void mon_ptx_end(int, CCS);
 extern void mon_fini(void);
 
-#endif
+#endif // MON_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

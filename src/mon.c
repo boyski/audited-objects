@@ -52,11 +52,11 @@ static void *prog_break_re, *prog_strong_re, *prog_weak_re;
 
 /// Enumeration of the different aggregation types.
 typedef enum {
-    AGG_NEUTRAL,		///< Stick with the current aggregation plan
-    AGG_NONE,			///< No aggregation (this cmd is on its own)
-    AGG_WEAK,			///< Weak aggregation (yields to children)
-    AGG_STRONG,			///< Strong (rolls up all children)
-    AGG_BREAK,			///< Forces an end to current aggregation
+    AGG_NEUTRAL,                ///< Stick with the current aggregation plan
+    AGG_NONE,                   ///< No aggregation (this cmd is on its own)
+    AGG_WEAK,                   ///< Weak aggregation (yields to children)
+    AGG_STRONG,                 ///< Strong (rolls up all children)
+    AGG_BREAK,                  ///< Forces an end to current aggregation
 } agg_e;
 
 /// Initialize monitor data structures.
@@ -64,11 +64,11 @@ void
 mon_init(void)
 {
     if (!AuditHash) {
-	if (!(AuditHash =
-	      hash_create(HASHCOUNT_T_MAX,
-	      ca_o_hash_cmp, ca_o_hash_func))) {
-	    putil_syserr(2, "hash_create()");
-	}
+        if (!(AuditHash =
+              hash_create(HASHCOUNT_T_MAX,
+              ca_o_hash_cmp, ca_o_hash_func))) {
+            putil_syserr(2, "hash_create()");
+        }
     }
 
     line_break_re = re_init_prop__(P_AGGREGATION_LINE_BREAK_RE);
@@ -79,9 +79,9 @@ mon_init(void)
     prog_weak_re = re_init_prop__(P_AGGREGATION_PROG_WEAK_RE);
 
     if (prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
-	prop_unset(P_ROADMAPFILE, 0);
+        prop_unset(P_ROADMAPFILE, 0);
     } else {
-	// shop_init();
+        // shop_init();
     }
 
     // Enable dcode cache management based on property settings.
@@ -107,21 +107,21 @@ _mon_tostring(void)
     CCS sep = "----\n";
 
     if (AuditHash) {
-	result = putil_strdup("");
-	hash_scan_begin(&hscan, AuditHash);
-	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	    size_t num;
+        result = putil_strdup("");
+        hash_scan_begin(&hscan, AuditHash);
+        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
+            size_t num;
 
-	    ca = (ca_o)hnode_get(hnp);
-	    str = ca_to_str(ca);
-	    num = strlen(result) + strlen(str) + strlen(sep) + 1;
-	    result = (CCS)putil_realloc((void *)result, num * CHARSIZE);
-	    strcat((CS)result, str);
-	    strcat((CS)result, sep);
-	    putil_free(str);
-	}
+            ca = (ca_o)hnode_get(hnp);
+            str = ca_to_str(ca);
+            num = strlen(result) + strlen(str) + strlen(sep) + 1;
+            result = (CCS)putil_realloc((void *)result, num * CHARSIZE);
+            strcat((CS)result, str);
+            strcat((CS)result, sep);
+            putil_free(str);
+        }
     } else {
-	result = putil_strdup("(UNINITIALIZED)");
+        result = putil_strdup("(UNINITIALIZED)");
     }
 
     return result;
@@ -158,11 +158,11 @@ _mon_process_pa(pa_o pa, void *data)
     UNUSED(data);
 
     if (!pa_get_uploadable(pa)) {
-	return 0;
+        return 0;
     } else if (prop_is_true(P_DOWNLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
-	return 0;
+        return 0;
     } else {
-	// up_load_file(pa_get_ps(pa), 0);
+        // up_load_file(pa_get_ps(pa), 0);
     }
 
     return 0;
@@ -178,35 +178,35 @@ _mon_process_ca(ca_o ca)
     // In the case of a recycled CA the pathcode will have been
     // determined during shopping.
     if (!ca_get_recycled(ca)) {
-	ca_derive_pathcode(ca);
+        ca_derive_pathcode(ca);
     }
 
     cabuf = (CS)ca_to_str(ca);
 
     if ((ofile = prop_get_str(P_OUTPUT_FILE))) {
-	if (cabuf && *cabuf) {
-	    FILE *fp;
+        if (cabuf && *cabuf) {
+            FILE *fp;
 
-	    fp = util_open_output_file(ofile);
+            fp = util_open_output_file(ofile);
 
-	    if (fputs(cabuf, fp) == EOF || fputs("\n", fp) == EOF) {
-		putil_syserr(0, "fputs(cabuf)");
-	    }
+            if (fputs(cabuf, fp) == EOF || fputs("\n", fp) == EOF) {
+                putil_syserr(0, "fputs(cabuf)");
+            }
 
-	    fflush(fp);
-	}
+            fflush(fp);
+        }
     }
 
     if (prop_has_value(P_SERVER) && !_mon_no_ptx()) {
-	// up_load_audit(cabuf);
-	// Take each file marked for upload and tell libcurl to send it.
-	(void)ca_foreach_cooked_pa(ca, _mon_process_pa, NULL);
+        // up_load_audit(cabuf);
+        // Take each file marked for upload and tell libcurl to send it.
+        (void)ca_foreach_cooked_pa(ca, _mon_process_pa, NULL);
     }
 
     putil_free(cabuf);
 
     if (prop_has_value(P_MAKE_DEPENDS) || prop_has_value(P_MAKE_FILE)) {
-	make_file(ca);
+        make_file(ca);
     }
 
     ca_set_processed(ca, 1);
@@ -224,18 +224,18 @@ _mon_clean_up_ca_table(void)
 
     hash_scan_begin(&hscan, AuditHash);
     for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	ca_o ca;
+        ca_o ca;
 
-	ca = (ca_o)hnode_get(hnp);
-	if (ca_get_processed(ca)) {
-	    ck_o ck;
+        ca = (ca_o)hnode_get(hnp);
+        if (ca_get_processed(ca)) {
+            ck_o ck;
 
-	    ck = (ck_o)hnode_getkey(hnp);
-	    hash_scan_delete(AuditHash, hnp);
-	    hnode_destroy(hnp);
-	    ck_destroy(ck);
-	    ca_destroy(ca);
-	}
+            ck = (ck_o)hnode_getkey(hnp);
+            hash_scan_delete(AuditHash, hnp);
+            hnode_destroy(hnp);
+            ck_destroy(ck);
+            ca_destroy(ca);
+        }
     }
 }
 
@@ -257,444 +257,444 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
     vb_printf(VB_MON, "=%s", buf);
 
     if (buf[0] == '<') {
-	if (buf[1] == 'S' || buf[1] == 's') {		// SOA
-	    moment_s ca_start_time;
-	    ca_o pred = NULL;
-	    hnode_t *hnp;
-	    CCS aggprop;
-	    CCS cap;
-	    agg_e agglevel = AGG_NEUTRAL;
+        if (buf[1] == 'S' || buf[1] == 's') {           // SOA
+            moment_s ca_start_time;
+            ca_o pred = NULL;
+            hnode_t *hnp;
+            CCS aggprop;
+            CCS cap;
+            agg_e agglevel = AGG_NEUTRAL;
 
-	    rc = MON_SOA;
+            rc = MON_SOA;
 
 #if 0
-	    // The difference between 'S' and 's' above is that the
-	    // lower-case version tells us not to bother shopping.
-	    // Sometimes the auditor knows something we don't.
-	    // Note that there's a matching 's' in the auditor!
-	    no_shop = (buf[1] == 's') || prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY);
+            // The difference between 'S' and 's' above is that the
+            // lower-case version tells us not to bother shopping.
+            // Sometimes the auditor knows something we don't.
+            // Note that there's a matching 's' in the auditor!
+            no_shop = (buf[1] == 's') || prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY);
 #endif
 
-	    ca = ca_newFromCSVString(buf + strlen(SOA));
-	    assert(ca);
+            ca = ca_newFromCSVString(buf + strlen(SOA));
+            assert(ca);
 
-	    ck = ck_new_from_ca(ca);
-	    assert(ck);
+            ck = ck_new_from_ca(ca);
+            assert(ck);
 
-	    // Record the starting time of this cmd.
-	    moment_get_systime(&ca_start_time);
-	    ca_set_starttime(ca, ca_start_time);
+            // Record the starting time of this cmd.
+            moment_get_systime(&ca_start_time);
+            ca_set_starttime(ca, ca_start_time);
 
-	    // Mark that it's started, even though it may not matter here.
-	    ca_set_started(ca, 1);
+            // Mark that it's started, even though it may not matter here.
+            ca_set_started(ca, 1);
 
-	    if (hash_lookup(AuditHash, ck)) {
-		putil_int("double delivery: '%s'", ca_to_str(ca));
-	    }
+            if (hash_lookup(AuditHash, ck)) {
+                putil_int("double delivery: '%s'", ca_to_str(ca));
+            }
 
-	    // Find the immediate ancestor CA, if any. This should have
-	    // a depth one less than current, possibly with the same
-	    // pid (exec) or possibly with the parent pid (fork/exec).
-	    if (ca_get_depth(ca)) {
-		ck_o pck;
+            // Find the immediate ancestor CA, if any. This should have
+            // a depth one less than current, possibly with the same
+            // pid (exec) or possibly with the parent pid (fork/exec).
+            if (ca_get_depth(ca)) {
+                ck_o pck;
 
-		pck = ck_new(ca_get_pccode(ca),
-			     ca_get_depth(ca) - 1, ca_get_cmdid(ca));
-		if ((hnp = hash_lookup(AuditHash, pck))) {
-		    vb_printf(VB_MON, "exec parent match: %s", ca_get_prog(ca));
-		    pred = (ca_o)hnode_get(hnp);
-		} else {
-		    ck_destroy(pck);
-		    pck = ck_new(ca_get_pccode(ca),
-				 ca_get_depth(ca) - 1, ca_get_pcmdid(ca));
-		    if ((hnp = hash_lookup(AuditHash, pck))) {
-			vb_printf(VB_MON, "fork parent match: %s",
-				  ca_get_prog(ca));
-			pred = (ca_o)hnode_get(hnp);
-		    } else {
-			ck_destroy(pck);
-			pck = ck_new(ca_get_pccode(ca),
-				     ca_get_depth(ca), ca_get_pcmdid(ca));
-			if ((hnp = hash_lookup(AuditHash, pck))) {
-			    pred = (ca_o)hnode_get(hnp);
-			} else {
-			    pred = NULL;
-			}
-		    }
-		}
-		ck_destroy(pck);
-	    } else {
-		pred = NULL;
-	    }
+                pck = ck_new(ca_get_pccode(ca),
+                             ca_get_depth(ca) - 1, ca_get_cmdid(ca));
+                if ((hnp = hash_lookup(AuditHash, pck))) {
+                    vb_printf(VB_MON, "exec parent match: %s", ca_get_prog(ca));
+                    pred = (ca_o)hnode_get(hnp);
+                } else {
+                    ck_destroy(pck);
+                    pck = ck_new(ca_get_pccode(ca),
+                                 ca_get_depth(ca) - 1, ca_get_pcmdid(ca));
+                    if ((hnp = hash_lookup(AuditHash, pck))) {
+                        vb_printf(VB_MON, "fork parent match: %s",
+                                  ca_get_prog(ca));
+                        pred = (ca_o)hnode_get(hnp);
+                    } else {
+                        ck_destroy(pck);
+                        pck = ck_new(ca_get_pccode(ca),
+                                     ca_get_depth(ca), ca_get_pcmdid(ca));
+                        if ((hnp = hash_lookup(AuditHash, pck))) {
+                            pred = (ca_o)hnode_get(hnp);
+                        } else {
+                            pred = NULL;
+                        }
+                    }
+                }
+                ck_destroy(pck);
+            } else {
+                pred = NULL;
+            }
 
-	    // Put a pointer to this object in a table for quick lookup.
-	    // Due to the possibility of CAs and PAs arriving out of sync
-	    // we need a lookup to reassociate PAs with CAs at receive time.
-	    if ((hnp = hnode_create(ca))) {
-		hash_insert(AuditHash, hnp, ck);
-	    } else {
-		putil_syserr(2, "hnode_create()");
-	    }
+            // Put a pointer to this object in a table for quick lookup.
+            // Due to the possibility of CAs and PAs arriving out of sync
+            // we need a lookup to reassociate PAs with CAs at receive time.
+            if ((hnp = hnode_create(ca))) {
+                hash_insert(AuditHash, hnp, ck);
+            } else {
+                putil_syserr(2, "hnode_create()");
+            }
 
-	    aggprop = prop_get_str(P_AGGREGATION_STYLE);
+            aggprop = prop_get_str(P_AGGREGATION_STYLE);
 
-	    if (aggprop && *aggprop == '+') {
-		// Aggregate everything into one big audit record.
-		agglevel = AGG_STRONG;
-	    } else if (aggprop && *aggprop == '-') {
-		// Aggregate nothing; every cmd has its own audit record.
-		agglevel = AGG_NONE;
-	    } else {
-		CCS prog, line;
+            if (aggprop && *aggprop == '+') {
+                // Aggregate everything into one big audit record.
+                agglevel = AGG_STRONG;
+            } else if (aggprop && *aggprop == '-') {
+                // Aggregate nothing; every cmd has its own audit record.
+                agglevel = AGG_NONE;
+            } else {
+                CCS prog, line;
 
-		prog = ca_get_prog(ca);
-		line = ca_get_line(ca);
+                prog = ca_get_prog(ca);
+                line = ca_get_line(ca);
 
-		// Evaluate 'agglevel' based on whether this cmd
-		// matches the current aggregation criteria. We allow cmds
-		// to match on either the program name or the cmdline.
-		// There are 3 aggregation types: weak, strong, and break.
-		// The difference is that weak aggregations yield to
-		// inner matches while strong aggregations are never
-		// disbanded except in the case of an explicit break match.
-		if (pred && ca_has_leader(pred) &&
-		    ((cap = re_match__(prog_break_re, prog)) ||
-		     (cap = re_match__(line_break_re, line)))) {
-		    agglevel = AGG_BREAK;
-		    vb_printf(VB_CA, "BREAK: [%s] %s", cap, line);
-		} else if (pred && ca_has_leader(pred) &&
-			   ca_get_strong(ca_get_leader(pred))) {
-		    // No sense wasting time with REs here - continue strong.
-		    agglevel = AGG_STRONG;
-		} else if ((cap = re_match__(prog_strong_re, prog))) {
-		    agglevel = AGG_STRONG;
-		    vb_printf(VB_CA, "MATCH PROG STRONG: [%s] %s",
-			      cap, line);
-		} else if ((cap = re_match__(line_strong_re, line))) {
-		    agglevel = AGG_STRONG;
-		    vb_printf(VB_CA, "MATCH LINE STRONG: [%s] %s",
-			      cap, line);
-		} else if ((cap = re_match__(prog_weak_re, prog))) {
-		    agglevel = AGG_WEAK;
-		    vb_printf(VB_CA, "MATCH PROG WEAK: [%s] %s", cap, line);
-		} else if ((cap = re_match__(line_weak_re, line))) {
-		    agglevel = AGG_WEAK;
-		    vb_printf(VB_CA, "MATCH LINE WEAK: [%s] %s", cap, line);
-		} else {
-		    agglevel = AGG_NEUTRAL;
-		    vb_printf(VB_CA, "NO MATCH: %s", line);
-		}
-	    }
+                // Evaluate 'agglevel' based on whether this cmd
+                // matches the current aggregation criteria. We allow cmds
+                // to match on either the program name or the cmdline.
+                // There are 3 aggregation types: weak, strong, and break.
+                // The difference is that weak aggregations yield to
+                // inner matches while strong aggregations are never
+                // disbanded except in the case of an explicit break match.
+                if (pred && ca_has_leader(pred) &&
+                    ((cap = re_match__(prog_break_re, prog)) ||
+                     (cap = re_match__(line_break_re, line)))) {
+                    agglevel = AGG_BREAK;
+                    vb_printf(VB_CA, "BREAK: [%s] %s", cap, line);
+                } else if (pred && ca_has_leader(pred) &&
+                           ca_get_strong(ca_get_leader(pred))) {
+                    // No sense wasting time with REs here - continue strong.
+                    agglevel = AGG_STRONG;
+                } else if ((cap = re_match__(prog_strong_re, prog))) {
+                    agglevel = AGG_STRONG;
+                    vb_printf(VB_CA, "MATCH PROG STRONG: [%s] %s",
+                              cap, line);
+                } else if ((cap = re_match__(line_strong_re, line))) {
+                    agglevel = AGG_STRONG;
+                    vb_printf(VB_CA, "MATCH LINE STRONG: [%s] %s",
+                              cap, line);
+                } else if ((cap = re_match__(prog_weak_re, prog))) {
+                    agglevel = AGG_WEAK;
+                    vb_printf(VB_CA, "MATCH PROG WEAK: [%s] %s", cap, line);
+                } else if ((cap = re_match__(line_weak_re, line))) {
+                    agglevel = AGG_WEAK;
+                    vb_printf(VB_CA, "MATCH LINE WEAK: [%s] %s", cap, line);
+                } else {
+                    agglevel = AGG_NEUTRAL;
+                    vb_printf(VB_CA, "NO MATCH: %s", line);
+                }
+            }
 
-	    // Now we know if this CA is aggregating and how strong it is.
-	    if (pred && ca_has_leader(pred)) {
-		if (agglevel != AGG_BREAK && ca_get_strong(ca_get_leader(pred))) {
-		    // If the current group is strong, it always wins.
-		    _mon_verbosity(ca, "PUSH STRONG");
-		    ca_aggregate(ca_get_leader(pred), ca);
-		} else if (agglevel == AGG_BREAK ||
-			   agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
-		    // If already within a "weak" audit group, we must
-		    // disband the existing group by sending each of
-		    // its audits to the server individually.
-		    ca_disband(ca_get_leader(pred), _mon_process_ca);
+            // Now we know if this CA is aggregating and how strong it is.
+            if (pred && ca_has_leader(pred)) {
+                if (agglevel != AGG_BREAK && ca_get_strong(ca_get_leader(pred))) {
+                    // If the current group is strong, it always wins.
+                    _mon_verbosity(ca, "PUSH STRONG");
+                    ca_aggregate(ca_get_leader(pred), ca);
+                } else if (agglevel == AGG_BREAK ||
+                           agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
+                    // If already within a "weak" audit group, we must
+                    // disband the existing group by sending each of
+                    // its audits to the server individually.
+                    ca_disband(ca_get_leader(pred), _mon_process_ca);
 
-		    if (agglevel != AGG_BREAK) {
-			// Start a new group with ourself as the leader.
-			ca_start_group(ca, agglevel == AGG_STRONG);
-		    }
-		    // At this point the AG has been destroyed and its
-		    // CAs are no longer valid. However, we must still
-		    // remove references to them from the main table.
-		    _mon_clean_up_ca_table();
-		} else if (agglevel == AGG_NEUTRAL) {
-		    _mon_verbosity(ca, "PUSH WEAK");
-		    ca_aggregate(ca_get_leader(pred), ca);
-		} else {
-		    putil_int("impossible agglevel: '%s'", ca_to_str(ca));
-		}
-	    } else if (agglevel == AGG_NONE || agglevel == AGG_NEUTRAL || agglevel == AGG_BREAK) {
-		_mon_verbosity(ca, "SINGULAR");
-	    } else if (agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
-		// Start a new group with ourself as the leader.
-		_mon_verbosity(ca, "PUSH NEW");
-		ca_start_group(ca, agglevel == AGG_STRONG);
-	    } else {
-		putil_int("impossible agg state: '%s'", ca_to_str(ca));
-	    }
+                    if (agglevel != AGG_BREAK) {
+                        // Start a new group with ourself as the leader.
+                        ca_start_group(ca, agglevel == AGG_STRONG);
+                    }
+                    // At this point the AG has been destroyed and its
+                    // CAs are no longer valid. However, we must still
+                    // remove references to them from the main table.
+                    _mon_clean_up_ca_table();
+                } else if (agglevel == AGG_NEUTRAL) {
+                    _mon_verbosity(ca, "PUSH WEAK");
+                    ca_aggregate(ca_get_leader(pred), ca);
+                } else {
+                    putil_int("impossible agglevel: '%s'", ca_to_str(ca));
+                }
+            } else if (agglevel == AGG_NONE || agglevel == AGG_NEUTRAL || agglevel == AGG_BREAK) {
+                _mon_verbosity(ca, "SINGULAR");
+            } else if (agglevel == AGG_STRONG || agglevel == AGG_WEAK) {
+                // Start a new group with ourself as the leader.
+                _mon_verbosity(ca, "PUSH NEW");
+                ca_start_group(ca, agglevel == AGG_STRONG);
+            } else {
+                putil_int("impossible agg state: '%s'", ca_to_str(ca));
+            }
 
-	    if (ca_is_top(ca)) {
-		vb_printf(VB_MON, "START: %lu", ca_get_cmdid(ca));
-		rc |= MON_TOP;
-	    }
+            if (ca_is_top(ca)) {
+                vb_printf(VB_MON, "START: %lu", ca_get_cmdid(ca));
+                rc |= MON_TOP;
+            }
 
 #if 0
 
-	    // Here is where recycling takes place. If shopping was
-	    // successful, tell the command it's done. If not, let
-	    // it run unless we're in strict mode.
-	    if (prop_has_value(P_SERVER) && !no_shop) {
-		shop_e shoprc;
+            // Here is where recycling takes place. If shopping was
+            // successful, tell the command it's done. If not, let
+            // it run unless we're in strict mode.
+            if (prop_has_value(P_SERVER) && !no_shop) {
+                shop_e shoprc;
 
-		// shoprc = shop(ca, NULL, 1);
-		shoprc = SHOP_NOMATCH;
+                // shoprc = shop(ca, NULL, 1);
+                shoprc = SHOP_NOMATCH;
 
-		if (shoprc == SHOP_RECYCLED) {
-		    rc |= MON_RECYCLED;
-		    if (winner) {
-			*winner = ca_get_recycled(ca);
-		    }
-		} else if (shoprc == SHOP_MUSTRUN ||
-			   shoprc == SHOP_MUSTRUN_AGG) {
-		    // A "must run" (no download available) condition.
-		    if (shoprc == SHOP_MUSTRUN_AGG) {
-			// Report that nested aggegated cmds can suppress
-			// shopping since they're guaranteed not to match.
-			rc |= MON_AGG;
-		    }
+                if (shoprc == SHOP_RECYCLED) {
+                    rc |= MON_RECYCLED;
+                    if (winner) {
+                        *winner = ca_get_recycled(ca);
+                    }
+                } else if (shoprc == SHOP_MUSTRUN ||
+                           shoprc == SHOP_MUSTRUN_AGG) {
+                    // A "must run" (no download available) condition.
+                    if (shoprc == SHOP_MUSTRUN_AGG) {
+                        // Report that nested aggegated cmds can suppress
+                        // shopping since they're guaranteed not to match.
+                        rc |= MON_AGG;
+                    }
 
-		} else if (shoprc == SHOP_OFF) {
-		    // We've deliberately suppressed shopping.
-		} else if (shoprc == SHOP_NOMATCH ||
-			   shoprc == SHOP_NOMATCH_AGG ||
-			   shoprc == SHOP_ERR) {
-		    // We tried to find a match but failed. The user
-		    // can ask for this to be treated as an error.
-		    if (prop_is_true(P_STRICT_DOWNLOAD)) {
-			putil_error("Failed %s requirement on '%s'",
-			    prop_to_name(P_STRICT_DOWNLOAD),
-			    ca_get_line(ca));
-			rc |= MON_STRICT;
-		    }
-		    if (shoprc == SHOP_NOMATCH_AGG) {
-			// Report that nested aggegated cmds can suppress
-			// shopping since they're guaranteed not to match.
-			rc |= MON_AGG;
-		    }
-		} else {
-		    putil_int("unknown shopping result: %d", (int)shoprc);
-		}
-	    }
+                } else if (shoprc == SHOP_OFF) {
+                    // We've deliberately suppressed shopping.
+                } else if (shoprc == SHOP_NOMATCH ||
+                           shoprc == SHOP_NOMATCH_AGG ||
+                           shoprc == SHOP_ERR) {
+                    // We tried to find a match but failed. The user
+                    // can ask for this to be treated as an error.
+                    if (prop_is_true(P_STRICT_DOWNLOAD)) {
+                        putil_error("Failed %s requirement on '%s'",
+                            prop_to_name(P_STRICT_DOWNLOAD),
+                            ca_get_line(ca));
+                        rc |= MON_STRICT;
+                    }
+                    if (shoprc == SHOP_NOMATCH_AGG) {
+                        // Report that nested aggegated cmds can suppress
+                        // shopping since they're guaranteed not to match.
+                        rc |= MON_AGG;
+                    }
+                } else {
+                    putil_int("unknown shopping result: %d", (int)shoprc);
+                }
+            }
 #else
-	    (void)winner;
+            (void)winner;
 #endif
-	} else if (buf[1] == 'E') {			// EOA
-	    moment_s ca_end_time;
-	    CS csv;
-	    int cmdrc;
-	    unsigned long cmdid;
-	    hnode_t *hnp, *next;
-	    ca_o eoa, ldr, curr;
-	    int ended = 0;
+        } else if (buf[1] == 'E') {                     // EOA
+            moment_s ca_end_time;
+            CS csv;
+            int cmdrc;
+            unsigned long cmdid;
+            hnode_t *hnp, *next;
+            ca_o eoa, ldr, curr;
+            int ended = 0;
 
-	    rc = MON_EOA;
+            rc = MON_EOA;
 
-	    // Record the ending time right away while it's most accurate.
-	    moment_get_systime(&ca_end_time);
+            // Record the ending time right away while it's most accurate.
+            moment_get_systime(&ca_end_time);
 
-	    // Skip past the EOA marker.
-	    csv = buf + strlen(EOA);
+            // Skip past the EOA marker.
+            csv = buf + strlen(EOA);
 
-	    // If a return code is encoded, report and move past it.
-	    if (*csv == '[') {
-		csv++;
-		cmdrc = atoi(csv);
-		csv = strchr(csv, ']');
-		csv++;
-	    } else {
-		cmdrc = 0;
-	    }
+            // If a return code is encoded, report and move past it.
+            if (*csv == '[') {
+                csv++;
+                cmdrc = atoi(csv);
+                csv = strchr(csv, ']');
+                csv++;
+            } else {
+                cmdrc = 0;
+            }
 
-	    // Kind of indirect here ... we create a CA object from
-	    // the EOA line which should be functionally identical to
-	    // the one from the SOA line. We use the EOA version to
-	    // look up the SOA version (which must already be present),
-	    // then throw away the EOA version to avoid a memory leak.
-	    eoa = ca_newFromCSVString(csv);
+            // Kind of indirect here ... we create a CA object from
+            // the EOA line which should be functionally identical to
+            // the one from the SOA line. We use the EOA version to
+            // look up the SOA version (which must already be present),
+            // then throw away the EOA version to avoid a memory leak.
+            eoa = ca_newFromCSVString(csv);
 
-	    // The lookup key associated with the EOA CA.
-	    ck = ck_new_from_ca(eoa);
+            // The lookup key associated with the EOA CA.
+            ck = ck_new_from_ca(eoa);
 
-	    // Retrieve the "real" CA object with this signature.
-	    if (!AuditHash || !(hnp = hash_lookup(AuditHash, ck))) {
-		CCS str;
+            // Retrieve the "real" CA object with this signature.
+            if (!AuditHash || !(hnp = hash_lookup(AuditHash, ck))) {
+                CCS str;
 
-		// Whoops.
-		str = ca_to_str(eoa);
-		putil_warn("EOA skew: %s", str);
-		putil_free(str);
-		mon_dump();
-		ca_destroy(eoa);
-		ck_destroy(ck);
-		return MON_ERR;
-	    }
+                // Whoops.
+                str = ca_to_str(eoa);
+                putil_warn("EOA skew: %s", str);
+                putil_free(str);
+                mon_dump();
+                ca_destroy(eoa);
+                ck_destroy(ck);
+                return MON_ERR;
+            }
 
-	    // Retrieve the original CA for which we just received EOA.
-	    // Note that 'hnp' remains valid and is used below.
-	    ca = (ca_o)hnode_get(hnp);
+            // Retrieve the original CA for which we just received EOA.
+            // Note that 'hnp' remains valid and is used below.
+            ca = (ca_o)hnode_get(hnp);
 
-	    // Don't need these any more.
-	    ck_destroy(ck);
-	    ca_destroy(eoa);
+            // Don't need these any more.
+            ck_destroy(ck);
+            ca_destroy(eoa);
 
-	    // N.B. - it's critical to store these attributes *now*
-	    // because 'ca' may get destroyed (freed) in the upcoming loop.
-	    cmdid = ca_get_cmdid(ca);
-	    ldr = ca_get_leader(ca);
+            // N.B. - it's critical to store these attributes *now*
+            // because 'ca' may get destroyed (freed) in the upcoming loop.
+            cmdid = ca_get_cmdid(ca);
+            ldr = ca_get_leader(ca);
 
-	    // At least on Unix, a process can be overlaid with a
-	    // new image via exec(). In this case we might see a
-	    // chain of cmds sharing one pid. Only the last one will
-	    // send an EOA because EOA is sent only at exit and each
-	    // process can exit only once. Therefore, upon receiving
-	    // an EOA we must always "swim upstream" to close all
-	    // predecessor audits sharing the same cmdid.
+            // At least on Unix, a process can be overlaid with a
+            // new image via exec(). In this case we might see a
+            // chain of cmds sharing one pid. Only the last one will
+            // send an EOA because EOA is sent only at exit and each
+            // process can exit only once. Therefore, upon receiving
+            // an EOA we must always "swim upstream" to close all
+            // predecessor audits sharing the same cmdid.
 
-	    // Note - this depends on 'hnp' still being set from above.
-	    for (; hnp; hnp = next) {
-		unsigned long duration;
+            // Note - this depends on 'hnp' still being set from above.
+            for (; hnp; hnp = next) {
+                unsigned long duration;
 
-		// Grab a pointer to each CA working up the chain.
-		// The first time through this will be the same CA
-		// we were already working on.
-		curr = (ca_o)hnode_get(hnp);
+                // Grab a pointer to each CA working up the chain.
+                // The first time through this will be the same CA
+                // we were already working on.
+                curr = (ca_o)hnode_get(hnp);
 
-		if (ca_get_cmdid(curr) != cmdid) {
-		    break;
-		}
+                if (ca_get_cmdid(curr) != cmdid) {
+                    break;
+                }
 
-		// Calculate the elapsed time between cmd start and end.
-		// This is tricky because, in a chain of execs with no
-		// intervening forks, we have no record of the ending
-		// time of any command but the last. HOWEVER, logic
-		// tells us that the ending time of a command calling
-		// exec is the starting time of the exec-ed command,
-		// so after calculating the duration of each CA in this
-		// chain we reset the ending time to its start time.
-		duration = moment_duration(ca_end_time, ca_get_starttime(curr));
-		ca_set_duration(curr, duration);
-		ca_end_time = ca_get_starttime(curr);
+                // Calculate the elapsed time between cmd start and end.
+                // This is tricky because, in a chain of execs with no
+                // intervening forks, we have no record of the ending
+                // time of any command but the last. HOWEVER, logic
+                // tells us that the ending time of a command calling
+                // exec is the starting time of the exec-ed command,
+                // so after calculating the duration of each CA in this
+                // chain we reset the ending time to its start time.
+                duration = moment_duration(ca_end_time, ca_get_starttime(curr));
+                ca_set_duration(curr, duration);
+                ca_end_time = ca_get_starttime(curr);
 
-		// If we've reached the end of the top of the cmd tree,
-		// the entire build must be done. The EOA of the top-level
-		// cmd is required to arrive last.
-		if (ca_is_top(curr)) {
-		    ended = 1;
-		}
+                // If we've reached the end of the top of the cmd tree,
+                // the entire build must be done. The EOA of the top-level
+                // cmd is required to arrive last.
+                if (ca_is_top(curr)) {
+                    ended = 1;
+                }
 
-		if (ca_get_depth(curr) > 0) {
-		    ck_o tck;
+                if (ca_get_depth(curr) > 0) {
+                    ck_o tck;
 
-		    // Make a temporary key to search for this CA's parent,
-		    // Grab a pointer to the predecessor, if any, before
-		    // proceeding, and delete the temporary search key.
-		    tck = ck_new(ca_get_pccode(curr),
-				 ca_get_depth(curr) - 1, cmdid);
-		    next = hash_lookup(AuditHash, tck);
+                    // Make a temporary key to search for this CA's parent,
+                    // Grab a pointer to the predecessor, if any, before
+                    // proceeding, and delete the temporary search key.
+                    tck = ck_new(ca_get_pccode(curr),
+                                 ca_get_depth(curr) - 1, cmdid);
+                    next = hash_lookup(AuditHash, tck);
 
-		    ck_destroy(tck);
-		} else {
-		    // We must be at the very top of the cmd tree.
-		    next = NULL;
-		}
+                    ck_destroy(tck);
+                } else {
+                    // We must be at the very top of the cmd tree.
+                    next = NULL;
+                }
 
-		// Now we can close the current CA.
-		if (ca_has_leader(curr)) {
-		    _mon_verbosity(curr, "CLOSE");
-		    ca_set_closed(curr, 1);
-		} else {
-		    // If not in a group, finish it off directly.
-		    ca_set_closed(curr, 1);
-		    ca_publish(curr, _mon_process_ca);
-		    _mon_clean_up_ca_table();
-		}
-	    }
+                // Now we can close the current CA.
+                if (ca_has_leader(curr)) {
+                    _mon_verbosity(curr, "CLOSE");
+                    ca_set_closed(curr, 1);
+                } else {
+                    // If not in a group, finish it off directly.
+                    ca_set_closed(curr, 1);
+                    ca_publish(curr, _mon_process_ca);
+                    _mon_clean_up_ca_table();
+                }
+            }
 
-	    // If this audit is a member of an audit group and the entire
-	    // group is ready to go, send it.
-	    if (ldr && ca_get_closed(ldr)) {
-		if (ca_get_pending(ldr)) {
-		    putil_warn("audit group closed with %d pending audits",
-			       ca_get_pending(ldr));
-		}
+            // If this audit is a member of an audit group and the entire
+            // group is ready to go, send it.
+            if (ldr && ca_get_closed(ldr)) {
+                if (ca_get_pending(ldr)) {
+                    putil_warn("audit group closed with %d pending audits",
+                               ca_get_pending(ldr));
+                }
 
-		ca_publish(ldr, _mon_process_ca);
+                ca_publish(ldr, _mon_process_ca);
 
-		// At this point the AG has been destroyed and its
-		// CAs are no longer valid. However, we must still
-		// remove references to them from the main table.
-		_mon_clean_up_ca_table();
-	    }
+                // At this point the AG has been destroyed and its
+                // CAs are no longer valid. However, we must still
+                // remove references to them from the main table.
+                _mon_clean_up_ca_table();
+            }
 
-	    if (ended) {
-		rc |= MON_TOP;
-		vb_printf(VB_MON, "END: %lu", cmdid);
+            if (ended) {
+                rc |= MON_TOP;
+                vb_printf(VB_MON, "END: %lu", cmdid);
 
-		if (cmdpidp) {
-		    *cmdpidp = cmdid;
-		}
-		if (rcp && *rcp == 0) {
-		    *rcp = cmdrc;
-		}
-	    }
-	} else {
-	    putil_warn("unrecognized line: %s", buf);
-	    rc = MON_ERR;
-	}
+                if (cmdpidp) {
+                    *cmdpidp = cmdid;
+                }
+                if (rcp && *rcp == 0) {
+                    *rcp = cmdrc;
+                }
+            }
+        } else {
+            putil_warn("unrecognized line: %s", buf);
+            rc = MON_ERR;
+        }
     } else if (ISALPHA(buf[0])) {
-	pa_o pa;
-	hnode_t *hnp;
+        pa_o pa;
+        hnode_t *hnp;
 
-	rc = MON_NEXT;
+        rc = MON_NEXT;
 
-	// De-serialize the PA line into an object.
-	pa = pa_newFromCSVString(buf);
-	assert(pa);
+        // De-serialize the PA line into an object.
+        pa = pa_newFromCSVString(buf);
+        assert(pa);
 
-	// Any file that's written should be marked for upload.
-	// And optionally files which are only read too.
-	if (pa_is_write(pa) || prop_is_true(P_UPLOAD_READS)) {
-	    pa_set_uploadable(pa, 1);
-	}
+        // Any file that's written should be marked for upload.
+        // And optionally files which are only read too.
+        if (pa_is_write(pa) || prop_is_true(P_UPLOAD_READS)) {
+            pa_set_uploadable(pa, 1);
+        }
 
-	// Need a key object for looking up the associated CA.
-	ck = ck_new(pa_get_ccode(pa), pa_get_depth(pa), pa_get_pid(pa));
-	assert(ck);
+        // Need a key object for looking up the associated CA.
+        ck = ck_new(pa_get_ccode(pa), pa_get_depth(pa), pa_get_pid(pa));
+        assert(ck);
 
-	// If we can't find the associated CK, something's wrong.
-	if (!AuditHash || !(hnp = hash_lookup(AuditHash, ck))) {
-	    CCS str;
+        // If we can't find the associated CK, something's wrong.
+        if (!AuditHash || !(hnp = hash_lookup(AuditHash, ck))) {
+            CCS str;
 
-	    str = pa_tostring(pa);
-	    putil_warn("PA skew [%s]", str);
-	    putil_free(str);
-	    mon_dump();
-	    ck_destroy(ck);
-	    pa_destroy(pa);
-	    return MON_ERR;
-	}
+            str = pa_tostring(pa);
+            putil_warn("PA skew [%s]", str);
+            putil_free(str);
+            mon_dump();
+            ck_destroy(ck);
+            pa_destroy(pa);
+            return MON_ERR;
+        }
 
-	ck_destroy(ck);
+        ck_destroy(ck);
 
-	// This is the CA we needed.
-	ca = (ca_o)hnode_get(hnp);
+        // This is the CA we needed.
+        ca = (ca_o)hnode_get(hnp);
 
-	ca_record_pa(ca, pa);
+        ca_record_pa(ca, pa);
     } else if (buf[0] == '+') {
-	// Verbosity from auditor. Just print it.
-	rc = MON_NEXT;
-	fputs(buf, stderr);
-	fputc('\n', stderr);
+        // Verbosity from auditor. Just print it.
+        rc = MON_NEXT;
+        fputs(buf, stderr);
+        fputc('\n', stderr);
     } else if (buf[0] == '#') {
-	// Comment from auditor. Ignore it.
-	rc = MON_NEXT;
+        // Comment from auditor. Ignore it.
+        rc = MON_NEXT;
     } else if (buf[0] == '!') {
-	// Special message from auditor - shut down immediately.
-	// This is used when the top-level process can't run at all.
-	rc = MON_CANTRUN;
+        // Special message from auditor - shut down immediately.
+        // This is used when the top-level process can't run at all.
+        rc = MON_CANTRUN;
     } else {
-	putil_warn("unrecognized line: %s", buf);
-	rc = MON_ERR;
+        putil_warn("unrecognized line: %s", buf);
+        rc = MON_ERR;
     }
 
     return rc;
@@ -746,13 +746,13 @@ mon_fini(void)
     re_fini__(&prog_weak_re);
 
     if (AuditHash) {
-	if (hash_count(AuditHash)) {
-	    putil_warn("%d audits left over:",
-		(int)hash_count(AuditHash));
-	    mon_dump();
-	}
-	hash_destroy(AuditHash);
-	AuditHash = NULL;
+        if (hash_count(AuditHash)) {
+            putil_warn("%d audits left over:",
+                (int)hash_count(AuditHash));
+            mon_dump();
+        }
+        hash_destroy(AuditHash);
+        AuditHash = NULL;
     }
 
     // Finalize dcode cache management if in use.
@@ -761,4 +761,4 @@ mon_fini(void)
     // shop_fini();
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

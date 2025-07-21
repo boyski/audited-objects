@@ -31,8 +31,8 @@
 
 /// Object structure for describing a pathname.
 struct path_name_s {
-    CCS pn_abs;			///< canonicalized absolute path
-    int pn_rel;			///< project-relative offset into pn_abs
+    CCS pn_abs;                 ///< canonicalized absolute path
+    int pn_rel;                 ///< project-relative offset into pn_abs
 } path_name_s;
 
 static int64_t _pn_path_canon(CCS, CCS, CS, CCS, CCS, int);
@@ -47,13 +47,13 @@ _pn_abs_to_project_relative_path(CCS path)
     offset = strlen(pbase);
 
     if (offset) {
-	if (!pathncmp(path, pbase, offset)) {
-	    while (*(path + offset) == '/' || *(path + offset) == '\\') {
-		offset++;
-	    }
-	} else {
-	    offset = 0;
-	}
+        if (!pathncmp(path, pbase, offset)) {
+            while (*(path + offset) == '/' || *(path + offset) == '\\') {
+                offset++;
+            }
+        } else {
+            offset = 0;
+        }
     }
 
     return offset;
@@ -67,13 +67,13 @@ static CCS
 _pn_make_project_relative(CCS path)
 {
     if (!putil_is_absolute(path)) {
-	CS ptmp;
+        CS ptmp;
 
-	if (asprintf(&ptmp, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0) {
-	    return ptmp;
-	} else {
-	    putil_syserr(2, NULL);
-	}
+        if (asprintf(&ptmp, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0) {
+            return ptmp;
+        } else {
+            putil_syserr(2, NULL);
+        }
     }
     return putil_strdup(path);
 }
@@ -95,47 +95,47 @@ pn_new(CCS path, int use_cwd)
     assert(path);
 
     if (use_cwd) {
-	CCS abspath;
-	CS canonpath;
+        CCS abspath;
+        CS canonpath;
 
-	// Start by making sure we have an absolute path.
-	if (putil_is_absolute(path)) {
-	    abspath = putil_strdup(path);
-	} else {
-	    CCS cwd;
+        // Start by making sure we have an absolute path.
+        if (putil_is_absolute(path)) {
+            abspath = putil_strdup(path);
+        } else {
+            CCS cwd;
 
-	    if ((cwd = util_get_cwd())) {
-		if (asprintf((CS *)&abspath, "%s/%s", cwd, path) < 0) {
-		    putil_free(cwd);
-		    return NULL;
-		} else {
-		    putil_free(cwd);
-		}
-	    } else {
-		return NULL;
-	    }
-	}
+            if ((cwd = util_get_cwd())) {
+                if (asprintf((CS *)&abspath, "%s/%s", cwd, path) < 0) {
+                    putil_free(cwd);
+                    return NULL;
+                } else {
+                    putil_free(cwd);
+                }
+            } else {
+                return NULL;
+            }
+        }
 
-	// Then canonicalize the path (meaning that all "../"
-	// sequences and redundant slashes are removed).
-	// Also, backslashes are changed to forward slashes.
-	canonpath = (CS)putil_malloc(strlen(abspath) + 1);
-	if (_pn_path_canon(abspath, strchr(abspath, '\0') + CHARSIZE,
-			canonpath, canonpath + strlen(abspath) + 1,
-			"\\/", '/') < 0) {
-	    putil_warn("unable to canonicalize '%s'", abspath);
-	    putil_free(abspath);
-	    putil_free(canonpath);
-	    return NULL;
-	}
-	putil_free(abspath);
-	// Finally, set up the object with its canonicalized absolute path
-	// plus the PRP offset if any.
-	pn = (pn_o)putil_malloc(sizeof(*pn));
-	pn->pn_abs = canonpath;
+        // Then canonicalize the path (meaning that all "../"
+        // sequences and redundant slashes are removed).
+        // Also, backslashes are changed to forward slashes.
+        canonpath = (CS)putil_malloc(strlen(abspath) + 1);
+        if (_pn_path_canon(abspath, strchr(abspath, '\0') + CHARSIZE,
+                        canonpath, canonpath + strlen(abspath) + 1,
+                        "\\/", '/') < 0) {
+            putil_warn("unable to canonicalize '%s'", abspath);
+            putil_free(abspath);
+            putil_free(canonpath);
+            return NULL;
+        }
+        putil_free(abspath);
+        // Finally, set up the object with its canonicalized absolute path
+        // plus the PRP offset if any.
+        pn = (pn_o)putil_malloc(sizeof(*pn));
+        pn->pn_abs = canonpath;
     } else {
-	pn = (pn_o)putil_malloc(sizeof(*pn));
-	pn->pn_abs = _pn_make_project_relative(path);
+        pn = (pn_o)putil_malloc(sizeof(*pn));
+        pn->pn_abs = _pn_make_project_relative(path);
     }
 
     pn->pn_rel = _pn_abs_to_project_relative_path(pn->pn_abs);
@@ -180,9 +180,9 @@ pn_get_rel(pn_o pn)
 
     rel = pn->pn_abs + pn->pn_rel;
     if (*rel) {
-	return rel;
+        return rel;
     } else {
-	return ".";
+        return ".";
     }
 }
 
@@ -195,32 +195,32 @@ void
 pn_verbosity(pn_o pn, CCS verb, CCS ext)
 {
     if (vb_bitmatch(VB_STD)) {
-	CS tpath;
-	CCS plat;
+        CS tpath;
+        CCS plat;
 
-	if (prop_is_true(P_ABSOLUTE_PATHS)) {
-	    tpath = putil_strdup(pn_get_abs(pn));
-	} else {
-	    tpath = putil_strdup(pn_get_rel(pn));
-	}
+        if (prop_is_true(P_ABSOLUTE_PATHS)) {
+            tpath = putil_strdup(pn_get_abs(pn));
+        } else {
+            tpath = putil_strdup(pn_get_rel(pn));
+        }
 
-	if ((plat = prop_get_str(P_MONITOR_PLATFORM)) && *plat == 'w') {
-	    char *p;
+        if ((plat = prop_get_str(P_MONITOR_PLATFORM)) && *plat == 'w') {
+            char *p;
 
-	    for (p = tpath; *p; p++) {
-		if (*p == '/') {
-		    *p = '\\';
-		}
-	    }
-	}
+            for (p = tpath; *p; p++) {
+                if (*p == '/') {
+                    *p = '\\';
+                }
+            }
+        }
 
-	if (ext) {
-	    vb_printf(VB_STD, "%s %s%s%s", verb, tpath, XNS, ext);
-	} else {
-	    vb_printf(VB_STD, "%s %s", verb, tpath);
-	}
+        if (ext) {
+            vb_printf(VB_STD, "%s %s%s%s", verb, tpath, XNS, ext);
+        } else {
+            vb_printf(VB_STD, "%s %s", verb, tpath);
+        }
 
-	putil_free(tpath);
+        putil_free(tpath);
     }
 }
 
@@ -280,79 +280,79 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
     int state = ST_START;
 
     while (src < slim && dst < dlim) {
-	switch (state) {
-	    case ST_START:
-		state = ST_SEPARATOR;
-		if (strchr(srcsep, *src)) {
-		    *dst++ = dstsep;
-		    src++;
-		    break;
-		}
-		// fallthrough
-	    case ST_SEPARATOR:
-		if (*src == '\0') {
-		    *dst = '\0';
-		    return dst - start;
-		} else if (strchr(srcsep, *src)) {
-		    src++;
-		    break;
-		} else if (*src == '.') {
-		    state = ST_DOT1;
-		} else {
-		    state = ST_NORMAL;
-		}
-		*dst++ = *src++;
-		break;
-	    case ST_NORMAL:
-		if (*src == '\0') {
-		    *dst = '\0';
-		    return dst - start;
-		} else if (strchr(srcsep, *src)) {
-		    state = ST_SEPARATOR;
-		    *dst++ = dstsep;
-		    src++;
-		    break;
-		}
-		*dst++ = *src++;
-		break;
-	    case ST_DOT1:
-		if (*src == '\0') {
-		    dst--;
-		    *dst = '\0';
-		    return dst - start;
-		} else if (strchr(srcsep, *src)) {
-		    state = ST_SEPARATOR;
-		    dst--;
-		    break;
-		} else if (*src == '.') {
-		    state = ST_DOT2;
-		    *dst++ = *src++;
-		    break;
-		}
-		state = ST_NORMAL;
-		*dst++ = *src++;
-		break;
-	    case ST_DOT2:
-		if (*src == '\0' || strchr(srcsep, *src)) {
-		    /* note src is not advanced in this case */
-		    state = ST_SEPARATOR;
-		    dst -= 2;
-		    prev = dst - 1;
-		    if (dst == start || prev == start) {
-			break;
-		    }
-		    do {
-			dst--;
-			prev = dst - 1;
-		    } while (dst > start && *prev != dstsep);
-		    break;
-		}
-		state = ST_NORMAL;
-		*dst++ = *src++;
-		break;
-	    default:
-		break;
-	}
+        switch (state) {
+            case ST_START:
+                state = ST_SEPARATOR;
+                if (strchr(srcsep, *src)) {
+                    *dst++ = dstsep;
+                    src++;
+                    break;
+                }
+                // fallthrough
+            case ST_SEPARATOR:
+                if (*src == '\0') {
+                    *dst = '\0';
+                    return dst - start;
+                } else if (strchr(srcsep, *src)) {
+                    src++;
+                    break;
+                } else if (*src == '.') {
+                    state = ST_DOT1;
+                } else {
+                    state = ST_NORMAL;
+                }
+                *dst++ = *src++;
+                break;
+            case ST_NORMAL:
+                if (*src == '\0') {
+                    *dst = '\0';
+                    return dst - start;
+                } else if (strchr(srcsep, *src)) {
+                    state = ST_SEPARATOR;
+                    *dst++ = dstsep;
+                    src++;
+                    break;
+                }
+                *dst++ = *src++;
+                break;
+            case ST_DOT1:
+                if (*src == '\0') {
+                    dst--;
+                    *dst = '\0';
+                    return dst - start;
+                } else if (strchr(srcsep, *src)) {
+                    state = ST_SEPARATOR;
+                    dst--;
+                    break;
+                } else if (*src == '.') {
+                    state = ST_DOT2;
+                    *dst++ = *src++;
+                    break;
+                }
+                state = ST_NORMAL;
+                *dst++ = *src++;
+                break;
+            case ST_DOT2:
+                if (*src == '\0' || strchr(srcsep, *src)) {
+                    /* note src is not advanced in this case */
+                    state = ST_SEPARATOR;
+                    dst -= 2;
+                    prev = dst - 1;
+                    if (dst == start || prev == start) {
+                        break;
+                    }
+                    do {
+                        dst--;
+                        prev = dst - 1;
+                    } while (dst > start && *prev != dstsep);
+                    break;
+                }
+                state = ST_NORMAL;
+                *dst++ = *src++;
+                break;
+            default:
+                break;
+        }
     }
 
     errno = ERANGE;
@@ -361,4 +361,4 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
 
 /// @endcond static
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

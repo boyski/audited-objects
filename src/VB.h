@@ -33,61 +33,61 @@
 /// @cond VB
 
 /// Always on.
-#define VB_ON			-1
+#define VB_ON           -1
 
 /// Never on.
-#define VB_OFF			-2
+#define VB_OFF          -2
 
 /// Standard verbosity (uploading/downloading messages).
-#define VB_STD			0
+#define VB_STD          0
 
 /// Generally unused; available for temporary debugging scenarios.
-#define VB_TMP			1
+#define VB_TMP          1
 
 /// Show details of aggregation/disaggregation activity.
-#define VB_AG			2
+#define VB_AG           2
 
 /// Show details of CmdAction activity.
-#define VB_CA			3
+#define VB_CA           3
 
 /// Show details of libcurl activity.
-#define VB_CURL			4
+#define VB_CURL         4
 
 /// Print all commands executed.
-#define VB_EXEC			5
+#define VB_EXEC         5
 
 /// Show full headers of all HTTP transactions.
-#define VB_HTTP			6
+#define VB_HTTP         6
 
 /// Show details of monitor activity.
-#define VB_MON			7
+#define VB_MON          7
 
 /// Show details of PathAction activity.
-#define VB_PA			8
+#define VB_PA           8
 
 /// Trace shopping activity.
-#define VB_SHOP			9
+#define VB_SHOP         9
 
 /// Show statistics on how much time is spent in HTTP transactions.
-#define VB_TIME			10
+#define VB_TIME         10
 
 /// Show the URLs of all HTTP transactions.
-#define VB_URL			11
+#define VB_URL          11
 
 /// Explain why a prior command could not be recycled.
-#define VB_WHY			12
+#define VB_WHY          12
 
 /// For general purpose analysis within the regular expression subsystem.
-#define VB_RE			13
+#define VB_RE           13
 
 /// Track file mapping and unmapping activity.
-#define VB_MAP			14
+#define VB_MAP          14
 
 /// For analysis within the uploading subsystem.
-#define VB_UP			15
+#define VB_UP           15
 
 /// Report each time the auditor calls the file-access-reporting function.
-#define VB_REC			16
+#define VB_REC          16
 
 /// @endcond VB
 
@@ -106,9 +106,9 @@ extern void vb_printfA(long, const char *, ...);
 extern void vb_fini(void);
 
 /// @cond VB
-#define vb_printf			vb_printfA
+#define vb_printf           vb_printfA
 /// @endcond VB
 
-#endif				/*VB_H */
+#endif // VB_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

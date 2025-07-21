@@ -77,6 +77,6 @@ extern void re_fini__(void **re);
 /// @return a string reporting the PCRE version
 extern const char *re_version(void);
 
-#endif				/*RE_H */
+#endif // RE_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

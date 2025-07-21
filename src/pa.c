@@ -35,18 +35,18 @@
 
 /// Object structure for describing audited files.
 struct path_action_s {
-    op_e pa_op;			//!< operation: read,append,link,etc
-    CCS pa_call;		//!< name of accessing libc function
-    moment_s pa_timestamp;	//!< time of write op
-    unsigned long pa_pid;	//!< pid of accessing process
-    unsigned long pa_ppid;	//!< parent pid of accessing process
-    unsigned long pa_tid;	//!< thread id within accessing process
-    unsigned long pa_depth;	//!< # of execs from start to here
-    CCS pa_pccode;		//!< identity hash of parent CA
-    CCS pa_ccode;		//!< identity hash of our CA
-    int pa_fd;			//!< file descriptor if opened
-    int pa_uploadable;		//!< is this file to be uploaded?
-    ps_o pa_ps;			//!< intrinsic (stat etc) data
+    op_e pa_op;                 //!< operation: read,append,link,etc
+    CCS pa_call;                //!< name of accessing libc function
+    moment_s pa_timestamp;      //!< time of write op
+    unsigned long pa_pid;       //!< pid of accessing process
+    unsigned long pa_ppid;      //!< parent pid of accessing process
+    unsigned long pa_tid;       //!< thread id within accessing process
+    unsigned long pa_depth;     //!< # of execs from start to here
+    CCS pa_pccode;              //!< identity hash of parent CA
+    CCS pa_ccode;               //!< identity hash of our CA
+    int pa_fd;                  //!< file descriptor if opened
+    int pa_uploadable;          //!< is this file to be uploaded?
+    ps_o pa_ps;                 //!< intrinsic (stat etc) data
 } path_action_s;
 
 /// Ordering function (NOT method) for placing PAs in a data structure.
@@ -59,21 +59,21 @@ pa_cmp_by_pathname(const void *left, const void *right)
     int rc;
 
     if (left == right) {
-	rc = 0;
+        rc = 0;
     } else {
-	pa_o pa1, pa2;
-	CCS path1, path2;
+        pa_o pa1, pa2;
+        CCS path1, path2;
 
-	pa1 = (pa_o)left;
-	pa2 = (pa_o)right;
+        pa1 = (pa_o)left;
+        pa2 = (pa_o)right;
 
-	// Order by relative path rather than absolute.
-	// This will only affect members and will cause them
-	// to cluster separately which may improve readability.
-	path1 = pa_get_rel(pa1);
-	path2 = pa_get_rel(pa2);
+        // Order by relative path rather than absolute.
+        // This will only affect members and will cause them
+        // to cluster separately which may improve readability.
+        path1 = pa_get_rel(pa1);
+        path2 = pa_get_rel(pa2);
 
-	rc = util_pathcmp(path1, path2);
+        rc = util_pathcmp(path1, path2);
     }
 
     return rc;
@@ -105,45 +105,45 @@ pa_cmp(const void *left, const void *right)
     int rc;
 
     if (left == right) {
-	rc = 0;
+        rc = 0;
     } else {
-	pa_o pa1, pa2;
+        pa_o pa1, pa2;
 
-	pa1 = (pa_o)left;
-	pa2 = (pa_o)right;
+        pa1 = (pa_o)left;
+        pa2 = (pa_o)right;
 
-	if (pa_is_read(pa1)) {
-	    if (pa_is_read(pa2)) {
-		// Order by relative path rather than absolute.
-		// This will only affect members and will cause them
-		// to cluster separately which may improve readability.
-		rc = util_pathcmp(pa_get_rel(pa1), pa_get_rel(pa2));
-	    } else {
-		rc = 1;
-	    }
-	} else if (pa_is_read(pa2)) {
-	    rc = -1;
-	} else {
-	    // If neither is a read op, then they must both be write ops
-	    // which implies that timestamps are available.
-	    rc = moment_cmp(pa1->pa_timestamp, pa2->pa_timestamp, NULL);
-	    if (rc == 0) {
-		// If timestamps are identical, this may be a rename
-		// which was recorded as an unlink and a create
-		// happening at the same time. Naturally we want the
-		// unlink to precede the create.
-		if (pa_is_unlink(pa1)) {
-		    rc = 1;
-		} else if (pa_is_unlink(pa2)) {
-		    rc = -1;
-		}
-	    }
-	}
+        if (pa_is_read(pa1)) {
+            if (pa_is_read(pa2)) {
+                // Order by relative path rather than absolute.
+                // This will only affect members and will cause them
+                // to cluster separately which may improve readability.
+                rc = util_pathcmp(pa_get_rel(pa1), pa_get_rel(pa2));
+            } else {
+                rc = 1;
+            }
+        } else if (pa_is_read(pa2)) {
+            rc = -1;
+        } else {
+            // If neither is a read op, then they must both be write ops
+            // which implies that timestamps are available.
+            rc = moment_cmp(pa1->pa_timestamp, pa2->pa_timestamp, NULL);
+            if (rc == 0) {
+                // If timestamps are identical, this may be a rename
+                // which was recorded as an unlink and a create
+                // happening at the same time. Naturally we want the
+                // unlink to precede the create.
+                if (pa_is_unlink(pa1)) {
+                    rc = 1;
+                } else if (pa_is_unlink(pa2)) {
+                    rc = -1;
+                }
+            }
+        }
 
-	// As a last resort, compare the pointers.
-	if (rc == 0) {
-	    rc = pa1 > pa2 ? 1 : -1;
-	}
+        // As a last resort, compare the pointers.
+        if (rc == 0) {
+            rc = pa1 > pa2 ? 1 : -1;
+        }
     }
 
     return rc;
@@ -187,27 +187,27 @@ pa_newFromCSVString(CCS csv)
 
     // *INDENT-OFF*
     if (    !(op         = util_strsep(&linebuf, FS1)) ||
-	    !(call       = util_strsep(&linebuf, FS1)) ||
-	    !(timestamp  = util_strsep(&linebuf, FS1)) ||
-	    !(pid        = util_strsep(&linebuf, FS1)) ||
-	    !(depth      = util_strsep(&linebuf, FS1)) ||
-	    !(ppid       = util_strsep(&linebuf, FS1)) ||
-	    !(tid        = util_strsep(&linebuf, FS1)) ||
-	    !(pccode     = util_strsep(&linebuf, FS1)) ||
-	    !(ccode      = util_strsep(&linebuf, FS1))) {
-	putil_int("bad format: '%s'", csv);
-	putil_free(original);
-	return NULL;
+            !(call       = util_strsep(&linebuf, FS1)) ||
+            !(timestamp  = util_strsep(&linebuf, FS1)) ||
+            !(pid        = util_strsep(&linebuf, FS1)) ||
+            !(depth      = util_strsep(&linebuf, FS1)) ||
+            !(ppid       = util_strsep(&linebuf, FS1)) ||
+            !(tid        = util_strsep(&linebuf, FS1)) ||
+            !(pccode     = util_strsep(&linebuf, FS1)) ||
+            !(ccode      = util_strsep(&linebuf, FS1))) {
+        putil_int("bad format: '%s'", csv);
+        putil_free(original);
+        return NULL;
     }
     // *INDENT-ON*
 
     pa = pa_new();
-    pa_set_op(pa, (op_e)op[0]);	// op is just one char
+    pa_set_op(pa, (op_e)op[0]); // op is just one char
     pa_set_call(pa, call);
     if (pa_set_timestamp_str(pa, timestamp)) {
-	putil_int("bad format: %s", timestamp);
-	putil_free(original);
-	return NULL;
+        putil_int("bad format: %s", timestamp);
+        putil_free(original);
+        return NULL;
     }
     pa_set_pid(pa, strtoul(pid, NULL, 10));
     pa_set_depth(pa, strtoul(depth, NULL, 10));
@@ -218,8 +218,8 @@ pa_newFromCSVString(CCS csv)
 
     // Hand the remainder off to the PS class ...
     if (!(ps = ps_newFromCSVString(linebuf))) {
-	putil_free(original);
-	return NULL;
+        putil_free(original);
+        return NULL;
     }
     pa_set_ps(pa, ps);
     putil_free(original);
@@ -241,39 +241,39 @@ pa_toCSVString(pa_o pa)
 
     // *INDENT-OFF*
     len = asprintf(&pabuf,
-		"%c%s"		// 1  - OP
-		"%s%s"		// 2  - CALL
-		"%s%s"		// 3  - TIMESTAMP
-		"%lu%s"		// 4  - PID
-		"%lu%s"		// 5  - DEPTH
-		"%lu%s"		// 6  - PPID
-		"%lu%s"		// 7  - TID
-		"%s%s"		// 8  - PCCODE
-		"%s%s",		// 9  - CCODE
-	pa->pa_op, FS1,
-	pa->pa_call, FS1,
-	timestamp, FS1,
-	pa->pa_pid, FS1,
-	pa->pa_depth, FS1,
-	pa->pa_ppid, FS1,
-	pa->pa_tid, FS1,
-	pa_get_pccode(pa), FS1,
-	pa_get_ccode(pa), FS1);
+                "%c%s"          // 1  - OP
+                "%s%s"          // 2  - CALL
+                "%s%s"          // 3  - TIMESTAMP
+                "%lu%s"         // 4  - PID
+                "%lu%s"         // 5  - DEPTH
+                "%lu%s"         // 6  - PPID
+                "%lu%s"         // 7  - TID
+                "%s%s"          // 8  - PCCODE
+                "%s%s",         // 9  - CCODE
+        pa->pa_op, FS1,
+        pa->pa_call, FS1,
+        timestamp, FS1,
+        pa->pa_pid, FS1,
+        pa->pa_depth, FS1,
+        pa->pa_ppid, FS1,
+        pa->pa_tid, FS1,
+        pa_get_pccode(pa), FS1,
+        pa_get_ccode(pa), FS1);
     // *INDENT-ON*
 
     if (len < 0) {
-	putil_syserr(0, "pa_toCSVString");
+        putil_syserr(0, "pa_toCSVString");
     } else {
-	CCS psbuf;
+        CCS psbuf;
 
-	if ((psbuf = ps_toCSVString(pa->pa_ps))) {
-	    if (asprintf((char **)&buf, "%s%s\n", pabuf, psbuf) < 0) {
-		putil_syserr(0, "ps_toCSVString");
-	    }
-	    putil_free(psbuf);
-	} else {
-	    putil_syserr(0, "ps_toCSVString");
-	}
+        if ((psbuf = ps_toCSVString(pa->pa_ps))) {
+            if (asprintf((char **)&buf, "%s%s\n", pabuf, psbuf) < 0) {
+                putil_syserr(0, "ps_toCSVString");
+            }
+            putil_free(psbuf);
+        } else {
+            putil_syserr(0, "ps_toCSVString");
+        }
     }
 
     return buf;
@@ -288,13 +288,13 @@ pa_tostring(pa_o pa)
     CCS str = NULL;
 
     if (pa_exists(pa)) {
-	str = pa_toCSVString(pa);
+        str = pa_toCSVString(pa);
     } else {
-	CCS str1;
+        CCS str1;
 
-	str1 = pa_toCSVString(pa);
-	asprintf((char **)&str, "(GONE) %s", str1);
-	putil_free(str1);
+        str1 = pa_toCSVString(pa);
+        asprintf((char **)&str, "(GONE) %s", str1);
+        putil_free(str1);
     }
 
     return str;
@@ -489,17 +489,17 @@ pa_copy(pa_o cpa)
 // subtle bugs we malloc and free it like other values.
 GEN_SETTER_GETTER_DEFN_STR(pa, call, CCS, NULL)
 
-GEN_SETTER_GETTER_DEFN(pa,	op,		op_e)
-GEN_SETTER_GETTER_DEFN(pa,	timestamp,	moment_s)
-GEN_SETTER_GETTER_DEFN(pa,	pid,		unsigned long)
-GEN_SETTER_GETTER_DEFN(pa,	ppid,		unsigned long)
-GEN_SETTER_GETTER_DEFN(pa,	tid,		unsigned long)
-GEN_SETTER_GETTER_DEFN(pa,	depth,		unsigned long)
-GEN_SETTER_GETTER_DEFN_STR(pa,	pccode,		CCS, CSV_NULL_FIELD)
-GEN_SETTER_GETTER_DEFN_STR(pa,	ccode,		CCS, CSV_NULL_FIELD)
-GEN_SETTER_GETTER_DEFN(pa,	fd,		int)
-GEN_SETTER_GETTER_DEFN(pa,	uploadable,	int)
-GEN_SETTER_GETTER_DEFN(pa,	ps,		ps_o)
+GEN_SETTER_GETTER_DEFN(pa,      op,             op_e)
+GEN_SETTER_GETTER_DEFN(pa,      timestamp,      moment_s)
+GEN_SETTER_GETTER_DEFN(pa,      pid,            unsigned long)
+GEN_SETTER_GETTER_DEFN(pa,      ppid,           unsigned long)
+GEN_SETTER_GETTER_DEFN(pa,      tid,            unsigned long)
+GEN_SETTER_GETTER_DEFN(pa,      depth,          unsigned long)
+GEN_SETTER_GETTER_DEFN_STR(pa,  pccode,         CCS, CSV_NULL_FIELD)
+GEN_SETTER_GETTER_DEFN_STR(pa,  ccode,          CCS, CSV_NULL_FIELD)
+GEN_SETTER_GETTER_DEFN(pa,      fd,             int)
+GEN_SETTER_GETTER_DEFN(pa,      uploadable,     int)
+GEN_SETTER_GETTER_DEFN(pa,      ps,             ps_o)
 
 GEN_DELEGATE_GETTER_DEFN(pa, ps, pn, pn_o)
 GEN_DELEGATE_GETTER_DEFN(pa, ps, abs, CCS)
@@ -520,7 +520,7 @@ void
 pa_destroy(pa_o pa)
 {
     if (!pa) {
-	return;
+        return;
     }
     // Free the contained ps object.
     ps_destroy(pa->pa_ps);
@@ -537,4 +537,4 @@ pa_destroy(pa_o pa)
     putil_free(pa);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

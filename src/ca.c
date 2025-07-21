@@ -41,16 +41,16 @@
 #include "zlib.h"
 
 /// @cond static
-#define AUDIT_BUF_INIT_SIZE			8192
-#define CSV_NEWLINE_TOKEN			"^J"
+#define AUDIT_BUF_INIT_SIZE                     8192
+#define CSV_NEWLINE_TOKEN                       "^J"
 /// @endcond static
 
 /// Structure for passing multiple data items into a callback.
 /// Required because callback functions allow only one data pointer.
 typedef struct {
-    CS fp_buf;			///< Pointer to buffer
-    int fp_bufsize;		///< Current size of buffer
-    int fp_bufnext;		///< Index of the current buffer end
+    CS fp_buf;                  ///< Pointer to buffer
+    int fp_bufsize;             ///< Current size of buffer
+    int fp_bufnext;             ///< Index of the current buffer end
 } format_palist_s;
 
 /// Structure to serve as a key into a hash table containing cmd_audits.
@@ -58,9 +58,9 @@ typedef struct {
 // those attributes which are common between a CA and a PA, because
 // we use it to take a PA and look up its associated CA in the table.
 struct cmd_key_s {
-    CCS ck_ccode;		///< same as ca_o attribute
-    unsigned long ck_depth;	///< same as ca_o attribute
-    unsigned long ck_cmdid;	///< same as ca_o attribute
+    CCS ck_ccode;               ///< same as ca_o attribute
+    unsigned long ck_depth;     ///< same as ca_o attribute
+    unsigned long ck_cmdid;     ///< same as ca_o attribute
 } cmd_key_s;
 
 /// Data structure for describing audited commands.
@@ -68,29 +68,29 @@ struct cmd_key_s {
 /// types are all over the map. The best way to avoid warnings
 /// in formatting is to use unsigned long and "%lu" across the board.
 struct cmd_audit_s {
-    unsigned long ca_cmdid;	///< id of cmd (related to pid)
-    unsigned long ca_depth;	///< # of execs from start to here
-    unsigned long ca_pcmdid;	///< id of parent cmd
-    moment_s ca_starttime;	///< start time
-    unsigned long ca_duration;	///< invocation run time
-    CCS ca_prog;		///< name of running program
-    CCS ca_host;		///< system CA was generated on
-    CCS ca_recycled;		///< PTX recycled from or NULL
-    CCS ca_rwd;			///< the project relative wd
-    CCS ca_pccode;		///< identity hash of parent cmd
-    CCS ca_ccode;		///< identity hash of this cmd
-    CCS ca_pathcode;		///< hash of all opened pathnames
-    CCS ca_line;		///< the command line
-    dict_t *ca_raw_pa_dict;	///< ptr to path action set
-    dict_t *ca_cooked_pa_dict;	///< ptr to path action set
-    hash_t *ca_group_hash;	///< ptr to aggregation hash
-    ca_o ca_leader;		///< ptr to group leader
-    int ca_strong;		///< boolean - is aggregation strong?
-    int ca_started;		///< boolean - has this CA seen SOA?
-    int ca_closed;		///< boolean - has this CA seen EOA?
-    int ca_processed;		///< boolean - has this CA been fully handled?
-    CCS ca_subs;		///< aggregated subcmds
-    CCS ca_freetext;		///< free-form text "comment"
+    unsigned long ca_cmdid;     ///< id of cmd (related to pid)
+    unsigned long ca_depth;     ///< # of execs from start to here
+    unsigned long ca_pcmdid;    ///< id of parent cmd
+    moment_s ca_starttime;      ///< start time
+    unsigned long ca_duration;  ///< invocation run time
+    CCS ca_prog;                ///< name of running program
+    CCS ca_host;                ///< system CA was generated on
+    CCS ca_recycled;            ///< PTX recycled from or NULL
+    CCS ca_rwd;                 ///< the project relative wd
+    CCS ca_pccode;              ///< identity hash of parent cmd
+    CCS ca_ccode;               ///< identity hash of this cmd
+    CCS ca_pathcode;            ///< hash of all opened pathnames
+    CCS ca_line;                ///< the command line
+    dict_t *ca_raw_pa_dict;     ///< ptr to path action set
+    dict_t *ca_cooked_pa_dict;  ///< ptr to path action set
+    hash_t *ca_group_hash;      ///< ptr to aggregation hash
+    ca_o ca_leader;             ///< ptr to group leader
+    int ca_strong;              ///< boolean - is aggregation strong?
+    int ca_started;             ///< boolean - has this CA seen SOA?
+    int ca_closed;              ///< boolean - has this CA seen EOA?
+    int ca_processed;           ///< boolean - has this CA been fully handled?
+    CCS ca_subs;                ///< aggregated subcmds
+    CCS ca_freetext;            ///< free-form text "comment"
 } cmd_audit_s;
 
 /// Constructor for CmdKey "class". A CmdKey is a small object which
@@ -204,17 +204,17 @@ ca_o_hash_cmp(const void *left, const void *right)
     ck2 = (ck_o)right;
 
     if ((ccmp = _ca_cmp_codes(ck1->ck_ccode, ck2->ck_ccode))) {
-	// A random but deterministic sorting order.
-	return ccmp;
+        // A random but deterministic sorting order.
+        return ccmp;
     } else if (ck1->ck_depth != ck2->ck_depth) {
-	return ck1->ck_depth - ck2->ck_depth;
+        return ck1->ck_depth - ck2->ck_depth;
     } else if (ck1->ck_cmdid == 0 || ck2->ck_cmdid == 0) {
-	// In some cases we may need to drop the cmdid out of the comparison.
-	return 0;
+        // In some cases we may need to drop the cmdid out of the comparison.
+        return 0;
     } else if (ck1->ck_cmdid != ck2->ck_cmdid) {
-	return ck1->ck_cmdid - ck2->ck_cmdid;
+        return ck1->ck_cmdid - ck2->ck_cmdid;
     } else {
-	return 0;
+        return 0;
     }
 }
 
@@ -242,7 +242,7 @@ ca_new(void)
     ca = (ca_o)putil_calloc(1, sizeof(*ca));
 
     if (!(ca->ca_raw_pa_dict = dict_create(DICTCOUNT_T_MAX, pa_cmp))) {
-	putil_syserr(2, "dict_create()");
+        putil_syserr(2, "dict_create()");
     }
 
     return ca;
@@ -271,21 +271,21 @@ ca_newFromCSVString(CCS csv)
 
     // *INDENT-OFF*
     if (    !(cmdid      = util_strsep(&linebuf, FS1)) ||
-	    !(depth      = util_strsep(&linebuf, FS1)) ||
-	    !(pcmdid     = util_strsep(&linebuf, FS1)) ||
-	    !(starttime  = util_strsep(&linebuf, FS1)) ||
-	    !(duration   = util_strsep(&linebuf, FS1)) ||
-	    !(host       = util_strsep(&linebuf, FS1)) ||
-	    !(recycled   = util_strsep(&linebuf, FS1)) ||
-	    !(freetext   = util_strsep(&linebuf, FS1)) ||
-	    !(prog       = util_strsep(&linebuf, FS1)) ||
-	    !(rwd        = util_strsep(&linebuf, FS1)) ||
-	    !(pccode     = util_strsep(&linebuf, FS1)) ||
-	    !(ccode      = util_strsep(&linebuf, FS1)) ||
-	    !(pathcode   = util_strsep(&linebuf, FS1))) {
-	putil_int("bad format: '%s'", csv);
-	putil_free(original);
-	return NULL;
+            !(depth      = util_strsep(&linebuf, FS1)) ||
+            !(pcmdid     = util_strsep(&linebuf, FS1)) ||
+            !(starttime  = util_strsep(&linebuf, FS1)) ||
+            !(duration   = util_strsep(&linebuf, FS1)) ||
+            !(host       = util_strsep(&linebuf, FS1)) ||
+            !(recycled   = util_strsep(&linebuf, FS1)) ||
+            !(freetext   = util_strsep(&linebuf, FS1)) ||
+            !(prog       = util_strsep(&linebuf, FS1)) ||
+            !(rwd        = util_strsep(&linebuf, FS1)) ||
+            !(pccode     = util_strsep(&linebuf, FS1)) ||
+            !(ccode      = util_strsep(&linebuf, FS1)) ||
+            !(pathcode   = util_strsep(&linebuf, FS1))) {
+        putil_int("bad format: '%s'", csv);
+        putil_free(original);
+        return NULL;
     }
     // *INDENT-ON*
 
@@ -295,9 +295,9 @@ ca_newFromCSVString(CCS csv)
     ca_set_depth(ca, strtoul(depth, NULL, 10));
     ca_set_pcmdid(ca, strtoul(pcmdid, NULL, 10));
     if (moment_parse(&(ca->ca_starttime), starttime)) {
-	putil_int("bad moment format: %s", starttime);
-	putil_free(original);
-	return NULL;
+        putil_int("bad moment format: %s", starttime);
+        putil_free(original);
+        return NULL;
     }
     ca_set_duration(ca, strtoul(duration, NULL, 10));
     ca_set_prog(ca, prog);
@@ -310,8 +310,8 @@ ca_newFromCSVString(CCS csv)
     ca_set_line(ca, linebuf);
 
     if (_ca_cmp_codes(ca_get_ccode(ca), ccode)) {
-	putil_int("%s: ccode skew (%s != %s)",
-		  ca_get_line(ca), ca_get_ccode(ca), ccode);
+        putil_int("%s: ccode skew (%s != %s)",
+                  ca_get_line(ca), ca_get_ccode(ca), ccode);
     }
 
     putil_free(original);
@@ -325,13 +325,13 @@ _ca_verbosity_ag(ca_o ca, CCS action, CCS text)
     // Checking the verbosity bit twice here is actually an optimization.
     if (vb_bitmatch(VB_AG)) {
 #if 0
-	vb_printf(VB_AG, "%s: '%.50s' (%s=>%s==>%s.%lu"), action,
-		  text ? text : ca_get_line(ca),
-		  ca_get_pccode(ca), ca_get_ccode(ca),
-		  ca_get_pathcode(ca), ca_get_depth(ca));
+        vb_printf(VB_AG, "%s: '%.50s' (%s=>%s==>%s.%lu"), action,
+                  text ? text : ca_get_line(ca),
+                  ca_get_pccode(ca), ca_get_ccode(ca),
+                  ca_get_pathcode(ca), ca_get_depth(ca));
 #else
-	vb_printf(VB_AG, "%s: '%.60s'", action,
-		  text ? text : ca_get_line(ca));
+        vb_printf(VB_AG, "%s: '%.60s'", action,
+                  text ? text : ca_get_line(ca));
 #endif
     }
 }
@@ -342,17 +342,17 @@ _ca_verbosity_pa(pa_o pa, ca_o ca, CCS action)
 {
     // Checking the verbosity bit twice here is actually an optimization.
     if (vb_bitmatch(VB_PA)) {
-	moment_s timestamp;
+        moment_s timestamp;
 
-	timestamp = pa_get_timestamp(pa);
-	if (timestamp.ntv_sec) {
-	    char tstamp[MOMENT_BUFMAX];
+        timestamp = pa_get_timestamp(pa);
+        if (timestamp.ntv_sec) {
+            char tstamp[MOMENT_BUFMAX];
 
-	    (void)moment_format(timestamp, tstamp, charlen(tstamp));
-	    vb_printf(VB_PA, "%s %c %s: (%s %s)", action,
-		      pa_get_op(pa), ca_get_prog(ca),
-		      tstamp, pa_get_abs(pa));
-	}
+            (void)moment_format(timestamp, tstamp, charlen(tstamp));
+            vb_printf(VB_PA, "%s %c %s: (%s %s)", action,
+                      pa_get_op(pa), ca_get_prog(ca),
+                      tstamp, pa_get_abs(pa));
+        }
     }
 }
 
@@ -390,14 +390,14 @@ ca_foreach_raw_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
 
     dict = ca->ca_raw_pa_dict;
     for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
-	pa = (pa_o)dnode_getkey(dnp);
-	pret = process(pa, data);
-	if (pret < 0) {
-	    putil_int("error from ca_foreach_raw_pa()");
-	    return -1;
-	} else {
-	    rc += pret;
-	}
+        pa = (pa_o)dnode_getkey(dnp);
+        pret = process(pa, data);
+        if (pret < 0) {
+            putil_int("error from ca_foreach_raw_pa()");
+            return -1;
+        } else {
+            rc += pret;
+        }
     }
 
     return rc;
@@ -420,30 +420,30 @@ ca_foreach_cooked_pa(ca_o ca, int (*process) (pa_o, void *), void *data)
     int rc = 0, pret;
 
     if ((dict = ca->ca_cooked_pa_dict)) {
-	for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
-	    pa = (pa_o)dnode_getkey(dnp);
-	    if (pa_is_read(pa)) {
-		pret = process(pa, data);
-		if (pret < 0) {
-		    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
-		    return -1;
-		} else {
-		    rc += pret;
-		}
-	    }
-	}
-	for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
-	    pa = (pa_o)dnode_getkey(dnp);
-	    if (!pa_is_read(pa)) {
-		pret = process(pa, data);
-		if (pret < 0) {
-		    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
-		    return -1;
-		} else {
-		    rc += pret;
-		}
-	    }
-	}
+        for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
+            pa = (pa_o)dnode_getkey(dnp);
+            if (pa_is_read(pa)) {
+                pret = process(pa, data);
+                if (pret < 0) {
+                    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
+                    return -1;
+                } else {
+                    rc += pret;
+                }
+            }
+        }
+        for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
+            pa = (pa_o)dnode_getkey(dnp);
+            if (!pa_is_read(pa)) {
+                pret = process(pa, data);
+                if (pret < 0) {
+                    putil_int("ca_foreach_cooked_pa(%s)", pa_get_abs(pa));
+                    return -1;
+                } else {
+                    rc += pret;
+                }
+            }
+        }
     }
 
     return rc;
@@ -465,42 +465,42 @@ ca_write(ca_o ca, int fd)
     dict = ca->ca_raw_pa_dict;
 
     if (dict_count(dict) <= 0) {
-	return;
+        return;
     }
 
     // In case buffered files were left open by sloppy audited programs.
     fflush(NULL);
 
     for (dnp = dict_first(dict); dnp;) {
-	pa = (pa_o)dnode_getkey(dnp);
+        pa = (pa_o)dnode_getkey(dnp);
 
-	// Unfortunately it's too early to dcode any written files
-	// since they may still be open. But we should get stats of
-	// non-member read ops since they may differ in the event
-	// of a distributed build. We must assume logical coherence
-	// for all write ops, member and non-member.
-	// In other words, read ops are allowed to be on physically
-	// separate files with the same path (e.g. /usr/include/stdio.h)
-	// but write ops to the same path are assumed to be to a shared file.
-	// This matters in the case of a distributed build.
-	if (pa_is_read(pa) && !pa_is_member(pa)) {
-	    (void)pa_stat(pa, 0);
-	}
+        // Unfortunately it's too early to dcode any written files
+        // since they may still be open. But we should get stats of
+        // non-member read ops since they may differ in the event
+        // of a distributed build. We must assume logical coherence
+        // for all write ops, member and non-member.
+        // In other words, read ops are allowed to be on physically
+        // separate files with the same path (e.g. /usr/include/stdio.h)
+        // but write ops to the same path are assumed to be to a shared file.
+        // This matters in the case of a distributed build.
+        if (pa_is_read(pa) && !pa_is_member(pa)) {
+            (void)pa_stat(pa, 0);
+        }
 
-	if ((pabuf = pa_toCSVString(pa))) {
-	    if (write(fd, pabuf, strlen(pabuf)) == -1) {
-		putil_syserr(0, "write()");
-	    }
-	    putil_free(pabuf);
-	}
+        if ((pabuf = pa_toCSVString(pa))) {
+            if (write(fd, pabuf, strlen(pabuf)) == -1) {
+                putil_syserr(0, "write()");
+            }
+            putil_free(pabuf);
+        }
 
-	// Dictionary bookkeeping.
-	next = dict_next(dict, dnp);
+        // Dictionary bookkeeping.
+        next = dict_next(dict, dnp);
 
-	dict_delete(dict, dnp);
-	dnp = next;
+        dict_delete(dict, dnp);
+        dnp = next;
 
-	pa_destroy(pa);
+        pa_destroy(pa);
     }
 }
 
@@ -517,79 +517,79 @@ ca_coalesce(ca_o ca)
 
     assert(!ca->ca_cooked_pa_dict);
     if ((dict_cooked = dict_create(DICTCOUNT_T_MAX, pa_cmp_by_pathname))) {
-	ca->ca_cooked_pa_dict = dict_cooked;
+        ca->ca_cooked_pa_dict = dict_cooked;
     } else {
-	putil_syserr(2, "dict_create()");
+        putil_syserr(2, "dict_create()");
     }
 
     for (dnpr = dict_first(dict_raw); dnpr;) {
-	pa_o raw_pa, ckd_pa;
+        pa_o raw_pa, ckd_pa;
 
-	next = dict_next(dict_raw, dnpr);
+        next = dict_next(dict_raw, dnpr);
 
-	raw_pa = (pa_o)dnode_getkey(dnpr);
+        raw_pa = (pa_o)dnode_getkey(dnpr);
 
-	_ca_verbosity_pa(raw_pa, ca, "COALESCING");
+        _ca_verbosity_pa(raw_pa, ca, "COALESCING");
 
-	// All data is in the key - that's why the value can be null.
-	if ((dnpc = dict_lookup(dict_cooked, raw_pa))) {
-	    int keep_cooked = 0;
+        // All data is in the key - that's why the value can be null.
+        if ((dnpc = dict_lookup(dict_cooked, raw_pa))) {
+            int keep_cooked = 0;
 
-	    ckd_pa = (pa_o)dnode_getkey(dnpc);
+            ckd_pa = (pa_o)dnode_getkey(dnpc);
 
-	    if (!pa_is_read(raw_pa) && !pa_is_read(ckd_pa)) {
-		moment_s raw_timestamp, ckd_timestamp;
+            if (!pa_is_read(raw_pa) && !pa_is_read(ckd_pa)) {
+                moment_s raw_timestamp, ckd_timestamp;
 
-		// If they're both destructive ops (non-read) then we
-		// need to consider timestamps and use the later one.
+                // If they're both destructive ops (non-read) then we
+                // need to consider timestamps and use the later one.
 
-		if (pa_has_timestamp(raw_pa) && pa_has_timestamp(ckd_pa)) {
-		    // If the PA's have their own timestamps, use them.
-		    raw_timestamp = pa_get_timestamp(raw_pa);
-		    ckd_timestamp = pa_get_timestamp(ckd_pa);
-		} else {
-		    // Otherwise key off the file times. This is for
-		    // support of "dummy" PAs as used in shopping.
-		    raw_timestamp = pa_get_moment(raw_pa);
-		    ckd_timestamp = pa_get_moment(ckd_pa);
-		}
+                if (pa_has_timestamp(raw_pa) && pa_has_timestamp(ckd_pa)) {
+                    // If the PA's have their own timestamps, use them.
+                    raw_timestamp = pa_get_timestamp(raw_pa);
+                    ckd_timestamp = pa_get_timestamp(ckd_pa);
+                } else {
+                    // Otherwise key off the file times. This is for
+                    // support of "dummy" PAs as used in shopping.
+                    raw_timestamp = pa_get_moment(raw_pa);
+                    ckd_timestamp = pa_get_moment(ckd_pa);
+                }
 
-		if (moment_cmp(raw_timestamp, ckd_timestamp, NULL) <= 0) {
-		    // Cooked write op is newer and can stay.
-		    keep_cooked = 1;
-		}
-	    } else if (pa_is_read(raw_pa)) {
-		// There's no point replacing a read with another read,
-		// so regardless of whether the current cooked PA is a
-		// read or write, it can stay.
-		keep_cooked = 1;
-	    } else {
-		// A write always beats a read.
-	    }
+                if (moment_cmp(raw_timestamp, ckd_timestamp, NULL) <= 0) {
+                    // Cooked write op is newer and can stay.
+                    keep_cooked = 1;
+                }
+            } else if (pa_is_read(raw_pa)) {
+                // There's no point replacing a read with another read,
+                // so regardless of whether the current cooked PA is a
+                // read or write, it can stay.
+                keep_cooked = 1;
+            } else {
+                // A write always beats a read.
+            }
 
-	    if (!keep_cooked) {
-		dict_delete(dict_cooked, dnpc);
-		dnode_destroy(dnpc);
-		_ca_verbosity_pa(ckd_pa, ca, "REMOVING");
-		pa_destroy(ckd_pa);
-		if (!(dnpc = dnode_create(NULL))) {
-		    putil_syserr(2, "dnode_create()");
-		}
-		ckd_pa = pa_copy(raw_pa);
-		dict_insert(dict_cooked, dnpc, ckd_pa);
-	    }
-	} else {
-	    if (!(dnpc = dnode_create(NULL))) {
-		putil_syserr(2, "dnode_create()");
-	    }
-	    ckd_pa = pa_copy(raw_pa);
-	    dict_insert(dict_cooked, dnpc, ckd_pa);
-	}
+            if (!keep_cooked) {
+                dict_delete(dict_cooked, dnpc);
+                dnode_destroy(dnpc);
+                _ca_verbosity_pa(ckd_pa, ca, "REMOVING");
+                pa_destroy(ckd_pa);
+                if (!(dnpc = dnode_create(NULL))) {
+                    putil_syserr(2, "dnode_create()");
+                }
+                ckd_pa = pa_copy(raw_pa);
+                dict_insert(dict_cooked, dnpc, ckd_pa);
+            }
+        } else {
+            if (!(dnpc = dnode_create(NULL))) {
+                putil_syserr(2, "dnode_create()");
+            }
+            ckd_pa = pa_copy(raw_pa);
+            dict_insert(dict_cooked, dnpc, ckd_pa);
+        }
 
-	// Clean up the raw set as we move PAs to the cooked one.
-	dict_delete(dict_raw, dnpr);
-	dnode_destroy(dnpr);
-	dnpr = next;
+        // Clean up the raw set as we move PAs to the cooked one.
+        dict_delete(dict_raw, dnpr);
+        dnode_destroy(dnpr);
+        dnpr = next;
     }
 
     return;
@@ -615,30 +615,30 @@ ca_merge(ca_o leader, ca_o donor)
     // the leader for the record.
     sub = ca_format_header(donor);
     if (leader->ca_subs) {
-	leader->ca_subs = (CCS)putil_realloc((void *)leader->ca_subs,
-					     (strlen(leader->ca_subs) +
-					      strlen(sub) +
-					      1) * CHARSIZE);
-	strcat((CS)leader->ca_subs, sub);
+        leader->ca_subs = (CCS)putil_realloc((void *)leader->ca_subs,
+                                             (strlen(leader->ca_subs) +
+                                              strlen(sub) +
+                                              1) * CHARSIZE);
+        strcat((CS)leader->ca_subs, sub);
     } else {
-	leader->ca_subs = (CCS)putil_malloc((strlen(sub) + 1) * CHARSIZE);
-	strcpy((CS)leader->ca_subs, sub);
+        leader->ca_subs = (CCS)putil_malloc((strlen(sub) + 1) * CHARSIZE);
+        strcpy((CS)leader->ca_subs, sub);
     }
     putil_free(sub);
 
     // Traverse the donor's raw list of PA's and move them into the leader's.
     if ((dict = donor->ca_raw_pa_dict)) {
-	for (dnp = dict_first(dict); dnp;) {
-	    next = dict_next(dict, dnp);
+        for (dnp = dict_first(dict); dnp;) {
+            next = dict_next(dict, dnp);
 
-	    pa = (pa_o)dnode_getkey(dnp);
-	    ca_record_pa(leader, pa);
-	    dict_delete(dict, dnp);
-	    dnode_destroy(dnp);
-	    dnp = next;
-	}
-	dict_destroy(donor->ca_raw_pa_dict);
-	donor->ca_raw_pa_dict = NULL;
+            pa = (pa_o)dnode_getkey(dnp);
+            ca_record_pa(leader, pa);
+            dict_delete(dict, dnp);
+            dnode_destroy(dnp);
+            dnp = next;
+        }
+        dict_destroy(donor->ca_raw_pa_dict);
+        donor->ca_raw_pa_dict = NULL;
     }
 }
 
@@ -656,7 +656,7 @@ ca_record_pa(ca_o ca, pa_o pa)
 
     // All data is in the key - that's why the value can be null.
     if (!(dnp = dnode_create(NULL))) {
-	putil_syserr(2, "dnode_create()");
+        putil_syserr(2, "dnode_create()");
     }
     dict_insert(ca->ca_raw_pa_dict, dnp, pa);
 }
@@ -679,9 +679,9 @@ ca_start_group(ca_o ca, int strength)
     assert(!ca->ca_group_hash);
 
     ca->ca_group_hash =
-	hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func);
+        hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func);
     if (!ca->ca_group_hash) {
-	putil_syserr(2, "hash_create()");
+        putil_syserr(2, "hash_create()");
     }
     // Mark the leader as a member of its own club.
     ca_set_leader(ca, ca);
@@ -703,12 +703,12 @@ ca_aggregate(ca_o ldr, ca_o sub)
     ck = ck_new_from_ca(sub);
 
     if (hash_lookup(ldr->ca_group_hash, ck)) {
-	ck_destroy(ck);
+        ck_destroy(ck);
     } else {
-	if (!(hnp = hnode_create(sub))) {
-	    putil_int("hnode_create()");
-	}
-	hash_insert(ldr->ca_group_hash, hnp, ck);
+        if (!(hnp = hnode_create(sub))) {
+            putil_int("hnode_create()");
+        }
+        hash_insert(ldr->ca_group_hash, hnp, ck);
     }
 
     // Each member of the audit group gets a pointer back to the group leader.
@@ -737,12 +737,12 @@ ca_is_uploadable(ca_o ca)
     int rc = 0;
 
     if ((dict = ca->ca_cooked_pa_dict)) {
-	for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
-	    pa = (pa_o)dnode_getkey(dnp);
-	    if (pa_get_uploadable(pa)) {
-		rc++;
-	    }
-	}
+        for (dnp = dict_first(dict); dnp; dnp = dict_next(dict, dnp)) {
+            pa = (pa_o)dnode_getkey(dnp);
+            if (pa_get_uploadable(pa)) {
+                rc++;
+            }
+        }
     }
 
     return rc;
@@ -768,27 +768,27 @@ ca_disband(ca_o ldr, void (*process) (ca_o))
 
     hash_scan_begin(&hscan, ldr->ca_group_hash);
     for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	ck = (ck_o)hnode_getkey(hnp);
-	sub = (ca_o)hnode_get(hnp);
-	if (ca_get_closed(sub)) {
-	    _ca_verbosity_ag(sub, "PROCESSING", NULL);
-	    ca_coalesce(sub);
-	    process(sub);
-	} else {
-	    _ca_verbosity_ag(sub, "RELEASING", NULL);
-	}
-	ca_set_leader(sub, NULL);
-	hash_scan_delete(ldr->ca_group_hash, hnp);
-	hnode_destroy(hnp);
-	ck_destroy(ck);
+        ck = (ck_o)hnode_getkey(hnp);
+        sub = (ca_o)hnode_get(hnp);
+        if (ca_get_closed(sub)) {
+            _ca_verbosity_ag(sub, "PROCESSING", NULL);
+            ca_coalesce(sub);
+            process(sub);
+        } else {
+            _ca_verbosity_ag(sub, "RELEASING", NULL);
+        }
+        ca_set_leader(sub, NULL);
+        hash_scan_delete(ldr->ca_group_hash, hnp);
+        hnode_destroy(hnp);
+        ck_destroy(ck);
     }
 
     if (ca_get_closed(ldr)) {
-	_ca_verbosity_ag(ldr, "PROCESSING", NULL);
-	ca_coalesce(ldr);
-	process(ldr);
+        _ca_verbosity_ag(ldr, "PROCESSING", NULL);
+        ca_coalesce(ldr);
+        process(ldr);
     } else {
-	_ca_verbosity_ag(ldr, "RELEASING", NULL);
+        _ca_verbosity_ag(ldr, "RELEASING", NULL);
     }
 
     hash_destroy(ldr->ca_group_hash);
@@ -806,27 +806,27 @@ ca_publish(ca_o ca, void (*process) (ca_o))
 
     // Combine the textual command lines of the subcommands for record keeping.
     if (ca->ca_group_hash) {
-	hscan_t hscan;
-	hnode_t *hnp;
-	ck_o ck;
-	ca_o sub;
+        hscan_t hscan;
+        hnode_t *hnp;
+        ck_o ck;
+        ca_o sub;
 
-	hash_scan_begin(&hscan, ca->ca_group_hash);
-	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	    ck = (ck_o)hnode_getkey(hnp);
-	    sub = (ca_o)hnode_get(hnp);
-	    if (sub != ca) {
-		_ca_verbosity_ag(sub, "MERGING", NULL);
-		ca_merge(ca, sub);
-		ca_set_processed(sub, 1);
-	    }
-	    hash_scan_delete(ca->ca_group_hash, hnp);
-	    hnode_destroy(hnp);
-	    ck_destroy(ck);
-	}
+        hash_scan_begin(&hscan, ca->ca_group_hash);
+        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
+            ck = (ck_o)hnode_getkey(hnp);
+            sub = (ca_o)hnode_get(hnp);
+            if (sub != ca) {
+                _ca_verbosity_ag(sub, "MERGING", NULL);
+                ca_merge(ca, sub);
+                ca_set_processed(sub, 1);
+            }
+            hash_scan_delete(ca->ca_group_hash, hnp);
+            hnode_destroy(hnp);
+            ck_destroy(ck);
+        }
 
-	hash_destroy(ca->ca_group_hash);
-	ca->ca_group_hash = NULL;
+        hash_destroy(ca->ca_group_hash);
+        ca->ca_group_hash = NULL;
     }
 
     // Merge all PAs in subcommands in with the PA set of the leader.
@@ -840,9 +840,9 @@ ca_publish(ca_o ca, void (*process) (ca_o))
 
 /// Accumulates the set and number of pathnames "involved in" a CA.
 typedef struct {
-    CS pca_buf;			///< Stretchable buffer.
-    size_t pca_buflen;		///< Current length of stretchable buffer.
-    int pca_count;		///< Number of pathnames represented.
+    CS pca_buf;                 ///< Stretchable buffer.
+    size_t pca_buflen;          ///< Current length of stretchable buffer.
+    int pca_count;              ///< Number of pathnames represented.
 } pathcode_accumulator_s;
 
 // We specifically exclude unlink ops from the pathcode because some "rm"
@@ -869,22 +869,22 @@ static int
 _ca_add_to_pathcode(pa_o pa, void *data)
 {
     if (pa_is_member(pa) && !pa_is_unlink(pa)) {
-	pathcode_accumulator_s *pcap;
-	CCS path;
-	size_t plen;
+        pathcode_accumulator_s *pcap;
+        CCS path;
+        size_t plen;
 
-	pcap = (pathcode_accumulator_s *)data;
+        pcap = (pathcode_accumulator_s *)data;
 
-	path = pa_get_abs(pa);
-	plen = strlen(path);
+        path = pa_get_abs(pa);
+        plen = strlen(path);
 
-	pcap->pca_buf = (CS)putil_realloc(pcap->pca_buf,
-					  pcap->pca_buflen + plen +
-					  CHARSIZE);
-	strcpy(pcap->pca_buf + pcap->pca_buflen, path);
+        pcap->pca_buf = (CS)putil_realloc(pcap->pca_buf,
+                                          pcap->pca_buflen + plen +
+                                          CHARSIZE);
+        strcpy(pcap->pca_buf + pcap->pca_buflen, path);
 
-	pcap->pca_buflen += plen;
-	pcap->pca_count++;
+        pcap->pca_buflen += plen;
+        pcap->pca_count++;
     }
 
     return 0;
@@ -920,14 +920,14 @@ ca_derive_pathcode(ca_o ca)
     (void)ca_foreach_cooked_pa(ca, _ca_add_to_pathcode, &pca);
 
     if (pca.pca_buf) {
-	char pcbuf[CODE_IDENTITY_HASH_MAX_LEN];
+        char pcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
-	(void)code_from_str(pca.pca_buf, pcbuf, charlen(pcbuf));
-	putil_free(pca.pca_buf);
-	snprintf(endof(pcbuf), leftlen(pcbuf), "-%d", pca.pca_count);
-	ca_set_pathcode(ca, pcbuf);
+        (void)code_from_str(pca.pca_buf, pcbuf, charlen(pcbuf));
+        putil_free(pca.pca_buf);
+        snprintf(endof(pcbuf), leftlen(pcbuf), "-%d", pca.pca_count);
+        ca_set_pathcode(ca, pcbuf);
     } else {
-	ca_set_pathcode(ca, NULL);
+        ca_set_pathcode(ca, NULL);
     }
 }
 
@@ -948,40 +948,40 @@ ca_format_header(ca_o ca)
 
     // *INDENT-OFF*
     ret = asprintf(&hdr,
-			  "%lu%s"			// 1  - PID
-			  "%lu%s"			// 2  - DEPTH
-			  "%lu%s"			// 3  - PPID
-			  "%s%s"			// 4  - STARTED
-			  "%lu%s"			// 5  - DURATION
-			  "%s%s"			// 6  - HOST
-			  "%s%s"			// 7  - RECYCLED
-			  "%s%s"			// 8  - FREETEXT
-			  // Divider - CommandAction above, Command below
-			  "%s%s"			// 9  - PROG
-			  "%s%s"			// 10 - RWD
-			  "%s%s"			// 11 - PCCODE
-			  "%s%s"			// 12 - CCODE
-			  "%s%s"			// 13 - PATHCODE
-			  "%s@",			// 14 - CMDLINE
-	ca->ca_cmdid, FS1,
-	ca->ca_depth, FS1,
-	ca->ca_pcmdid, FS1,
-	started, FS1,
-	ca->ca_duration, FS1,
-	ca->ca_host ? ca->ca_host : "?", FS1,
-	ca->ca_recycled ? ca->ca_recycled : "", FS1,
-	freetext, FS1,
-	// Divider - CommandAction above, Command below
-	ca->ca_prog, FS1,
-	ca->ca_rwd ? ca->ca_rwd : ".", FS1,
-	ca_get_pccode(ca), FS1,
-	ca_get_ccode(ca), FS1,
-	ca_get_pathcode(ca), FS1,
-	ca->ca_line);
+                          "%lu%s"                       // 1  - PID
+                          "%lu%s"                       // 2  - DEPTH
+                          "%lu%s"                       // 3  - PPID
+                          "%s%s"                        // 4  - STARTED
+                          "%lu%s"                       // 5  - DURATION
+                          "%s%s"                        // 6  - HOST
+                          "%s%s"                        // 7  - RECYCLED
+                          "%s%s"                        // 8  - FREETEXT
+                          // Divider - CommandAction above, Command below
+                          "%s%s"                        // 9  - PROG
+                          "%s%s"                        // 10 - RWD
+                          "%s%s"                        // 11 - PCCODE
+                          "%s%s"                        // 12 - CCODE
+                          "%s%s"                        // 13 - PATHCODE
+                          "%s@",                        // 14 - CMDLINE
+        ca->ca_cmdid, FS1,
+        ca->ca_depth, FS1,
+        ca->ca_pcmdid, FS1,
+        started, FS1,
+        ca->ca_duration, FS1,
+        ca->ca_host ? ca->ca_host : "?", FS1,
+        ca->ca_recycled ? ca->ca_recycled : "", FS1,
+        freetext, FS1,
+        // Divider - CommandAction above, Command below
+        ca->ca_prog, FS1,
+        ca->ca_rwd ? ca->ca_rwd : ".", FS1,
+        ca_get_pccode(ca), FS1,
+        ca_get_ccode(ca), FS1,
+        ca_get_pathcode(ca), FS1,
+        ca->ca_line);
     // *INDENT-ON*
 
     if (ret < 0) {
-	putil_syserr(2, NULL);
+        putil_syserr(2, NULL);
     }
 
     // Since a CSV line must be a SINGLE line, it cannot tolerate embedded
@@ -990,24 +990,24 @@ ca_format_header(ca_o ca)
     // about efficiency here.
     // TODO - why not just use our existing util_encode() for this?
     if (strchr(hdr, '\n')) {
-	CS nhdr, o, n;
+        CS nhdr, o, n;
 
-	nhdr = (CS)putil_calloc(strlen(hdr) * 2, CHARSIZE);
-	for (o = hdr, n = nhdr; *o; o++) {
-	    if (*o == '\n') {
-		strcpy(n, CSV_NEWLINE_TOKEN);
-		n = endof(n);
-	    } else {
-		*n++ = *o;
-	    }
-	}
-	putil_free(hdr);
-	hdr = (CS)putil_realloc(nhdr, strlen(nhdr) + CHARSIZE);
+        nhdr = (CS)putil_calloc(strlen(hdr) * 2, CHARSIZE);
+        for (o = hdr, n = nhdr; *o; o++) {
+            if (*o == '\n') {
+                strcpy(n, CSV_NEWLINE_TOKEN);
+                n = endof(n);
+            } else {
+                *n++ = *o;
+            }
+        }
+        putil_free(hdr);
+        hdr = (CS)putil_realloc(nhdr, strlen(nhdr) + CHARSIZE);
     }
 
     // We know this is present because we put it there.
     if ((p = strrchr(hdr, '@'))) {
-	*p = '\n';
+        *p = '\n';
     }
 
     return hdr;
@@ -1029,26 +1029,26 @@ _ca_format_palist_callback(pa_o pa, void *data)
     // This may lead to the occasional double stat of a file which is
     // in fact zero length but that should be insignificant.
     if (!pa_is_unlink(pa) && (pa_get_size(pa) == 0 || dcode_all)) {
-	int dcode_path;
+        int dcode_path;
 
-	dcode_path = dcode_all || pa_is_member(pa) || pa_get_uploadable(pa);
+        dcode_path = dcode_all || pa_is_member(pa) || pa_get_uploadable(pa);
 
-	// If checksumming a PA which represents a write op,
-	// flush the file descriptor associated with it in an
-	// attempt to avoid bad dcode values caused by files left
-	// open by the audited process with data still not
-	// synced to disk. This is not actually known to be a
-	// problem but it seems like fsync may be a good idea here.
-	if (dcode_path && (pa_get_fd(pa) > 2) && pa_is_write(pa)) {
-	    (void)fsync(pa_get_fd(pa));
-	    // IDEA: if this isn't sufficient, potentially we could
-	    // go so far as to close and reopen the same fd in append
-	    // mode (whether the original open was for append or not,
-	    // by this point any data sent to the fd will be appended).
-	    // I believe fcntl() could help us find the mode bits.
-	}
+        // If checksumming a PA which represents a write op,
+        // flush the file descriptor associated with it in an
+        // attempt to avoid bad dcode values caused by files left
+        // open by the audited process with data still not
+        // synced to disk. This is not actually known to be a
+        // problem but it seems like fsync may be a good idea here.
+        if (dcode_path && (pa_get_fd(pa) > 2) && pa_is_write(pa)) {
+            (void)fsync(pa_get_fd(pa));
+            // IDEA: if this isn't sufficient, potentially we could
+            // go so far as to close and reopen the same fd in append
+            // mode (whether the original open was for append or not,
+            // by this point any data sent to the fd will be appended).
+            // I believe fcntl() could help us find the mode bits.
+        }
 
-	(void)pa_stat(pa, dcode_path);
+        (void)pa_stat(pa, dcode_path);
     }
 
     // Skip any record which does not represent a regular file or dir.
@@ -1058,27 +1058,27 @@ _ca_format_palist_callback(pa_o pa, void *data)
     // But we're trying to limit the number of redundant/unnecessary
     // stat calls and for now at least this seems most efficient.
     if (pa_is_special(pa)) {
-	return 0;
+        return 0;
     }
 
     // No point recording directory reads.
     if (pa_is_dir(pa) && pa_is_read(pa)) {
-	return 0;
+        return 0;
     }
 
     // Stretch the buffer to fit the new data and append it.
     if ((pabuf = pa_toCSVString(pa))) {
-	int len;
+        int len;
 
-	len = strlen(pabuf);
-	while ((fps->fp_bufsize - fps->fp_bufnext) <= len) {
-	    fps->fp_bufsize *= 2;
-	    fps->fp_buf = (CS)putil_realloc(fps->fp_buf, fps->fp_bufsize);
-	}
-	strcpy(fps->fp_buf + fps->fp_bufnext, pabuf);
-	fps->fp_bufnext += len;
+        len = strlen(pabuf);
+        while ((fps->fp_bufsize - fps->fp_bufnext) <= len) {
+            fps->fp_bufsize *= 2;
+            fps->fp_buf = (CS)putil_realloc(fps->fp_buf, fps->fp_bufsize);
+        }
+        strcpy(fps->fp_buf + fps->fp_bufnext, pabuf);
+        fps->fp_bufnext += len;
 
-	putil_free(pabuf);
+        putil_free(pabuf);
     }
 
     return 0;
@@ -1122,7 +1122,7 @@ ca_to_str(ca_o ca)
     csv = (CCS)putil_realloc((void *)csv, (len + 1) * CHARSIZE);
 
     if (subs) {
-	strcat((CS)csv, subs);
+        strcat((CS)csv, subs);
     }
 
     strcat((CS)csv, pas);
@@ -1135,11 +1135,11 @@ ca_to_str(ca_o ca)
     // documents with an artificial separator. It would be better to
     // deliver a single complete document.
     if (((oldfmt = prop_get_str(P_CSV)) && *oldfmt)) {
-	return csv;
+        return csv;
     } else {
-	CCS json = json_from_ca_csv(csv);
-	putil_free(csv);
-	return json;
+        CCS json = json_from_ca_csv(csv);
+        putil_free(csv);
+        return json;
     }
 }
 
@@ -1176,25 +1176,25 @@ ca_dump(ca_o ca)
     putil_free(hdr);
 
     if (ca->ca_raw_pa_dict) {
-	(void)ca_foreach_raw_pa(ca, _ca_dump_pa, "RAW: ");
+        (void)ca_foreach_raw_pa(ca, _ca_dump_pa, "RAW: ");
     }
 
     if (ca->ca_cooked_pa_dict) {
-	(void)ca_foreach_cooked_pa(ca, _ca_dump_pa, "COOKED: ");
+        (void)ca_foreach_cooked_pa(ca, _ca_dump_pa, "COOKED: ");
     }
 
     if (ca->ca_group_hash) {
-	hscan_t hscan;
-	hnode_t *hnp;
+        hscan_t hscan;
+        hnode_t *hnp;
 
-	hash_scan_begin(&hscan, ca->ca_group_hash);
-	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	    ca_o sub;
+        hash_scan_begin(&hscan, ca->ca_group_hash);
+        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
+            ca_o sub;
 
-	    fputs(subsep, stderr);
-	    sub = (ca_o)hnode_get(hnp);
-	    ca_dump(sub);
-	}
+            fputs(subsep, stderr);
+            sub = (ca_o)hnode_get(hnp);
+            ca_dump(sub);
+        }
     }
 
     fputs(stars, stderr);
@@ -1212,37 +1212,37 @@ ca_set_line(ca_o ca, CCS line)
     putil_free(ca->ca_line);
 
     if (line) {
-	CS l1, l2;
-	size_t nlen;
+        CS l1, l2;
+        size_t nlen;
 
-	// Turn newline tokens back into actual newlines.
-	ca->ca_line = (CCS)putil_malloc((strlen(line) + 1) * CHARSIZE);
-	nlen = strlen(CSV_NEWLINE_TOKEN);
-	for (l1 = (CS)line, l2 = (CS)ca->ca_line; *l1; ) {
-	    if (l1[0] == CSV_NEWLINE_TOKEN[0] && !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
-		l1 += nlen;
-		*l2++ = '\n';
-	    } else {
-		*l2++ = *l1++;
-	    }
-	}
-	*l2 = '\0';
+        // Turn newline tokens back into actual newlines.
+        ca->ca_line = (CCS)putil_malloc((strlen(line) + 1) * CHARSIZE);
+        nlen = strlen(CSV_NEWLINE_TOKEN);
+        for (l1 = (CS)line, l2 = (CS)ca->ca_line; *l1; ) {
+            if (l1[0] == CSV_NEWLINE_TOKEN[0] && !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {
+                l1 += nlen;
+                *l2++ = '\n';
+            } else {
+                *l2++ = *l1++;
+            }
+        }
+        *l2 = '\0';
     } else {
-	ca->ca_line = NULL;
+        ca->ca_line = NULL;
     }
 
     // Determine the "command code" (aka ccode).
     if (ca->ca_line) {
-	char ccbuf[CODE_IDENTITY_HASH_MAX_LEN];
+        char ccbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
-	(void)code_from_str(ca->ca_line, ccbuf, sizeof(ccbuf));
-	if (ccbuf[0]) {
-	    snprintf(endof(ccbuf), leftlen(ccbuf),
-		       "+%lu", (unsigned long)strlen(ca->ca_line));
-	    ca->ca_ccode = putil_strdup(ccbuf);
-	} else {
-	    ca->ca_ccode = NULL;
-	}
+        (void)code_from_str(ca->ca_line, ccbuf, sizeof(ccbuf));
+        if (ccbuf[0]) {
+            snprintf(endof(ccbuf), leftlen(ccbuf),
+                       "+%lu", (unsigned long)strlen(ca->ca_line));
+            ca->ca_ccode = putil_strdup(ccbuf);
+        } else {
+            ca->ca_ccode = NULL;
+        }
     }
 }
 
@@ -1273,18 +1273,18 @@ ca_get_pending(ca_o ca)
     int pending = 0;
 
     if (ca->ca_group_hash) {
-	hscan_t hscan;
-	hnode_t *hnp;
+        hscan_t hscan;
+        hnode_t *hnp;
 
-	hash_scan_begin(&hscan, ca->ca_group_hash);
-	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	    ca_o sub;
+        hash_scan_begin(&hscan, ca->ca_group_hash);
+        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
+            ca_o sub;
 
-	    sub = (ca_o)hnode_get(hnp);
-	    if (!ca_get_closed(sub)) {
-		pending++;
-	    }
-	}
+            sub = (ca_o)hnode_get(hnp);
+            if (!ca_get_closed(sub)) {
+                pending++;
+            }
+        }
     }
 
     return pending;
@@ -1328,29 +1328,29 @@ ca_clear_pa(ca_o ca)
     pa_o pa;
 
     if ((dict = ca->ca_raw_pa_dict)) {
-	for (dnp = dict_first(dict); dnp;) {
-	    next = dict_next(dict, dnp);
+        for (dnp = dict_first(dict); dnp;) {
+            next = dict_next(dict, dnp);
 
-	    pa = (pa_o)dnode_getkey(dnp);
-	    dict_delete(dict, dnp);
-	    dnode_destroy(dnp);
-	    pa_destroy(pa);
-	    dnp = next;
-	}
+            pa = (pa_o)dnode_getkey(dnp);
+            dict_delete(dict, dnp);
+            dnode_destroy(dnp);
+            pa_destroy(pa);
+            dnp = next;
+        }
     }
 
     if ((dict = ca->ca_cooked_pa_dict)) {
-	for (dnp = dict_first(dict); dnp;) {
-	    next = dict_next(dict, dnp);
+        for (dnp = dict_first(dict); dnp;) {
+            next = dict_next(dict, dnp);
 
-	    pa = (pa_o)dnode_getkey(dnp);
-	    dict_delete(dict, dnp);
-	    dnode_destroy(dnp);
-	    pa_destroy(pa);
-	    dnp = next;
-	}
-	dict_destroy(ca->ca_cooked_pa_dict);
-	ca->ca_cooked_pa_dict = NULL;
+            pa = (pa_o)dnode_getkey(dnp);
+            dict_delete(dict, dnp);
+            dnode_destroy(dnp);
+            pa_destroy(pa);
+            dnp = next;
+        }
+        dict_destroy(ca->ca_cooked_pa_dict);
+        ca->ca_cooked_pa_dict = NULL;
     }
 }
 
@@ -1363,15 +1363,15 @@ ca_destroy(ca_o ca)
     hash_t *hash;
 
     if (!ca) {
-	return;
+        return;
     }
 
     if ((hash = ca->ca_group_hash)) {
-	if (hash_count(hash)) {
-	    putil_warn("group destroyed with %d audits left", (int)hash_count(hash));
-	}
-	hash_destroy(ca->ca_group_hash);
-	ca->ca_group_hash = NULL;
+        if (hash_count(hash)) {
+            putil_warn("group destroyed with %d audits left", (int)hash_count(hash));
+        }
+        hash_destroy(ca->ca_group_hash);
+        ca->ca_group_hash = NULL;
     }
 
     ca_clear_pa(ca);
@@ -1393,4 +1393,4 @@ ca_destroy(ca_o ca)
     putil_free(ca);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

@@ -24,6 +24,6 @@
 extern int zips_is_zipfile(const void *, off_t);
 extern int zips_clear_file(void *, off_t);
 
-#endif				/*ZIPS_H */
+#endif // ZIPS_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

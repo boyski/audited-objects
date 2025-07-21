@@ -25,6 +25,6 @@ extern void make_init(CCS);
 extern void make_file(ca_o);
 extern void make_fini(void);
 
-#endif
+#endif // MAKE_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

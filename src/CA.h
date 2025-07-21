@@ -87,6 +87,6 @@ GEN_SETTER_GETTER_DECL(ca, closed, int)
 GEN_SETTER_GETTER_DECL(ca, processed, int)
 GEN_GETTER_DECL(ca, pending, int)
 
-#endif				/*CA_H */
+#endif // CA_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

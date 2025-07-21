@@ -54,8 +54,8 @@ _unix_maximize_fds(void)
     struct rlimit rlims = {0, 0};
 
     if (getrlimit(RLIMIT_NOFILE, &rlims)) {
-	putil_syserr(0, "getrlimit()");
-	return;
+        putil_syserr(0, "getrlimit()");
+        return;
     }
 
 #if defined(__APPLE__)
@@ -65,7 +65,7 @@ _unix_maximize_fds(void)
 #endif // __APPLE__
 
     if (setrlimit(RLIMIT_NOFILE, &rlims)) {
-	putil_syserr(0, "setrlimit()");
+        putil_syserr(0, "setrlimit()");
     }
 }
 
@@ -76,12 +76,12 @@ _unix_sigchld(int signum)
     UNUSED(signum);
     doneflag = 1;
     if (write(done_pipe[1], DONE_TOKEN, strlen(DONE_TOKEN)) == -1) {
-	putil_syserr(0, "write(done_pipe[1])");
-	exit(2);
+        putil_syserr(0, "write(done_pipe[1])");
+        exit(2);
     }
     if (write(done_pipe[1], "\n", 1) == -1) {
-	putil_syserr(0, "write(done_pipe[1])");
-	exit(2);
+        putil_syserr(0, "write(done_pipe[1])");
+        exit(2);
     }
     close(done_pipe[1]);
 }
@@ -105,8 +105,8 @@ _unix_sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_RESETHAND;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-	putil_syserr(0, "sigaction(SIGCHLD)");
-	exit(2);
+        putil_syserr(0, "sigaction(SIGCHLD)");
+        exit(2);
     }
 
     // Debug feature: dump the current audit DB upon catching a signal.
@@ -115,8 +115,8 @@ _unix_sig_setup(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-	putil_syserr(0, "sigaction(SIGUSR1)");
-	exit(2);
+        putil_syserr(0, "sigaction(SIGUSR1)");
+        exit(2);
     }
 }
 
@@ -129,25 +129,25 @@ _unix_read_available(int fd)
     buf = putil_malloc(bufsize);
 
     for (len = 0, buf[0] = '\0';;) {
-	num = read(fd, buf + len, bufsize - len - 1);
-	if (num < 0) {
-	    if (errno != EAGAIN) {
-		putil_syserr(0, "read");
-		exit(2);
-	    }
-	} else if (num == 0) {
-	    if (len && buf[len - 1] != '\n') {
-		putil_warn("Incomplete line: '%s'", buf);
-	    }
-	    break;
-	} else {
-	    len += num;
-	    buf[len] = '\0';
-	    if (len + 1 >= bufsize) {
-		bufsize *= 2;
-		buf = putil_realloc(buf, bufsize);
-	    }
-	}
+        num = read(fd, buf + len, bufsize - len - 1);
+        if (num < 0) {
+            if (errno != EAGAIN) {
+                putil_syserr(0, "read");
+                exit(2);
+            }
+        } else if (num == 0) {
+            if (len && buf[len - 1] != '\n') {
+                putil_warn("Incomplete line: '%s'", buf);
+            }
+            break;
+        } else {
+            len += num;
+            buf[len] = '\0';
+            if (len + 1 >= bufsize) {
+                bufsize *= 2;
+                buf = putil_realloc(buf, bufsize);
+            }
+        }
     }
 
     return buf;
@@ -196,226 +196,226 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // is more compatible with Windows and potentially more
     // informative. Kind of mind-bending though.
     if (logfile) {
-	const char *loglevel;
+        const char *loglevel;
 
-	loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
-	if (loglevel && !strcmp(loglevel, "OFF")) {
-	    if (!(LogFP = fopen(logfile, "w"))) {
-		putil_syserr(0, logfile);
-		exit(2);
-	    }
-	} else {
-	    char *tcmd, *tsf;
+        loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
+        if (loglevel && !strcmp(loglevel, "OFF")) {
+            if (!(LogFP = fopen(logfile, "w"))) {
+                putil_syserr(0, logfile);
+                exit(2);
+            }
+        } else {
+            char *tcmd, *tsf;
 
-	    tsf = prop_is_true(P_LOG_TIME_STAMP) ? " --log-time-stamp" : "";
-	    if (asprintf(&tcmd, "%s --log-file \"%s\" --log-tee%s",
-		    exe, logfile, tsf) >= 0) {
-		if (!(LogFP = popen(tcmd, "w"))) {
-		    putil_syserr(0, logfile);
-		    exit(2);
-		}
-		putil_free(tcmd);
-	    }
-	}
+            tsf = prop_is_true(P_LOG_TIME_STAMP) ? " --log-time-stamp" : "";
+            if (asprintf(&tcmd, "%s --log-file \"%s\" --log-tee%s",
+                    exe, logfile, tsf) >= 0) {
+                if (!(LogFP = popen(tcmd, "w"))) {
+                    putil_syserr(0, logfile);
+                    exit(2);
+                }
+                putil_free(tcmd);
+            }
+        }
 
-	if (LogFP) {
-	    if (dup2(fileno(LogFP), fileno(stdout)) == -1) {
-		putil_syserr(0, logfile);
-		exit(2);
-	    }
+        if (LogFP) {
+            if (dup2(fileno(LogFP), fileno(stdout)) == -1) {
+                putil_syserr(0, logfile);
+                exit(2);
+            }
 
-	    if (dup2(fileno(LogFP), fileno(stderr)) == -1) {
-		putil_syserr(0, logfile);
-		exit(2);
-	    }
-	}
+            if (dup2(fileno(LogFP), fileno(stderr)) == -1) {
+                putil_syserr(0, logfile);
+                exit(2);
+            }
+        }
 
-	// Show the initial command and start time iff output is to a logfile.
-	if (vb_bitmatch(VB_STD)) {
-	    CCS cmdline;
-	    time_t now;
+        // Show the initial command and start time iff output is to a logfile.
+        if (vb_bitmatch(VB_STD)) {
+            CCS cmdline;
+            time_t now;
 
-	    cmdline = util_requote_argv(argv);
-	    fprintf(vb_get_stream(), "+ %s\n", cmdline);
-	    putil_free(cmdline);
-	    time(&now);
-	    vb_printf(VB_ON, "STARTED: %s", util_strtrim(ctime(&now)));
-	}
+            cmdline = util_requote_argv(argv);
+            fprintf(vb_get_stream(), "+ %s\n", cmdline);
+            putil_free(cmdline);
+            time(&now);
+            vb_printf(VB_ON, "STARTED: %s", util_strtrim(ctime(&now)));
+        }
     }
 
     // This property allows the entire auditing process to be dummied out;
     // we simply run the specified command, wait for it, and return.
     if (prop_is_true(P_EXECUTE_ONLY)) {
-	if ((childpid = fork()) < 0) {
-	    putil_syserr(0, "fork");
-	    exit(2);
-	} else if (childpid == 0) {
-	    execvp(path, argv);
-	    putil_syserr(0, path);
-	    exit(2);
-	} else {
-	    if (waitpid(childpid, &wstat, 0) == -1) {
-		putil_syserr(0, path);
-		ExitStatus = 5;
-	    } else if (WIFEXITED(wstat)) {
-		ExitStatus = WEXITSTATUS(wstat);
-	    } else {
-		ExitStatus = 2;
-	    }
+        if ((childpid = fork()) < 0) {
+            putil_syserr(0, "fork");
+            exit(2);
+        } else if (childpid == 0) {
+            execvp(path, argv);
+            putil_syserr(0, path);
+            exit(2);
+        } else {
+            if (waitpid(childpid, &wstat, 0) == -1) {
+                putil_syserr(0, path);
+                ExitStatus = 5;
+            } else if (WIFEXITED(wstat)) {
+                ExitStatus = WEXITSTATUS(wstat);
+            } else {
+                ExitStatus = 2;
+            }
 // Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wanalyzer-fd-leak"
-	    return ExitStatus;
+            return ExitStatus;
 #pragma GCC diagnostic pop
-	}
+        }
     }
 
     // The grandparent dir of this exe becomes the base where
     // we look for the preloaded library.
     if (!(pdir = putil_dirname(exe)) || !(shlibdir = putil_dirname(pdir))) {
-	putil_syserr(0, "dirname(exe)");
-	exit(2);
+        putil_syserr(0, "dirname(exe)");
+        exit(2);
     }
     putil_free(pdir);
 
     // Special case for truly "raw" output. There's no need
     // for a monitor process here; just inject and exec.
     if (shlibdir && prop_is_true(P_NO_MONITOR)) {
-	libinterposer_preload_on(AUDITOR, shlibdir);
-	execvp(path, argv);
-	putil_syserr(0, path);
-	exit(2);
+        libinterposer_preload_on(AUDITOR, shlibdir);
+        execvp(path, argv);
+        putil_syserr(0, path);
+        exit(2);
     }
 
     // This pipe is only used to ensure that the child doesn't get rolling
     // before the parent process is ready for its audits.
     if (pipe(sync_pipe) == -1) {
-	putil_syserr(0, "pipe(sync_pipe)");
-	exit(2);
+        putil_syserr(0, "pipe(sync_pipe)");
+        exit(2);
     }
 
     {
-	int so_reuse = 1;
-	struct sockaddr_in addr;
-	socklen_t addrlen;
-	char *portstr;
-	size_t len;
-	u_short port;
+        int so_reuse = 1;
+        struct sockaddr_in addr;
+        socklen_t addrlen;
+        char *portstr;
+        size_t len;
+        u_short port;
 
-	// Max chars needed to represent a 32-bit value plus ':' is 11.
-	len = ports * 11;
-	portstr = putil_calloc(len, 1);
+        // Max chars needed to represent a 32-bit value plus ':' is 11.
+        len = ports * 11;
+        portstr = putil_calloc(len, 1);
 
-	for (i = 0; i < ports; i++) {
-	    if ((listeners[i] = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-		putil_syserr(0, "socket()");
-		exit(2);
-	    }
+        for (i = 0; i < ports; i++) {
+            if ((listeners[i] = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+                putil_syserr(0, "socket()");
+                exit(2);
+            }
 
-	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
-			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-		putil_syserr(0, "SO_REUSEADDR");
-		exit(2);
-	    }
+            if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEADDR,
+                           &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+                putil_syserr(0, "SO_REUSEADDR");
+                exit(2);
+            }
 
 #if defined(SO_REUSEPORT)
-	    if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEPORT,
-			   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-		putil_syserr(0, "SO_REUSEPORT");
-		exit(2);
-	    }
-#endif	// SO_REUSEPORT
+            if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEPORT,
+                           &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
+                putil_syserr(0, "SO_REUSEPORT");
+                exit(2);
+            }
+#endif  // SO_REUSEPORT
 
-	    addrlen = sizeof(addr);
-	    memset(&addr, 0, addrlen);
-	    addr.sin_family = PF_INET;
-	    addr.sin_addr.s_addr = INADDR_ANY;
-	    addr.sin_port = htons(0);
+            addrlen = sizeof(addr);
+            memset(&addr, 0, addrlen);
+            addr.sin_family = PF_INET;
+            addr.sin_addr.s_addr = INADDR_ANY;
+            addr.sin_port = htons(0);
 
-	    if (bind(listeners[i], (struct sockaddr *)&addr, addrlen)) {
-		putil_syserr(0, "bind()");
-		exit(2);
-	    }
+            if (bind(listeners[i], (struct sockaddr *)&addr, addrlen)) {
+                putil_syserr(0, "bind()");
+                exit(2);
+            }
 
-	    if (getsockname(listeners[i], (struct sockaddr *)&addr, &addrlen)) {
-		putil_syserr(0, "getsockname");
-		exit(2);
-	    }
+            if (getsockname(listeners[i], (struct sockaddr *)&addr, &addrlen)) {
+                putil_syserr(0, "getsockname");
+                exit(2);
+            }
 
-	    port = ntohs(addr.sin_port);
-	    snprintf(endof(portstr), len - strlen(portstr), "%u:", port);
-	}
+            port = ntohs(addr.sin_port);
+            snprintf(endof(portstr), len - strlen(portstr), "%u:", port);
+        }
 
-	prop_override_str(P_MONITOR_PORT, portstr);
-	putil_free(portstr);
+        prop_override_str(P_MONITOR_PORT, portstr);
+        putil_free(portstr);
     }
 
     if ((childpid = fork()) < 0) {
-	putil_syserr(0, "fork");
-	exit(2);
+        putil_syserr(0, "fork");
+        exit(2);
     } else if (childpid == 0) {
-	char sync_buf[2];
-	struct sockaddr_in dest_addr;
-	int nfd;
+        char sync_buf[2];
+        struct sockaddr_in dest_addr;
+        int nfd;
 
-	//////////////////////////////// CHILD ///////////////////////////
+        //////////////////////////////// CHILD ///////////////////////////
 
-	// Not needed on child side.
-	for (i = 0; i < ports; i++) {
-	    fcntl(listeners[i], F_SETFD, fcntl(listeners[i], F_GETFD) | FD_CLOEXEC);
-	}
+        // Not needed on child side.
+        for (i = 0; i < ports; i++) {
+            fcntl(listeners[i], F_SETFD, fcntl(listeners[i], F_GETFD) | FD_CLOEXEC);
+        }
 
-	// We must wait till the parent has established its socket
-	// before letting the build run. Otherwise we might try to
-	// connect to it before it's ready.
+        // We must wait till the parent has established its socket
+        // before letting the build run. Otherwise we might try to
+        // connect to it before it's ready.
 // Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wanalyzer-use-of-uninitialized-value"
-	close(sync_pipe[1]);
-	read(sync_pipe[0], sync_buf, 1);
-	close(sync_pipe[0]);
+        close(sync_pipe[1]);
+        read(sync_pipe[0], sync_buf, 1);
+        close(sync_pipe[0]);
 #pragma GCC diagnostic pop
 
-	// Turn on the auditor.
-	if (shlibdir) {
-	    libinterposer_preload_on(AUDITOR, shlibdir);
-	    putil_free(shlibdir);
-	}
+        // Turn on the auditor.
+        if (shlibdir) {
+            libinterposer_preload_on(AUDITOR, shlibdir);
+            putil_free(shlibdir);
+        }
 
-	// Run the command under control of the audit lib.
-	execvp(path, argv);
+        // Run the command under control of the audit lib.
+        execvp(path, argv);
 
-	// Give an error if we were unable to exec at all.
-	putil_die("%s: %s", path, strerror(errno));
+        // Give an error if we were unable to exec at all.
+        putil_die("%s: %s", path, strerror(errno));
 
-	// The parent will be blocking on the first listening socket and needs
-	// to hear from us on exec error. Send a special code telling
-	// it to shut down gracefully.
-	if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-	    putil_syserr(0, "socket()");
-	    exit(2);
-	}
+        // The parent will be blocking on the first listening socket and needs
+        // to hear from us on exec error. Send a special code telling
+        // it to shut down gracefully.
+        if ((nfd = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+            putil_syserr(0, "socket()");
+            exit(2);
+        }
 
-	memset(&dest_addr, 0, sizeof(dest_addr));
-	dest_addr.sin_family = PF_INET;
-	dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_MONITOR_HOST));
-	dest_addr.sin_port = htons(strtoul(prop_get_str(P_MONITOR_PORT), NULL, 0));
+        memset(&dest_addr, 0, sizeof(dest_addr));
+        dest_addr.sin_family = PF_INET;
+        dest_addr.sin_addr.s_addr = inet_addr(prop_get_str(P_MONITOR_HOST));
+        dest_addr.sin_port = htons(strtoul(prop_get_str(P_MONITOR_PORT), NULL, 0));
 
-	if ((connect(nfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) == -1) {
-	    putil_syserr(0, "connect()");
-	    exit(2);
-	}
+        if ((connect(nfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr))) == -1) {
+            putil_syserr(0, "connect()");
+            exit(2);
+        }
 
 // Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wanalyzer-fd-use-without-check"
-	// Tell the parent to abort the mission.
-	write(nfd, "!\n", 2);
+        // Tell the parent to abort the mission.
+        write(nfd, "!\n", 2);
 #pragma GCC diagnostic pop
 
-	close(nfd);
+        close(nfd);
 
-	_exit(2);
+        _exit(2);
     }
 
     putil_free(shlibdir);
@@ -437,8 +437,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // This pipe is used as a belt-and-suspenders method for letting
     // the monitor know that the build is done.
     if (pipe(done_pipe) == -1) {
-	putil_syserr(0, "pipe(done_pipe)");
-	exit(2);
+        putil_syserr(0, "pipe(done_pipe)");
+        exit(2);
     }
 
     FD_ZERO(&master_read_fds);
@@ -449,20 +449,20 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     sockmax = done_pipe[0];
 
     for (i = 0; i < ports; i++) {
-	// Set up these sockets as listeners.
-	if (listen(listeners[i], SOMAXCONN) == SOCKET_ERROR) {
-	    putil_syserr(0, "listen");
-	    exit(2);
-	}
+        // Set up these sockets as listeners.
+        if (listen(listeners[i], SOMAXCONN) == SOCKET_ERROR) {
+            putil_syserr(0, "listen");
+            exit(2);
+        }
 
-	// Add the listening sockets to the master set.
-	FD_SET(listeners[i], &master_read_fds);
+        // Add the listening sockets to the master set.
+        FD_SET(listeners[i], &master_read_fds);
 
-	// And to the listener set
-	FD_SET(listeners[i], &listen_fds);
+        // And to the listener set
+        FD_SET(listeners[i], &listen_fds);
 
-	// Keep track of the highest-numbered live socket.
-	sockmax = (listeners[i] > sockmax) ? listeners[i] : sockmax;
+        // Keep track of the highest-numbered live socket.
+        sockmax = (listeners[i] > sockmax) ? listeners[i] : sockmax;
     }
 
 // Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
@@ -481,159 +481,159 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // with blocking descriptors, but that's what we do here. Never looked
     // into why they say so but this should be run past an expert.
     while (!doneflag) {
-	int fd;
-	fd_set read_fds;
+        int fd;
+        fd_set read_fds;
 
-	// We have to reset the timeout because some implementations
-	// of select modify it. This could cause it to busy-wait
-	// as the timeout becomes zero.
-	timeout = master_timeout;
+        // We have to reset the timeout because some implementations
+        // of select modify it. This could cause it to busy-wait
+        // as the timeout becomes zero.
+        timeout = master_timeout;
 
-	// Initialize the read fdset to its top-of-loop state.
-	read_fds = master_read_fds;
+        // Initialize the read fdset to its top-of-loop state.
+        read_fds = master_read_fds;
 
-	sret = select(sockmax + 1, &read_fds, NULL, NULL, &timeout);
+        sret = select(sockmax + 1, &read_fds, NULL, NULL, &timeout);
 
-	if (sret == SOCKET_ERROR) {
-	    if (errno == EINTR) {
-		continue;
-	    }
-	    putil_syserr(0, "select");
-	    exit(2);
-	}
+        if (sret == SOCKET_ERROR) {
+            if (errno == EINTR) {
+                continue;
+            }
+            putil_syserr(0, "select");
+            exit(2);
+        }
 
-	for (i = 0; i < ports; i++) {
-	    int found = 0;
+        for (i = 0; i < ports; i++) {
+            int found = 0;
 
-	    if (FD_ISSET(listeners[i], &read_fds)) {
-		SOCKET newfd;
+            if (FD_ISSET(listeners[i], &read_fds)) {
+                SOCKET newfd;
 
-		// Accept a new connection.
-		if ((newfd = accept(listeners[i], NULL, NULL)) == INVALID_SOCKET) {
-		    putil_syserr(0, "accept");
-		    exit(2);
-		}
+                // Accept a new connection.
+                if ((newfd = accept(listeners[i], NULL, NULL)) == INVALID_SOCKET) {
+                    putil_syserr(0, "accept");
+                    exit(2);
+                }
 
-		// Add it to the master set
-		FD_SET(newfd, &master_read_fds);
+                // Add it to the master set
+                FD_SET(newfd, &master_read_fds);
 
-		// Keep track of the highest numbered socket
-		if (newfd > sockmax) {
-		    sockmax = newfd;
-		}
+                // Keep track of the highest numbered socket
+                if (newfd > sockmax) {
+                    sockmax = newfd;
+                }
 
-		found++;
-	    }
+                found++;
+            }
 
-	    // ????
-	    if (found) {
-		continue;
-	    }
-	}
+            // ????
+            if (found) {
+                continue;
+            }
+        }
 
-	// This can be turned on with a signal.
-	if (dumpflag) {
-	    mon_dump();
-	    dumpflag = 0;
-	}
+        // This can be turned on with a signal.
+        if (dumpflag) {
+            mon_dump();
+            dumpflag = 0;
+        }
 
-	// Run through existing connections looking for data
-	for (fd = sockmin; fd <= sockmax; fd++) {
-	    CS buffer, buftmp, line;
+        // Run through existing connections looking for data
+        for (fd = sockmin; fd <= sockmax; fd++) {
+            CS buffer, buftmp, line;
 
-	    if (FD_ISSET(fd, &listen_fds) || !FD_ISSET(fd, &read_fds)) {
-		continue;
-	    }
+            if (FD_ISSET(fd, &listen_fds) || !FD_ISSET(fd, &read_fds)) {
+                continue;
+            }
 
-	    buffer = _unix_read_available(fd);
+            buffer = _unix_read_available(fd);
 
-	    for (buftmp = buffer, line = util_strsep(&buftmp, "\n");
-		     line && *line; line = util_strsep(&buftmp, "\n")) {
+            for (buftmp = buffer, line = util_strsep(&buftmp, "\n");
+                     line && *line; line = util_strsep(&buftmp, "\n")) {
 
-		if (!strcmp(line, DONE_TOKEN)) {
-		    // If the top-level process has ended, we have
-		    // to be finished.
-		    vb_printf(VB_MON, "DONE: %lu", childpid);
-		    doneflag = 1;
-		} else {
-		    unsigned monrc;
-		    CCS winner;
+                if (!strcmp(line, DONE_TOKEN)) {
+                    // If the top-level process has ended, we have
+                    // to be finished.
+                    vb_printf(VB_MON, "DONE: %lu", childpid);
+                    doneflag = 1;
+                } else {
+                    unsigned monrc;
+                    CCS winner;
 
-		    monrc = mon_record(line, &ExitStatus, NULL, &winner);
+                    monrc = mon_record(line, &ExitStatus, NULL, &winner);
 
-		    if (monrc & MON_NEXT) {
-			// Nothing more to do - hit me again.
-		    } else if (monrc & MON_ERR) {
-			// Nothing more to do - error already handled.
-		    } else if (monrc & MON_CANTRUN) {
-			// This means the top-level process was unable
-			// to run at all.
-			doneflag = 1;
-			break;
-		    } else if (monrc & MON_SOA) {
-			char ack[ACK_BUFFER_SIZE];
+                    if (monrc & MON_NEXT) {
+                        // Nothing more to do - hit me again.
+                    } else if (monrc & MON_ERR) {
+                        // Nothing more to do - error already handled.
+                    } else if (monrc & MON_CANTRUN) {
+                        // This means the top-level process was unable
+                        // to run at all.
+                        doneflag = 1;
+                        break;
+                    } else if (monrc & MON_SOA) {
+                        char ack[ACK_BUFFER_SIZE];
 
-			if (monrc & MON_RECYCLED) {
-			    // Tell auditor we recycled so it can exit.
-			    snprintf(ack, sizeof(ack), "%s\n", winner);
-			} else if (monrc & MON_STRICT) {
-			    // Tell auditor we failed a requirement.
-			    snprintf(ack, sizeof(ack), "%s\n", ACK_FAILURE);
-			    ExitStatus = 3;
-			} else if (monrc & MON_AGG) {
-			    // Tell auditor this command is aggregated.
-			    snprintf(ack, sizeof(ack), "%s\n", ACK_OK_AGG);
-			} else {
-			    // No special message - carry on.
-			    snprintf(ack, sizeof(ack), "%s\n", ACK_OK);
-			}
+                        if (monrc & MON_RECYCLED) {
+                            // Tell auditor we recycled so it can exit.
+                            snprintf(ack, sizeof(ack), "%s\n", winner);
+                        } else if (monrc & MON_STRICT) {
+                            // Tell auditor we failed a requirement.
+                            snprintf(ack, sizeof(ack), "%s\n", ACK_FAILURE);
+                            ExitStatus = 3;
+                        } else if (monrc & MON_AGG) {
+                            // Tell auditor this command is aggregated.
+                            snprintf(ack, sizeof(ack), "%s\n", ACK_OK_AGG);
+                        } else {
+                            // No special message - carry on.
+                            snprintf(ack, sizeof(ack), "%s\n", ACK_OK);
+                        }
 
-			if (util_send_all(fd, ack, strlen(ack), 0) == -1) {
-			    putil_syserr(0, "send(ack)");
-			}
+                        if (util_send_all(fd, ack, strlen(ack), 0) == -1) {
+                            putil_syserr(0, "send(ack)");
+                        }
 
-			if (monrc & MON_TOP) {
-			    if (Started) {
-				mon_ptx_end(ExitStatus, logfile);
-			    }
-			    mon_ptx_start();
-			    Started = 1;
-			}
-		    } else if (monrc & MON_EOA) {
-			// Nothing more to do - end processing handled elsewhere
-		    } else {
-			putil_warn("unrecognized line '%s'", line);
-		    }
-		}
-	    }
+                        if (monrc & MON_TOP) {
+                            if (Started) {
+                                mon_ptx_end(ExitStatus, logfile);
+                            }
+                            mon_ptx_start();
+                            Started = 1;
+                        }
+                    } else if (monrc & MON_EOA) {
+                        // Nothing more to do - end processing handled elsewhere
+                    } else {
+                        putil_warn("unrecognized line '%s'", line);
+                    }
+                }
+            }
 
-	    // We've reached EOF on a particular delivery;
-	    // close the socket, remove it from the select mask, and
-	    // return to the loop.
-	    close(fd);
-	    FD_CLR(fd, &master_read_fds);
+            // We've reached EOF on a particular delivery;
+            // close the socket, remove it from the select mask, and
+            // return to the loop.
+            close(fd);
+            FD_CLR(fd, &master_read_fds);
 
-	    putil_free(buffer);
-	}
+            putil_free(buffer);
+        }
 
-	// http_async_transfer(0);
+        // http_async_transfer(0);
     }
 
     // Wait for ending child, reap its exit code.
     if (waitpid(childpid, &wstat, 0) == -1) {
-	putil_syserr(0, path);
-	ExitStatus = 5;
+        putil_syserr(0, path);
+        ExitStatus = 5;
     }
     if (WIFEXITED(wstat)) {
-	if (ExitStatus == 0) {
-	    ExitStatus = WEXITSTATUS(wstat);
-	}
+        if (ExitStatus == 0) {
+            ExitStatus = WEXITSTATUS(wstat);
+        }
     } else {
-	if (WIFSIGNALED(wstat)) {
-	    putil_error("%s: %s%s", path, strsignal(WTERMSIG(wstat)),
-			WCOREDUMP(wstat) ? " (coredump)" : "");
-	}
-	ExitStatus = 2;
+        if (WIFSIGNALED(wstat)) {
+            putil_error("%s: %s%s", path, strsignal(WTERMSIG(wstat)),
+                        WCOREDUMP(wstat) ? " (coredump)" : "");
+        }
+        ExitStatus = 2;
     }
 
     mon_ptx_end(ExitStatus, logfile);
@@ -641,16 +641,16 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     mon_fini();
 
     for (i = 0; i < ports; i++) {
-	if (close(listeners[i]) == SOCKET_ERROR) {
-	    putil_syserr(0, "close(socket)");
-	}
+        if (close(listeners[i]) == SOCKET_ERROR) {
+            putil_syserr(0, "close(socket)");
+        }
     }
 
     if (LogFP) {
-	(void)fclose(LogFP);
+        (void)fclose(LogFP);
     }
 
     return ExitStatus;
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

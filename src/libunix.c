@@ -90,15 +90,15 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 // Code that's exclusive to the auditor can feel free to use foo_real()
 // directly.
 // Remember to undo these just after including libcommon.c!
-#define fopen		fopen_real
-#define fork		fork_real
-#define open		open_real
-#define close		close_real
-#define rename		rename_real
-#define link(p1, p2)	link_real(p1, p2)
-#define symlink(p1, p2)	symlink_real(p1, p2)
-#define unlink(p1)	unlink_real(p1)
-#define _exit		_exit_real
+#define fopen           fopen_real
+#define fork            fork_real
+#define open            open_real
+#define close           close_real
+#define rename          rename_real
+#define link(p1, p2)    link_real(p1, p2)
+#define symlink(p1, p2) symlink_real(p1, p2)
+#define unlink(p1)      unlink_real(p1)
+#define _exit           _exit_real
 /// @endcond static
 
 // This drags in a LOT of source code ...
@@ -132,10 +132,10 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 #if !defined(__APPLE__)
 #include <elf.h>
 #endif // __APPLE__
-#else	// BSD
+#else   // BSD
 #include <sys/statvfs.h>
 #include <sys/vfs.h>
-#endif	// BSD
+#endif  // BSD
 
 #if !defined(__APPLE__)
 #include <link.h>
@@ -151,7 +151,7 @@ _get_real(const char *fcn)
     fcnptr = interposer_get_real(fcn);
     // Better to die now if symbols not found than to segfault later.
     if (!fcnptr) {
-	putil_die("no such symbol: %s()", fcn);
+        putil_die("no such symbol: %s()", fcn);
     }
     return fcnptr;
 }
@@ -176,27 +176,27 @@ interposed_late_init(const char *call)
     // Certain libc functions must be called from within this library.
     // We need the real semantics; wrappers are apt to get into loops.
     // *INDENT-OFF*
-    fopen_real	 = (FILE *(*)(const char *, const char *))_get_real("fopen");
-    fork_real	 = (pid_t(*)(void))_get_real("fork");
-    open_real	 = (int(*)(const char *, int, ...))_get_real("open");
-    close_real	 = (int(*)(int))_get_real("close");
-    rename_real	 = (int(*)(const char *, const char *))_get_real("rename");
-    link_real	 = (int(*)(const char *, const char *))_get_real("link");
+    fopen_real   = (FILE *(*)(const char *, const char *))_get_real("fopen");
+    fork_real    = (pid_t(*)(void))_get_real("fork");
+    open_real    = (int(*)(const char *, int, ...))_get_real("open");
+    close_real   = (int(*)(int))_get_real("close");
+    rename_real  = (int(*)(const char *, const char *))_get_real("rename");
+    link_real    = (int(*)(const char *, const char *))_get_real("link");
     symlink_real = (int(*)(const char *, const char *))_get_real("symlink");
-    unlink_real	 = (int(*)(const char *))_get_real("unlink");
-    _exit_real	 = (void(*)(int))_get_real("_exit");
+    unlink_real  = (int(*)(const char *))_get_real("unlink");
+    _exit_real   = (void(*)(int))_get_real("_exit");
     // *INDENT-ON*
 
     if ((pid = _init_auditlib(call, exe, interposer_get_cmdline()))) {
-	// Put the pid of the *current* process into the env block as the
-	// *parent* cmd id.
-	if (prop_has_value(P_PCMDID)) {
-	    prop_mod_ulong(P_PCMDID, pid, NULL);
-	}
-	// Turn on the auditor and go.
-	interposer_set_active(1);
+        // Put the pid of the *current* process into the env block as the
+        // *parent* cmd id.
+        if (prop_has_value(P_PCMDID)) {
+            prop_mod_ulong(P_PCMDID, pid, NULL);
+        }
+        // Turn on the auditor and go.
+        interposer_set_active(1);
     } else {
-	interposer_set_active(0);
+        interposer_set_active(0);
     }
 }
 
@@ -211,46 +211,46 @@ _ignore_path(const char *path)
     pend = endof(path);
 
     if (!strncmp(path, "/proc/", 6) || !strncmp(path, "/xfn/", 5) ||
-	!strncmp(path, "/dev/", 5) || !strncmp(path, "/devices/", 9)) {
-	// Typical "special" Unix file-like items.
+        !strncmp(path, "/dev/", 5) || !strncmp(path, "/devices/", 9)) {
+        // Typical "special" Unix file-like items.
     } else if (strstr(path, "/.ccache/")) {
-	// There's no good reason to use ccache with AO but try to
-	// behave reasonably if it happens anyway.
+        // There's no good reason to use ccache with AO but try to
+        // behave reasonably if it happens anyway.
 #if defined(linux)
     } else if (!strcmp(path, "/etc/mtab") || !strcmp(path, "/proc/mounts")) {
-	// On Linux all processes seem to open /etc/mtab.
-	// And we ourselves need to open /proc/mounts.
+        // On Linux all processes seem to open /etc/mtab.
+        // And we ourselves need to open /proc/mounts.
 #elif defined(__APPLE__)
     } else if (strstr(path, "-Tmp-")) {
-	// There's a lot of screwy stuff going on under /private/var/...
-	// in OS X 10.5. No idea what these files are but they certainly
-	// appear to be temp files based on their names.
+        // There's a lot of screwy stuff going on under /private/var/...
+        // in OS X 10.5. No idea what these files are but they certainly
+        // appear to be temp files based on their names.
     } else if (!strncmp(path, "/cores/", 7)) {
-	// Vide infra. This is where OS X puts its core files.
-#endif	// __APPLE__
+        // Vide infra. This is where OS X puts its core files.
+#endif  // __APPLE__
     } else if ((pend - 5) >= path && !strcmp(pend - 5, "/core")) {
-	// Nothing more embarrassing than dumping core (esp. if it's
-	// our fault) and then uploading the core file ...
-	// IDEA but it may be better to skip these only at upload time
-	// (i.e. record the action but don't save the result).
-	// There are legitimate operations which *read* a core file.
+        // Nothing more embarrassing than dumping core (esp. if it's
+        // our fault) and then uploading the core file ...
+        // IDEA but it may be better to skip these only at upload time
+        // (i.e. record the action but don't save the result).
+        // There are legitimate operations which *read* a core file.
     } else if (util_is_tmp(path)) {
-	// We used to not trust this, on the theory that data is often
-	// communicated between processes in the form of temp files,
-	// such as a compiler leaving a .s file in /tmp for the
-	// assembler to process and remove. But it was enabled and
-	// the test suite still passes, so left in at least until
-	// it causes trouble. If we stop filtering tmp files here we
-	// need to start filtering them at upload time.
+        // We used to not trust this, on the theory that data is often
+        // communicated between processes in the form of temp files,
+        // such as a compiler leaving a .s file in /tmp for the
+        // assembler to process and remove. But it was enabled and
+        // the test suite still passes, so left in at least until
+        // it causes trouble. If we stop filtering tmp files here we
+        // need to start filtering them at upload time.
     } else if (!strncmp(path, "/tmp/sh", 7) && atoi(path + 7) > 0) {
-	// The shell tends to keep here-documents in a file called
-	// "/tmp/shnnnnn" where "nnnnn" is based on the pid.
+        // The shell tends to keep here-documents in a file called
+        // "/tmp/shnnnnn" where "nnnnn" is based on the pid.
     } else if (IgnorePathRE && re_match__(IgnorePathRE, path)) {
-	// User-configurable set of ignorable files. We may
-	// eventually want to shift the hard-wired patterns
-	// above to this model.
+        // User-configurable set of ignorable files. We may
+        // eventually want to shift the hard-wired patterns
+        // above to this model.
     } else {
-	rc = 0;
+        rc = 0;
     }
 
     return rc;
@@ -260,9 +260,9 @@ static void
 _thread_mutex_lock(void)
 {
     if (pthread_mutex_lock_real) {
-	if (pthread_mutex_lock_real(&StaticDataAccessMutex)) {
-	    putil_syserr(2, "pthread_mutex_lock");
-	}
+        if (pthread_mutex_lock_real(&StaticDataAccessMutex)) {
+            putil_syserr(2, "pthread_mutex_lock");
+        }
     }
 }
 
@@ -270,7 +270,7 @@ static void
 _thread_mutex_unlock(void)
 {
     if (pthread_mutex_unlock_real) {
-	(void)pthread_mutex_unlock_real(&StaticDataAccessMutex);
+        (void)pthread_mutex_unlock_real(&StaticDataAccessMutex);
     }
 }
 
@@ -279,7 +279,7 @@ _thread_mutex_unlock(void)
 // times in succession and fail each time but the last.
 static int
 _pre_exec(const char *call, const char *path,
-	  char *const *argvp[], char *const envp[])
+          char *const *argvp[], char *const envp[])
 {
     int rc = 0;
 
@@ -290,7 +290,7 @@ _pre_exec(const char *call, const char *path,
     // Don't waste time sending the audit unless it looks like
     // the exec isn't going to return.
     if (!path || access(path, X_OK)) {
-	return rc;
+        return rc;
     }
 
     // OK, it looks like an exec is likely to find an executable file,
@@ -301,15 +301,15 @@ _pre_exec(const char *call, const char *path,
     // operates on AuditFD from a potentially multithreaded code path.
 
     if (pthread_mutex_lock_real) {
-	if (pthread_mutex_lock_real(&ExecFlushMutex)) {
-	    putil_syserr(2, "pthread_mutex_lock");
-	}
+        if (pthread_mutex_lock_real(&ExecFlushMutex)) {
+            putil_syserr(2, "pthread_mutex_lock");
+        }
     }
 
     _audit_end(call, NOT_EXITING, 0);
 
     if (pthread_mutex_unlock_real) {
-	(void)pthread_mutex_unlock_real(&ExecFlushMutex);
+        (void)pthread_mutex_unlock_real(&ExecFlushMutex);
     }
 
     return rc;
@@ -323,8 +323,8 @@ _pre_exec(const char *call, const char *path,
 /// @return same as the wrapped function
 /* static */ int
 execv_wrapper(const char *call,
-	      int (*next) (const char *, char *const argv[]),
-	      const char *path, char *const argv[])
+              int (*next) (const char *, char *const argv[]),
+              const char *path, char *const argv[])
 {
     int ret, dbg;
     WRAPPER_DEBUG("ENTERING execv_wrapper() => %p [%s ...]\n", next, path);
@@ -332,9 +332,9 @@ execv_wrapper(const char *call,
     dbg = _pre_exec(call, path, &argv, NULL);
 
     if (dbg) {
-	ret = (*next)(argv[0], argv);
+        ret = (*next)(argv[0], argv);
     } else {
-	ret = (*next)(path, argv);
+        ret = (*next)(path, argv);
     }
 
     return ret;
@@ -349,9 +349,9 @@ execv_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 execve_wrapper(const char *call,
-	       int (*next) (const char *, char *const argv[],
-			    char *const envp[]), const char *path,
-	       char *const argv[], char *const envp[])
+               int (*next) (const char *, char *const argv[],
+                            char *const envp[]), const char *path,
+               char *const argv[], char *const envp[])
 {
     int ret, dbg;
     WRAPPER_DEBUG("ENTERING execve_wrapper() => %p [%s ...]\n", next, argv[0]);
@@ -359,51 +359,51 @@ execve_wrapper(const char *call,
     dbg = _pre_exec(call, path, &argv, envp);
 
     if (!envp) {
-	// This is actually undefined behavior so we might as well
-	// let the OS handle it. It's conceivable that some OS might
-	// treat a null envp as an empty environment or like a
-	// regular execv() so we don't throw our own error.
-	if (dbg) {
-	    ret = (*next)(argv[0], argv, envp);
-	} else {
-	    ret = (*next)(path, argv, envp);
-	}
+        // This is actually undefined behavior so we might as well
+        // let the OS handle it. It's conceivable that some OS might
+        // treat a null envp as an empty environment or like a
+        // regular execv() so we don't throw our own error.
+        if (dbg) {
+            ret = (*next)(argv[0], argv, envp);
+        } else {
+            ret = (*next)(path, argv, envp);
+        }
     } else {
-	size_t plen;
-	char **pblock, **ep;
-	int found;
+        size_t plen;
+        char **pblock, **ep;
+        int found;
 
-	// If the audited program uses exec[lv]e to compose
-	// its own environment, we need special-case code to force our
-	// own control EV's back into that env block.
-	// The code below will return a new env block with our
-	// properties re-exported to it. The envp starts at (pblock+1).
+        // If the audited program uses exec[lv]e to compose
+        // its own environment, we need special-case code to force our
+        // own control EV's back into that env block.
+        // The code below will return a new env block with our
+        // properties re-exported to it. The envp starts at (pblock+1).
 
-	plen = prop_new_env_block_sizeA(envp);
-	pblock = (char **)alloca(plen);
-	memset(pblock, 0, plen);
-	(void)prop_custom_envA(pblock, envp);
+        plen = prop_new_env_block_sizeA(envp);
+        pblock = (char **)alloca(plen);
+        memset(pblock, 0, plen);
+        (void)prop_custom_envA(pblock, envp);
 
-	// If the host process assembles a custom environment which
-	// does not retain LD_PRELOAD, that process branch will be
-	// unaudited. This is a hole we ought to plug but it seems
-	// unlikely so for now we will just warn about it. If it
-	// ever actually happens it should be easy enough to fix.
-	for (found = 0, ep = pblock + 1; *ep; ep++) {
-	    if (!strncmp(*ep, PRELOAD_EV, strlen(PRELOAD_EV))) {
-		found = 1;
-		break;
-	    }
-	}
-	if (!found) {
-	    putil_warn("%s setting lost in exev[lv]e() call", PRELOAD_EV);
-	}
+        // If the host process assembles a custom environment which
+        // does not retain LD_PRELOAD, that process branch will be
+        // unaudited. This is a hole we ought to plug but it seems
+        // unlikely so for now we will just warn about it. If it
+        // ever actually happens it should be easy enough to fix.
+        for (found = 0, ep = pblock + 1; *ep; ep++) {
+            if (!strncmp(*ep, PRELOAD_EV, strlen(PRELOAD_EV))) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            putil_warn("%s setting lost in exev[lv]e() call", PRELOAD_EV);
+        }
 
-	if (dbg) {
-	    ret = (*next)(argv[0], argv, pblock + 1);
-	} else {
-	    ret = (*next)(path, argv, pblock + 1);
-	}
+        if (dbg) {
+            ret = (*next)(argv[0], argv, pblock + 1);
+        } else {
+            ret = (*next)(path, argv, pblock + 1);
+        }
     }
 
     return ret;
@@ -417,25 +417,25 @@ execve_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 execvp_wrapper(const char *call,
-	       int (*next) (const char *, char *const argv[]),
-	       const char *file, char *const argv[])
+               int (*next) (const char *, char *const argv[]),
+               const char *file, char *const argv[])
 {
     int ret, dbg;
     char buf[PATH_MAX];
     WRAPPER_DEBUG("ENTERING execvp_wrapper() => %p [%s ...]\n", next, file);
 
     if (strchr(file, '/')) {
-	dbg = _pre_exec(call, file, &argv, NULL);
+        dbg = _pre_exec(call, file, &argv, NULL);
     } else if (putil_searchpath(NULL, file, NULL, sizeof(buf), buf, NULL)) {
-	dbg = _pre_exec(call, buf, &argv, NULL);
+        dbg = _pre_exec(call, buf, &argv, NULL);
     } else {
-	dbg = _pre_exec(call, NULL, &argv, NULL);
+        dbg = _pre_exec(call, NULL, &argv, NULL);
     }
 
     if (dbg) {
-	ret = (*next)(argv[0], argv);
+        ret = (*next)(argv[0], argv);
     } else {
-	ret = (*next)(file, argv);
+        ret = (*next)(file, argv);
     }
 
     return ret;
@@ -483,25 +483,25 @@ fork_wrapper(const char *call, pid_t(*next) (void))
 
     // Child side.
     if (pid == 0 && _auditor_isActive()) {
-	// Open a new audit record for any files which might
-	// be opened on the child side (prior to exec if any).
-	// An alternative might be a lock on the existing file to
-	// prevent concurrent writes.
-	// Note: According to POSIX, in the instant after a fork
-	// there should be only a single thread in the child so
-	// the write to this static datum ought to be thread safe.
-	AuditFD = _audit_open();
+        // Open a new audit record for any files which might
+        // be opened on the child side (prior to exec if any).
+        // An alternative might be a lock on the existing file to
+        // prevent concurrent writes.
+        // Note: According to POSIX, in the instant after a fork
+        // there should be only a single thread in the child so
+        // the write to this static datum ought to be thread safe.
+        AuditFD = _audit_open();
 
-	// Mark this copy of the CA as not "started" because
-	// no SOA has been, or will be, sent for this pid.
-	// Note that we leave pid and ppid alone. This is a bit
-	// of a lie of course but nobody really cares about the
-	// actual pid of the process. We really only want the pid
-	// to associate PAs with the CA they "belong" to. Files
-	// touched by a child process still belong to the same
-	// CA as the parent until an exec takes place in which
-	// case they get a new one.
-	ca_set_started(CurrentCA, 0);
+        // Mark this copy of the CA as not "started" because
+        // no SOA has been, or will be, sent for this pid.
+        // Note that we leave pid and ppid alone. This is a bit
+        // of a lie of course but nobody really cares about the
+        // actual pid of the process. We really only want the pid
+        // to associate PAs with the CA they "belong" to. Files
+        // touched by a child process still belong to the same
+        // CA as the parent until an exec takes place in which
+        // case they get a new one.
+        ca_set_started(CurrentCA, 0);
     }
 
     return pid;
@@ -529,9 +529,9 @@ vfork(void)
     WRAPPER_DEBUG("ENTERING vfork_wrapper() => %p\n", fork_real);
 
     if (interposer_get_active()) {
-	return fork_wrapper(call, fork_real);
+        return fork_wrapper(call, fork_real);
     } else {
-	return fork_real();
+        return fork_real();
     }
 }
 
@@ -566,8 +566,8 @@ system_wrapper(const char *call, int (*next) (const char *), const char *str)
 /// @return same as the wrapped function
 /* static */ FILE *
 popen_wrapper(const char *call,
-	      FILE *(*next)(const char *, const char *),
-	      const char *command, const char *mode)
+              FILE *(*next)(const char *, const char *),
+              const char *command, const char *mode)
 {
     FILE *ret;
     WRAPPER_DEBUG("ENTERING popen_wrapper() => %p [%s ...]\n", next, command);
@@ -598,12 +598,12 @@ _enable_thread_support(const char *call)
     // indication of a threaded program. They'll be available
     // for subsequent use iff they're non-null.
     if (!pthread_mutex_lock_real) {
-	// We can be pretty sure this will only be executed once,
-	// just prior to the first thread creation (which will actually
-	// create thread #2 since the main thread is always #1).
-	pthread_mutex_lock_real = _get_real("pthread_mutex_lock");
-	pthread_mutex_unlock_real = _get_real("pthread_mutex_unlock");
-	pthread_self_real = _get_real("pthread_self");
+        // We can be pretty sure this will only be executed once,
+        // just prior to the first thread creation (which will actually
+        // create thread #2 since the main thread is always #1).
+        pthread_mutex_lock_real = _get_real("pthread_mutex_lock");
+        pthread_mutex_unlock_real = _get_real("pthread_mutex_unlock");
+        pthread_self_real = _get_real("pthread_self");
     }
 }
 
@@ -620,10 +620,10 @@ _enable_thread_support(const char *call)
 /// @return same as the wrapped function
 int
 pthread_create_wrapper(const char *call,
-		       int (*next) (pthread_t *, const pthread_attr_t *,
-				    void *(*s) (void *), void *),
-		       pthread_t * thread, const pthread_attr_t * attr,
-		       void *(*start_func) (void *), void *arg)
+                       int (*next) (pthread_t *, const pthread_attr_t *,
+                                    void *(*s) (void *), void *),
+                       pthread_t * thread, const pthread_attr_t * attr,
+                       void *(*start_func) (void *), void *arg)
 {
     int ret;
 
@@ -663,8 +663,8 @@ pthread_exit_wrapper(const char *call, void (*next) (void *), void *value_ptr)
 // NOTE: this may be turned off right now - see <Interposer/fork.h>.
 int
 clone_wrapper(const char *call,
-	      int (*next) (int (*)(void *), void *, int, void *),
-	      int (*fn) (void *), void *child_stack, int flags, void *arg)
+              int (*next) (int (*)(void *), void *, int, void *),
+              int (*fn) (void *), void *child_stack, int flags, void *arg)
 {
     int pid;
     WRAPPER_DEBUG("ENTERING %s_wrapper() => %p\n", call, next);
@@ -690,8 +690,8 @@ clone_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 open_wrapper(const char *call,
-	     int (*next) (const char *, int, ...),
-	     const char *path, int oflag, mode_t mode)
+             int (*next) (const char *, int, ...),
+             const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
     WRAPPER_DEBUG("ENTERING open_wrapper() => %p [%s ...]\n", next, path);
@@ -701,17 +701,17 @@ open_wrapper(const char *call,
     saved_errno = errno;
 
     if (ret != -1) {
-	op_e op;
+        op_e op;
 
-	if (oflag & (O_RDWR | O_APPEND)) {
-	    op = OP_APPEND;
-	} else if (oflag & O_WRONLY) {
-	    op = OP_CREAT;
-	} else {
-	    op = OP_READ;
-	}
+        if (oflag & (O_RDWR | O_APPEND)) {
+            op = OP_APPEND;
+        } else if (oflag & O_WRONLY) {
+            op = OP_CREAT;
+        } else {
+            op = OP_READ;
+        }
 
-	_pa_record(call, path, NULL, ret, op);
+        _pa_record(call, path, NULL, ret, op);
     }
 
     errno = saved_errno;
@@ -727,8 +727,8 @@ open_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 open64_wrapper(const char *call,
-	       int (*next) (const char *, int, ...),
-	       const char *path, int oflag, mode_t mode)
+               int (*next) (const char *, int, ...),
+               const char *path, int oflag, mode_t mode)
 {
     WRAPPER_DEBUG("ENTERING open64_wrapper() => %p [%s ...]\n", next, path);
     oflag |= O_LARGEFILE;
@@ -737,16 +737,16 @@ open64_wrapper(const char *call,
 
 int
 __open_2_wrapper(const char *call,
-	       int (*next) (const char *, int, ...),
-	       const char *path, int oflag, mode_t mode)
+               int (*next) (const char *, int, ...),
+               const char *path, int oflag, mode_t mode)
 {
     return open_wrapper(call, next, path, oflag, mode);
 }
 
 int
 __open64_2_wrapper(const char *call,
-	       int (*next) (const char *, int, ...),
-	       const char *path, int oflag, mode_t mode)
+               int (*next) (const char *, int, ...),
+               const char *path, int oflag, mode_t mode)
 {
     return open64_wrapper(call, next, path, oflag, mode);
 }
@@ -766,8 +766,8 @@ __open64_2_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 openat_wrapper(const char *call,
-	     int (*next) (int, const char *, int, ...),
-	     int fildes, const char *path, int oflag, mode_t mode)
+             int (*next) (int, const char *, int, ...),
+             int fildes, const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
     WRAPPER_DEBUG("ENTERING openat_wrapper() => %p [%s ...]\n", next, path);
@@ -776,35 +776,35 @@ openat_wrapper(const char *call,
     saved_errno = errno;
 
     if (ret != -1) {
-	op_e op;
+        op_e op;
 
-	if (oflag & (O_RDWR | O_APPEND)) {
-	    op = OP_APPEND;
-	} else if (oflag & O_WRONLY) {
-	    op = OP_CREAT;
-	} else {
-	    op = OP_READ;
-	}
+        if (oflag & (O_RDWR | O_APPEND)) {
+            op = OP_APPEND;
+        } else if (oflag & O_WRONLY) {
+            op = OP_CREAT;
+        } else {
+            op = OP_READ;
+        }
 
-	if (fildes == (int)AT_FDCWD || putil_is_absolute(path)) {
-	    _pa_record(call, path, NULL, ret, op);
-	} else {
-	    char procbuf[512];
-	    CCS lbuf;
-	    CS atpath;
+        if (fildes == (int)AT_FDCWD || putil_is_absolute(path)) {
+            _pa_record(call, path, NULL, ret, op);
+        } else {
+            char procbuf[512];
+            CCS lbuf;
+            CS atpath;
 
-	    snprintf(procbuf, sizeof(procbuf), "/proc/%ld/path/%d",
-		(long)getpid(), fildes);
+            snprintf(procbuf, sizeof(procbuf), "/proc/%ld/path/%d",
+                (long)getpid(), fildes);
 
-	    if ((lbuf = putil_readlink(procbuf))) {
-		asprintf(&atpath, "%s/%s", lbuf, path);
-		_pa_record(call, atpath, NULL, ret, op);
-		putil_free(atpath);
-		putil_free(lbuf);
-	    } else {
-		putil_warn("can't resolve %s relative to fd=%d", path, fildes);
-	    }
-	}
+            if ((lbuf = putil_readlink(procbuf))) {
+                asprintf(&atpath, "%s/%s", lbuf, path);
+                _pa_record(call, atpath, NULL, ret, op);
+                putil_free(atpath);
+                putil_free(lbuf);
+            } else {
+                putil_warn("can't resolve %s relative to fd=%d", path, fildes);
+            }
+        }
     }
 
     errno = saved_errno;
@@ -821,29 +821,29 @@ openat_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 openat64_wrapper(const char *call,
-	       int (*next) (int, const char *, int, ...),
-	       int fildes, const char *path, int oflag, mode_t mode)
+               int (*next) (int, const char *, int, ...),
+               int fildes, const char *path, int oflag, mode_t mode)
 {
     return openat_wrapper(call, next, fildes, path, oflag, mode);
 }
 
 int
 __openat_2_wrapper(const char *call,
-	     int (*next) (int, const char *, int, ...),
-	     int fildes, const char *path, int oflag, mode_t mode)
+             int (*next) (int, const char *, int, ...),
+             int fildes, const char *path, int oflag, mode_t mode)
 {
     return openat_wrapper(call, next, fildes, path, oflag, mode);
 }
 
 int
 __openat64_2_wrapper(const char *call,
-	       int (*next) (int, const char *, int, ...),
-	       int fildes, const char *path, int oflag, mode_t mode)
+               int (*next) (int, const char *, int, ...),
+               int fildes, const char *path, int oflag, mode_t mode)
 {
     return openat_wrapper(call, next, fildes, path, oflag, mode);
 }
 
-#endif	// AT_FDCWD
+#endif  // AT_FDCWD
 
 /// Interpose over the creat() function.
 /// @param[in] call     the name of the interposed function in string form
@@ -853,7 +853,7 @@ __openat64_2_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 creat_wrapper(const char *call,
-	      int (*next) (const char *, mode_t), const char *path, mode_t mode)
+              int (*next) (const char *, mode_t), const char *path, mode_t mode)
 {
     int oflag;
     WRAPPER_DEBUG("ENTERING creat_wrapper() => %p [%s ...]\n", next, path);
@@ -871,15 +871,15 @@ creat_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 creat64_wrapper(const char *call,
-		int (*next) (const char *, mode_t),
-		const char *path, mode_t mode)
+                int (*next) (const char *, mode_t),
+                const char *path, mode_t mode)
 {
     int oflag;
     static int (*open64_real) (const char *, int, ...);
     WRAPPER_DEBUG("ENTERING creat64_wrapper() => %p [%s ...]\n", next, path);
 
     if (!open64_real) {
-	open64_real = (int (*)(const char *, int, ...))_get_real("open64");
+        open64_real = (int (*)(const char *, int, ...))_get_real("open64");
     }
 
     UNUSED(next);
@@ -891,14 +891,14 @@ static op_e
 _mode2op(const char *mode)
 {
     if (*mode == 'w' || (*mode == 'r' && strchr(mode, '+'))) {
-	// Any previous data in the file is gone (w) or at risk (r+)
-	return OP_CREAT;
+        // Any previous data in the file is gone (w) or at risk (r+)
+        return OP_CREAT;
     } else if (*mode == 'a' || strchr(mode, '+')) {
-	// Write to end of file; previous data is safe.
-	return OP_APPEND;
+        // Write to end of file; previous data is safe.
+        return OP_APPEND;
     } else {
-	// Read access only; all data is safe.
-	return OP_READ;
+        // Read access only; all data is safe.
+        return OP_READ;
     }
 }
 
@@ -910,8 +910,8 @@ _mode2op(const char *mode)
 /// @return same as the wrapped function
 /* static */ FILE *
 fopen_wrapper(const char *call,
-	      FILE *(*next)(const char *, const char *),
-	      const char *path, const char *mode)
+              FILE *(*next)(const char *, const char *),
+              const char *path, const char *mode)
 {
     FILE *ret;
     int saved_errno;
@@ -921,7 +921,7 @@ fopen_wrapper(const char *call,
     saved_errno = errno;
 
     if (ret) {
-	_pa_record(call, path, NULL, fileno(ret), _mode2op(mode));
+        _pa_record(call, path, NULL, fileno(ret), _mode2op(mode));
     }
 
     errno = saved_errno;
@@ -936,8 +936,8 @@ fopen_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ FILE *
 fopen64_wrapper(const char *call,
-		FILE *(*next)(const char *, const char *),
-		const char *path, const char *mode)
+                FILE *(*next)(const char *, const char *),
+                const char *path, const char *mode)
 {
     WRAPPER_DEBUG("ENTERING fopen64_wrapper() => %p [%s ...]\n", next, path);
     return fopen_wrapper(call, next, path, mode);
@@ -952,8 +952,8 @@ fopen64_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ FILE *
 freopen_wrapper(const char *call,
-		FILE *(*next)(const char *, const char *, FILE *),
-		const char *path, const char *mode, FILE *stream)
+                FILE *(*next)(const char *, const char *, FILE *),
+                const char *path, const char *mode, FILE *stream)
 {
     FILE *ret;
     int saved_errno;
@@ -963,7 +963,7 @@ freopen_wrapper(const char *call,
     saved_errno = errno;
 
     if (ret) {
-	_pa_record(call, path, NULL, fileno(ret), _mode2op(mode));
+        _pa_record(call, path, NULL, fileno(ret), _mode2op(mode));
     }
 
     errno = saved_errno;
@@ -979,8 +979,8 @@ freopen_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ FILE *
 freopen64_wrapper(const char *call,
-		  FILE *(*next)(const char *, const char *, FILE *),
-		  const char *path, const char *mode, FILE *stream)
+                  FILE *(*next)(const char *, const char *, FILE *),
+                  const char *path, const char *mode, FILE *stream)
 {
     WRAPPER_DEBUG("ENTERING freopen64_wrapper() => %p [%s ...]\n", next, path);
     return freopen_wrapper(call, next, path, mode, stream);
@@ -1004,9 +1004,9 @@ close_wrapper(const char *call, int (*next) (int), int fildes)
     // descriptors before an exec. This causes a problem for our
     // "private" audit descriptor so we protect it.
     if (fildes == AuditFD) {
-	ret = 0;
+        ret = 0;
     } else {
-	ret = (*next)(fildes);
+        ret = (*next)(fildes);
     }
 
     return ret;
@@ -1020,15 +1020,15 @@ close_wrapper(const char *call, int (*next) (int), int fildes)
 /// @return same as the wrapped function
 /* static */ int
 mkdir_wrapper(const char *call,
-	     int (*next) (const char *, mode_t),
-	     const char *path, mode_t mode)
+             int (*next) (const char *, mode_t),
+             const char *path, mode_t mode)
 {
     int ret;
     WRAPPER_DEBUG("ENTERING mkdir_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
-	_pa_record(call, path, NULL, ret, OP_MKDIR);
+        _pa_record(call, path, NULL, ret, OP_MKDIR);
     }
 
     return ret;
@@ -1055,15 +1055,15 @@ mkdir_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 mkdirp_wrapper(const char *call,
-	     int (*next) (const char *, mode_t),
-	     const char *path, mode_t mode)
+             int (*next) (const char *, mode_t),
+             const char *path, mode_t mode)
 {
     int ret;
     WRAPPER_DEBUG("ENTERING mkdirp_wrapper() => %p [%s ...]\n", next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
-	_pa_record(call, path, NULL, ret, OP_MKDIR);
+        _pa_record(call, path, NULL, ret, OP_MKDIR);
     }
 
     return ret;
@@ -1077,15 +1077,15 @@ mkdirp_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 link_wrapper(const char *call,
-	     int (*next) (const char *, const char *),
-	     const char *existing, const char *newpath)
+             int (*next) (const char *, const char *),
+             const char *existing, const char *newpath)
 {
     int ret;
     WRAPPER_DEBUG("ENTERING link_wrapper() => %p [%s => %s]\n", next, existing, newpath);
 
     ret = (*next)(existing, newpath);
     if (ret == 0) {
-	_pa_record(call, newpath, existing, -1, OP_LINK);
+        _pa_record(call, newpath, existing, -1, OP_LINK);
     }
 
     return ret;
@@ -1099,15 +1099,15 @@ link_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 symlink_wrapper(const char *call,
-		int (*next) (const char *, const char *),
-		const char *name1, const char *name2)
+                int (*next) (const char *, const char *),
+                const char *name1, const char *name2)
 {
     int ret;
     WRAPPER_DEBUG("ENTERING symlink_wrapper() => %p [%s -> %s]\n", next, name1, name2);
 
     ret = (*next)(name1, name2);
     if (ret == 0) {
-	_pa_record(call, name2, name1, -1, OP_SYMLINK);
+        _pa_record(call, name2, name1, -1, OP_SYMLINK);
     }
 
     return ret;
@@ -1121,8 +1121,8 @@ symlink_wrapper(const char *call,
 /// @return same as the wrapped function
 /* static */ int
 rename_wrapper(const char *call,
-	       int (*next) (const char *, const char *),
-	       const char *oldpath, const char *newpath)
+               int (*next) (const char *, const char *),
+               const char *oldpath, const char *newpath)
 {
     int ret;
     WRAPPER_DEBUG("ENTERING rename_wrapper() => %p [%s >> %s]\n", next, oldpath, newpath);
@@ -1140,19 +1140,19 @@ rename_wrapper(const char *call,
     // Simplicity of aggregation is the priority.
 
     if (ret == 0) {
-	struct stat64 ostbuf, nstbuf;
+        struct stat64 ostbuf, nstbuf;
 
-	// SUS says "rename(foo, foo)" is a no-op so we ignore that case.
-	// Should be quite rare so not a concern from a performance POV.
-	if (!stat64(oldpath, &ostbuf) && !stat64(newpath, &nstbuf)) {
-	    if (ostbuf.st_ino == nstbuf.st_ino &&
-		ostbuf.st_dev == nstbuf.st_dev) {
-		return ret;
-	    }
-	}
+        // SUS says "rename(foo, foo)" is a no-op so we ignore that case.
+        // Should be quite rare so not a concern from a performance POV.
+        if (!stat64(oldpath, &ostbuf) && !stat64(newpath, &nstbuf)) {
+            if (ostbuf.st_ino == nstbuf.st_ino &&
+                ostbuf.st_dev == nstbuf.st_dev) {
+                return ret;
+            }
+        }
 
-	_pa_record(call, oldpath, NULL, -1, OP_UNLINK);
-	_pa_record(call, newpath, NULL, -1, OP_CREAT);
+        _pa_record(call, oldpath, NULL, -1, OP_UNLINK);
+        _pa_record(call, newpath, NULL, -1, OP_CREAT);
     }
 
     return ret;
@@ -1182,7 +1182,7 @@ unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
     // audit processing so we ignore them since they're no-ops anyway.
 
     if (path && *path) {
-	_pa_record(call, path, NULL, -1, OP_UNLINK);
+        _pa_record(call, path, NULL, -1, OP_UNLINK);
     }
 
     ret = (*next)(path);
@@ -1201,47 +1201,47 @@ unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 interposed_finalize(void)
 {
     if (_auditor_isActiveByRequest()) {
-	pid_t pid;
+        pid_t pid;
 
-	// This is a really cute trick I got from a guy named Nate Eldredge.
-	// The exit status is not given to the library finalizer but we
-	// need it, so what can we do? This is the answer: do a meaningless
-	// fork. The child just returns so that the parent can wait for
-	// it and gets its exit status. There's a slight chance that
-	// the extra fork will cause non-beneficial side effects but
-	// that should be quite rare.
-	// IDEA Would it be better to use vfork() here? A big IDE
-	// like Eclipse might have a large memory footprint and forking
-	// it only to exit might be costly and/or have an OOM failure.
-	// Answer, no, vfork is not allowed to return. There could be
-	// an answer within posix_spawn but I haven't looked into it.
-	if ((pid = fork_real()) == -1) {
-	    putil_syserr(0, "fork");
-	} else if (pid == 0) {
-	    // The child just returns so the parent can wait for it.
-	} else {
-	    int wstat, status = 7;
+        // This is a really cute trick I got from a guy named Nate Eldredge.
+        // The exit status is not given to the library finalizer but we
+        // need it, so what can we do? This is the answer: do a meaningless
+        // fork. The child just returns so that the parent can wait for
+        // it and gets its exit status. There's a slight chance that
+        // the extra fork will cause non-beneficial side effects but
+        // that should be quite rare.
+        // IDEA Would it be better to use vfork() here? A big IDE
+        // like Eclipse might have a large memory footprint and forking
+        // it only to exit might be costly and/or have an OOM failure.
+        // Answer, no, vfork is not allowed to return. There could be
+        // an answer within posix_spawn but I haven't looked into it.
+        if ((pid = fork_real()) == -1) {
+            putil_syserr(0, "fork");
+        } else if (pid == 0) {
+            // The child just returns so the parent can wait for it.
+        } else {
+            int wstat, status = 7;
 
-	    if (waitpid(pid, &wstat, 0) == pid) {
-		if (WIFEXITED(wstat)) {
-		    status = WEXITSTATUS(wstat);
-		}
-	    } else {
-		putil_syserr(0, "waitpid");
-	    }
+            if (waitpid(pid, &wstat, 0) == pid) {
+                if (WIFEXITED(wstat)) {
+                    status = WEXITSTATUS(wstat);
+                }
+            } else {
+                putil_syserr(0, "waitpid");
+            }
 
-	    _audit_end("exit", EXITING, status);
+            _audit_end("exit", EXITING, status);
 
-	    // Do an explicit _exit( to abort any remaining library
-	    // finalizers since they will have run in the child. I.e.
-	    // any *previous* finalizers will have run in the
-	    // original (now parent) copy and any *subsequent*
-	    // ones will have run in the child, so continuing with
-	    // exit processing here would run the latter set twice.
-	    _exit_real(status);
-	}
+            // Do an explicit _exit( to abort any remaining library
+            // finalizers since they will have run in the child. I.e.
+            // any *previous* finalizers will have run in the
+            // original (now parent) copy and any *subsequent*
+            // ones will have run in the child, so continuing with
+            // exit processing here would run the latter set twice.
+            _exit_real(status);
+        }
     } else if (_auditor_isActiveByDefault()) {
-	_audit_end("exit", EXITING, 0);
+        _audit_end("exit", EXITING, 0);
     }
 
     /*
@@ -1273,10 +1273,10 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
     // it directly but need a guard for other programs so they won't
     // try to send EOA twice.
     if (CurrentCA) {
-	_audit_end(call, EXITING, status);
-	code_fini();
-	prop_fini();
-	vb_fini();
+        _audit_end(call, EXITING, status);
+        code_fini();
+        prop_fini();
+        vb_fini();
     }
 
     (*next)(status);
@@ -1297,4 +1297,4 @@ _Exit_wrapper(const char *call, void (*next) (int), int status)
     _exit_wrapper(call, next, status);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

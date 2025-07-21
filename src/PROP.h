@@ -22,7 +22,7 @@
 /// @brief Declarations for prop.c
 
 /// @cond PROP
-#define PROP_EXT			".properties"
+#define PROP_EXT            ".properties"
 /// @endcond PROP
 
 #include <sys/types.h>
@@ -136,6 +136,6 @@ extern char *const *prop_custom_envA(char **, char *const *);
 extern void prop_unexport_all(void);
 extern void prop_fini(void);
 
-#endif				/*PROP_H */
+#endif // PROP_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

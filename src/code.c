@@ -132,8 +132,8 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 
     hash = XXH3_128bits(data, size);
     (void)snprintf(buf, buflen, "%016llx%016llx",
-	(unsigned long long)hash.high64,
-	(unsigned long long)hash.low64);
+        (unsigned long long)hash.high64,
+        (unsigned long long)hash.low64);
 
     return buf;
 }
@@ -167,31 +167,31 @@ _code_clear_archive_file(const unsigned char *data, off_t len)
     off_t size;
 
     for (dot = (unsigned char *)data + SARMAG; dot < data + len;) {
-	// Read this file's header.
-	hdr = (struct ar_hdr *)dot;
+        // Read this file's header.
+        hdr = (struct ar_hdr *)dot;
 
-	// Figure out the boundary of this file within the archive,
-	// rounding up to the next even number. If a padding char
-	// is present it will be a newline and thus 'stable' from
-	// a hashing point of view.
-	if ((size = atol(hdr->ar_size))) {
-	    size += size % 2;
-	} else {
-	    return -1;
-	}
+        // Figure out the boundary of this file within the archive,
+        // rounding up to the next even number. If a padding char
+        // is present it will be a newline and thus 'stable' from
+        // a hashing point of view.
+        if ((size = atol(hdr->ar_size))) {
+            size += size % 2;
+        } else {
+            return -1;
+        }
 
-	// Zero out everything in the header except the name field, and
-	// skip past it.
-	// We leave the name field (renaming an archive member changes
-	// its semantics and thus requires a different checksum).
-	memset(dot + sizeof(hdr->ar_name), 0,
-	    sizeof(*hdr) - sizeof(hdr->ar_name));
+        // Zero out everything in the header except the name field, and
+        // skip past it.
+        // We leave the name field (renaming an archive member changes
+        // its semantics and thus requires a different checksum).
+        memset(dot + sizeof(hdr->ar_name), 0,
+            sizeof(*hdr) - sizeof(hdr->ar_name));
 
-	// Move the pointer past the member header.
-	dot += sizeof(*hdr);
+        // Move the pointer past the member header.
+        dot += sizeof(*hdr);
 
-	// Move the pointer past the member data.
-	dot += size;
+        // Move the pointer past the member data.
+        dot += size;
     }
 
     return 0;
@@ -221,17 +221,17 @@ CCS
 code_from_buffer(const unsigned char *data, off_t size, CCS path, CS buf, size_t buflen)
 {
     if (size == 0) {
-	// No sense comparing this...
+        // No sense comparing this...
     } else if (_code_is_archive_file(data)) {
-	if (_code_clear_archive_file(data, size)) {
-	    putil_warn("corrupt archive file: %s", path);
-	}
+        if (_code_clear_archive_file(data, size)) {
+            putil_warn("corrupt archive file: %s", path);
+        }
     } else if (zips_is_zipfile(data, size)) {
-	if (zips_clear_file((unsigned char *)data, size)) {
-	    putil_warn("corrupt zip file: %s", path);
-	}
+        if (zips_clear_file((unsigned char *)data, size)) {
+            putil_warn("corrupt zip file: %s", path);
+        }
     } else if (HAS_TIMESTAMP(path)) {
-	putil_warn("possible dcode on file with timestamp: %s", path);
+        putil_warn("possible dcode on file with timestamp: %s", path);
     }
 
     return _code_hash2str(data, size, buf, buflen);
@@ -277,68 +277,68 @@ code_from_path(CCS path, CS buf, size_t len)
     // page-sized chunks but that's not yet implemented.
 
     {
-	int fd;
-	struct stat64 stbuf;
+        int fd;
+        struct stat64 stbuf;
 
-	if ((fd = open64(path, O_RDONLY, 0)) == -1) {
-	    putil_syserr(0, path);
-	    return NULL;
-	}
+        if ((fd = open64(path, O_RDONLY, 0)) == -1) {
+            putil_syserr(0, path);
+            return NULL;
+        }
 
-	if (fstat64(fd, &stbuf)) {
-	    putil_syserr(0, path);
-	    close(fd);
-	    return NULL;
-	}
+        if (fstat64(fd, &stbuf)) {
+            putil_syserr(0, path);
+            close(fd);
+            return NULL;
+        }
 
-	size = stbuf.st_size;
+        size = stbuf.st_size;
 
-	// Don't waste time mapping a file of length 0.
-	if (size == 0) {
-	    data = fdata = NULL;
-	} else if (size <= map_cutoff || no_map) {
-	    data = mdata = putil_malloc(size);
-	    if (util_read_all(fd, mdata, size) != (ssize_t)size) {
-		putil_syserr(0, path);
-		putil_free(mdata);
-		close(fd);
-		return NULL;
-	    }
-	} else {
-	    int prot = PROT_READ;
-	    size_t lookahead = 2048;
+        // Don't waste time mapping a file of length 0.
+        if (size == 0) {
+            data = fdata = NULL;
+        } else if (size <= map_cutoff || no_map) {
+            data = mdata = putil_malloc(size);
+            if (util_read_all(fd, mdata, size) != (ssize_t)size) {
+                putil_syserr(0, path);
+                putil_free(mdata);
+                close(fd);
+                return NULL;
+            }
+        } else {
+            int prot = PROT_READ;
+            size_t lookahead = 2048;
 
-	    // The mapping may need to be writeable so we can null out timestamps.
-	    // Examine the first few bytes before mapping to see if write is needed.
-	    fdata = putil_malloc(lookahead);
-	    if ((util_read_all(fd, fdata, lookahead) != (ssize_t)lookahead) ||
-			_code_needs_patching(fdata, lookahead)) {
-		prot |= PROT_WRITE;
-	    }
-	    putil_free(fdata);
+            // The mapping may need to be writeable so we can null out timestamps.
+            // Examine the first few bytes before mapping to see if write is needed.
+            fdata = putil_malloc(lookahead);
+            if ((util_read_all(fd, fdata, lookahead) != (ssize_t)lookahead) ||
+                        _code_needs_patching(fdata, lookahead)) {
+                prot |= PROT_WRITE;
+            }
+            putil_free(fdata);
 
-	    // Mapping could fail if the file is too big for available swap.
-	    data = fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
-	    if (fdata == MAP_FAILED || fdata == NULL) {
-		putil_syserr(0, path);
-		close(fd);
-		return NULL;
-	    }
+            // Mapping could fail if the file is too big for available swap.
+            data = fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
+            if (fdata == MAP_FAILED || fdata == NULL) {
+                putil_syserr(0, path);
+                close(fd);
+                return NULL;
+            }
 
 #if defined(MADV_SEQUENTIAL)
-	    // A potential optimization.
-	    if (madvise((char *)fdata, size, MADV_SEQUENTIAL)) {
-		putil_syserr(0, path);
-	    }
-#endif	// MADV_SEQUENTIAL
+            // A potential optimization.
+            if (madvise((char *)fdata, size, MADV_SEQUENTIAL)) {
+                putil_syserr(0, path);
+            }
+#endif  // MADV_SEQUENTIAL
 
-	    if (fdata) {
-		vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
-	    }
-	}
+            if (fdata) {
+                vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
+            }
+        }
 
-	// Once the mapping exists we can and should close the descriptor.
-	close(fd);
+        // Once the mapping exists we can and should close the descriptor.
+        close(fd);
     }
 
     // Hash the entire region in one pass.
@@ -347,11 +347,11 @@ code_from_path(CCS path, CS buf, size_t len)
     // Release the buffer whether things went well or not.
     putil_free(mdata);
     if (fdata) {
-	if (munmap((void *)fdata, size) == -1) {
-	    putil_syserr(0, path);
-	    return NULL;
-	}
-	vb_printf(VB_MAP, "Unmapped %p", fdata);
+        if (munmap((void *)fdata, size) == -1) {
+            putil_syserr(0, path);
+            return NULL;
+        }
+        vb_printf(VB_MAP, "Unmapped %p", fdata);
     }
 
     // An empty buffer signals a failure to derive the dcode.
@@ -365,4 +365,4 @@ code_fini(void)
     // Nothing to do here.
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

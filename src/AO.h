@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef	AO_H
-#define	AO_H
+#ifndef AO_H
+#define AO_H
 
 /// @file
 /// @brief General-purpose AO declarations, macros, and typedefs
@@ -211,37 +211,37 @@
 //#endif
 
 /// The name of the app: used for finding properties.
-#define APPLICATION_NAME		"AO"
+#define APPLICATION_NAME "AO"
 
 /// Current published version of the app.
 #if !defined(APPLICATION_VERSION)
-#define APPLICATION_VERSION		"0.0"
+#define APPLICATION_VERSION "0.0"
 #endif
 
 /// The field separator within the audit files. This is also understood
 /// on the server side - changes must be made in both places.
-#define FS1				","
+#define FS1 ","
 
 /// If there are fields-within-fields, this would separate them.
-#define FS2				"+"
+#define FS2 "+"
 
 /// Start-of-audit-group marker for auditor->monitor communication.
-#define SOA				"<SOA>"
+#define SOA "<SOA>"
 /// End-of-audit-group marker for auditor->monitor communication.
-#define EOA				"<EOA>"
+#define EOA "<EOA>"
 
 /// Extended naming symbol - allows overload of PTX id on pathname.
-#define XNS				"@@"
+#define XNS "@@"
 
 /// The conventional string which means "null value" in a CSV line.
-#define	CSV_NULL_FIELD			"-"
+#define CSV_NULL_FIELD "-"
 
 /// A test for CSV_NULL_FIELD.
-#define	CSV_FIELD_IS_NULL(s)		(!*(s) || !strcmp(s, CSV_NULL_FIELD))
+#define CSV_FIELD_IS_NULL(s) (!*(s) || !strcmp(s, CSV_NULL_FIELD))
 
 /// The conventional radix (base) for stringifying integral values.
-/// We prefer a high-numbered base for compactness.
-#define CSV_RADIX			36
+/// Prefer a high-numbered base for compactness.
+#define CSV_RADIX 36
 
 /// The letter codes by which we indicate file operations.
 /// These are also understood on the server side - changes must be in both!
@@ -253,95 +253,95 @@
 /// different to the filesystem but not to the application, which
 /// cares only that the data available at a given path has changed.
 typedef enum {
-    OP_READ = 'R',		/// File read operation
-    OP_EXEC = 'X',		/// File read operation
-    OP_APPEND = 'A',		/// File write+modify operation
-    OP_CREAT = 'C',		/// File write+modify operation
-    OP_LINK = 'L',		/// File modify operation
-    OP_SYMLINK = 'S',		/// File modify operation
-    OP_UNLINK = 'U',		/// File modify operation
-    OP_MKDIR = 'D',		/// Directory create operation
+    OP_READ = 'R',      /// File read operation
+    OP_EXEC = 'X',      /// File read operation
+    OP_APPEND = 'A',    /// File write+modify operation
+    OP_CREAT = 'C',     /// File write+modify operation
+    OP_LINK = 'L',      /// File modify operation
+    OP_SYMLINK = 'S',   /// File modify operation
+    OP_UNLINK = 'U',    /// File modify operation
+    OP_MKDIR = 'D',     /// Directory create operation
 } op_e;
 
 /// Compare path segments case-appropriately.
 #if defined(__APPLE__)
-#define pathncmp			strncasecmp
+#define pathncmp strncasecmp
 #else
-#define pathncmp			strncmp
+#define pathncmp strncmp
 #endif
 
 /// Macro representing the size of one char regardless of charset.
-#define CHARSIZE			sizeof(char)
+#define CHARSIZE sizeof(char)
 
 /// Macro for brute-force debugging.
 #define AT__ fprintf(stderr, "AT %s:%d\n", __FILE__, __LINE__);
 
-/// Generates the declaration of a setter.
-#define GEN_SETTER_DECL(class, attr, type)				\
+/// Generate the declaration of a setter.
+#define GEN_SETTER_DECL(class, attr, type)                          \
 extern void class ## _set_ ## attr(class ## _o, type);
 
-/// Generates the declaration of a getter.
-#define GEN_GETTER_DECL(class, attr, type)				\
+/// Generate the declaration of a getter.
+#define GEN_GETTER_DECL(class, attr, type)                          \
 extern type class ## _get_ ## attr(class ## _o);
 
-/// Generates a declaration for a setter/getter pair.
-#define GEN_SETTER_GETTER_DECL(class, attr, type)			\
-GEN_SETTER_DECL(class, attr, type)					\
+/// Generate a declaration for a setter/getter pair.
+#define GEN_SETTER_GETTER_DECL(class, attr, type)                   \
+GEN_SETTER_DECL(class, attr, type)                                  \
 GEN_GETTER_DECL(class, attr, type)
 
-/// Generates the definition of a setter.
-#define GEN_SETTER_DEFN(class, attr, type)				\
-void									\
-class ## _set_ ## attr(class ## _o obj, type val)			\
-{									\
-    obj->class ## _ ## attr = val;					\
+/// Generate the definition of a setter.
+#define GEN_SETTER_DEFN(class, attr, type)                          \
+void                                                                \
+class ## _set_ ## attr(class ## _o obj, type val)                   \
+{                                                                   \
+    obj->class ## _ ## attr = val;                                  \
 }
 
-/// Generates the definition of a getter for the above.
-#define GEN_GETTER_DEFN(class, attr, type)				\
-type									\
-class ## _get_ ## attr(class ## _o obj)					\
-{									\
-    return obj->class ## _ ## attr;					\
+/// Generate the definition of a getter for the above.
+#define GEN_GETTER_DEFN(class, attr, type)                          \
+type                                                                \
+class ## _get_ ## attr(class ## _o obj)                             \
+{                                                                   \
+    return obj->class ## _ ## attr;                                 \
 }
 
-/// Generates the definition of a setter for string values.
-#define GEN_SETTER_DEFN_STR(class, attr, type)				\
-void									\
-class ## _set_ ## attr(class ## _o obj, type val)			\
-{									\
-    putil_free(obj->class ## _ ## attr);				\
-    if ((val) && !CSV_FIELD_IS_NULL(val)) {				\
-	obj->class ## _ ## attr = putil_strdup(val);			\
-    } else {								\
-	obj->class ## _ ## attr = NULL;					\
-    }									\
+/// Generate the definition of a setter for string values.
+#define GEN_SETTER_DEFN_STR(class, attr, type)                      \
+void                                                                \
+class ## _set_ ## attr(class ## _o obj, type val)                   \
+{                                                                   \
+    putil_free(obj->class ## _ ## attr);                            \
+    if ((val) && !CSV_FIELD_IS_NULL(val)) {                         \
+    obj->class ## _ ## attr = putil_strdup(val);                    \
+    } else {                                                        \
+    obj->class ## _ ## attr = NULL;                                 \
+    }                                                               \
 }
 
-/// Generates the definition of a getter for the above.
-#define GEN_GETTER_DEFN_STR(class, attr, type, dflt)			\
-type									\
-class ## _get_ ## attr(class ## _o obj)					\
-{									\
-    return obj->class ## _ ## attr ? obj->class ## _ ## attr : dflt;	\
+/// Generate the definition of a getter for the above.
+#define GEN_GETTER_DEFN_STR(class, attr, type, dflt)                \
+type                                                                \
+class ## _get_ ## attr(class ## _o obj)                             \
+{                                                                   \
+    return obj->class ## _ ## attr ? obj->class ## _ ## attr : dflt; \
 }
 
-/// Generates the definition of a setter/getter pair.
-#define GEN_SETTER_GETTER_DEFN(class, attr, type)			\
-GEN_SETTER_DEFN(class, attr, type)					\
+/// Generate the definition of a setter/getter pair.
+#define GEN_SETTER_GETTER_DEFN(class, attr, type)                   \
+GEN_SETTER_DEFN(class, attr, type)                                  \
 GEN_GETTER_DEFN(class, attr, type)
 
-/// Generates the definition of a setter/getter pair for string values.
-#define GEN_SETTER_GETTER_DEFN_STR(class, attr, type, dflt)		\
-GEN_SETTER_DEFN_STR(class, attr, type)					\
+/// Generate the definition of a setter/getter pair for string values.
+#define GEN_SETTER_GETTER_DEFN_STR(class, attr, type, dflt)         \
+GEN_SETTER_DEFN_STR(class, attr, type)                              \
 GEN_GETTER_DEFN_STR(class, attr, type, dflt)
 
-/// Generates the definition of a delegate getter.
-#define GEN_DELEGATE_GETTER_DEFN(class, dclass, attr, type)		\
-type									\
-class ## _get_ ## attr(class ## _o obj)					\
-{									\
-    return dclass ## _get_ ## attr(class ## _get_ ## dclass(obj));	\
+/// Generate the definition of a delegate getter.
+#define GEN_DELEGATE_GETTER_DEFN(class, dclass, attr, type)         \
+type                                                                \
+class ## _get_ ## attr(class ## _o obj)                             \
+{                                                                   \
+    return dclass ## _get_ ## attr(class ## _get_ ## dclass(obj));  \
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -350,13 +350,13 @@ class ## _get_ ## attr(class ## _o obj)					\
 
 /// The name of the auditing shared library. Must be hard-wired so the
 /// client knows what to "inject" into the audited program.
-#define AUDITOR			"libAO.so"
+#define AUDITOR         "libAO.so"
 
 // Drag these in here because (a) just about everybody needs them and
 // (b) they may need to be "above" other internal headers.
 #include "UTIL.h"
 #include "VB.h"
 
-#endif				/*AO_H */
+#endif // AO_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

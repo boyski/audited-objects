@@ -22,17 +22,17 @@
 /// @brief Declarations for data shared between the monitor and auditor.
 
 /// A safe size for the ack buffer.
-#define ACK_BUFFER_SIZE				256
+#define ACK_BUFFER_SIZE             256
 
 /// Token sent from monitor to auditor saying "everything fine - go ahead"
-#define ACK_OK					"-OK-"
+#define ACK_OK                  "-OK-"
 
 /// Like ACK_OK but adds "this command is aggregated".
-#define ACK_OK_AGG				"-OK_AGG-"
+#define ACK_OK_AGG              "-OK_AGG-"
 
 /// Token sent from monitor to auditor saying "failure detected - shut down"
-#define ACK_FAILURE				"-FAILURE-"
+#define ACK_FAILURE             "-FAILURE-"
 
-#endif				/*ACK_H */
+#endif // ACK_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

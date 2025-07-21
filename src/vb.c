@@ -35,10 +35,10 @@
 #include <sys/time.h>
 
 /// @cond static
-#define VBMASK_UNSET 		-2
+#define VBMASK_UNSET            -2
 
-#define VBFLAG_PRIVATE		0x000
-#define VBFLAG_PUBLIC		0x001
+#define VBFLAG_PRIVATE          0x000
+#define VBFLAG_PUBLIC           0x001
 /// @endcond static
 
 static long VerbosityMask = VBMASK_UNSET;
@@ -49,94 +49,94 @@ static FILE *VerbosityStream;
 // *INDENT-OFF*
 
 static struct {
-    CCS		 vb_name;
-    int		 vb_flags;
-    CCS		 vb_desc;
+    CCS          vb_name;
+    int          vb_flags;
+    CCS          vb_desc;
 } vbtab[] = {
     {
-	"STD",
-	VBFLAG_PUBLIC,
-	"Default verbosity ({UP,DOWN}LOADING messages)",
+        "STD",
+        VBFLAG_PUBLIC,
+        "Default verbosity ({UP,DOWN}LOADING messages)",
     },
     {
-	"TMP",
-	VBFLAG_PRIVATE,
-	"Undefined: temporary bit for debug work",
+        "TMP",
+        VBFLAG_PRIVATE,
+        "Undefined: temporary bit for debug work",
     },
     {
-	"AG",
-	VBFLAG_PRIVATE,
-	"Show details of aggregation processing",
+        "AG",
+        VBFLAG_PRIVATE,
+        "Show details of aggregation processing",
     },
     {
-	"CA",
-	VBFLAG_PRIVATE,
-	"Show details of cmdaction processing",
+        "CA",
+        VBFLAG_PRIVATE,
+        "Show details of cmdaction processing",
     },
     {
-	"CURL",
-	VBFLAG_PRIVATE,
-	"Show libcurl activities",
+        "CURL",
+        VBFLAG_PRIVATE,
+        "Show libcurl activities",
     },
     {
-	"EXEC",
-	VBFLAG_PUBLIC,
-	"Show child processes as they are executed",
+        "EXEC",
+        VBFLAG_PUBLIC,
+        "Show child processes as they are executed",
     },
     {
-	"HTTP",
-	VBFLAG_PUBLIC,
-	"Show headers of all HTTP transactions",
+        "HTTP",
+        VBFLAG_PUBLIC,
+        "Show headers of all HTTP transactions",
     },
     {
-	"MON",
-	VBFLAG_PRIVATE,
-	"Show each raw audit line as delivered to monitor",
+        "MON",
+        VBFLAG_PRIVATE,
+        "Show each raw audit line as delivered to monitor",
     },
     {
-	"PA",
-	VBFLAG_PRIVATE,
-	"Show details of pathaction processing",
+        "PA",
+        VBFLAG_PRIVATE,
+        "Show details of pathaction processing",
     },
     {
-	"SHOP",
-	VBFLAG_PUBLIC,
-	"Show shopping activities",
+        "SHOP",
+        VBFLAG_PUBLIC,
+        "Show shopping activities",
     },
     {
-	"TIME",
-	VBFLAG_PRIVATE,
-	"Show HTTP transaction times",
+        "TIME",
+        VBFLAG_PRIVATE,
+        "Show HTTP transaction times",
     },
     {
-	"URL",
-	VBFLAG_PUBLIC,
-	"Show just the URLs of HTTP transactions",
+        "URL",
+        VBFLAG_PUBLIC,
+        "Show just the URLs of HTTP transactions",
     },
     {
-	"WHY",
-	VBFLAG_PRIVATE,
-	"Show the reason a candidate PTX didn't match",
+        "WHY",
+        VBFLAG_PRIVATE,
+        "Show the reason a candidate PTX didn't match",
     },
     {
-	"RE",
-	VBFLAG_PRIVATE,
-	"Show what's going on within the RE subsystem",
+        "RE",
+        VBFLAG_PRIVATE,
+        "Show what's going on within the RE subsystem",
     },
     {
-	"MAP",
-	VBFLAG_PRIVATE,
-	"Show file map/unmap activity",
+        "MAP",
+        VBFLAG_PRIVATE,
+        "Show file map/unmap activity",
     },
     {
-	"UP",
-	VBFLAG_PRIVATE,
-	"Show what's going on within the uploading subsystem",
+        "UP",
+        VBFLAG_PRIVATE,
+        "Show what's going on within the uploading subsystem",
     },
     {
-	"REC",
-	VBFLAG_PRIVATE,
-	"Report each time the auditor calls the file-access-reporting function",
+        "REC",
+        VBFLAG_PRIVATE,
+        "Report each time the auditor calls the file-access-reporting function",
     },
     {NULL, 0, NULL}
 };
@@ -180,41 +180,41 @@ vb_addstr(CCS vbstr)
     int all;
 
     if (vbstr) {
-	if (*vbstr == '=') {
-	    vbstr++;
-	}
-	all = (*vbstr == '+');
+        if (*vbstr == '=') {
+            vbstr++;
+        }
+        all = (*vbstr == '+');
     } else {
-	all = 0;
+        all = 0;
     }
 
     if (!vbstr || !*vbstr || (*vbstr == '?') || all) {
-	int i;
+        int i;
 
-	fprintf(stdout, VB_FMT, "OFF", "No verbosity messages");
-	for (i = 0; vbtab[i].vb_name; i++) {
-	    if (all || (vbtab[i].vb_flags & VBFLAG_PUBLIC)) {
-		fprintf(stdout, VB_FMT, vbtab[i].vb_name, vbtab[i].vb_desc);
-	    }
-	}
-	exit(0);
+        fprintf(stdout, VB_FMT, "OFF", "No verbosity messages");
+        for (i = 0; vbtab[i].vb_name; i++) {
+            if (all || (vbtab[i].vb_flags & VBFLAG_PUBLIC)) {
+                fprintf(stdout, VB_FMT, vbtab[i].vb_name, vbtab[i].vb_desc);
+            }
+        }
+        exit(0);
     }
 
     // Append new property strings to the current property value.
     if ((currval = prop_get_str(P_VERBOSITY))) {
-	if (*currval) {
-	    CS newval = NULL;
+        if (*currval) {
+            CS newval = NULL;
 
-	    if (asprintf(&newval, "%s,%s", currval, vbstr) < 0) {
-		putil_syserr(2, NULL);
-	    }
-	    prop_override_str(P_VERBOSITY, newval);
-	    putil_free(newval);
-	} else {
-	    prop_override_str(P_VERBOSITY, vbstr);
-	}
+            if (asprintf(&newval, "%s,%s", currval, vbstr) < 0) {
+                putil_syserr(2, NULL);
+            }
+            prop_override_str(P_VERBOSITY, newval);
+            putil_free(newval);
+        } else {
+            prop_override_str(P_VERBOSITY, vbstr);
+        }
     } else {
-	prop_put_str(P_VERBOSITY, vbstr);
+        prop_put_str(P_VERBOSITY, vbstr);
     }
 
     // Mark the mask as needing to be recalculated.
@@ -244,25 +244,25 @@ _vb_name2mask(CCS list)
 
     snprintf(buf, charlen(buf), "%s", list);
     for (t = strtok(buf, ","); t; t = strtok(NULL, ",")) {
-	if (!stricmp(t, "OFF") || *t == '-') {
-	    mask = 0;
-	} else if (!stricmp(t, "ON")) {
-	    mask |= (1 << VB_STD);
-	} else if (*t == '*') {
-	    mask = -1;
-	} else {
-	    int i;
+        if (!stricmp(t, "OFF") || *t == '-') {
+            mask = 0;
+        } else if (!stricmp(t, "ON")) {
+            mask |= (1 << VB_STD);
+        } else if (*t == '*') {
+            mask = -1;
+        } else {
+            int i;
 
-	    for (i = 0; vbtab[i].vb_name; i++) {
-		if (!strnicmp(t, vbtab[i].vb_name, strlen(t))) {
-		    mask |= (1 << i);
-		    break;
-		}
-	    }
-	    if (!vbtab[i].vb_name) {
-		putil_warn("unknown verbosity mask bit name '%s'", t);
-	    }
-	}
+            for (i = 0; vbtab[i].vb_name; i++) {
+                if (!strnicmp(t, vbtab[i].vb_name, strlen(t))) {
+                    mask |= (1 << i);
+                    break;
+                }
+            }
+            if (!vbtab[i].vb_name) {
+                putil_warn("unknown verbosity mask bit name '%s'", t);
+            }
+        }
     }
 
     return mask;
@@ -275,14 +275,14 @@ int
 vb_bitmatch(long bit)
 {
     if (bit == VB_ON) {
-	return 1;
+        return 1;
     } else if (bit == VB_OFF) {
-	return 0;
+        return 0;
     } else {
-	if (VerbosityMask == VBMASK_UNSET) {
-	    VerbosityMask = _vb_name2mask(prop_get_str(P_VERBOSITY));
-	}
-	return VerbosityMask & (1 << bit) ? 1 : 0;
+        if (VerbosityMask == VBMASK_UNSET) {
+            VerbosityMask = _vb_name2mask(prop_get_str(P_VERBOSITY));
+        }
+        return VerbosityMask & (1 << bit) ? 1 : 0;
     }
 }
 
@@ -302,38 +302,38 @@ vb_printfA(long bit, const char *fmt, ...)
     // even in that case. It may not look good but at least we'd
     // have a clue that the event being reported took place.
     if (vb_bitmatch(bit) && fmt) {
-	vbstrm = vb_get_stream();
-	if (fprintf(vbstrm, "%s: ", prop_get_app()) < 0) {
-	    write(2, prop_get_app(), strlen(prop_get_app()));
-	    write(2, ": ", 2);
-	}
+        vbstrm = vb_get_stream();
+        if (fprintf(vbstrm, "%s: ", prop_get_app()) < 0) {
+            write(2, prop_get_app(), strlen(prop_get_app()));
+            write(2, ": ", 2);
+        }
 
 #if 0
-	if (bit != VB_STD && bit != VB_ON) {
-	    moment_s now;
-	    char nowbuf[MOMENT_BUFMAX];
+        if (bit != VB_STD && bit != VB_ON) {
+            moment_s now;
+            char nowbuf[MOMENT_BUFMAX];
 
-	    moment_get_systime(&now);
-	    (void)moment_format_vb(now, nowbuf, charlen(nowbuf));
-	    write(2, nowbuf, strlen(nowbuf));
-	    write(2, ": ", 2);
+            moment_get_systime(&now);
+            (void)moment_format_vb(now, nowbuf, charlen(nowbuf));
+            write(2, nowbuf, strlen(nowbuf));
+            write(2, ": ", 2);
 
-	    // Makes it easier to see extra verbosity or grep it from a log.
-	    if (fputc('=', vbstrm) == EOF) {
-		write(2, "=", 1);
-	    }
-	}
+            // Makes it easier to see extra verbosity or grep it from a log.
+            if (fputc('=', vbstrm) == EOF) {
+                write(2, "=", 1);
+            }
+        }
 #endif
 
-	va_start(ap, fmt);
-	if (vfprintf(vbstrm, fmt, ap) < 0) {
-	    write(2, fmt, strlen(fmt));
-	}
-	va_end(ap);
+        va_start(ap, fmt);
+        if (vfprintf(vbstrm, fmt, ap) < 0) {
+            write(2, fmt, strlen(fmt));
+        }
+        va_end(ap);
 
-	if (fputc('\n', vbstrm) == EOF) {
-	    write(2, "\n", 1);
-	}
+        if (fputc('\n', vbstrm) == EOF) {
+            write(2, "\n", 1);
+        }
     }
 }
 
@@ -342,8 +342,8 @@ void
 vb_fini(void)
 {
     if (VerbosityStream != stderr) {
-	(void)fclose(VerbosityStream);
+        (void)fclose(VerbosityStream);
     }
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

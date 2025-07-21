@@ -104,25 +104,25 @@ json_from_ca_csv(CCS ca_csv)
     cJSON_AddItemToObject(root, "PathActions", palist);
 
     for (copy = line = putil_strdup(ca_csv); (nl = strchr(line, '\n')); line = nl + 1) {
-	*nl = '\0';
-	assert(isdigit(*line) || isupper(*line));
-	if isdigit(*line) {
-	    cJSON *ca = cJSON_CreateObject();
-	    for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
-		*comma = '\0';
-		cJSON_AddStringToObject(ca, ca_fields[i], fld);
-	    }
-	    cJSON_AddStringToObject(ca, ca_fields[i], fld);
-	    cJSON_AddItemToArray(calist, ca);
-	} else {
-	    cJSON *pa = cJSON_CreateObject();
-	    for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
-		*comma = '\0';
-		cJSON_AddStringToObject(pa, pa_fields[i], fld);
-	    }
-	    cJSON_AddStringToObject(pa, pa_fields[i], fld);
-	    cJSON_AddItemToArray(palist, pa);
-	}
+        *nl = '\0';
+        assert(isdigit(*line) || isupper(*line));
+        if isdigit(*line) {
+            cJSON *ca = cJSON_CreateObject();
+            for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
+                *comma = '\0';
+                cJSON_AddStringToObject(ca, ca_fields[i], fld);
+            }
+            cJSON_AddStringToObject(ca, ca_fields[i], fld);
+            cJSON_AddItemToArray(calist, ca);
+        } else {
+            cJSON *pa = cJSON_CreateObject();
+            for (i = 0, fld = line; (comma = strchr(fld, ',')); i++, fld = comma + 1) {
+                *comma = '\0';
+                cJSON_AddStringToObject(pa, pa_fields[i], fld);
+            }
+            cJSON_AddStringToObject(pa, pa_fields[i], fld);
+            cJSON_AddItemToArray(palist, pa);
+        }
     }
     putil_free(copy);
     jsonstr = (CS)_json_to_str(root);
@@ -132,4 +132,4 @@ json_from_ca_csv(CCS ca_csv)
     return (CCS)jsonstr;
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

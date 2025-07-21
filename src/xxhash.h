@@ -7343,4 +7343,4 @@ XXH3_generateSecret_fromSeed(XXH_NOESCAPE void* secretBuffer, XXH64_hash_t seed)
 } /* extern "C" */
 #endif
 
-// vim: sw=4 ts=8 tw=100 cc=+1 et
+// vim: sw=4 ts=4 et tw=100 cc=+1

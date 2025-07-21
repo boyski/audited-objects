@@ -31,12 +31,12 @@
 /// in theory need to be signed, since time_t is signed we use a signed
 /// type too which avoids some signed/unsigned comparison warning,
 typedef struct {
-    long long ntv_sec;		///< Seconds since the (Unix) epoch
-    long ntv_nsec;		///< Nanoseconds since ntv_sec.
+    long long ntv_sec;      ///< Seconds since the (Unix) epoch
+    long ntv_nsec;      ///< Nanoseconds since ntv_sec.
 } moment_s;
 
 /// A buffer size guaranteed sufficient to hold a formatted moment.
-#define MOMENT_BUFMAX		32
+#define MOMENT_BUFMAX       32
 
 extern int moment_is_set(moment_s);
 extern int moment_get_systime(moment_s *);
@@ -50,6 +50,6 @@ extern CCS moment_format_milli(moment_s, CS, size_t);
 extern CCS moment_format_vb(moment_s, CS, size_t);
 extern CCS moment_format_id(moment_s *);
 
-#endif				/*MOMENT_H */
+#endif // MOMENT_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

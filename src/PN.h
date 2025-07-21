@@ -34,6 +34,6 @@ extern CCS pn_get_rel(pn_o);
 extern void pn_verbosity(pn_o, CCS, CCS);
 extern void pn_destroy(pn_o);
 
-#endif				/*PN_H */
+#endif // PN_H
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

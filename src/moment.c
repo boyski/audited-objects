@@ -40,9 +40,9 @@
 #include "PROP.h"
 
 /// @cond static
-#define MILLIS_PER_SECOND				1000
-#define NANOS_PER_MILLI					1000000
-#define NANOS_PER_SECOND				1000000000
+#define MILLIS_PER_SECOND                               1000
+#define NANOS_PER_MILLI                                 1000000
+#define NANOS_PER_SECOND                                1000000000
 /// @endcond static
 
 /// Return true if the provided time value is set to a legal time
@@ -68,7 +68,7 @@ moment_get_systime(moment_s *mptr)
     struct timeval tv;
 
     if ((gettimeofday(&tv, NULL) == -1)) {
-	putil_syserr(2, "gettimeofday()");
+        putil_syserr(2, "gettimeofday()");
     }
     mptr->ntv_sec = tv.tv_sec;
     mptr->ntv_nsec = tv.tv_usec * 1000;
@@ -85,26 +85,26 @@ int
 moment_set_mtime(moment_s *mptr, CCS path)
 {
     if (mptr) {
-	struct timeval tvp[2];
+        struct timeval tvp[2];
 
-	// Might as well set access time same as mod time
-	// NOTE: there is a loss of precision (64 bits => 32) here
-	// until the day when a time_t is 64 bits.
-	tvp[0].tv_sec = tvp[1].tv_sec = (time_t)mptr->ntv_sec;
+        // Might as well set access time same as mod time
+        // NOTE: there is a loss of precision (64 bits => 32) here
+        // until the day when a time_t is 64 bits.
+        tvp[0].tv_sec = tvp[1].tv_sec = (time_t)mptr->ntv_sec;
 
-	// We store nanoseconds but can only set to the granularity
-	// of microseconds ...
-	tvp[0].tv_usec = tvp[1].tv_usec = mptr->ntv_nsec / 1000;
+        // We store nanoseconds but can only set to the granularity
+        // of microseconds ...
+        tvp[0].tv_usec = tvp[1].tv_usec = mptr->ntv_nsec / 1000;
 
-	if (utimes(path, tvp)) {
-	    putil_syserr(0, path);
-	    return -1;
-	}
+        if (utimes(path, tvp)) {
+            putil_syserr(0, path);
+            return -1;
+        }
     } else {
-	if (utimes(path, NULL)) {
-	    putil_syserr(0, path);
-	    return -1;
-	}
+        if (utimes(path, NULL)) {
+            putil_syserr(0, path);
+            return -1;
+        }
     }
 
     return 0;
@@ -125,8 +125,8 @@ moment_cmp(moment_s left, moment_s right, moment_s *delta)
 
     // Initialize this on the first pass through.
     if (roundoff == -1) {
-	roundoff = prop_get_long(P_SHOP_TIME_PRECISION);
-	roundoff = (long)pow((double)10, (9 - roundoff));
+        roundoff = prop_get_long(P_SHOP_TIME_PRECISION);
+        roundoff = (long)pow((double)10, (9 - roundoff));
     }
 
     l = left.ntv_sec * NANOS_PER_SECOND + left.ntv_nsec;
@@ -135,23 +135,23 @@ moment_cmp(moment_s left, moment_s right, moment_s *delta)
 
     // Calculate the optional delta *before* any roundoff occurs.
     if (delta) {
-	delta->ntv_sec  = d / NANOS_PER_SECOND;
-	delta->ntv_nsec = (long)(d % NANOS_PER_SECOND);
+        delta->ntv_sec  = d / NANOS_PER_SECOND;
+        delta->ntv_nsec = (long)(d % NANOS_PER_SECOND);
     }
 
     // Optionally round off before comparing.
     if (roundoff != -1) {
-	l = (l / roundoff) * roundoff;
-	r = (r / roundoff) * roundoff;
-	d = l - r;
+        l = (l / roundoff) * roundoff;
+        r = (r / roundoff) * roundoff;
+        d = l - r;
     }
 
     if (d == 0) {
-	return 0;
+        return 0;
     } else if (d > 1) {
-	return 1;
+        return 1;
     } else {
-	return -1;
+        return -1;
     }
 }
 
@@ -182,7 +182,7 @@ moment_duration(moment_s ended, moment_s started)
     (void)moment_cmp(ended, started, &delta);
 
     duration = ((unsigned long)delta.ntv_sec * MILLIS_PER_SECOND) +
-	(delta.ntv_nsec / NANOS_PER_MILLI);
+        (delta.ntv_nsec / NANOS_PER_MILLI);
 
     return duration;
 }
@@ -198,12 +198,12 @@ moment_parse(moment_s *mptr, CCS str)
 
     strcpy(mbuf, str);
     if ((nsec = strchr(mbuf, '.'))) {
-	*nsec++ = '\0';
-	mptr->ntv_sec = putil_strtoll(mbuf, NULL, CSV_RADIX);
-	mptr->ntv_nsec = strtol(nsec, NULL, CSV_RADIX);
+        *nsec++ = '\0';
+        mptr->ntv_sec = putil_strtoll(mbuf, NULL, CSV_RADIX);
+        mptr->ntv_nsec = strtol(nsec, NULL, CSV_RADIX);
     } else {
-	memset(mptr, 0, sizeof(moment_s));
-	return 1;
+        memset(mptr, 0, sizeof(moment_s));
+        return 1;
     }
 
     return 0;
@@ -222,9 +222,9 @@ moment_format(moment_s moment, CS buf, size_t bufmax)
 
     buf[0] = '\0';
     (void)util_format_to_radix(CSV_RADIX, secbuf, charlen(secbuf),
-	moment.ntv_sec);
+        moment.ntv_sec);
     (void)util_format_to_radix(CSV_RADIX, nsecbuf, charlen(nsecbuf),
-	moment.ntv_nsec);
+        moment.ntv_nsec);
     snprintf(buf, bufmax, "%s.%s", secbuf, nsecbuf);
     return buf;
 }
@@ -257,15 +257,15 @@ moment_format_vb(moment_s moment, CS buf, size_t bufmax)
     seconds = (time_t)moment.ntv_sec;
 
     if (!(ptm = localtime(&seconds))) {
-	putil_syserr(2, "localtime()");
+        putil_syserr(2, "localtime()");
     }
 
     if (!strftime(lbuf, charlen(lbuf), "%H:%M:%S", ptm)) {
-	putil_syserr(2, "strftime()");
+        putil_syserr(2, "strftime()");
     }
 
     snprintf(buf, bufmax, "%s,%03ld",
-	lbuf, moment.ntv_nsec / NANOS_PER_MILLI);
+        lbuf, moment.ntv_nsec / NANOS_PER_MILLI);
     return buf;
 }
 
@@ -281,22 +281,22 @@ moment_format_id(moment_s *mp)
     char buf[256];
 
     if (mp) {
-	seconds = (time_t)mp->ntv_sec;
+        seconds = (time_t)mp->ntv_sec;
     } else {
-	moment_s m2;
-	moment_get_systime(&m2);
-	seconds = (time_t)m2.ntv_sec;
+        moment_s m2;
+        moment_get_systime(&m2);
+        seconds = (time_t)m2.ntv_sec;
     }
 
     if (!(ptm = gmtime(&seconds))) {
-	putil_syserr(2, "gmtime()");
+        putil_syserr(2, "gmtime()");
     }
 
     if (!strftime(buf, charlen(buf), "%Y%m%d%H%M%S", ptm)) {
-	putil_syserr(2, "strftime()");
+        putil_syserr(2, "strftime()");
     }
 
     return putil_strdup(buf);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

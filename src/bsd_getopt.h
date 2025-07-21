@@ -68,4 +68,4 @@ extern void bsd_getopt_reset(void);
 
 #endif				/*BSD_GETOPT_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

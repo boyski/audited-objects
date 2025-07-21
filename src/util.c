@@ -57,9 +57,9 @@ util_pathcmp(const void *left, const void *right)
 
     if (left != right) {
 #if defined(__APPLE__)
-	rc = strcasecmp((CCS)left, (CCS)right);
+        rc = strcasecmp((CCS)left, (CCS)right);
 #else
-	rc = strcmp((CCS)left, (CCS)right);
+        rc = strcmp((CCS)left, (CCS)right);
 #endif
     }
 
@@ -82,14 +82,14 @@ util_map_file(CCS path, int fd, off_t offset, uint64_t extent)
     // seems like the best guess.
     fdata = (unsigned char *)mmap64(0, extent, PROT_READ, MAP_PRIVATE, fd, offset);
     if (fdata == MAP_FAILED) {
-	putil_syserr(2, path);
+        putil_syserr(2, path);
     }
 
 #if defined(MADV_SEQUENTIAL)
     // Everything we do is sequential so might as well handle this
     // in one place.
     madvise((char *)fdata, extent, MADV_SEQUENTIAL);
-#endif	// MADV_SEQUENTIAL
+#endif  // MADV_SEQUENTIAL
 
     vb_printf(VB_MAP, "Mapped %p (%s)", fdata, path);
 
@@ -103,10 +103,10 @@ void
 util_unmap_file(unsigned char *fdata, uint64_t extent)
 {
     if (fdata) {
-	if (munmap((void *)fdata, extent) == -1) {
-	    putil_syserr(0, "munmap");
-	}
-	vb_printf(VB_MAP, "Unmapped %p", fdata);
+        if (munmap((void *)fdata, extent) == -1) {
+            putil_syserr(0, "munmap");
+        }
+        vb_printf(VB_MAP, "Unmapped %p", fdata);
     }
 }
 
@@ -127,7 +127,7 @@ util_requote_argv(CS const *argv)
     // will need and allocate that much. This worst case is when each
     // char needs an escape, plus quotes, plus the trailing space or null.
     for (cmdlen =  0, i = 0; argv[i]; i++) {
-	cmdlen += (strlen(argv[i]) * 2) + 3;
+        cmdlen += (strlen(argv[i]) * 2) + 3;
     }
     cmdline = putil_malloc(cmdlen);
 
@@ -141,60 +141,60 @@ util_requote_argv(CS const *argv)
 
     for (ptr = cmdline; (word = *argv); argv++) {
 
-	// If the word needs quoting at all, use single quotes unless
-	// it _contains_ a single quote, in which case use double
-	// quotes and escape special chars.
-	if (*word) {
-	    char *p;
+        // If the word needs quoting at all, use single quotes unless
+        // it _contains_ a single quote, in which case use double
+        // quotes and escape special chars.
+        if (*word) {
+            char *p;
 
-	    for (quote = 0, p = word; *p; p++) {
-		if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
-		    if (*p == '\'') {
-			quote = '"';
-			break;
-		    } else {
-			quote = '\'';
-		    }
-		}
-	    }
-	} else {
-	    quote = '"';
-	}
+            for (quote = 0, p = word; *p; p++) {
+                if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
+                    if (*p == '\'') {
+                        quote = '"';
+                        break;
+                    } else {
+                        quote = '\'';
+                    }
+                }
+            }
+        } else {
+            quote = '"';
+        }
 
-	// Add opening quote if required.
-	if (quote) {
-	    *ptr++ = quote;
-	}
+        // Add opening quote if required.
+        if (quote) {
+            *ptr++ = quote;
+        }
 
-	// Copy the word into the output buffer with appropriate escapes
-	// if using double-quotes.
-	for (; *word; word++) {
-	    if (quote == '"') {
-		if (*word == '\\') {
-		    if (*(word + 1) == '\n') {
-			continue;
-		    } else {
-			*ptr++ = '\\';
-		    }
-		} else if (strchr("$\"\n`", *word)) {
-		    *ptr++ = '\\';
-		}
-	    }
+        // Copy the word into the output buffer with appropriate escapes
+        // if using double-quotes.
+        for (; *word; word++) {
+            if (quote == '"') {
+                if (*word == '\\') {
+                    if (*(word + 1) == '\n') {
+                        continue;
+                    } else {
+                        *ptr++ = '\\';
+                    }
+                } else if (strchr("$\"\n`", *word)) {
+                    *ptr++ = '\\';
+                }
+            }
 
-	    *ptr++ = *word;
-	}
+            *ptr++ = *word;
+        }
 
-	// Add closing quote if required.
-	if (quote) {
-	    *ptr++ = quote;
-	}
+        // Add closing quote if required.
+        if (quote) {
+            *ptr++ = quote;
+        }
 
-	// Append space or terminating null.
-	if (argv[1]) {
-	    *ptr++ = ' ';
-	} else {
-	    *ptr = '\0';
-	}
+        // Append space or terminating null.
+        if (argv[1]) {
+            *ptr++ = ' ';
+        } else {
+            *ptr = '\0';
+        }
     }
 
     // Trim to fit
@@ -217,8 +217,8 @@ util_get_cwd(void)
     len = putil_path_max() + 1;
     cwd = (CS)putil_malloc(len);
     if (!getcwd(cwd, len)) {
-	putil_free(cwd);
-	cwd = NULL;
+        putil_free(cwd);
+        cwd = NULL;
     }
 #endif
     return cwd;
@@ -234,24 +234,24 @@ util_get_rwd(void)
     CCS rwd = NULL;
 
     if ((cwd = util_get_cwd())) {
-	CCS pbase;
-	size_t plen;
+        CCS pbase;
+        size_t plen;
 
-	if ((pbase = prop_get_str(P_BASE_DIR))) {
-	    plen = strlen(pbase);
-	}
+        if ((pbase = prop_get_str(P_BASE_DIR))) {
+            plen = strlen(pbase);
+        }
 
-	if (pbase && !pathncmp(cwd, pbase, plen)) {
-	    CCS p;
+        if (pbase && !pathncmp(cwd, pbase, plen)) {
+            CCS p;
 
-	    for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
-	    rwd = putil_strdup(p);
-	} else {
-	    rwd = putil_strdup(".");
-	}
-	putil_free(cwd);
+            for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
+            rwd = putil_strdup(p);
+        } else {
+            rwd = putil_strdup(".");
+        }
+        putil_free(cwd);
     } else {
-	putil_syserr(0, "util_get_cwd()");
+        putil_syserr(0, "util_get_cwd()");
     }
 
     return rwd;
@@ -281,9 +281,9 @@ util_get_logname(void)
     // We explicitly prefer the effective uid over the actual.
     // I.e. if user A is su-ed to B we treat him as B where possible.
     if ((me = getpwuid(geteuid()))) {
-	if (me->pw_name) {
-	    return me->pw_name;
-	}
+        if (me->pw_name) {
+            return me->pw_name;
+        }
     }
     return "NOBODY";
 }
@@ -296,9 +296,9 @@ util_get_groupname(void)
     struct group *me;
 
     if ((me = getgrgid(getegid()))) {
-	if (me->gr_name) {
-	    return me->gr_name;
-	}
+        if (me->gr_name) {
+            return me->gr_name;
+        }
     }
     return "NOGROUP";
 }
@@ -312,7 +312,7 @@ util_strdown(CS str)
     CS t;
 
     for (t = str; *t; t++) {
-	*t = tolower((int)*t);
+        *t = tolower((int)*t);
     }
     return str;
 }
@@ -326,7 +326,7 @@ util_strup(CS str)
     CS t;
 
     for (t = str; *t; t++) {
-	*t = toupper((int)*t);
+        *t = toupper((int)*t);
     }
     return str;
 }
@@ -387,82 +387,82 @@ util_find_fsname(CCS path, CS buf, size_t len)
 {
     // If path doesn't exist, return the fs name of its parent (recursively).
     if (access(path, F_OK)) {
-	CS pdir;
-	CCS result;
+        CS pdir;
+        CCS result;
 
-	if ((pdir = putil_dirname(path))) {
-	    result = util_find_fsname(pdir, buf, len);
-	    putil_free(pdir);
-	    return result;
-	}
+        if ((pdir = putil_dirname(path))) {
+            result = util_find_fsname(pdir, buf, len);
+            putil_free(pdir);
+            return result;
+        }
     }
 
     (void)strcpy(buf, "??fs");
 #if defined(BSD)
     {
-	struct statfs fsbuf;
+        struct statfs fsbuf;
 
-	if (statfs(path, &fsbuf) == 0) {
-	    (void)strcpy(buf, fsbuf.f_fstypename);
-	}
+        if (statfs(path, &fsbuf) == 0) {
+            (void)strcpy(buf, fsbuf.f_fstypename);
+        }
     }
 #elif defined(linux)
     {
-	struct statfs sfs;
-	FILE *mtab;
-	fstypes tempnode, *fnd;
+        struct statfs sfs;
+        FILE *mtab;
+        fstypes tempnode, *fnd;
 
-	if (statfs(path, &sfs) != 0) {
-	    return buf;
-	}
-	memset(&tempnode, 0, sizeof(tempnode));
-	tempnode.f_type = sfs.f_type;
-	if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
-			 sizeof(fstypes), _util_linux_fstype_cmp))) {
-	    strcpy(buf, fnd->f_name);
-	    return buf;
-	}
+        if (statfs(path, &sfs) != 0) {
+            return buf;
+        }
+        memset(&tempnode, 0, sizeof(tempnode));
+        tempnode.f_type = sfs.f_type;
+        if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
+                         sizeof(fstypes), _util_linux_fstype_cmp))) {
+            strcpy(buf, fnd->f_name);
+            return buf;
+        }
 
-	if ((mtab = fopen("/proc/mounts", "r"))) {
-	    fstypes fsnode;
-	    char *lnbuf, *mtbuf, *fsbuf;
+        if ((mtab = fopen("/proc/mounts", "r"))) {
+            fstypes fsnode;
+            char *lnbuf, *mtbuf, *fsbuf;
 
-	    lnbuf = putil_malloc(putil_path_max() + 1);
-	    mtbuf = putil_malloc(putil_path_max() + 1);
-	    fsbuf = putil_malloc(putil_path_max() + 1);
+            lnbuf = putil_malloc(putil_path_max() + 1);
+            mtbuf = putil_malloc(putil_path_max() + 1);
+            fsbuf = putil_malloc(putil_path_max() + 1);
 
-	    while (fgets(lnbuf, putil_path_max() + 1, mtab) && !feof(mtab)) {
-		if (sscanf(lnbuf, "%*s %s %s", mtbuf, fsbuf) == 2) {
-		    if (!strcmp(fsbuf, "rootfs")) {
-			continue;
-		    }
-		    if (statfs(mtbuf, &sfs) == -1) {
-			fprintf(stderr, "statfs(%s): %s\n",
-				mtbuf, strerror(errno));
-			continue;
-		    }
-		    memset(&fsnode, 0, sizeof(fsnode));
-		    fsnode.f_type = sfs.f_type;
-		    strcpy(fsnode.f_name, fsbuf);
-		    lsearch(&fsnode, &fsmap, &fstype_cnt,
-			    sizeof(fstypes), _util_linux_fstype_cmp);
-		}
-	    }
-	    fclose(mtab);
-	    putil_free(lnbuf);
-	    putil_free(mtbuf);
-	    putil_free(fsbuf);
-	}
+            while (fgets(lnbuf, putil_path_max() + 1, mtab) && !feof(mtab)) {
+                if (sscanf(lnbuf, "%*s %s %s", mtbuf, fsbuf) == 2) {
+                    if (!strcmp(fsbuf, "rootfs")) {
+                        continue;
+                    }
+                    if (statfs(mtbuf, &sfs) == -1) {
+                        fprintf(stderr, "statfs(%s): %s\n",
+                                mtbuf, strerror(errno));
+                        continue;
+                    }
+                    memset(&fsnode, 0, sizeof(fsnode));
+                    fsnode.f_type = sfs.f_type;
+                    strcpy(fsnode.f_name, fsbuf);
+                    lsearch(&fsnode, &fsmap, &fstype_cnt,
+                            sizeof(fstypes), _util_linux_fstype_cmp);
+                }
+            }
+            fclose(mtab);
+            putil_free(lnbuf);
+            putil_free(mtbuf);
+            putil_free(fsbuf);
+        }
 
-	if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
-			 sizeof(fstypes), _util_linux_fstype_cmp))) {
-	    strcpy(buf, fnd->f_name);
-	}
+        if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
+                         sizeof(fstypes), _util_linux_fstype_cmp))) {
+            strcpy(buf, fnd->f_name);
+        }
     }
-#else	// linux
+#else   // linux
     // Don't know how to get fs name on other platforms ...
     UNUSED(path);
-#endif	// linux
+#endif  // linux
     return buf;
 }
 
@@ -482,13 +482,13 @@ util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
     size_t total;
 
     for (total = 0; total < len;) {
-	n = send(fd, (const char *)buf + total, len - total, flags);
-	if (n < 0) {
-	    if (errno != EINTR) {
-		return -1;
-	    }
-	}
-	total += n;
+        n = send(fd, (const char *)buf + total, len - total, flags);
+        if (n < 0) {
+            if (errno != EINTR) {
+                return -1;
+            }
+        }
+        total += n;
     }
 
     return total;
@@ -510,26 +510,26 @@ util_read_all(int fd, void *vptr, size_t n)
     char *ptr;
 
     if (fd < 0) {
-	return -1;
+        return -1;
     }
 
     ptr = (char *)vptr;
     nleft = n;
     while (nleft > 0) {
-	if ((nread = read(fd, ptr, nleft)) < 0) {
-	    if (errno == EINTR) {
-		nread = 0;	/* and call read() again */
-	    } else {
-		return -1;
-	    }
-	} else if (nread == 0) {
-	    break;		/* EOF */
-	}
+        if ((nread = read(fd, ptr, nleft)) < 0) {
+            if (errno == EINTR) {
+                nread = 0;      /* and call read() again */
+            } else {
+                return -1;
+            }
+        } else if (nread == 0) {
+            break;              /* EOF */
+        }
 
-	nleft -= nread;
-	ptr += nread;
+        nleft -= nread;
+        ptr += nread;
     }
-    return n - nleft;		/* return >= 0 */
+    return n - nleft;           /* return >= 0 */
 }
 
 /// Write "n" bytes to a descriptor.
@@ -547,23 +547,23 @@ util_write_all(int fd, const void *vptr, size_t n)
     const char *p;
 
     for (p = (const char *)vptr, total = 0; n > 0; ) {
-	ssize_t sofar;
+        ssize_t sofar;
 
-	for (sofar = 0; ; total += sofar) {
-	    ssize_t w;
+        for (sofar = 0; ; total += sofar) {
+            ssize_t w;
 
-	    w = write(fd, p, n);
-	    if (w < 0) {
-		if (errno != EAGAIN && errno != EINTR) {
-		    return -1;
-		}
-		continue;
-	    }
-	    sofar += w;
-	    break;
-	}
-	n -= sofar;
-	p += sofar;
+            w = write(fd, p, n);
+            if (w < 0) {
+                if (errno != EAGAIN && errno != EINTR) {
+                    return -1;
+                }
+                continue;
+            }
+            sofar += w;
+            break;
+        }
+        n -= sofar;
+        p += sofar;
     }
 
     return total;
@@ -591,66 +591,66 @@ util_substitute_params(CCS input, CCS *replaced)
     buf = (CS)putil_calloc(len, 1);
 
     for (i = 0, l = buf; input[i]; i++) {
-	if (input[i] == '%') {
-	    switch (input[i + 1]) {
-		case '%':
-		    replacement = "%";
-		    break;
-		case 'b': case 'B':
-		    replacement = prop_get_str(P_BASE_DIR);
-		    break;
-		case 'm': case 'M':
-		    (void)putil_uname(&sysdata);
-		    replacement = sysdata.machine;
-		    break;
-		case 'n': case 'N':
-		    (void)putil_uname(&sysdata);
-		    replacement = sysdata.nodename;
-		    break;
-		case 'p': case 'P':
-		    replacement = prop_get_str(P_PROJECT_NAME);
-		    break;
-		case 'u': case 'U':
-		    replacement = util_get_logname();
-		    break;
-		case 'r': case 'R':
-		    (void)putil_uname(&sysdata);
-		    replacement = sysdata.release;
-		    break;
-		case 's': case 'S':
-		    (void)putil_uname(&sysdata);
-		    replacement = sysdata.sysname;
-		    break;
-		default:
-		    replacement = NULL;
-		    break;
-	    }
+        if (input[i] == '%') {
+            switch (input[i + 1]) {
+                case '%':
+                    replacement = "%";
+                    break;
+                case 'b': case 'B':
+                    replacement = prop_get_str(P_BASE_DIR);
+                    break;
+                case 'm': case 'M':
+                    (void)putil_uname(&sysdata);
+                    replacement = sysdata.machine;
+                    break;
+                case 'n': case 'N':
+                    (void)putil_uname(&sysdata);
+                    replacement = sysdata.nodename;
+                    break;
+                case 'p': case 'P':
+                    replacement = prop_get_str(P_PROJECT_NAME);
+                    break;
+                case 'u': case 'U':
+                    replacement = util_get_logname();
+                    break;
+                case 'r': case 'R':
+                    (void)putil_uname(&sysdata);
+                    replacement = sysdata.release;
+                    break;
+                case 's': case 'S':
+                    (void)putil_uname(&sysdata);
+                    replacement = sysdata.sysname;
+                    break;
+                default:
+                    replacement = NULL;
+                    break;
+            }
 
-	    if (replacement) {
-		size_t offset;
+            if (replacement) {
+                size_t offset;
 
-		offset = l - buf;
-		len += strlen(replacement);
-		buf = (CS)putil_realloc(buf, len);
-		l = buf + offset;
-		(void)memset(l, 0, len - offset);
-		strcpy(l, replacement);
-		if (strcmp(replacement, "%")) {
-		    changed = 1;
-		    if (ISALPHA(input[i + 1]) && ISUPPER(input[i + 1])) {
-			util_strup(l);
-		    }
-		}
-	    } else {
-		*l++ = '%';
-		*l = input[i + 1];
-	    }
+                offset = l - buf;
+                len += strlen(replacement);
+                buf = (CS)putil_realloc(buf, len);
+                l = buf + offset;
+                (void)memset(l, 0, len - offset);
+                strcpy(l, replacement);
+                if (strcmp(replacement, "%")) {
+                    changed = 1;
+                    if (ISALPHA(input[i + 1]) && ISUPPER(input[i + 1])) {
+                        util_strup(l);
+                    }
+                }
+            } else {
+                *l++ = '%';
+                *l = input[i + 1];
+            }
 
-	    i++;
-	    l = endof(l);
-	} else {
-	    *l++ = input[i];
-	}
+            i++;
+            l = endof(l);
+        } else {
+            *l++ = input[i];
+        }
     }
 
     *replaced = buf;
@@ -664,22 +664,22 @@ unsigned long
 util_hash_fun_default(const void *key)
 {
     static unsigned long randbox[] = {
-	0x49848f1bU, 0xe6255dbaU, 0x36da5bdcU, 0x47bf94e9U,
-	0x8cbcce22U, 0x559fc06aU, 0xd268f536U, 0xe10af79aU,
-	0xc1af4d69U, 0x1d2917b5U, 0xec4c304dU, 0x9ee5016cU,
-	0x69232f74U, 0xfead7bb3U, 0xe9089ab6U, 0xf012f6aeU,
+        0x49848f1bU, 0xe6255dbaU, 0x36da5bdcU, 0x47bf94e9U,
+        0x8cbcce22U, 0x559fc06aU, 0xd268f536U, 0xe10af79aU,
+        0xc1af4d69U, 0x1d2917b5U, 0xec4c304dU, 0x9ee5016cU,
+        0x69232f74U, 0xfead7bb3U, 0xe9089ab6U, 0xf012f6aeU,
     };
 
     const unsigned char *str = (const unsigned char *)key;
     unsigned long acc = 0;
 
     while (*str) {
-	acc ^= randbox[(*str + acc) & 0xf];
-	acc = (acc << 1) | (acc >> 31);
-	acc &= 0xffffffffU;
-	acc ^= randbox[((*str++ >> 4) + acc) & 0xf];
-	acc = (acc << 2) | (acc >> 30);
-	acc &= 0xffffffffU;
+        acc ^= randbox[(*str + acc) & 0xf];
+        acc = (acc << 1) | (acc >> 31);
+        acc &= 0xffffffffU;
+        acc ^= randbox[((*str++ >> 4) + acc) & 0xf];
+        acc = (acc << 2) | (acc >> 30);
+        acc &= 0xffffffffU;
     }
     return acc;
 }
@@ -700,22 +700,22 @@ util_is_tmp(CCS path)
 
     // Cache this property value.
     if (!basedir) {
-	basedir = prop_get_str(P_BASE_DIR);
+        basedir = prop_get_str(P_BASE_DIR);
     }
 
     // If the path is under the project's basedir, assume it
     // cannot be a temp file; this allows builds to be done in
     // a directory like, say, /var/tmp/foo/bar.
     if (basedir) {
-	size_t baselen = strlen(basedir);
-	if (!strncmp(basedir, path, baselen)) {
-	    return 0;
-	}
+        size_t baselen = strlen(basedir);
+        if (!strncmp(basedir, path, baselen)) {
+            return 0;
+        }
     }
 
     rc = strstr(path, "/tmp/") ||
-	!util_pathcmp(endof(path) - 4, "/tmp") ||
-	!util_pathcmp(endof(path) - 4, ".tmp");
+        !util_pathcmp(endof(path) - 4, "/tmp") ||
+        !util_pathcmp(endof(path) - 4, ".tmp");
 
     return rc;
 }
@@ -725,14 +725,14 @@ static void
 _util_finalize_output_file(void)
 {
     if (OutputStream && !fclose(OutputStream) && OutputFile[0]) {
-	CS obuf;
+        CS obuf;
 
-	if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
-	    if (rename(obuf, OutputFile)) {
-		putil_syserr(0, OutputFile);
-	    }
-	    putil_free(obuf);
-	}
+        if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
+            if (rename(obuf, OutputFile)) {
+                putil_syserr(0, OutputFile);
+            }
+            putil_free(obuf);
+        }
     }
 }
 
@@ -748,41 +748,41 @@ FILE *
 util_open_output_file(CCS ofile)
 {
     if (!OutputStream) {
-	if (!strcmp(ofile, "-")) {
-	    OutputStream = stdout;
-	} else if (!strcmp(ofile, "=")) {
-	    OutputStream = stderr;
-	} else if (!strcmp(ofile, DEVNULL)) {
-	    if (!(OutputStream = fopen(ofile, "a"))) {
-		putil_syserr(2, ofile);
-	    }
-	} else {
-	    CS abuf;
-	    CS tbuf;
-	    CCS obuf = NULL;
+        if (!strcmp(ofile, "-")) {
+            OutputStream = stdout;
+        } else if (!strcmp(ofile, "=")) {
+            OutputStream = stderr;
+        } else if (!strcmp(ofile, DEVNULL)) {
+            if (!(OutputStream = fopen(ofile, "a"))) {
+                putil_syserr(2, ofile);
+            }
+        } else {
+            CS abuf;
+            CS tbuf;
+            CCS obuf = NULL;
 
-	    (void)util_substitute_params(ofile, &obuf);
+            (void)util_substitute_params(ofile, &obuf);
 
-	    if (!(abuf = putil_realpath(obuf, 1))) {
-		putil_syserr(2, obuf);
-	    }
-	    putil_free(obuf);
+            if (!(abuf = putil_realpath(obuf, 1))) {
+                putil_syserr(2, obuf);
+            }
+            putil_free(obuf);
 
-	    prop_override_str(P_OUTPUT_FILE, abuf);
+            prop_override_str(P_OUTPUT_FILE, abuf);
 
-	    snprintf(OutputFile, charlen(OutputFile), "%s", abuf);
+            snprintf(OutputFile, charlen(OutputFile), "%s", abuf);
 
-	    asprintf(&tbuf, "%s.%ld.tmp", abuf, (long)getpid());
+            asprintf(&tbuf, "%s.%ld.tmp", abuf, (long)getpid());
 
-	    if (!(OutputStream = fopen(tbuf, "a"))) {
-		putil_syserr(2, tbuf);
-	    }
+            if (!(OutputStream = fopen(tbuf, "a"))) {
+                putil_syserr(2, tbuf);
+            }
 
-	    putil_free(abuf);
-	    putil_free(tbuf);
+            putil_free(abuf);
+            putil_free(tbuf);
 
-	    atexit(_util_finalize_output_file);
-	}
+            atexit(_util_finalize_output_file);
+        }
     }
 
     return OutputStream;
@@ -799,11 +799,11 @@ util_print_elapsed(time_t since, long minimum, CCS msg)
 
     elapsed = time(NULL) - since;
     if (minimum && elapsed >= minimum) {
-	hours = elapsed / 3600;
-	seconds = elapsed % 60;
-	minutes = (elapsed - (hours * 3600) - seconds + 30) / 60;
-	vb_printf(VB_ON, "%s: %dh%dm%ds", msg,
-		    (int)hours, (int)minutes, (int)seconds);
+        hours = elapsed / 3600;
+        seconds = elapsed % 60;
+        minutes = (elapsed - (hours * 3600) - seconds + 30) / 60;
+        vb_printf(VB_ON, "%s: %dh%dm%ds", msg,
+                    (int)hours, (int)minutes, (int)seconds);
     }
 }
 
@@ -819,18 +819,18 @@ util_debug_from_here(void)
 
     if (!(ev = putil_getenv("_START_DEBUGGER")) || *ev != '0') {
 
-	char *buf;
+        char *buf;
 
-	asprintf(&buf,
-		 "set -x; %s= xterm -e gdb --quiet %s %lu &",
-		 PRELOAD_EV, putil_getexecpath(), (unsigned long)getpid());
+        asprintf(&buf,
+                 "set -x; %s= xterm -e gdb --quiet %s %lu &",
+                 PRELOAD_EV, putil_getexecpath(), (unsigned long)getpid());
 
-	if (system(buf)) {
-	    abort();
-	} else {
-	    (void)sleep(2);
-	}
-	putil_free(buf);
+        if (system(buf)) {
+            abort();
+        } else {
+            (void)sleep(2);
+        }
+        putil_free(buf);
     }
 }
 
@@ -858,14 +858,14 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
     memset(buf, 0, len);
     p = (buf + len) - 1;
     do {
-	assert(p >= buf);
-	d = val % radix;
-	*--p = CHRS[d];
-	val /= radix;
+        assert(p >= buf);
+        d = val % radix;
+        *--p = CHRS[d];
+        val /= radix;
     } while (val > 0);
 
     if (p > buf) {
-	strcpy(buf, p);
+        strcpy(buf, p);
     }
 
     return buf;
@@ -873,7 +873,7 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
 
 /*
  * Copyright (c) 1990, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -885,8 +885,8 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
+ *      This product includes software developed by the University of
+ *      California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -924,23 +924,23 @@ util_strsep(char **stringp, const char *delim)
     char *tok;
 
     if ((s = *stringp) == NULL) {
-	return (NULL);
+        return (NULL);
     }
 
     for (tok = s;;) {
-	c = *s++;
-	spanp = delim;
-	do {
-	    if ((sc = *spanp++) == c) {
-		if (c == 0) {
-		    s = NULL;
-		} else {
-		    s[-1] = 0;
-		}
-		*stringp = s;
-		return (tok);
-	    }
-	} while (sc != 0);
+        c = *s++;
+        spanp = delim;
+        do {
+            if ((sc = *spanp++) == c) {
+                if (c == 0) {
+                    s = NULL;
+                } else {
+                    s[-1] = 0;
+                }
+                *stringp = s;
+                return (tok);
+            }
+        } while (sc != 0);
     }
     /* NOTREACHED */
 }
@@ -964,14 +964,14 @@ util_encode_minimal(CCS instring)
     outstring = (CS)putil_malloc(inlen);
 
     for (i = j = 0; i < inlen; i++) {
-	if (instring[i] == '%' || instring[i] == ',' || instring[i] == '\n') {
-	    outlen += 2 * CHARSIZE;
-	    outstring = (CS)putil_realloc(outstring, outlen);
-	    snprintf(&outstring[j], 4, "%%%02X", instring[i]);
-	    j += 3;
-	} else {
-	    outstring[j++] = instring[i];
-	}
+        if (instring[i] == '%' || instring[i] == ',' || instring[i] == '\n') {
+            outlen += 2 * CHARSIZE;
+            outstring = (CS)putil_realloc(outstring, outlen);
+            snprintf(&outstring[j], 4, "%%%02X", instring[i]);
+            j += 3;
+        } else {
+            outstring[j++] = instring[i];
+        }
     }
 
     return outstring;
@@ -1002,36 +1002,36 @@ util_unescape(const char *string, int length, int *olen)
     long hex;
 
     if (!ns) {
-	return NULL;
+        return NULL;
     }
 
     while (--alloc > 0) {
-	in = *string;
-	if (('%' == in) && ISXDIGIT(string[1]) && ISXDIGIT(string[2])) {
-	    /* this is two hexadecimal digits following a '%' */
-	    char hexstr[3];
-	    char *ptr;
+        in = *string;
+        if (('%' == in) && ISXDIGIT(string[1]) && ISXDIGIT(string[2])) {
+            /* this is two hexadecimal digits following a '%' */
+            char hexstr[3];
+            char *ptr;
 
-	    hexstr[0] = string[1];
-	    hexstr[1] = string[2];
-	    hexstr[2] = 0;
+            hexstr[0] = string[1];
+            hexstr[1] = string[2];
+            hexstr[2] = 0;
 
-	    hex = strtol(hexstr, &ptr, 16);
+            hex = strtol(hexstr, &ptr, 16);
 
-	    in = (unsigned char)hex;	/* this long is never bigger than 255 anyway */
+            in = (unsigned char)hex;    /* this long is never bigger than 255 anyway */
 
-	    string += 2;
-	    alloc -= 2;
-	}
+            string += 2;
+            alloc -= 2;
+        }
 
-	ns[strindex++] = in;
-	string++;
+        ns[strindex++] = in;
+        string++;
     }
-    ns[strindex] = 0;		/* terminate it */
+    ns[strindex] = 0;           /* terminate it */
 
     if (olen) {
-	/* store output size */
-	*olen = strindex;
+        /* store output size */
+        *olen = strindex;
     }
     return ns;
 }
@@ -1052,17 +1052,17 @@ util_tempnam(const char *dir, const char *pfx)
 #pragma GCC diagnostic ignored "-Wpedantic"
     (void)dlerror();
     if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam"))) {
-	err = dlerror();
-	if (err) {
-	    putil_syserr(0, err);
-	} else {
-	    putil_syserr(0, "dlsym");
-	}
-	exit(2);
+        err = dlerror();
+        if (err) {
+            putil_syserr(0, err);
+        } else {
+            putil_syserr(0, "dlsym");
+        }
+        exit(2);
     }
 #pragma GCC diagnostic pop
 
     return fcn(dir, pfx);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

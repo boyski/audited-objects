@@ -39,16 +39,16 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include "pcre2.h"
 
-#include "About/about.c"	// NOTE: including a .c file!
+#include "About/about.c"        // NOTE: including a .c file!
 
 #include "bsd_getopt.h"
 
 #if !defined(BSD)
 #include <alloca.h>
-#endif	// BSD
+#endif  // BSD
 
 /// @cond static
-#define ROADMAP_DEFAULT_NAME		"roadmap.cdb"
+#define ROADMAP_DEFAULT_NAME            "roadmap.cdb"
 
 #define HELP_FMT "%-12s - %s\n"
 #define USAGE_FMT "   %-15s %s\n"
@@ -61,7 +61,7 @@
 /// namespace allowing up to 256 different long flags for each
 /// leading letter.
 /// Note that the option.val member which holds this is really an int.
-#define LF(first, secondary)	(((first)<<8) + (secondary))
+#define LF(first, secondary)    (((first)<<8) + (secondary))
 
 // The time when the program started.
 static long ElapsedMinimum;
@@ -82,17 +82,17 @@ static void
 _usg_line(FILE *fp, CCS flag, prop_e prop, CCS desc)
 {
     if (!prop_is_public(prop)) {
-	return;
+        return;
     }
 
     if (desc) {
-	fprintf(fp, USAGE_FMT, flag, desc);
+        fprintf(fp, USAGE_FMT, flag, desc);
     } else {
-	char buf[1024];
+        char buf[1024];
 
-	snprintf(buf, charlen(buf), "%s [=%s]",
-	    prop_desc(prop), prop_to_name(prop));
-	fprintf(fp, USAGE_FMT, flag, buf);
+        snprintf(buf, charlen(buf), "%s [=%s]",
+            prop_desc(prop), prop_to_name(prop));
+        fprintf(fp, USAGE_FMT, flag, buf);
     }
 }
 
@@ -150,13 +150,13 @@ _print_version(int full)
     printf("%s=%s\n", APPLICATION_NAME, APPLICATION_VERSION);
 
     if (full) {
-	fputs(putil_builton(), stdout);
+        fputs(putil_builton(), stdout);
 #if defined(_DEBUG)
-	fputs(" (DEBUG)", stdout);
-#endif	// _DEBUG
-	fputs("\n", stdout);
-	printf("pcre2=%s\n", re_version());
-	printf("kazlib=1.20\n"); // Abandoned, will never change
+        fputs(" (DEBUG)", stdout);
+#endif  // _DEBUG
+        fputs("\n", stdout);
+        printf("pcre2=%s\n", re_version());
+        printf("kazlib=1.20\n"); // Abandoned, will never change
     }
 }
 
@@ -167,205 +167,205 @@ _action(CCS action, int argc, CS const *argv)
     int rc = 0;
 
     if (!strcmp(action, "Property") || !strcmp(action, "property")) {
-	// Print the current value of the named property.
-	int i;
-	CCS str;
+        // Print the current value of the named property.
+        int i;
+        CCS str;
 
-	for (i = 0; i < argc; i++) {
-	    if (vb_bitmatch(VB_STD)) {
-		printf("%s=", argv[i]);
-	    }
-	    if ((str = prop_value_from_name(argv[i]))) {
-		printf("%s\n", str);
-	    } else {
-		printf("\n");
-	    }
-	}
+        for (i = 0; i < argc; i++) {
+            if (vb_bitmatch(VB_STD)) {
+                printf("%s=", argv[i]);
+            }
+            if ((str = prop_value_from_name(argv[i]))) {
+                printf("%s\n", str);
+            } else {
+                printf("\n");
+            }
+        }
     } else if (!strcmp(action, "Substitute") || !strcmp(action, "substitute")) {
-	// Apply standard %-substitutions to the input string.
-	int i;
+        // Apply standard %-substitutions to the input string.
+        int i;
 
-	for (i = 0; i < argc; i++) {
-	    CCS subs = NULL;
+        for (i = 0; i < argc; i++) {
+            CCS subs = NULL;
 
-	    (void)util_substitute_params(argv[i], &subs);
-	    printf("%s\n", subs);
-	    putil_free(subs);
-	}
+            (void)util_substitute_params(argv[i], &subs);
+            printf("%s\n", subs);
+            putil_free(subs);
+        }
     } else if (!strcmp(action, "hash")) {
-	CCS dcode = NULL;
-	ps_o ps;
+        CCS dcode = NULL;
+        ps_o ps;
 
-	for (bsd_getopt_reset(); argv && *argv; ) {
-	    int c;
+        for (bsd_getopt_reset(); argv && *argv; ) {
+            int c;
 
-	    // *INDENT-OFF*
-	    static CS short_opts = "+s:";
-	    static struct option long_opts[] = {
-		{"sha1",		required_argument, NULL, 's'},
-		{0,			0,		   NULL,  0 },
-	    };
-	    // *INDENT-ON*
+            // *INDENT-OFF*
+            static CS short_opts = "+s:";
+            static struct option long_opts[] = {
+                {"sha1",                required_argument, NULL, 's'},
+                {0,                     0,                 NULL,  0 },
+            };
+            // *INDENT-ON*
 
-	    c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
-	    if (c == -1 || c == '?') {
-		break;
-	    }
+            c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
+            if (c == -1 || c == '?') {
+                break;
+            }
 
-	    switch (c) {
-		case 's':
-		    dcode = putil_strdup(bsd_optarg);
-		    break;
-		default:
-		    break;
-	    }
-	}
-	argv += (bsd_optind - 1);
+            switch (c) {
+                case 's':
+                    dcode = putil_strdup(bsd_optarg);
+                    break;
+                default:
+                    break;
+            }
+        }
+        argv += (bsd_optind - 1);
 
-	ps = ps_newFromPath(*argv);
-	if (dcode) {
-	    ps_set_dcode(ps, dcode);
-	} else if (ps_stat(ps, 1)) {
-	    putil_syserr(2, *argv);
-	}
+        ps = ps_newFromPath(*argv);
+        if (dcode) {
+            ps_set_dcode(ps, dcode);
+        } else if (ps_stat(ps, 1)) {
+            putil_syserr(2, *argv);
+        }
 
-	printf("%s\n", ps_get_dcode(ps));
+        printf("%s\n", ps_get_dcode(ps));
 
-	ps_destroy(ps);
-	putil_free(dcode);
+        ps_destroy(ps);
+        putil_free(dcode);
     } else if (!strcmp(action, "Stat") || !strcmp(action, "stat")) {
-	// print vital statistics for specified files.
-	int long_flag = 0, short_flag = 0, deref_flag = 0;
-	CCS path;
+        // print vital statistics for specified files.
+        int long_flag = 0, short_flag = 0, deref_flag = 0;
+        CCS path;
 
-	for (bsd_getopt_reset(); argv && *argv; ) {
-	    int c;
+        for (bsd_getopt_reset(); argv && *argv; ) {
+            int c;
 
-	    // *INDENT-OFF*
-	    static CS short_opts = "+alsL";
-	    static struct option long_opts[] = {
-		{"absolute-paths",	no_argument,	   NULL, 'a'},
-		{"long",		no_argument,	   NULL, 'l'},
-		{"short",		no_argument,	   NULL, 's'},
-		{"dereference",		no_argument,	   NULL, 'L'},
-		{0,			0,		   NULL,  0 },
-	    };
-	    // *INDENT-ON*
+            // *INDENT-OFF*
+            static CS short_opts = "+alsL";
+            static struct option long_opts[] = {
+                {"absolute-paths",      no_argument,       NULL, 'a'},
+                {"long",                no_argument,       NULL, 'l'},
+                {"short",               no_argument,       NULL, 's'},
+                {"dereference",         no_argument,       NULL, 'L'},
+                {0,                     0,                 NULL,  0 },
+            };
+            // *INDENT-ON*
 
-	    c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
-	    if (c == -1 || c == '?') {
-		break;
-	    }
+            c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
+            if (c == -1 || c == '?') {
+                break;
+            }
 
-	    switch (c) {
-		case 'a':
-		    prop_override_true(P_ABSOLUTE_PATHS);
-		    break;
-		case 'l':
-		    long_flag = 1;
-		    break;
-		case 's':
-		    short_flag = 1;
-		    break;
-		case 'L':
-		    deref_flag = 1;
-		    break;
-		default:
-		    break;
-	    }
-	}
-	argv += (bsd_optind - 1);
+            switch (c) {
+                case 'a':
+                    prop_override_true(P_ABSOLUTE_PATHS);
+                    break;
+                case 'l':
+                    long_flag = 1;
+                    break;
+                case 's':
+                    short_flag = 1;
+                    break;
+                case 'L':
+                    deref_flag = 1;
+                    break;
+                default:
+                    break;
+            }
+        }
+        argv += (bsd_optind - 1);
 
-	// Let the user see the data we'd derive for the specified local file.
-	for (; *argv; argv++) {
-	    struct __stat64 stbuf;
-	    int statrc;
-	    ps_o ps;
+        // Let the user see the data we'd derive for the specified local file.
+        for (; *argv; argv++) {
+            struct __stat64 stbuf;
+            int statrc;
+            ps_o ps;
 
-	    ps = ps_newFromPath(*argv);
-	    path = ps_get_abs(ps);
+            ps = ps_newFromPath(*argv);
+            path = ps_get_abs(ps);
 
-	    if (deref_flag) {
-		statrc = stat64(path, &stbuf);
-	    } else {
-		statrc = lstat64(path, &stbuf);
-	    }
+            if (deref_flag) {
+                statrc = stat64(path, &stbuf);
+            } else {
+                statrc = lstat64(path, &stbuf);
+            }
 
-	    if (statrc) {
-		putil_syserr(0, path);
-		ps_destroy(ps);
-		continue;
-	    } else if (!S_ISREG(stbuf.st_mode) && !S_ISLNK(stbuf.st_mode)) {
-		putil_warn("%s: not a regular file", path);
-		ps_destroy(ps);
-		continue;
-	    }
+            if (statrc) {
+                putil_syserr(0, path);
+                ps_destroy(ps);
+                continue;
+            } else if (!S_ISREG(stbuf.st_mode) && !S_ISLNK(stbuf.st_mode)) {
+                putil_warn("%s: not a regular file", path);
+                ps_destroy(ps);
+                continue;
+            }
 
-	    if (ps_stat(ps, 1)) {
-		rc = 1;
-	    } else {
-		size_t len;
-		CS buf;
+            if (ps_stat(ps, 1)) {
+                rc = 1;
+            } else {
+                size_t len;
+                CS buf;
 
-		len = putil_path_max() + 256 + 1;
-		buf = putil_malloc(len);
-		(void)ps_format_user(ps, long_flag, short_flag, buf, len);
-		fputs(buf, stdout);
-		putil_free(buf);
-	    }
+                len = putil_path_max() + 256 + 1;
+                buf = putil_malloc(len);
+                (void)ps_format_user(ps, long_flag, short_flag, buf, len);
+                fputs(buf, stdout);
+                putil_free(buf);
+            }
 
-	    ps_destroy(ps);
-	}
+            ps_destroy(ps);
+        }
     } else if (!strcmp(action, "about")) {
-	int short_flag = 0;
+        int short_flag = 0;
 
-	for (bsd_getopt_reset(); argv && *argv; ) {
-	    int c;
+        for (bsd_getopt_reset(); argv && *argv; ) {
+            int c;
 
-	    // *INDENT-OFF*
-	    static CS short_opts = "+s";
-	    static struct option long_opts[] = {
-		{"short",		no_argument,	   NULL, 's'},
-		{0,			0,		   NULL,  0 },
-	    };
-	    // *INDENT-ON*
+            // *INDENT-OFF*
+            static CS short_opts = "+s";
+            static struct option long_opts[] = {
+                {"short",               no_argument,       NULL, 's'},
+                {0,                     0,                 NULL,  0 },
+            };
+            // *INDENT-ON*
 
-	    c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
-	    if (c == -1 || c == '?') {
-		break;
-	    }
+            c = bsd_getopt(argc + 1, argv - 1, short_opts, long_opts, NULL);
+            if (c == -1 || c == '?') {
+                break;
+            }
 
-	    switch (c) {
-		case 's':
-		    short_flag = 1;
-		    break;
-		default:
-		    break;
-	    }
-	}
+            switch (c) {
+                case 's':
+                    short_flag = 1;
+                    break;
+                default:
+                    break;
+            }
+        }
 
-	if (!short_flag) {
-	    (void)print_license("Audited Objects", self_license);
+        if (!short_flag) {
+            (void)print_license("Audited Objects", self_license);
 
-	    fputs("This software incorporates all or parts ", stdout);
-	    fputs("of the following, whose\ncontributions ", stdout);
-	    fputs("are gratefully acknowledged:\n\n", stdout);
-	    about_client();
-	}
-	_print_version(0);
+            fputs("This software incorporates all or parts ", stdout);
+            fputs("of the following, whose\ncontributions ", stdout);
+            fputs("are gratefully acknowledged:\n\n", stdout);
+            about_client();
+        }
+        _print_version(0);
     } else if (!strcmp(action, "help")) {
-	// This documents actions which are PURELY client-side
-	// aside from the "--" variants.
-	// If they have any server part, e.g. "label" or "ADMIN",
-	// then let the server document them.
-	printf(HELP_FMT, "--", "run and audit the specified command");
-	printf(HELP_FMT, "hash", "print the AO hash for each named file");
-	printf(HELP_FMT, "property", "print the value of the named property");
-	printf(HELP_FMT, "stat", "print vital statistics for specified files");
-	printf(HELP_FMT, "substitute", "apply standard %-formatting to the input string");
-	printf("\n");
+        // This documents actions which are PURELY client-side
+        // aside from the "--" variants.
+        // If they have any server part, e.g. "label" or "ADMIN",
+        // then let the server document them.
+        printf(HELP_FMT, "--", "run and audit the specified command");
+        printf(HELP_FMT, "hash", "print the AO hash for each named file");
+        printf(HELP_FMT, "property", "print the value of the named property");
+        printf(HELP_FMT, "stat", "print vital statistics for specified files");
+        printf(HELP_FMT, "substitute", "apply standard %-formatting to the input string");
+        printf("\n");
     } else {
-	fprintf(stderr, "%s: Error: unrecognized action '%s'\n", prop_get_str(P_PROGNAME), action);
+        fprintf(stderr, "%s: Error: unrecognized action '%s'\n", prop_get_str(P_PROGNAME), action);
     }
 
     return rc;
@@ -388,7 +388,7 @@ main(int argc, CS *argv)
     // Figure out the full path to the current executable program.
     // Should be done asap, before anything happens to argv.
     if (!(exe = putil_getexecpath())) {
-	putil_die("unable to determine path to argv[0]\n");
+        putil_die("unable to determine path to argv[0]\n");
     }
 
     // Initialize verbosity. Should be done before most
@@ -424,342 +424,342 @@ main(int argc, CS *argv)
     // Ugly hack. There may be a better way to handle this within the getopt
     // API but for now this fixes the UI.
     for (int i = 0; argv[i]; i++) {
-	if (!strcmp(argv[i], "--")) {
-	    argv[i] = "run";
-	}
+        if (!strcmp(argv[i], "--")) {
+            argv[i] = "run";
+        }
     }
 
     // Parse the command line up to the first unrecognized item.
     // E.g. given "command -flag1 -flag2 arg1 -flag3 -flag4" we parse
     // only -flag1 and -flag2.
     for (bsd_getopt_reset();;) {
-	int c;
+        int c;
 
-	// *INDENT-OFF*
-	static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:RSTUV:W:XY";
-	static struct option long_opts[] = {
-	    {"oneshell",	no_argument,	   NULL, '1'},
-	    {"absolute-paths",	no_argument,	   NULL, 'a'},
-	    {"agg-level",	required_argument, NULL, LF('A', 'G')},
-	    {"audit-only",	no_argument,	   NULL, 'A'},
-	    {"directory",	required_argument, NULL, 'C'},
-	    {"download-only",	no_argument,	   NULL, 'd'},
-	    {"download-silent",	no_argument,	   NULL, 'D'},
-	    {"dtrace",		required_argument, NULL, LF('D', 'T')},
-	    {"client-platform",	required_argument, NULL, LF('C', 'P')},
-	    {"error-strict",	no_argument,	   NULL, 'E'},
-	    {"make-file",	required_argument, NULL, 'f'},
-	    {"help",		no_argument,	   NULL, 'h'},
-	    {"Help",		optional_argument, NULL, 'H'},
-	    {"properties",	optional_argument, NULL, LF('P', '*')},
-	    {"log-file",	required_argument, NULL, 'l'},
-	    {"log-time-stamp",	no_argument,	   NULL, LF('L', 'S')},
-	    {"make-depends",	optional_argument, NULL, 'M'},
-	    {"mem-debug",	optional_argument, NULL, LF('D', 'M')},
-	    {"members-only",	no_argument,	   NULL, 'm'},
-	    {"output-file",	required_argument, NULL, 'o'},
-	    {"Output-file",	required_argument, NULL, 'O'},
-	    {"project-name",	required_argument, NULL, 'p'},
-	    {"profile",		no_argument,	   NULL, LF('P', '%')},
-	    {"quiet",		no_argument,	   NULL, 'q'},
-	    {"leave-roadmap",	no_argument,	   NULL, 'r'},
-	    {"reuse-roadmap",	no_argument,       NULL, 'R'},
-	    {"strict",		no_argument,	   NULL, 'S'},
-	    {"script",		required_argument, NULL, LF('s', 'c')},
-	    {"print-elapsed",	no_argument,	   NULL, 't'},
-	    {"upload-only",	no_argument,	   NULL, 'u'},
-	    {"uncompressed-transfers", no_argument, NULL, 'U'},
-	    {"verbosity",	optional_argument, NULL, 'v'},
-	    {"local-verbosity",	required_argument, NULL, 'V'},
-	    {"version",		optional_argument, NULL, LF('v', 'n')},
-	    {"why",		no_argument,	   NULL, 'w'},
-	    {"WFlag",		required_argument, NULL, 'W'},
-	    {"exec-verbosity",	required_argument, NULL, 'x'},
-	    {"execute-only",	no_argument,	   NULL, 'X'},
-	    {"synchronous-transfers", no_argument,	   NULL, 'Y'},
-	    {0,				0,		   NULL,  0 },
-	};
-	// *INDENT-ON*
+        // *INDENT-OFF*
+        static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:RSTUV:W:XY";
+        static struct option long_opts[] = {
+            {"oneshell",        no_argument,       NULL, '1'},
+            {"absolute-paths",  no_argument,       NULL, 'a'},
+            {"agg-level",       required_argument, NULL, LF('A', 'G')},
+            {"audit-only",      no_argument,       NULL, 'A'},
+            {"directory",       required_argument, NULL, 'C'},
+            {"download-only",   no_argument,       NULL, 'd'},
+            {"download-silent", no_argument,       NULL, 'D'},
+            {"dtrace",          required_argument, NULL, LF('D', 'T')},
+            {"client-platform", required_argument, NULL, LF('C', 'P')},
+            {"error-strict",    no_argument,       NULL, 'E'},
+            {"make-file",       required_argument, NULL, 'f'},
+            {"help",            no_argument,       NULL, 'h'},
+            {"Help",            optional_argument, NULL, 'H'},
+            {"properties",      optional_argument, NULL, LF('P', '*')},
+            {"log-file",        required_argument, NULL, 'l'},
+            {"log-time-stamp",  no_argument,       NULL, LF('L', 'S')},
+            {"make-depends",    optional_argument, NULL, 'M'},
+            {"mem-debug",       optional_argument, NULL, LF('D', 'M')},
+            {"members-only",    no_argument,       NULL, 'm'},
+            {"output-file",     required_argument, NULL, 'o'},
+            {"Output-file",     required_argument, NULL, 'O'},
+            {"project-name",    required_argument, NULL, 'p'},
+            {"profile",         no_argument,       NULL, LF('P', '%')},
+            {"quiet",           no_argument,       NULL, 'q'},
+            {"leave-roadmap",   no_argument,       NULL, 'r'},
+            {"reuse-roadmap",   no_argument,       NULL, 'R'},
+            {"strict",          no_argument,       NULL, 'S'},
+            {"script",          required_argument, NULL, LF('s', 'c')},
+            {"print-elapsed",   no_argument,       NULL, 't'},
+            {"upload-only",     no_argument,       NULL, 'u'},
+            {"uncompressed-transfers", no_argument, NULL, 'U'},
+            {"verbosity",       optional_argument, NULL, 'v'},
+            {"local-verbosity", required_argument, NULL, 'V'},
+            {"version",         optional_argument, NULL, LF('v', 'n')},
+            {"why",             no_argument,       NULL, 'w'},
+            {"WFlag",           required_argument, NULL, 'W'},
+            {"exec-verbosity",  required_argument, NULL, 'x'},
+            {"execute-only",    no_argument,       NULL, 'X'},
+            {"synchronous-transfers", no_argument,         NULL, 'Y'},
+            {0,                         0,                 NULL,  0 },
+        };
+        // *INDENT-ON*
 
-	c = bsd_getopt(argc, argv, short_opts, long_opts, NULL);
-	if (c == -1) {
-	    break;
-	}
+        c = bsd_getopt(argc, argv, short_opts, long_opts, NULL);
+        if (c == -1) {
+            break;
+        }
 
-	switch (c) {
+        switch (c) {
 
-	    case '1':
-		prop_unset(P_MAKE_ONESHELL, 0);
-		break;
+            case '1':
+                prop_unset(P_MAKE_ONESHELL, 0);
+                break;
 
-	    case 'a':
-		prop_override_true(P_ABSOLUTE_PATHS);
-		break;
+            case 'a':
+                prop_override_true(P_ABSOLUTE_PATHS);
+                break;
 
-	    case LF('A', 'G'):
-		prop_override_str(P_AGGREGATION_STYLE, bsd_optarg);
-		break;
+            case LF('A', 'G'):
+                prop_override_str(P_AGGREGATION_STYLE, bsd_optarg);
+                break;
 
-	    case 'A':
-		prop_override_true(P_AUDIT_ONLY);
-		break;
+            case 'A':
+                prop_override_true(P_AUDIT_ONLY);
+                break;
 
-	    case 'C':
-		{
-		    CCS cd_to;
+            case 'C':
+                {
+                    CCS cd_to;
 
-		    (void)util_substitute_params(bsd_optarg, &cd_to);
-		    if (!QuietMode) {
-			fprintf(stderr, "+ cd %s\n", cd_to);
-		    }
-		    if (chdir(cd_to)) {
-			putil_syserr(2, cd_to);
-		    }
-		    putil_free(cd_to);
-		}
-		break;
+                    (void)util_substitute_params(bsd_optarg, &cd_to);
+                    if (!QuietMode) {
+                        fprintf(stderr, "+ cd %s\n", cd_to);
+                    }
+                    if (chdir(cd_to)) {
+                        putil_syserr(2, cd_to);
+                    }
+                    putil_free(cd_to);
+                }
+                break;
 
-	    case LF('C', 'P'):
-		prop_override_str(P_MONITOR_PLATFORM, bsd_optarg);
-		break;
+            case LF('C', 'P'):
+                prop_override_str(P_MONITOR_PLATFORM, bsd_optarg);
+                break;
 
-	    // Undocumented - debug downloads without modifying state.
-	    // We may not need this forever.
-	    case 'D':
-		prop_unset(P_DOWNLOAD_ONLY, 0);
-		prop_put_ulong(P_DOWNLOAD_ONLY, 2);
-		break;
+            // Undocumented - debug downloads without modifying state.
+            // We may not need this forever.
+            case 'D':
+                prop_unset(P_DOWNLOAD_ONLY, 0);
+                prop_put_ulong(P_DOWNLOAD_ONLY, 2);
+                break;
 
-	    case 'd':
-		prop_override_true(P_DOWNLOAD_ONLY);
-		break;
+            case 'd':
+                prop_override_true(P_DOWNLOAD_ONLY);
+                break;
 
-	    case LF('D', 'T'):
-		dscript = bsd_optarg;
-		break;
+            case LF('D', 'T'):
+                dscript = bsd_optarg;
+                break;
 
-	    case 'E':
-		prop_put_long(P_STRICT_ERROR, 1);
-		break;
+            case 'E':
+                prop_put_long(P_STRICT_ERROR, 1);
+                break;
 
-	    case LF('L', 'S'):
-		prop_override_ulong(P_LOG_TIME_STAMP, 1);
-		break;
+            case LF('L', 'S'):
+                prop_override_ulong(P_LOG_TIME_STAMP, 1);
+                break;
 
-	    case 'l':
-		{
-		    CS lbuf;
+            case 'l':
+                {
+                    CS lbuf;
 
-		    if (*bsd_optarg == ':') {
-			prop_override_ulong(P_LOG_TIME_STAMP, 1);
-			bsd_optarg++;
-		    }
+                    if (*bsd_optarg == ':') {
+                        prop_override_ulong(P_LOG_TIME_STAMP, 1);
+                        bsd_optarg++;
+                    }
 
-		    if (putil_is_absolute(bsd_optarg)) {
-			prop_override_str(P_LOG_FILE, bsd_optarg);
-		    } else if ((lbuf = putil_realpath(bsd_optarg, 1))) {
-			prop_override_str(P_LOG_FILE, lbuf);
-			putil_free(lbuf);
-		    } else {
-			putil_syserr(0, bsd_optarg);
-			prop_override_str(P_LOG_FILE, bsd_optarg);
-		    }
-		}
-		break;
+                    if (putil_is_absolute(bsd_optarg)) {
+                        prop_override_str(P_LOG_FILE, bsd_optarg);
+                    } else if ((lbuf = putil_realpath(bsd_optarg, 1))) {
+                        prop_override_str(P_LOG_FILE, lbuf);
+                        putil_free(lbuf);
+                    } else {
+                        putil_syserr(0, bsd_optarg);
+                        prop_override_str(P_LOG_FILE, bsd_optarg);
+                    }
+                }
+                break;
 
-	    case 'f':
-		prop_override_str(P_MAKE_FILE, bsd_optarg);
-		break;
+            case 'f':
+                prop_override_str(P_MAKE_FILE, bsd_optarg);
+                break;
 
-	    case 'M':
-		if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
-		    prop_override_str(P_MAKE_DEPENDS, ".d");
-		} else {
-		    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
-		}
-		break;
+            case 'M':
+                if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
+                    prop_override_str(P_MAKE_DEPENDS, ".d");
+                } else {
+                    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
+                }
+                break;
 
-	    case 'm':
-		prop_override_true(P_MEMBERS_ONLY);
-		break;
+            case 'm':
+                prop_override_true(P_MEMBERS_ONLY);
+                break;
 
-	    case 'o':
-		// fallthrough
-	    case 'O':
-		if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
-		    prop_override_str(P_OUTPUT_FILE, DEVNULL);
-		} else {
-		    prop_override_str(P_OUTPUT_FILE, bsd_optarg);
-		}
-		break;
+            case 'o':
+                // fallthrough
+            case 'O':
+                if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
+                    prop_override_str(P_OUTPUT_FILE, DEVNULL);
+                } else {
+                    prop_override_str(P_OUTPUT_FILE, bsd_optarg);
+                }
+                break;
 
-	    case 'p':
-		prop_override_str(P_PROJECT_NAME, bsd_optarg);
-		break;
+            case 'p':
+                prop_override_str(P_PROJECT_NAME, bsd_optarg);
+                break;
 
-		// Generate runtime linker profile output.
-	    case LF('P', '%'):
-		putil_putenv("LD_PROFILE=" AUDITOR);
-		break;
+                // Generate runtime linker profile output.
+            case LF('P', '%'):
+                putil_putenv("LD_PROFILE=" AUDITOR);
+                break;
 
-	    case 'q':
-		QuietMode = 1;
-		vb_addstr("-");
-		break;
+            case 'q':
+                QuietMode = 1;
+                vb_addstr("-");
+                break;
 
-	    case 'R':
-		prop_override_true(P_REUSE_ROADMAP);
-		prop_unset(P_DOWNLOAD_ONLY, 0);
-		prop_put_ulong(P_DOWNLOAD_ONLY, 2);
-		// fallthrough
-	    case 'r':
-		prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
-		prop_override_true(P_LEAVE_ROADMAP);
-		break;
+            case 'R':
+                prop_override_true(P_REUSE_ROADMAP);
+                prop_unset(P_DOWNLOAD_ONLY, 0);
+                prop_put_ulong(P_DOWNLOAD_ONLY, 2);
+                // fallthrough
+            case 'r':
+                prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
+                prop_override_true(P_LEAVE_ROADMAP);
+                break;
 
-	    case 'S':
-		prop_put_ulong(P_STRICT, 1);
-		prop_put_ulong(P_STRICT_DOWNLOAD, 1);
-		prop_put_ulong(P_STRICT_UPLOAD, 1);
-		break;
+            case 'S':
+                prop_put_ulong(P_STRICT, 1);
+                prop_put_ulong(P_STRICT_DOWNLOAD, 1);
+                prop_put_ulong(P_STRICT_UPLOAD, 1);
+                break;
 
-	    case LF('s', 'c'):
-		redo_script = bsd_optarg;
-		break;
+            case LF('s', 'c'):
+                redo_script = bsd_optarg;
+                break;
 
-	    case 't':
-		prop_unset(P_PRINT_ELAPSED, 1);
-		prop_put_str(P_PRINT_ELAPSED, "-1");
-		break;
+            case 't':
+                prop_unset(P_PRINT_ELAPSED, 1);
+                prop_put_str(P_PRINT_ELAPSED, "-1");
+                break;
 
-	    case 'u':
-		prop_override_ulong(P_UPLOAD_ONLY, 1);
-		break;
+            case 'u':
+                prop_override_ulong(P_UPLOAD_ONLY, 1);
+                break;
 
-	    case 'U':
-		prop_override_ulong(P_UNCOMPRESSED_TRANSFERS, 1);
-		break;
+            case 'U':
+                prop_override_ulong(P_UNCOMPRESSED_TRANSFERS, 1);
+                break;
 
-	    case 'V':		// keep verbosity out of auditor
-		prop_unexport(P_VERBOSITY, 1);
-		// fallthrough
-	    case 'v':
-		vb_addstr(bsd_optarg);
-		break;
+            case 'V':           // keep verbosity out of auditor
+                prop_unexport(P_VERBOSITY, 1);
+                // fallthrough
+            case 'v':
+                vb_addstr(bsd_optarg);
+                break;
 
-	    case LF('D', 'M'):
+            case LF('D', 'M'):
 #if defined(__APPLE__)
-		putil_putenv("MallocScribble=1");
-		putil_putenv("MallocPreScribble=1");
-		putil_putenv("MallocBadFreeAbort=1");
-		putil_putenv("MallocCheckHeapAbort=1");
-		//putil_putenv("MallocStackLogging=1");
-		//putil_putenv("MallocStackLoggingNoCompact=1");
-		//putil_putenv("MallocCheckHeapStart=1000");
-		//putil_putenv("MallocCheckHeapEach=1000");
-		//putil_putenv("MallocCheckHeapSleep=-200");
-		//(void)system("env | grep '^Malloc'");
-#else	// __APPLE__
-		putil_die("no malloc debugger implemented");
-#endif	// __APPLE__
-		break;
+                putil_putenv("MallocScribble=1");
+                putil_putenv("MallocPreScribble=1");
+                putil_putenv("MallocBadFreeAbort=1");
+                putil_putenv("MallocCheckHeapAbort=1");
+                //putil_putenv("MallocStackLogging=1");
+                //putil_putenv("MallocStackLoggingNoCompact=1");
+                //putil_putenv("MallocCheckHeapStart=1000");
+                //putil_putenv("MallocCheckHeapEach=1000");
+                //putil_putenv("MallocCheckHeapSleep=-200");
+                //(void)system("env | grep '^Malloc'");
+#else   // __APPLE__
+                putil_die("no malloc debugger implemented");
+#endif  // __APPLE__
+                break;
 
-	    case LF('v', 'n'):
-		_print_version(bsd_optarg && bsd_optarg[0] == '+');
-		exit(0);
-		break;
+            case LF('v', 'n'):
+                _print_version(bsd_optarg && bsd_optarg[0] == '+');
+                exit(0);
+                break;
 
-	    case 'w':
-		vb_addbit(VB_WHY);
-		break;
+            case 'w':
+                vb_addbit(VB_WHY);
+                break;
 
-	    case 'W':
-		// This is reserved for extension flags a la gcc.
-		// E.g. "-Wm,-v,varfile" would pass "-v varfile" to the
-		// makefile generator.
-		{
-		    CCS old;
-		    CS str;
+            case 'W':
+                // This is reserved for extension flags a la gcc.
+                // E.g. "-Wm,-v,varfile" would pass "-v varfile" to the
+                // makefile generator.
+                {
+                    CCS old;
+                    CS str;
 
-		    if ((old = prop_get_str(P_WFLAG))) {
-			asprintf(&str, "%s\n%s", old, bsd_optarg);
-			prop_override_str(P_WFLAG, str);
-			putil_free(str);
-		    } else {
-			prop_put_str(P_WFLAG, bsd_optarg);
-		    }
-		}
-		break;
+                    if ((old = prop_get_str(P_WFLAG))) {
+                        asprintf(&str, "%s\n%s", old, bsd_optarg);
+                        prop_override_str(P_WFLAG, str);
+                        putil_free(str);
+                    } else {
+                        prop_put_str(P_WFLAG, bsd_optarg);
+                    }
+                }
+                break;
 
-	    case 'x':
-		vb_addbit(VB_EXEC);
-		break;
+            case 'x':
+                vb_addbit(VB_EXEC);
+                break;
 
-	    case 'X':
-		prop_override_true(P_EXECUTE_ONLY);
-		prop_put_ulong(P_PRINT_ELAPSED, 1);
-		break;
+            case 'X':
+                prop_override_true(P_EXECUTE_ONLY);
+                prop_put_ulong(P_PRINT_ELAPSED, 1);
+                break;
 
-	    case 'Y':
-		prop_override_true(P_SYNCHRONOUS_TRANSFERS);
-		break;
+            case 'Y':
+                prop_override_true(P_SYNCHRONOUS_TRANSFERS);
+                break;
 
-	    case 'h':
-		_usage(0);
-		break;
+            case 'h':
+                _usage(0);
+                break;
 
-	    case LF('P', '*'):	// alias to --Help for mnemonic reasons
-	    case 'H':
-		// Put off printing properties till they're all filled in.
-		if (bsd_optarg && *bsd_optarg == '+') {
-		    proplevel = 1;
-		} else {
-		    proplevel = 0;
-		}
-		break;
+            case LF('P', '*'):  // alias to --Help for mnemonic reasons
+            case 'H':
+                // Put off printing properties till they're all filled in.
+                if (bsd_optarg && *bsd_optarg == '+') {
+                    proplevel = 1;
+                } else {
+                    proplevel = 0;
+                }
+                break;
 
-	    default:
-		_usage(1);
-	}
+            default:
+                _usage(1);
+        }
     }
     argc -= bsd_optind;
     argv += bsd_optind;
 
     // The command we've been asked to invoke.
     if ((action = argv[0])) {
-	argv++;
-	argc--;
+        argv++;
+        argc--;
     } else {
-	// The default command.
-	action = "help";
+        // The default command.
+        action = "help";
     }
 
     // Default project name is the name of the dir containing the project
     // config file, with any numerical extension following a '-' removed.
     if (!prop_has_value(P_PROJECT_NAME)) {
-	CCS pbase;
-	CS pjname, ptr, dash;
+        CCS pbase;
+        CS pjname, ptr, dash;
 
-	pbase = prop_get_str(P_BASE_DIR);
-	if (pbase && (pjname = putil_basename(pbase)) && *pjname) {
-	    ptr = putil_strdup(pjname);
-	    if ((dash = strchr(ptr, '-')) && ISDIGIT(dash[1])) {
-		*dash = '\0';
-	    }
-	    prop_put_str(P_PROJECT_NAME, ptr);
-	    putil_free(ptr);
-	}
+        pbase = prop_get_str(P_BASE_DIR);
+        if (pbase && (pjname = putil_basename(pbase)) && *pjname) {
+            ptr = putil_strdup(pjname);
+            if ((dash = strchr(ptr, '-')) && ISDIGIT(dash[1])) {
+                *dash = '\0';
+            }
+            prop_put_str(P_PROJECT_NAME, ptr);
+            putil_free(ptr);
+        }
     }
 
     // Recycling would break full-makefile generation.
     if (prop_has_value(P_MAKE_FILE) && !prop_has_value(P_MAKE_DEPENDS)) {
-	prop_override_ulong(P_UPLOAD_ONLY, 1);
+        prop_override_ulong(P_UPLOAD_ONLY, 1);
     }
 
     // Diagnostic: dump properties and quit.
     if (proplevel >= 0) {
-	prop_help(proplevel, vb_bitmatch(VB_STD), exe);
-	exit(0);
+        prop_help(proplevel, vb_bitmatch(VB_STD), exe);
+        exit(0);
     }
 
     // Arrange for the elapsed time to be printed out at exit time
@@ -767,181 +767,181 @@ main(int argc, CS *argv)
     // but a mimimum number of seconds which must elapse in order
     // to trigger output.
     if ((ElapsedMinimum = prop_get_long(P_PRINT_ELAPSED))) {
-	StartTime = time(NULL);
-	atexit(_print_elapsed_time);
+        StartTime = time(NULL);
+        atexit(_print_elapsed_time);
     }
 
     if (!strcmp(action, "run")) {
-	CCS cwd = NULL;
-	CCS logfile = NULL;
-	CCS rmap;
-	CCS logprop;
+        CCS cwd = NULL;
+        CCS logfile = NULL;
+        CCS rmap;
+        CCS logprop;
 
-	if (!argv || !*argv) {
-	    _usage(1);
-	}
+        if (!argv || !*argv) {
+            _usage(1);
+        }
 
-	if (!(cwd = util_get_cwd())) {
-	    putil_syserr(0, "getcwd()");
-	    exit(2);
-	}
+        if (!(cwd = util_get_cwd())) {
+            putil_syserr(0, "getcwd()");
+            exit(2);
+        }
 
-	// The auditor ignores anything it considers to be a temp
-	// file, which can cause terribly confusing behavior if
-	// run on a project rooted in (say) /tmp. It's a natural
-	// tendency for someone setting up a quick test case to
-	// put it in /tmp and then spend hours trying to figure
-	// out why it's behaving strangely. To help avoid this
-	// we disallow the auditor from running when the CWD is
-	// one we consider a repository for temp files.
-	if (strlen(cwd) >= 4 && !util_pathcmp(endof(cwd) - 4, "/tmp")) {
-	    if (!prop_is_true(P_EXECUTE_ONLY)) {
-		putil_die("illegal tmp working directory: %s", cwd);
-	    }
-	}
+        // The auditor ignores anything it considers to be a temp
+        // file, which can cause terribly confusing behavior if
+        // run on a project rooted in (say) /tmp. It's a natural
+        // tendency for someone setting up a quick test case to
+        // put it in /tmp and then spend hours trying to figure
+        // out why it's behaving strangely. To help avoid this
+        // we disallow the auditor from running when the CWD is
+        // one we consider a repository for temp files.
+        if (strlen(cwd) >= 4 && !util_pathcmp(endof(cwd) - 4, "/tmp")) {
+            if (!prop_is_true(P_EXECUTE_ONLY)) {
+                putil_die("illegal tmp working directory: %s", cwd);
+            }
+        }
 
-	// These values are pre-exported to reserve env-block space.
-	// To not do so would risk a dangerous realloc of the 'environ'
-	// pointer within an unsuspecting host process.
+        // These values are pre-exported to reserve env-block space.
+        // To not do so would risk a dangerous realloc of the 'environ'
+        // pointer within an unsuspecting host process.
 
-	// Reserve a block of env space for the current cmd depth.
-	prop_put_ulong(P_DEPTH, 0);
+        // Reserve a block of env space for the current cmd depth.
+        prop_put_ulong(P_DEPTH, 0);
 
-	// Reserve a block of env space for the parent cmd id.
-	// Seed it with our pid.
-	prop_put_ulong(P_PCMDID, getpid());
+        // Reserve a block of env space for the parent cmd id.
+        // Seed it with our pid.
+        prop_put_ulong(P_PCMDID, getpid());
 
-	// Reserve a block of env space for the parent cmd code.
-	prop_put_str(P_PCCODE, CSV_NULL_FIELD);
+        // Reserve a block of env space for the parent cmd code.
+        prop_put_str(P_PCCODE, CSV_NULL_FIELD);
 
-	// This needs to be present in the env from the start even when off.
-	// But being a boolean it only needs room for one digit.
-	prop_put_ulong(P_AGGREGATED_SUBCMD, 0);
+        // This needs to be present in the env from the start even when off.
+        // But being a boolean it only needs room for one digit.
+        prop_put_ulong(P_AGGREGATED_SUBCMD, 0);
 
-	// Allow the cmd to be preceded by EV's in the manner of the shell.
-	while (strchr(*argv, '=')) {
-	    putil_putenv(*argv++);
-	}
+        // Allow the cmd to be preceded by EV's in the manner of the shell.
+        while (strchr(*argv, '=')) {
+            putil_putenv(*argv++);
+        }
 
-	// Determine whether the user requested a log file and
-	// apply the %u, %p, etc. formats to it if so.
-	if ((logprop = prop_get_str(P_LOG_FILE))) {
-	    (void)util_substitute_params(logprop, &logfile);
-	    // In case it's present but unwriteable.
-	    if (logfile && access(logfile, W_OK)) {
-		(void)unlink(logfile);
-	    }
-	}
+        // Determine whether the user requested a log file and
+        // apply the %u, %p, etc. formats to it if so.
+        if ((logprop = prop_get_str(P_LOG_FILE))) {
+            (void)util_substitute_params(logprop, &logfile);
+            // In case it's present but unwriteable.
+            if (logfile && access(logfile, W_OK)) {
+                (void)unlink(logfile);
+            }
+        }
 
-	// Work out the name of the roadmap file and store the result.
-	if ((rmap = prop_get_str(P_ROADMAPFILE))) {
-	    if (!putil_is_absolute(rmap)) {
-		if ((rmap = putil_realpath(rmap, 1))) {
-		    prop_override_str(P_ROADMAPFILE, rmap);
-		    putil_free(rmap);
-		} else {
-		    putil_syserr(2, prop_get_str(P_ROADMAPFILE));
-		}
-	    }
-	} else if (prop_has_value(P_SERVER)) {
-	    rmap = util_tempnam(NULL, "rmap.");
-	    prop_put_str(P_ROADMAPFILE, rmap);
-	    putil_free(rmap);
-	}
+        // Work out the name of the roadmap file and store the result.
+        if ((rmap = prop_get_str(P_ROADMAPFILE))) {
+            if (!putil_is_absolute(rmap)) {
+                if ((rmap = putil_realpath(rmap, 1))) {
+                    prop_override_str(P_ROADMAPFILE, rmap);
+                    putil_free(rmap);
+                } else {
+                    putil_syserr(2, prop_get_str(P_ROADMAPFILE));
+                }
+            }
+        } else if (prop_has_value(P_SERVER)) {
+            rmap = util_tempnam(NULL, "rmap.");
+            prop_put_str(P_ROADMAPFILE, rmap);
+            putil_free(rmap);
+        }
 
-	if (prop_has_value(P_SERVER)) {
-	    // Get the new roadmap.
-	    if (!prop_is_true(P_REUSE_ROADMAP) && !prop_is_true(P_UPLOAD_ONLY)) {
-		mon_get_roadmap();
-	    }
+        if (prop_has_value(P_SERVER)) {
+            // Get the new roadmap.
+            if (!prop_is_true(P_REUSE_ROADMAP) && !prop_is_true(P_UPLOAD_ONLY)) {
+                mon_get_roadmap();
+            }
 
-	    // Start a session. We do this *after* getting the roadmap
-	    // to avoid session expiration during roadmap-getting.
-	    // That would only be a risk for a very slow roadmap or a
-	    // very fast session expiration but it could happen.
-	    if (mon_begin_session()) {
-		putil_die("can't get a session at %s", prop_get_str(P_SERVER));
-	    }
-	}
+            // Start a session. We do this *after* getting the roadmap
+            // to avoid session expiration during roadmap-getting.
+            // That would only be a risk for a very slow roadmap or a
+            // very fast session expiration but it could happen.
+            if (mon_begin_session()) {
+                putil_die("can't get a session at %s", prop_get_str(P_SERVER));
+            }
+        }
 
-	if (redo_script) {
-	    FILE *fp;
+        if (redo_script) {
+            FILE *fp;
 
-	    if (!(fp = fopen(redo_script, "w"))) {
-		putil_syserr(2, redo_script);
-	    } else {
-		extern char **environ;
-		size_t plen;
-		char **pblock;
-		char **envp;
-		struct utsname sysdata;
+            if (!(fp = fopen(redo_script, "w"))) {
+                putil_syserr(2, redo_script);
+            } else {
+                extern char **environ;
+                size_t plen;
+                char **pblock;
+                char **envp;
+                struct utsname sysdata;
 
-		// This is just to get a sorted environment list.
-		plen = prop_new_env_block_sizeA(environ);
-		pblock = (char **)alloca(plen);
-		memset(pblock, 0, plen);
-		(void)prop_custom_envA(pblock, environ);
+                // This is just to get a sorted environment list.
+                plen = prop_new_env_block_sizeA(environ);
+                pblock = (char **)alloca(plen);
+                memset(pblock, 0, plen);
+                (void)prop_custom_envA(pblock, environ);
 
-		fprintf(fp, "#!/bin/sh\n\n");
+                fprintf(fp, "#!/bin/sh\n\n");
 
-		if (!putil_uname(&sysdata)) {
-			fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
-				sysdata.sysname, sysdata.nodename, sysdata.release,
-				sysdata.version, sysdata.machine);
-		}
+                if (!putil_uname(&sysdata)) {
+                        fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
+                                sysdata.sysname, sysdata.nodename, sysdata.release,
+                                sysdata.version, sysdata.machine);
+                }
 
-		fprintf(fp, "# Original environment settings:\n");
-		for (envp = pblock + 1; *envp; envp++) {
-		    char *t;
+                fprintf(fp, "# Original environment settings:\n");
+                for (envp = pblock + 1; *envp; envp++) {
+                    char *t;
 
-		    if (**envp == '_') {
-			continue;
-		    }
+                    if (**envp == '_') {
+                        continue;
+                    }
 
-		    fputs(": export ", fp);
-		    for (t = *envp; *t && *t != '='; t++) {
-			fputc(*t, fp);
-		    }
-		    fputc(*t++, fp);
-		    fprintf(fp, "'%s'\n", t);
-		}
-		fprintf(fp, "cd '%s' || exit 2\n", cwd);
-		fprintf(fp, "exec %s\n", util_requote_argv(argv));
+                    fputs(": export ", fp);
+                    for (t = *envp; *t && *t != '='; t++) {
+                        fputc(*t, fp);
+                    }
+                    fputc(*t++, fp);
+                    fprintf(fp, "'%s'\n", t);
+                }
+                fprintf(fp, "cd '%s' || exit 2\n", cwd);
+                fprintf(fp, "exec %s\n", util_requote_argv(argv));
 
-		(void)fchmod(fileno(fp), 0755);
-		(void)fclose(fp);
-		vb_printf(VB_STD, "redo script written to '%s'", redo_script);
-	    }
-	}
+                (void)fchmod(fileno(fp), 0755);
+                (void)fclose(fp);
+                vb_printf(VB_STD, "redo script written to '%s'", redo_script);
+            }
+        }
 
-	// For systems supporting DTrace: run the cmd with the specified
-	// dtrace script.
-	if (dscript) {
-	    CS *dargv;
+        // For systems supporting DTrace: run the cmd with the specified
+        // dtrace script.
+        if (dscript) {
+            CS *dargv;
 
-	    dargv = putil_malloc(sizeof(*dargv) * 6);
-	    dargv[0] = "dtrace";
-	    dargv[1] = "-s";
-	    dargv[2] = dscript;
-	    dargv[3] = "-c";
-	    dargv[4] = util_requote_argv(argv);
-	    dargv[5] = NULL;
-	    argv = dargv;
-	    fprintf(stderr, "+ dtrace -s %s -c '%s'\n", dscript, argv[4]);
-	}
+            dargv = putil_malloc(sizeof(*dargv) * 6);
+            dargv[0] = "dtrace";
+            dargv[1] = "-s";
+            dargv[2] = dscript;
+            dargv[3] = "-c";
+            dargv[4] = util_requote_argv(argv);
+            dargv[5] = NULL;
+            argv = dargv;
+            fprintf(stderr, "+ dtrace -s %s -c '%s'\n", dscript, argv[4]);
+        }
 
-	make_init(exe);
+        make_init(exe);
 
-	// RUN AND AUDIT THE COMMAND.
-	rc = run_cmd(exe, (CS *)argv, logfile);
+        // RUN AND AUDIT THE COMMAND.
+        rc = run_cmd(exe, (CS *)argv, logfile);
 
-	putil_free(logfile);
+        putil_free(logfile);
 
-	make_fini();
+        make_fini();
 
-	putil_free(cwd);
+        putil_free(cwd);
     } else {
-	rc = _action(action, argc, argv);
+        rc = _action(action, argc, argv);
     }
 
     code_fini();
@@ -949,4 +949,4 @@ main(int argc, CS *argv)
     return rc;
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

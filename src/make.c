@@ -42,103 +42,103 @@ make_init(CCS exe)
     // to use .ONESHELL if available because audits can be
     // unreliable without it.
     if (prop_is_true(P_EXECUTE_ONLY)) {
-	// This mode should not change the command's behavior at all.
+        // This mode should not change the command's behavior at all.
     } else if (prop_is_true(P_MAKE_ONESHELL)) {
-	char *exedir, *appdir, *fragment = NULL;
+        char *exedir, *appdir, *fragment = NULL;
 
-	if (exe && (exedir = putil_dirname(exe))) {
-	    if ((appdir = putil_dirname(exedir))) {
+        if (exe && (exedir = putil_dirname(exe))) {
+            if ((appdir = putil_dirname(exedir))) {
 
-		asprintf(&fragment, "%s/etc/%s.mk", appdir, prop_get_app());
-		putil_free(appdir);
-	    }
-	    putil_free(exedir);
-	}
+                asprintf(&fragment, "%s/etc/%s.mk", appdir, prop_get_app());
+                putil_free(appdir);
+            }
+            putil_free(exedir);
+        }
 
-	if (!fragment) {
-	    putil_warn("missing makefile fragment");
-	} else if (access(fragment, R_OK)) {
-	    putil_syserr(0, fragment);
-	} else {
-	    CS mf, ev;
+        if (!fragment) {
+            putil_warn("missing makefile fragment");
+        } else if (access(fragment, R_OK)) {
+            putil_syserr(0, fragment);
+        } else {
+            CS mf, ev;
 
-	    if ((mf = putil_getenv("MAKEFILES"))) {
-		if (!strstr(mf, fragment)) {
-		    asprintf(&ev, "MAKEFILES=%s %s", fragment, mf);
-		    putil_putenv(ev);
-		}
-	    } else {
-		asprintf(&ev, "MAKEFILES=%s", fragment);
-		putil_putenv(ev);
-	    }
-	    vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));
-	}
+            if ((mf = putil_getenv("MAKEFILES"))) {
+                if (!strstr(mf, fragment)) {
+                    asprintf(&ev, "MAKEFILES=%s %s", fragment, mf);
+                    putil_putenv(ev);
+                }
+            } else {
+                asprintf(&ev, "MAKEFILES=%s", fragment);
+                putil_putenv(ev);
+            }
+            vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));
+        }
 
-	putil_free(fragment);
+        putil_free(fragment);
     } else {
-	putil_warn(".ONESHELL mode suppressed, disaggregation likely");
+        putil_warn(".ONESHELL mode suppressed, disaggregation likely");
     }
 
     if ((str = prop_get_str(P_MAKE_FILE)) || prop_has_value(P_MAKE_DEPENDS)) {
-	asprintf(&MakeCmd, "ao2make");
+        asprintf(&MakeCmd, "ao2make");
 
-	if (str) {
-	    (void)util_substitute_params(str, &t);
-	    p = MakeCmd;
-	    asprintf(&MakeCmd, "%s --output='%s'", p, t);
-	    putil_free(p);
-	    putil_free(t);
-	}
+        if (str) {
+            (void)util_substitute_params(str, &t);
+            p = MakeCmd;
+            asprintf(&MakeCmd, "%s --output='%s'", p, t);
+            putil_free(p);
+            putil_free(t);
+        }
 
-	p = MakeCmd;
-	if ((str = prop_get_str(P_MAKE_DEPENDS))) {
-	    asprintf(&MakeCmd, "%s --extension=%s", p, str);
-	} else {
-	    asprintf(&MakeCmd, "%s --full", p);
-	}
-	putil_free(p);
+        p = MakeCmd;
+        if ((str = prop_get_str(P_MAKE_DEPENDS))) {
+            asprintf(&MakeCmd, "%s --extension=%s", p, str);
+        } else {
+            asprintf(&MakeCmd, "%s --full", p);
+        }
+        putil_free(p);
     } else {
-	return;
+        return;
     }
 
     if (prop_is_true(P_MEMBERS_ONLY)) {
-	p = MakeCmd;
-	asprintf(&MakeCmd, "%s --members-only", p);
-	putil_free(p);
+        p = MakeCmd;
+        asprintf(&MakeCmd, "%s --members-only", p);
+        putil_free(p);
     }
 
     if ((str = prop_get_str(P_WFLAG))) {
-	CS s2;
+        CS s2;
 
-	s2 = putil_strdup(str);
-	while ((t = util_strsep(&s2, "\n"))) {
-	    if (*t == 'm') {
-		t += 2;
-		if ((p = strchr(t, ','))) {
-		    *p = ' ';
-		}
-		p = MakeCmd;
-		asprintf(&MakeCmd, "%s %s", p, t);
-		putil_free(p);
-	    }
-	}
-	putil_free(s2);
+        s2 = putil_strdup(str);
+        while ((t = util_strsep(&s2, "\n"))) {
+            if (*t == 'm') {
+                t += 2;
+                if ((p = strchr(t, ','))) {
+                    *p = ' ';
+                }
+                p = MakeCmd;
+                asprintf(&MakeCmd, "%s %s", p, t);
+                putil_free(p);
+            }
+        }
+        putil_free(s2);
     }
 
     p = MakeCmd;
     if ((str = prop_get_str(P_BASE_DIR))) {
-	asprintf(&MakeCmd, "%s --base-dir='%s' -", p, str);
+        asprintf(&MakeCmd, "%s --base-dir='%s' -", p, str);
     } else {
-	asprintf(&MakeCmd, "%s -", p);
+        asprintf(&MakeCmd, "%s -", p);
     }
     putil_free(p);
 
     if (vb_bitmatch(VB_STD)) {
-	fprintf(stderr, "+ %s\n", MakeCmd);
+        fprintf(stderr, "+ %s\n", MakeCmd);
     }
 
     if (!(MakeFP = popen(MakeCmd, "w"))) {
-	exit(2);
+        exit(2);
     }
 }
 
@@ -150,13 +150,13 @@ make_file(ca_o ca)
     CCS cmdbuf;
 
     if (MakeFP && (cmdbuf = ca_to_str(ca))) {
-	if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
-	    putil_syserr(0, "fputs(cmdbuf)");
-	}
-	putil_free(cmdbuf);
-	fflush(MakeFP);
+        if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
+            putil_syserr(0, "fputs(cmdbuf)");
+        }
+        putil_free(cmdbuf);
+        fflush(MakeFP);
     } else {
-	return;
+        return;
     }
 
     return;
@@ -167,10 +167,10 @@ void
 make_fini(void)
 {
     if (MakeFP && pclose(MakeFP)) {
-	putil_syserr(2, MakeCmd);
+        putil_syserr(2, MakeCmd);
     }
 
     putil_free(MakeCmd);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

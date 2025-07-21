@@ -41,17 +41,17 @@
 #include "curl/curl.h"
 
 /// @cond static
-#define	PS_NO_DCODE			""
+#define PS_NO_DCODE                     ""
 /// @endcond static
 
 /// Related to but subtly different from PA ops. These describe a
 /// <I>state</I> whereas PA ops describe an <I>action</I>.
 typedef enum {
-    PS_FILE = 'f',		/// Path represents a file
-    PS_DIR  = 'd',		/// Path represents a directory
-    PS_LINK = 'l',		/// Path has been linked to
-    PS_SYMLINK = 's',		/// Path represents a symlink
-    PS_UNLINK = 'u',		/// Path has been unlinked
+    PS_FILE = 'f',              /// Path represents a file
+    PS_DIR  = 'd',              /// Path represents a directory
+    PS_LINK = 'l',              /// Path has been linked to
+    PS_SYMLINK = 's',           /// Path represents a symlink
+    PS_UNLINK = 'u',            /// Path has been unlinked
 } ps_e;
 
 /// Object structure for describing the state of a file at a given time.
@@ -59,15 +59,15 @@ typedef enum {
 // Windows forces off_t to 'long' and we needed to be sure we can
 // represent 64-bit sizes.
 struct path_state_s {
-    moment_s ps_moment;		///< mtime as secs+nanos
-    int64_t ps_size;		///< file size
-    mode_t ps_mode;		///< file mode (perms + type)
-    CCS ps_dcode;		///< "data code" as of sample time
-    CCS ps_fsname;		///< name of path's file system
-    pn_o ps_pn;			///< path to file as of sample time
-    pn_o ps_pn2;		///< used for some link ops
-    CCS ps_target;		///< target text, if symlink
-    ps_e ps_datatype;		///< file type: 'f', 's', etc
+    moment_s ps_moment;         ///< mtime as secs+nanos
+    int64_t ps_size;            ///< file size
+    mode_t ps_mode;             ///< file mode (perms + type)
+    CCS ps_dcode;               ///< "data code" as of sample time
+    CCS ps_fsname;              ///< name of path's file system
+    pn_o ps_pn;                 ///< path to file as of sample time
+    pn_o ps_pn2;                ///< used for some link ops
+    CCS ps_target;              ///< target text, if symlink
+    ps_e ps_datatype;           ///< file type: 'f', 's', etc
 } path_state_s;
 
 static moment_s Ref_Time;
@@ -84,7 +84,7 @@ ps_new(void)
     ps_o ps;
 
     ps = (ps_o)putil_calloc(1, sizeof(*ps));
-    ps->ps_datatype = PS_FILE;	// default
+    ps->ps_datatype = PS_FILE;  // default
     return ps;
 }
 
@@ -120,15 +120,15 @@ ps_newFromCSVString(CCS csv)
 
     // *INDENT-OFF*
     if (!(datatype = util_strsep(&linebuf, FS1)) ||
-	    !(fsname = util_strsep(&linebuf, FS1)) ||
-	    !(moment = util_strsep(&linebuf, FS1)) ||
-	    !(size = util_strsep(&linebuf, FS1)) ||
-	    !(mode = util_strsep(&linebuf, FS1)) ||
-	    !(dcode = util_strsep(&linebuf, FS1)) ||
-	    !(target = util_strsep(&linebuf, FS1))) {
-	putil_int("bad format: '%s'", csv);
-	putil_free(original);
-	return NULL;
+            !(fsname = util_strsep(&linebuf, FS1)) ||
+            !(moment = util_strsep(&linebuf, FS1)) ||
+            !(size = util_strsep(&linebuf, FS1)) ||
+            !(mode = util_strsep(&linebuf, FS1)) ||
+            !(dcode = util_strsep(&linebuf, FS1)) ||
+            !(target = util_strsep(&linebuf, FS1))) {
+        putil_int("bad format: '%s'", csv);
+        putil_free(original);
+        return NULL;
     }
     // *INDENT-ON*
 
@@ -143,15 +143,15 @@ ps_newFromCSVString(CCS csv)
 
     // The link target is URL-encoded in CSV format.
     if (target && *target) {
-	CS decoded;
+        CS decoded;
 
-	decoded = util_unescape(target, 0, NULL);
-	if (*datatype == PS_SYMLINK) {
-	    ps_set_target(ps, decoded);
-	} else {
-	    ps_set_pn2(ps, pn_new(decoded, 0));
-	}
-	putil_free(decoded);
+        decoded = util_unescape(target, 0, NULL);
+        if (*datatype == PS_SYMLINK) {
+            ps_set_target(ps, decoded);
+        } else {
+            ps_set_pn2(ps, pn_new(decoded, 0));
+        }
+        putil_free(decoded);
     }
 
     ps_set_pn(ps, pn_new(linebuf, 0));
@@ -257,11 +257,11 @@ ps_dcode_cache_init(void)
     Dcode_Offset = prop_get_long(P_DCODE_CACHE_SECS);
 
     if (Dcode_Offset >= 0) {
-	moment_get_systime(&Ref_Time);
-	if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX,
-					     util_pathcmp, NULL))) {
-	    putil_syserr(2, "hash_create(Dcode_Hash_Table)");
-	}
+        moment_get_systime(&Ref_Time);
+        if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX,
+                                             util_pathcmp, NULL))) {
+            putil_syserr(2, "hash_create(Dcode_Hash_Table)");
+        }
     }
 }
 
@@ -270,21 +270,21 @@ void
 ps_dcode_cache_fini(void)
 {
     if (Dcode_Hash_Table) {
-	hscan_t hscan;
-	hnode_t *hnp;
-	CCS key, val;
+        hscan_t hscan;
+        hnode_t *hnp;
+        CCS key, val;
 
-	hash_scan_begin(&hscan, Dcode_Hash_Table);
-	for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-	    hash_scan_delete(Dcode_Hash_Table, hnp);
-	    key = (CCS)hnode_getkey(hnp);
-	    val = (CCS)hnode_get(hnp);
-	    hnode_destroy(hnp);
-	    putil_free(key);
-	    putil_free(val);
-	}
-	hash_destroy(Dcode_Hash_Table);
-	Dcode_Hash_Table = NULL;
+        hash_scan_begin(&hscan, Dcode_Hash_Table);
+        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
+            hash_scan_delete(Dcode_Hash_Table, hnp);
+            key = (CCS)hnode_getkey(hnp);
+            val = (CCS)hnode_get(hnp);
+            hnode_destroy(hnp);
+            putil_free(key);
+            putil_free(val);
+        }
+        hash_destroy(Dcode_Hash_Table);
+        Dcode_Hash_Table = NULL;
     }
 }
 
@@ -295,17 +295,17 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
     CS key;
 
     if (Dcode_Hash_Table && (Dcode_Offset == 0 ||
-			     (ps->ps_moment.ntv_sec <
-			      (Ref_Time.ntv_sec - Dcode_Offset)))) {
-	char mtime[MOMENT_BUFMAX];
+                             (ps->ps_moment.ntv_sec <
+                              (Ref_Time.ntv_sec - Dcode_Offset)))) {
+        char mtime[MOMENT_BUFMAX];
 
-	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
+        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	if (asprintf(&key, "%" PRIu64 "%s%s%s%s",
-			   ps->ps_size, FS1, mtime, FS1, path) < 0) {
-	    putil_syserr(2, NULL);
-	}
-	hash_alloc_insert(Dcode_Hash_Table, key, putil_strdup(ps->ps_dcode));
+        if (asprintf(&key, "%" PRIu64 "%s%s%s%s",
+                           ps->ps_size, FS1, mtime, FS1, path) < 0) {
+            putil_syserr(2, NULL);
+        }
+        hash_alloc_insert(Dcode_Hash_Table, key, putil_strdup(ps->ps_dcode));
     }
 }
 
@@ -317,21 +317,21 @@ _ps_get_cached_dcode(ps_o ps, CCS path)
     CCS dcode = NULL;
 
     if (Dcode_Hash_Table) {
-	char mtime[MOMENT_BUFMAX];
-	char *keybuf;
+        char mtime[MOMENT_BUFMAX];
+        char *keybuf;
 
-	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
+        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	if (asprintf(&keybuf, "%" PRIu64 "%s%s%s%s",
-		   ps->ps_size, FS1, mtime, FS1, path) < 0) {
-	    putil_syserr(2, NULL);
-	} else {
-	    if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
-		dcode = (CCS)hnode_get(hnp);
-		vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
-	    }
-	    putil_free(keybuf);
-	}
+        if (asprintf(&keybuf, "%" PRIu64 "%s%s%s%s",
+                   ps->ps_size, FS1, mtime, FS1, path) < 0) {
+            putil_syserr(2, NULL);
+        } else {
+            if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
+                dcode = (CCS)hnode_get(hnp);
+                vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
+            }
+            putil_free(keybuf);
+        }
     }
 
     return dcode;
@@ -369,10 +369,10 @@ _ps_set_modtime(CCS path, moment_s *mptr, struct __stat64 *stp)
 #if defined(st_mtime)
     mptr->ntv_sec = stp->st_mtim.tv_sec;
     mptr->ntv_nsec = stp->st_mtim.tv_nsec;
-#else	// st_mtime
+#else   // st_mtime
     mptr->ntv_sec = stp->st_mtime;
     mptr->ntv_nsec = 0;
-#endif	// st_mtime
+#endif  // st_mtime
 
     return 0;
 }
@@ -390,7 +390,7 @@ ps_stat(ps_o ps, int want_dcode)
 
     struct __stat64 stbuf;
 
-    path = ps_get_abs(ps);	// convenience
+    path = ps_get_abs(ps);      // convenience
 
     // Delay return on a failure here till the fsname is determined.
     statrc = lstat64(path, &stbuf);
@@ -405,92 +405,92 @@ ps_stat(ps_o ps, int want_dcode)
     // be that bad after all, so if ever needed we should start by just
     // enabling it and measuring the effect.
     if (0 && !ps_get_fsname(ps)) {
-	size_t len;
-	CS fs;
-	ino_t midway;
+        size_t len;
+        CS fs;
+        ino_t midway;
 
-	// Stat the file system containing this file to get its name.
-	// We don't abort even on failure; it will always give us a string.
-	// We can derive this datum even for files which don't exist
-	// by falling back to the parent directory, recursively.
-	len = putil_path_max() + 1;
-	fs = (CS)putil_malloc(len);
-	(void)util_find_fsname(path, fs, len);
+        // Stat the file system containing this file to get its name.
+        // We don't abort even on failure; it will always give us a string.
+        // We can derive this datum even for files which don't exist
+        // by falling back to the parent directory, recursively.
+        len = putil_path_max() + 1;
+        fs = (CS)putil_malloc(len);
+        (void)util_find_fsname(path, fs, len);
 
-	// Special case for ClearCase MVFS - view-private files
-	// have a negative inode, versioned elements are positive.
-	// However, since ino_t is unsigned the view-privates
-	// show up as large positive numbers.
-	// Record the distinction because it may be useful.
-	midway = ((ino_t) - 1) / 2;
-	if (!statrc && stbuf.st_ino > midway && !strcmp(fs, "mvfs")) {
-	    ps_set_fsname(ps, "mvfs-vp");
-	} else {
-	    ps_set_fsname(ps, fs);
-	}
-	putil_free(fs);
+        // Special case for ClearCase MVFS - view-private files
+        // have a negative inode, versioned elements are positive.
+        // However, since ino_t is unsigned the view-privates
+        // show up as large positive numbers.
+        // Record the distinction because it may be useful.
+        midway = ((ino_t) - 1) / 2;
+        if (!statrc && stbuf.st_ino > midway && !strcmp(fs, "mvfs")) {
+            ps_set_fsname(ps, "mvfs-vp");
+        } else {
+            ps_set_fsname(ps, fs);
+        }
+        putil_free(fs);
     }
 
     if (statrc) {
-	return -1;
+        return -1;
     }
 
     ps->ps_size = stbuf.st_size;
     ps->ps_mode = stbuf.st_mode;
 
     if (S_ISDIR(stbuf.st_mode)) {
-	ps_set_dir(ps);
+        ps_set_dir(ps);
     }
 
     if (_ps_set_modtime(path, &(ps->ps_moment), &stbuf)) {
-	putil_syserr(0, path);
-	return -1;
+        putil_syserr(0, path);
+        return -1;
     }
     if (S_ISLNK(stbuf.st_mode)) {
-	ps_set_symlinked(ps);
-	if (!ps_get_target(ps)) {
-	    CCS lbuf;
+        ps_set_symlinked(ps);
+        if (!ps_get_target(ps)) {
+            CCS lbuf;
 
-	    if ((lbuf = putil_readlink(path))) {
-		ps_set_target(ps, lbuf);
-		putil_free(lbuf);
-	    } else {
-		putil_syserr(0, path);
-		return -1;
-	    }
-	}
+            if ((lbuf = putil_readlink(path))) {
+                ps_set_target(ps, lbuf);
+                putil_free(lbuf);
+            } else {
+                putil_syserr(0, path);
+                return -1;
+            }
+        }
     }
 
     if (want_dcode) {
-	CCS dcode;
+        CCS dcode;
 
-	char dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
+        char dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
-	if (ps_is_file(ps)) {
-	    if ((dcode = _ps_get_cached_dcode(ps, path))) {
-		ps_set_dcode(ps, dcode);
-	    } else if ((dcode = code_from_path(path, dcbuf, sizeof(dcbuf)))) {
-		ps_set_dcode(ps, dcode);
-		_ps_set_cached_dcode(ps, path);
-	    } else {
-		ps_set_dcode(ps, NULL);
-		return -1;
-	    }
-	} else if (ps_is_symlink(ps)) {
-	    CCS tgt;
+        if (ps_is_file(ps)) {
+            if ((dcode = _ps_get_cached_dcode(ps, path))) {
+                ps_set_dcode(ps, dcode);
+            } else if ((dcode = code_from_path(path, dcbuf, sizeof(dcbuf)))) {
+                ps_set_dcode(ps, dcode);
+                _ps_set_cached_dcode(ps, path);
+            } else {
+                ps_set_dcode(ps, NULL);
+                return -1;
+            }
+        } else if (ps_is_symlink(ps)) {
+            CCS tgt;
 
-	    // For symlinks, we use the target as the "file contents".
-	    tgt = ps_get_target(ps);
-	    if ((dcode = code_from_buffer((const unsigned char *)tgt,
-					  strlen(tgt), path, dcbuf,
-					  sizeof(dcbuf)))) {
-		ps_set_dcode(ps, dcode);
-		_ps_set_cached_dcode(ps, path);
-	    } else {
-		ps_set_dcode(ps, NULL);
-		return -1;
-	    }
-	}
+            // For symlinks, we use the target as the "file contents".
+            tgt = ps_get_target(ps);
+            if ((dcode = code_from_buffer((const unsigned char *)tgt,
+                                          strlen(tgt), path, dcbuf,
+                                          sizeof(dcbuf)))) {
+                ps_set_dcode(ps, dcode);
+                _ps_set_cached_dcode(ps, path);
+            } else {
+                ps_set_dcode(ps, NULL);
+                return -1;
+            }
+        }
     }
 
     return 0;
@@ -517,17 +517,17 @@ ps_diff(ps_o ps1, ps_o ps2)
     CCS reason = NULL;
 
     if (ps1->ps_datatype != ps2->ps_datatype) {
-	reason = "type";
+        reason = "type";
     } else if (ps1->ps_size != ps2->ps_size) {
-	reason = "size";
+        reason = "size";
     } else if (strcmp(ps_get_abs(ps1), ps_get_abs(ps2))) {
-	reason = "path";
+        reason = "path";
     } else if (ps_has_dcode(ps1) && ps_has_dcode(ps2)) {
-	if (strcmp(ps1->ps_dcode, ps2->ps_dcode)) {
-	    reason = "dcode";
-	}
+        if (strcmp(ps1->ps_dcode, ps2->ps_dcode)) {
+            reason = "dcode";
+        }
     } else if (moment_cmp(ps1->ps_moment, ps2->ps_moment, NULL)) {
-	reason = "moment";
+        reason = "moment";
     }
 
     return reason;
@@ -572,37 +572,37 @@ ps_toCSVString(ps_o ps)
     (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
     (void)util_format_to_radix(CSV_RADIX, modebuf, charlen(modebuf),
-	ps_get_mode(ps));
+        ps_get_mode(ps));
 
     // The link target, present only for link ops. It must be URL
     // encoded in case it contains a literal comma.
     if ((target = ps_get_rel2(ps)) || (target = ps_get_target(ps))) {
-	target = util_encode_minimal(target);
+        target = util_encode_minimal(target);
     }
 
     // *INDENT-OFF*
     len = asprintf((CS *)&buf,
-		    "%c%s"			// 1 - DATATYPE
-		    "%s%s"			// 2 - FSNAME
-		    "%s%s"			// 2 - MTIME
-		    "%" PRIu64 "%s"		// 4 - SIZE
-		    "%s%s"			// 5 - MODE
-		    "%s%s"			// 6 - DCODE
-		    "%s%s"			// 7 - LINK TARGET
-		    "%s",			// 8 - PNAME
-	    ps->ps_datatype, FS1,
-	    (fsname && *fsname) ? fsname : "?", FS1,
-	    mtime, FS1,
-	    ps_get_size(ps), FS1,
-	    modebuf, FS1,
-	    ps_get_dcode(ps), FS1,
-	    target ? target : "", FS1,
-	    ps_get_rel(ps));
+                    "%c%s"                      // 1 - DATATYPE
+                    "%s%s"                      // 2 - FSNAME
+                    "%s%s"                      // 2 - MTIME
+                    "%" PRIu64 "%s"             // 4 - SIZE
+                    "%s%s"                      // 5 - MODE
+                    "%s%s"                      // 6 - DCODE
+                    "%s%s"                      // 7 - LINK TARGET
+                    "%s",                       // 8 - PNAME
+            ps->ps_datatype, FS1,
+            (fsname && *fsname) ? fsname : "?", FS1,
+            mtime, FS1,
+            ps_get_size(ps), FS1,
+            modebuf, FS1,
+            ps_get_dcode(ps), FS1,
+            target ? target : "", FS1,
+            ps_get_rel(ps));
     // *INDENT-ON*
 
     if (len < 0) {
-	buf = NULL;
-	putil_syserr(0, buf);
+        buf = NULL;
+        putil_syserr(0, buf);
     }
 
     putil_free(target);
@@ -629,29 +629,29 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, size_t bufmax)
     buf[0] = '\0';
 
     if (sflag) {
-	len = (size_t)snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
+        len = (size_t)snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
     } else if (lflag) {
-	char mtime[MOMENT_BUFMAX];
+        char mtime[MOMENT_BUFMAX];
 
-	(void)moment_format(ps->ps_moment, mtime, charlen(mtime));
+        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-	len = (size_t)snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
-			 " moment=%s %s\n",
-			 ps_get_dcode(ps),
-			 ps_get_size(ps),
-			 mtime,
-			 path);
+        len = (size_t)snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
+                         " moment=%s %s\n",
+                         ps_get_dcode(ps),
+                         ps_get_size(ps),
+                         mtime,
+                         path);
     } else {
-	len = (size_t)snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
-			 ps_get_dcode(ps),
-			 ps_get_size(ps),
-			 path);
+        len = (size_t)snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
+                         ps_get_dcode(ps),
+                         ps_get_size(ps),
+                         path);
     }
 
     if (len > bufmax) {
-	buf[bufmax - 1] = '\0';
-	putil_syserr(0, buf);
-	len = strlen(buf);
+        buf[bufmax - 1] = '\0';
+        putil_syserr(0, buf);
+        len = strlen(buf);
     }
 
     return len;
@@ -720,9 +720,9 @@ CCS
 ps_get_abs2(ps_o ps)
 {
     if (ps->ps_pn2) {
-	return pn_get_abs(ps->ps_pn2);
+        return pn_get_abs(ps->ps_pn2);
     } else {
-	return NULL;
+        return NULL;
     }
 }
 
@@ -733,9 +733,9 @@ CCS
 ps_get_rel2(ps_o ps)
 {
     if (ps->ps_pn2) {
-	return pn_get_rel(ps->ps_pn2);
+        return pn_get_rel(ps->ps_pn2);
     } else {
-	return NULL;
+        return NULL;
     }
 }
 
@@ -781,14 +781,14 @@ void
 ps_destroy(ps_o ps)
 {
     if (!ps) {
-	return;
+        return;
     }
     // Destroy any contained PN objects.
     if (ps->ps_pn) {
-	pn_destroy(ps->ps_pn);
+        pn_destroy(ps->ps_pn);
     }
     if (ps->ps_pn2) {
-	pn_destroy(ps->ps_pn2);
+        pn_destroy(ps->ps_pn2);
     }
     // Free all string pointers.
     putil_free(ps->ps_dcode);
@@ -802,4 +802,4 @@ ps_destroy(ps_o ps)
     putil_free(ps);
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

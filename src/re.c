@@ -85,27 +85,27 @@ re_init_prop__(prop_e prop)
 
     if ((restr = (char *)prop_get_str(prop)) && *restr && !ISSPACE(*restr)) {
 
-	/*
-	 * Allow REs to be specified as e.g. m%regexp%, partly because
-	 * it looks natural to Perl users and partly to make leading and
-	 * trailing whitespace possible. However, do NOT treat /regexp/
-	 * specially because that could confuse users trying to match
-	 * paths containing (say) the 5 characters "/tmp/".
-	 */
-	if (*restr == 'm') {
-	    char *start, *end;
+        /*
+         * Allow REs to be specified as e.g. m%regexp%, partly because
+         * it looks natural to Perl users and partly to make leading and
+         * trailing whitespace possible. However, do NOT treat /regexp/
+         * specially because that could confuse users trying to match
+         * paths containing (say) the 5 characters "/tmp/".
+         */
+        if (*restr == 'm') {
+            char *start, *end;
 
-	    if ((start = restr + 1) && (end = strchr(restr, '\0'))) {
-		if (--end > start && *start == *end && !ISALPHA(*end)) {
-		    *end = '\0';
-		    restr += 2;
-		}
-	    }
-	}
+            if ((start = restr + 1) && (end = strchr(restr, '\0'))) {
+                if (--end > start && *start == *end && !ISALPHA(*end)) {
+                    *end = '\0';
+                    restr += 2;
+                }
+            }
+        }
 
-	return re_init__(prop_to_name(prop), restr);
+        return re_init__(prop_to_name(prop), restr);
     } else {
-	return NULL;
+        return NULL;
     }
 }
 
@@ -122,7 +122,7 @@ re_match__(void *re, CCS str)
 
     /* No RE means no match. */
     if (!re || !str) {
-	return NULL;
+        return NULL;
     }
 
     /* Create match data block */
@@ -180,4 +180,4 @@ re_version(void)
     }
 }
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

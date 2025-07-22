@@ -275,8 +275,8 @@ _monitor_open(SOCKET *sockp, CCS call)
 {
     int so_reuse = 1;
     struct sockaddr_in dest_addr;
-    const char *host;
-    const char *portstr;
+    CCS host;
+    CCS portstr;
     char *nextport;
     u_short port;
     char host_port[256] = "???";

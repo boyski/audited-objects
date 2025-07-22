@@ -482,7 +482,7 @@ util_send_all(SOCKET fd, const void *buf, size_t len, int flags)
     size_t total;
 
     for (total = 0; total < len;) {
-        n = send(fd, (const char *)buf + total, len - total, flags);
+        n = send(fd, (CCS)buf + total, len - total, flags);
         if (n < 0) {
             if (errno != EINTR) {
                 return -1;
@@ -544,9 +544,9 @@ ssize_t
 util_write_all(int fd, const void *vptr, size_t n)
 {
     ssize_t total;
-    const char *p;
+    CCS p;
 
-    for (p = (const char *)vptr, total = 0; n > 0; ) {
+    for (p = (CCS)vptr, total = 0; n > 0; ) {
         ssize_t sofar;
 
         for (sofar = 0; ; total += sofar) {
@@ -695,7 +695,7 @@ util_hash_fun_default(const void *key)
 int
 util_is_tmp(CCS path)
 {
-    static const char *basedir;
+    static CCS basedir;
     int rc = 0;
 
     // Cache this property value.
@@ -916,10 +916,10 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
 /// @param delim        current delimiter string
 /// @return NULL when finished
 char *
-util_strsep(char **stringp, const char *delim)
+util_strsep(char **stringp, CCS delim)
 {
     char *s;
-    const char *spanp;
+    CCS spanp;
     int c, sc;
     char *tok;
 
@@ -993,7 +993,7 @@ util_encode_minimal(CCS instring)
 /// @param[out] olen    Receives the length of the output string
 /// @return a malloc-ed string, unescaped
 char *
-util_unescape(const char *string, int length, int *olen)
+util_unescape(CCS string, int length, int *olen)
 {
     int alloc = (length ? length : (int)strlen(string)) + 1;
     char *ns = (char *)putil_malloc(alloc);

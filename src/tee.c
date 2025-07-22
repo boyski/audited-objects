@@ -25,7 +25,7 @@
 #include "TEE.h"
 
 void
-tee_into(const char *into)
+tee_into(CCS into)
 {
     FILE *teeout;
     ssize_t nread;

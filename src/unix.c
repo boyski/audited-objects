@@ -196,7 +196,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // is more compatible with Windows and potentially more
     // informative. Kind of mind-bending though.
     if (logfile) {
-        const char *loglevel;
+        CCS loglevel;
 
         loglevel = prop_get_str(P_SERVER_LOG_LEVEL);
         if (loglevel && !strcmp(loglevel, "OFF")) {

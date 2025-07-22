@@ -168,7 +168,7 @@ re_fini__(void **re)
     *re = NULL;
 }
 
-const char *
+CCS 
 re_version(void)
 {
     static char version_buffer[64];

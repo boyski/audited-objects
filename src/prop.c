@@ -959,7 +959,7 @@ _prop_get_str(prop_e prop, int isfatal)
 /// allowing a null value to be set explicitly via e.g. "Foo = <NULL>".
 /// @param[in] prop     a property
 /// @return the value of the property as a string
-const char *
+CCS
 prop_get_str(prop_e prop)
 {
     CCS wval;

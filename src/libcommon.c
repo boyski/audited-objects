@@ -300,13 +300,11 @@ _monitor_open(SOCKET *sockp, CCS call)
         exit(2);
     }
 
-#if defined(SO_REUSEPORT)
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
                    &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
         putil_syserr(0, "SO_REUSEPORT");
         exit(2);
     }
-#endif  // SO_REUSEPORT
 
     host = prop_get_str(P_MONITOR_HOST);
     portstr = prop_get_str(P_MONITOR_PORT);

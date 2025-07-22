@@ -318,13 +318,11 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
                 exit(2);
             }
 
-#if defined(SO_REUSEPORT)
             if (setsockopt(listeners[i], SOL_SOCKET, SO_REUSEPORT,
                            &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
                 putil_syserr(0, "SO_REUSEPORT");
                 exit(2);
             }
-#endif  // SO_REUSEPORT
 
             addrlen = sizeof(addr);
             memset(&addr, 0, addrlen);

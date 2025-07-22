@@ -44,7 +44,7 @@ make_init(CCS exe)
     if (prop_is_true(P_EXECUTE_ONLY)) {
         // This mode should not change the command's behavior at all.
     } else if (prop_is_true(P_MAKE_ONESHELL)) {
-        char *exedir, *appdir, *fragment = NULL;
+        CS exedir, appdir, fragment = NULL;
 
         if (exe && (exedir = putil_dirname(exe))) {
             if ((appdir = putil_dirname(exedir))) {

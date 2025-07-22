@@ -79,7 +79,7 @@ _json_to_str(void *obj)
     return cJSON_PrintUnformatted(obj);
 }
 
-/// Free a cJSON object
+/// Free an entire cJSON object recursively
 /// @param[in] obj       the cJSON object
 static void
 _json_delete(void *obj)
@@ -132,6 +132,15 @@ json_from_ca_csv(CCS ca_csv)
     jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;
+}
+
+/// Parse a null-terminated string containing JSON data.
+/// @param[in] json_data  null-terminated string in json format
+/// @return a JSON object
+void *
+json_parse(CCS json_data)
+{
+    return cJSON_Parse(json_data);
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

@@ -22,6 +22,7 @@
 /// @brief Declarations for json.c
 
 CCS json_from_ca_csv(CCS);
+void *json_parse(CCS);
 
 #endif // JSON_H
 

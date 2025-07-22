@@ -23,7 +23,7 @@
 
 #include "cJSON.h"
 #include "JSON.h"
-#include "PROP.h"
+#include "VB.h"
 
 static CCS pa_fields[] = {
     "OP",
@@ -73,8 +73,10 @@ static CCS ca_fields[] = {
 static CCS
 _json_to_str(void *obj)
 {
-    // return cJSON_PrintUnformatted(obj); // may prefer this eventually
-    return cJSON_Print(obj);
+    if (vb_bitmatch(VB_TMP)) {
+        return cJSON_Print(obj); // TODO: for potentially easier debugging
+    }
+    return cJSON_PrintUnformatted(obj);
 }
 
 /// Free a cJSON object

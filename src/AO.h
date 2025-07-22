@@ -222,9 +222,6 @@
 /// on the server side - changes must be made in both places.
 #define FS1 ","
 
-/// If there are fields-within-fields, this would separate them.
-#define FS2 "+"
-
 /// Start-of-audit-group marker for auditor->monitor communication.
 #define SOA "<SOA>"
 /// End-of-audit-group marker for auditor->monitor communication.

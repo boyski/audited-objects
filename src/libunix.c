@@ -87,8 +87,8 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 // back to the original name. This allows us to say
 // 'open(foo,O_RDONLY)' and know that we'll get the "real"
 // version of open() from either the auditor or our own app space.
-// Code that's exclusive to the auditor can feel free to use foo_real()
-// directly.
+// Code that's exclusive to the auditor can feel free to use
+// open_real() and so on directly.
 // Remember to undo these just after including libcommon.c!
 #define fopen           fopen_real
 #define fork            fork_real
@@ -101,7 +101,16 @@ static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
 #define _exit           _exit_real
 /// @endcond static
 
-// This drags in a LOT of source code ...
+// This drags in a LOT of source code! The reason for the unusual
+// decision to #include .c files is to simplify a potential need
+// for different compile flags. For instance, a file such as pa.c
+// when used in the shared library will want to be compiled -fPIC
+// but the same file used in the monitor process is just another
+// bit of application code which doesn't need -fPIC. Compiling
+// the same .c file into 2 difference .o files with different
+// compiler options would be difficult, confusing, and wasteful
+// of space. When included here they inherit the required shared
+// object options and no alternate .o is required.
 #include "libcommon.c"
 
 // The special symbols above must be #undef-ed here
@@ -1129,8 +1138,8 @@ rename_wrapper(const char *call,
 
     ret = (*next)(oldpath, newpath);
 
-    // Renames get VERY complicated. Sometimes a file is created by
-    // one cmd and renamed in another, and we can't be sure in
+    // File renames get VERY complicated. Sometimes a file is created
+    // by one cmd and renamed in another and we can't be sure in
     // what order the audit records will arrive. Current thinking
     // is that it's simplest to report a rename as an unlink followed
     // instantly by a create.  This may seem backward since rename

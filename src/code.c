@@ -65,8 +65,10 @@
 /// that was too slow. I plugged in SHA-256 which, being a 256-bit
 /// hash, has extraordinary collision resistance and it seems to
 /// slow down by "only" about 40%. I looked at a bunch of other
-/// individual algorithms (VMAC, Tiger, etc) before I finally
-/// settled on SHA-1.
+/// individual algorithms (VMAC, Tiger, etc) and eventually
+/// settled on SHA-1. However, time passed and I encountered
+/// xxhash which seems ideal for the application. Thus the
+/// "final" answer is 128-bit xxhash (XXH3_128bits()).
 ///
 // Special case: the Unix "ar" (and Windows "lib") format
 // unfortunately includes a timestamp. Thus, archives made at
@@ -80,7 +82,8 @@
 // Otherwise we just hash the full raw contents. There are a few
 // assumptions buried here, e.g. that archives will not contain
 // other archives, etc. But this is pretty standard,stable stuff
-// and should almost always work.
+// and should almost always work. If it doesn't the file won't
+// be recyclable which is an annoying but nonfatal problem.
 
 #include "Putil/putil.h"
 

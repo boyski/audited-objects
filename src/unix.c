@@ -426,7 +426,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // because the monitor is likely to use a fair number. There
     // is no real bound on fds in use since the monitor may behave
     // asynchronously with respect to both audited child processes
-    // and HTTP connections to the server.
+    // and local write operations.
     _unix_maximize_fds();
 
     // Perform any one-time initializations related to the monitor.
@@ -482,8 +482,8 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         int fd;
         fd_set read_fds;
 
-        // We have to reset the timeout because some implementations
-        // of select modify it. This could cause it to busy-wait
+        // Reset the timeout because some implementations of
+        // select modify it. This could cause it to busy-wait
         // as the timeout becomes zero.
         timeout = master_timeout;
 

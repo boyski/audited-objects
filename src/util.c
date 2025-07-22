@@ -1036,33 +1036,4 @@ util_unescape(CCS string, int length, int *olen)
     return ns;
 }
 
-/// This is a replacement for tempnam(3), only used because
-/// the *&%#$ GNU linker insists on warning about tempnam.
-/// @param[in] dir   Directory - see tempnam(3)
-/// @param[in] pfx   Prefix - see tempnam(3)
-/// @return a malloc-ed string
-char *
-util_tempnam(const char *dir, const char *pfx)
-{
-    char *(*fcn)(const char *, const char *);
-    char *err;
-
-// Suppress "ISO C forbids conversion of object pointer to function pointer"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-    (void)dlerror();
-    if (!(fcn = (char *(*)(const char *, const char *))dlsym(RTLD_DEFAULT, "tempnam"))) {
-        err = dlerror();
-        if (err) {
-            putil_syserr(0, err);
-        } else {
-            putil_syserr(0, "dlsym");
-        }
-        exit(2);
-    }
-#pragma GCC diagnostic pop
-
-    return fcn(dir, pfx);
-}
-
 // vim: sw=4 ts=4 et tw=100 cc=+1

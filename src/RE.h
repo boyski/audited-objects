@@ -27,7 +27,7 @@
 // from the auditor to prevent such problems across the board but
 // that's a painful manual task which tends to bite you every time
 // you add a new interposition, and may not be an option on every
-// platform.
+// platform. This is why double underscores eg re_init__() are used.
 
 /// Compiles the supplied regular expression and returns
 /// the compiled form ready for passing to re_match__().
@@ -75,7 +75,7 @@ extern void re_fini__(void **re);
 
 /// Return the version of the PCRE library.
 /// @return a string reporting the PCRE version
-extern const char *re_version(void);
+extern const char *re_version__(void);
 
 #endif // RE_H
 

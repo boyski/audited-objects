@@ -169,7 +169,7 @@ re_fini__(void **re)
 }
 
 CCS 
-re_version(void)
+re_version__(void)
 {
     static char version_buffer[64];
 

@@ -154,8 +154,8 @@ _print_version(int full)
         fputs(" (DEBUG)", stdout);
 #endif  // _DEBUG
         fputs("\n", stdout);
-        printf("pcre2=%s\n", re_version());
-        printf("kazlib=1.20\n"); // Abandoned, will never change
+        printf("pcre2=%s\n", re_version__());
+        printf("kazlib=1.20\n"); // Abandoned, will never update
     }
 }
 

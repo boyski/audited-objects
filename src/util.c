@@ -41,8 +41,8 @@
 static char OutputFile[PATH_MAX];
 static FILE *OutputStream;
 
-/// Compare two pathnames for equality. Basically this is an alias
-/// for strcmp() which compares case-insensitively on platforms where
+/// Compare two pathnames for equality. It's nearly an alias for
+/// strcmp() but it compares case-insensitively on platforms where
 /// filenames are typically not case sensitive. The other reason for
 /// this function's existence is that its signature matches the typedef
 /// "dict_comp_t" defined by Kazlib, allowing it to be used as a
@@ -111,7 +111,7 @@ util_unmap_file(unsigned char *fdata, uint64_t extent)
 }
 
 /// Take an argv (which may have been derived by a shell splitting up
-/// a command line) and formats it back into a command line, quoted
+/// a command line) and format it back into a command line, quoted
 /// correctly such that if split by a shell the result would be the
 /// original argv.
 /// @param[in] argv     An array of string
@@ -137,7 +137,7 @@ util_requote_argv(CS const *argv)
     // embedded single quotes, (4) use a hybrid strategy of examining
     // the word and choosing the simplest of single, double, or none.
     // The following uses the hybrid approach since that tends to look
-    // a lot more like what a human would do.
+    // most like what a human would do.
 
     for (ptr = cmdline; (word = *argv); argv++) {
 
@@ -224,7 +224,7 @@ util_get_cwd(void)
     return cwd;
 }
 
-/// Calculate the "relative working directory". This is defined
+/// Calculate the "relative working directory", defined
 /// to be the cwd as measured from the project base dir.
 /// @return an allocated buffer
 CCS
@@ -257,7 +257,7 @@ util_get_rwd(void)
     return rwd;
 }
 
-/// Determine current umask and formats it in string form.
+/// Determine current umask and format it in string form.
 /// @param[out] curr_umask      buffer for umask in string form
 /// @param[in] len              size of buffer
 /// @return the passed-in buffer
@@ -332,16 +332,21 @@ util_strup(CS str)
 }
 
 /// Remove whitespace from both left and right ends of the passed string.
+/// The string may be shifted left within its buffer.
 /// @param[in,out] str  modifiable, null-terminated string
-/// @return a pointer to the modified string.
+/// @return a pointer to the potentially modified string.
 CS
 util_strtrim(CS str)
 {
-    CS t;
+    CS start, end;
 
-    for (; ISSPACE(*str); str++);
-    for (t = endof(str); ISSPACE(*(t - 1)); t--);
-    *t = '\0';
+    for (start = str; ISSPACE(*start); start++);
+    if (start > str) {
+        (void)memmove(str, start, strlen(str));
+    }
+    for (end = endof(str); ISSPACE(*(end - 1));) {
+        *end-- = '\0';
+    }
     return str;
 }
 
@@ -657,6 +662,7 @@ util_substitute_params(CCS input, CCS *replaced)
     return changed;
 }
 
+// TODO seems like it should be replaceable by xxhash.
 /// String hashing function, borrowed from kazlib.
 /// @param key  the string to hash
 /// @return a hash value - see kazlib for details
@@ -736,12 +742,12 @@ _util_finalize_output_file(void)
     }
 }
 
-/// Opens the requested output file. This function takes care of
+/// Open the requested output file. This function takes care of
 /// absolute-izing the pathname in case of a subsequent chdir and
 /// of replacing standard substitution strings in the pathname.
 /// It also registers a function to close the file automatically
-/// at exit time. The actual file opened is a temp file which is
-/// renamed to the correct name at exit.
+/// at exit time. The actual file opened is a temp file which will
+/// be renamed to the correct name at exit.
 /// @param ofile the pathname to open
 /// @return a stdio FILE pointer
 FILE *
@@ -807,7 +813,7 @@ util_print_elapsed(time_t since, long minimum, CCS msg)
     }
 }
 
-/// Attempts to fire up a debugger on the current process in a new window.
+/// Attempt to fire up a debugger on the current process in a new window.
 /// Requires the X Window System to be in use because it depends on
 /// starting the debugger within an xterm.
 /// This will run the debugger unless the _START_DEBUGGER
@@ -906,7 +912,7 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
 
 /// Get next token from string *stringp, where tokens are possibly-empty
 /// strings separated by characters from delim.
-/// Writes NULs into the string at *stringp to end tokens.
+/// Write NULs into the string at *stringp to end tokens.
 /// delim need not remain constant from call to call.
 /// On return, *stringp points past the last NUL written (if there might
 /// be further tokens), or is NULL (if there are definitely no more tokens).
@@ -945,6 +951,7 @@ util_strsep(char **stringp, CCS delim)
     /* NOTREACHED */
 }
 
+// TODO with JSON replacing CSV this may become obsolete.
 /// A partial URL-encoding function which encodes only a subset of
 /// characters normally treated by a URL encoder. Currently only [,%]
 /// plus newline are encoded. Commas and newlines are encoded to allow
@@ -984,6 +991,7 @@ util_encode_minimal(CCS instring)
 /// Borrowed from libcurl. Safe casting.
 #define ISXDIGIT(x) (isxdigit((int) ((unsigned char)x)))
 
+// TODO may be obsolete.
 /// Undo the URL encoding of the specified string.
 /// This is taken from libcurl.
 /// If length == 0, the length is assumed to be strlen(string).

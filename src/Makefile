@@ -43,7 +43,7 @@ define FFLAGS :=
   -fstack-protector-strong
   -m64
   -pedantic
-  -std=c17
+  -std=c2x
   #-fdiagnostics-show-option
 endef
 
@@ -263,6 +263,7 @@ $(AOTOOL): $(addprefix $(TGTDIR)/,$(OBJS)) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/,$(OBJS)) \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
+$(LIBAO): CFLAGS := $(patsubst -std=%,-std=c17,$(CFLAGS))
 $(LIBAO): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))

@@ -34,7 +34,6 @@
 #include "PREFS.h"
 #include "PROP.h"
 #include "RE.h"
-#include "TEE.h"
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include "pcre2.h"

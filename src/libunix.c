@@ -24,8 +24,7 @@
 /// @brief The part of the auditor library which is specific
 /// to Unix. More precisely it is specific to ELF-based,
 /// SVR4-derived or -inspired operating systems. If, for instance,
-/// there was ever an AIX auditor it would presumably need yet
-/// another source file.
+/// there was ever an AIX auditor it would presumably need libaix.c.
 
 /// @cond static
 // Make sure we do this before bringing in AO.h because that defaults
@@ -37,8 +36,6 @@
 #include "AO.h"
 
 static int _ignore_path(const char *);
-static void _thread_mutex_lock(void);
-static void _thread_mutex_unlock(void);
 
 // We go out of our way to explicitly include these headers here, even
 // though they've probably already been included, because we're about
@@ -77,6 +74,24 @@ static pthread_t(*pthread_self_real) (void);
 // where we need it.
 static pthread_mutex_t StaticDataAccessMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t ExecFlushMutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void
+_thread_mutex_lock(void)
+{
+    if (pthread_mutex_lock_real) {
+        if (pthread_mutex_lock_real(&StaticDataAccessMutex)) {
+            putil_syserr(2, "pthread_mutex_lock");
+        }
+    }
+}
+
+static void
+_thread_mutex_unlock(void)
+{
+    if (pthread_mutex_unlock_real) {
+        (void)pthread_mutex_unlock_real(&StaticDataAccessMutex);
+    }
+}
 
 // Contains some declarations used by the common code.
 #include "Interposer/interposer.h"
@@ -263,24 +278,6 @@ _ignore_path(const char *path)
     }
 
     return rc;
-}
-
-static void
-_thread_mutex_lock(void)
-{
-    if (pthread_mutex_lock_real) {
-        if (pthread_mutex_lock_real(&StaticDataAccessMutex)) {
-            putil_syserr(2, "pthread_mutex_lock");
-        }
-    }
-}
-
-static void
-_thread_mutex_unlock(void)
-{
-    if (pthread_mutex_unlock_real) {
-        (void)pthread_mutex_unlock_real(&StaticDataAccessMutex);
-    }
 }
 
 // Note that many programs walk through PATH calling exec on

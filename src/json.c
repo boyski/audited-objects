@@ -137,7 +137,7 @@ json_from_ca_csv(CCS ca_csv)
 /// Parse a null-terminated string containing JSON data.
 /// @param[in] json_data  null-terminated string in json format
 /// @return a JSON object
-void *
+json_t *
 json_parse(CCS json_data)
 {
     return cJSON_Parse(json_data);

@@ -21,8 +21,10 @@
 /// @file
 /// @brief Declarations for json.c
 
+typedef struct cJSON json_t;
+
 CCS json_from_ca_csv(CCS);
-void *json_parse(CCS);
+json_t *json_parse(CCS);
 
 #endif // JSON_H
 

@@ -810,6 +810,10 @@ main(int argc, CS *argv)
                 // fallthrough
             case 'v':
                 vb_addstr(bsd_optarg);
+                // With no arg, print known flags and exit.
+                if (!bsd_optarg) {
+                    exit(0);
+                }
                 break;
 
             case LF('D', 'M'):

@@ -197,7 +197,7 @@ vb_addstr(CCS vbstr)
                 fprintf(stdout, VB_FMT, vbtab[i].vb_name, vbtab[i].vb_desc);
             }
         }
-        exit(0);
+        return;
     }
 
     // Append new property strings to the current property value.

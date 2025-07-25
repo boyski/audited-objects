@@ -32,7 +32,7 @@
 /// type too which avoids some signed/unsigned comparison warning,
 typedef struct {
     long long ntv_sec;      ///< Seconds since the (Unix) epoch
-    long ntv_nsec;      ///< Nanoseconds since ntv_sec.
+    long ntv_nsec;          ///< Nanoseconds since ntv_sec.
 } moment_s;
 
 /// A buffer size guaranteed sufficient to hold a formatted moment.

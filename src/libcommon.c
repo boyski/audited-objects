@@ -62,7 +62,7 @@
 // thread safety within a potentially multithreaded host program.
 // The general strategy is to initialize static data once during
 // the single-threaded constructor and treat them as read-only
-// afterwards but that is not always an option.
+// afterwards but that may not always be an option.
 static unsigned long Depth;
 static ca_o CurrentCA;
 static int AuditFD = -1;
@@ -79,10 +79,10 @@ SOCKET ReportSocket = INVALID_SOCKET;
 // running process, typically an IDE, may run with the auditor present
 // but inactive during editing work but then turn it on, do a build,
 // and turn it back off. This latter mode is more complex, less well
-// tested, and not yet documented but it would be great if it could
-// be made to work reliably.
-// Actually even 'request mode' has two variants. One is when we
-// match an activtion RE internally and turn ourselves on, so to speak.
+// tested, not yet documented, and largely hypothetical but it would be
+// nice if it could be made to work reliably.
+// Actually even that 'request mode' has two variants. One is when we
+// match an activation RE internally and turn ourselves on, so to speak.
 // The other is when the IDE makes an explicit call saying "start
 // auditing now". Neither is well tested though.
 static enum {
@@ -109,7 +109,7 @@ static enum {
 
 static void _audit_end(CCS, int, long);
 
-/// Un-exported API to ask whether the auditor is globally active.
+/// Private API to ask whether the auditor is globally active.
 /// @return true if so activated
 static int
 _auditor_isActiveByDefault()
@@ -117,7 +117,7 @@ _auditor_isActiveByDefault()
     return Activated == LIBAO_ACTIVE_BY_DEFAULT;
 }
 
-/// Un-exported API to ask whether the auditor is was activated by request.
+/// Private API to ask whether the auditor is was activated by request.
 /// @return true if so activated
 static int
 _auditor_isActiveByRequest()
@@ -125,7 +125,7 @@ _auditor_isActiveByRequest()
     return Activated == LIBAO_ACTIVE_BY_REQUEST;
 }
 
-/// Un-exported API to ask whether the auditor is currently active.
+/// Private API to ask whether the auditor is currently active.
 /// @return true if activated
 static int
 _auditor_isActive()
@@ -133,21 +133,21 @@ _auditor_isActive()
     return Activated != LIBAO_INACTIVE;
 }
 
-/// Exported API to request temporary auditor activation.
-void
-auditor_setActive(void)
-{
-    Activated = LIBAO_ACTIVE_BY_REQUEST;
-}
-
-/// Un-exported API to make the auditor globally active.
+/// Private API to make the auditor globally active.
 static void
 _auditor_setActiveByDefault(void)
 {
     Activated = LIBAO_ACTIVE_BY_DEFAULT;
 }
 
-/// Exported API to make the auditor inactive.
+/// Public API to request temporary auditor activation.
+void
+auditor_setActive(void)
+{
+    Activated = LIBAO_ACTIVE_BY_REQUEST;
+}
+
+/// Public API to make the auditor inactive.
 void
 auditor_setInactive(void)
 {
@@ -180,7 +180,7 @@ _ignore_path(const char *path)
         // in OS X 10.5. No idea what these files are but they certainly
         // appear to be temp files based on their names.
     } else if (!strncmp(path, "/cores/", 7)) {
-        // Vide infra. This is where OS X puts its core files.
+        // Vide infra. Linux and MacOS may put core dumps in a path like this.
 #endif  // __APPLE__
     } else if ((pend - 5) >= path && !strcmp(pend - 5, "/core")) {
         // Nothing more embarrassing than dumping core (esp. if it's
@@ -305,11 +305,11 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
     }
 }
 
-// NOTE: The current design opens two sockets per audited command;
-// one to deliver the SOA at initialization time, after which we
-// block until it's closed by the monitor, and then another at
+// NOTE: We currently open and close two sockets per audited cmd;
+// once to deliver the SOA at initialization time, after which we
+// block until it's closed by the monitor, and then a second at
 // finalization time to deliver everything else. I've considered
-// trying to keep the one socket open in between on the theory
+// trying to keep a single socket open right through on the theory
 // (untested) that opening two sockets has a measurable cost, but
 // so far am holding back for a few reasons: (1) it's not been
 // shown to matter, (2) by holding sockets open from cmd start to
@@ -514,7 +514,7 @@ _audit_open(void)
         FILE *tfp;
 
         // Create an unnamed/unlinked temp file. Unfortunately this
-        // returns us a stream and not a descriptor. We try not to use
+        // returns a stream and not a descriptor. We try not to use
         // up stdio streams because they're limited to 256 in many cases,
         // so we convert it to a high-numbered descriptor and close
         // the stream.
@@ -579,7 +579,7 @@ _audit_start(CCS call)
     }
     putil_free(hdr);
 
-    // This is an optimization hack - we use lower case to indicate
+    // This is an optimization hack - lower-case is used to indicate
     // that this command is part of an aggregation and thus need not
     // be shopped for.
     if (prop_is_true(P_AGGREGATED_SUBCMD)) {
@@ -662,12 +662,12 @@ _audit_start(CCS call)
 // We must also deal with path accesses collected on the
 // child side of a fork before an exec, if any.
 // Before any child process is created or this process
-// is overlaid via exec, we must make sure the current
+// is overlaid via exec we must make sure the current
 // audit state is not lost (exec) or duplicated (fork).
 // In addition, it's critical that the SOA be seen by the
 // monitor BEFORE any audit data arrives from a subsidiary cmd.
-// Thus the SOA must be sent ASAP but the file data need only
-// be collected for later transmission.
+// Thus the SOA must be sent ASAP but file activity data need
+// only be collected for later transmission.
 static void
 _audit_flush(CCS call)
 {
@@ -686,10 +686,10 @@ _audit_flush(CCS call)
 
     // This is an example of something we might want to do during
     // debugging if a host process is catching SIGSEGV (as Sun's
-    // JVM does for instance). Of course a case could be made
-    // that we could reset *all* signal dispositions during finish
-    // processing since the application thinks it's done.
-    //    assert(signal(SIGSEGV, SIG_DFL) != SIG_ERR);
+    // JVM does for instance). A case could be made that we could
+    // reset *all* signal dispositions during finish processing
+    // since the application thinks it's done.
+    /* assert(signal(SIGSEGV, SIG_DFL) != SIG_ERR); */
 
     // Walk the tree, printing each pa node to the fd.
     // Note - ca_get_recycled is most likely redundant with ca_get_pa_count.
@@ -835,21 +835,22 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     CCS pccode = NULL;
 
     // For a reason I don't understand, and would have to read
-    // the Perl sources to learn, re-setting EVs in the
-    // environment with putenv() causes perl to core dump.
-    // However, when we modify them in place there's no problem.
+    // the Perl sources to learn, re-setting env vars with
+    // putenv() causes perl to dump core. But when modifying
+    // them in place there's no problem.
     // Best guess is that perl maintains a static pointer to
     // the env block and the putenv() causes a realloc of said
     // env block leaving perl's pointer dangling.
     // The main point is that even if this isn't exactly what's
-    // happening in perl, this case *could* happen in any
+    // happening in perl such a case *could* happen in any
     // program. Therefore the rule is that the auditor must *NEVER*
     // add or modify an env var via putenv(). The wrapper program must
     // make sure an EV is already present with sufficient padding
     // and the auditor can then twiddle those bits in place.
-    // For instance, if an EV must hold a 32-but value we allocate
-    // 10 bytes (plus \0) for it in the wrapper because that's the
-    // number of characters needed to represent 2**32 in decimal.
+    // For instance, if an EV must hold a 32-bit value we allocate
+    // 11 bytes for its value in the wrapper because that's the
+    // number of characters needed to represent 2**32 in decimal
+    // followed by \0.
 
     // Initialize verbosity asap.
     vb_init();

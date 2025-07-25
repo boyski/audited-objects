@@ -273,7 +273,7 @@ execv_wrapper(const char *call,
               const char *path, char *const argv[])
 {
     int ret, dbg;
-    WRAPPER_DEBUG("ENTERING execv_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING execv_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     dbg = _pre_exec(call, path, &argv, NULL);
 
@@ -300,7 +300,7 @@ execve_wrapper(const char *call,
                char *const argv[], char *const envp[])
 {
     int ret, dbg;
-    WRAPPER_DEBUG("ENTERING execve_wrapper() => %p [%s ...]\n", next, argv[0]);
+    WRAPPER_DEBUG("ENTERING execve_wrapper() => %p [%s ...]\n", (void *)next, argv[0]);
 
     dbg = _pre_exec(call, path, &argv, envp);
 
@@ -368,7 +368,7 @@ execvp_wrapper(const char *call,
 {
     int ret, dbg;
     char buf[PATH_MAX];
-    WRAPPER_DEBUG("ENTERING execvp_wrapper() => %p [%s ...]\n", next, file);
+    WRAPPER_DEBUG("ENTERING execvp_wrapper() => %p [%s ...]\n", (void *)next, file);
 
     if (strchr(file, '/')) {
         dbg = _pre_exec(call, file, &argv, NULL);
@@ -401,7 +401,7 @@ execvp_wrapper(const char *call,
 fork_wrapper(const char *call, pid_t(*next) (void))
 {
     pid_t pid;
-    WRAPPER_DEBUG("ENTERING fork_wrapper() => %p [%s]\n", next, interposer_get_cmdline());
+    WRAPPER_DEBUG("ENTERING fork_wrapper() => %p [%s]\n", (void *)next, interposer_get_cmdline());
 
     // A subtlety: try the following command on Solaris:
     //   % truss -texec,creat,fork -f -a /bin/sh -c "date > foo"
@@ -472,7 +472,7 @@ vfork(void)
 {
     const char *call = "vfork";
     interposer_late_init(call);
-    WRAPPER_DEBUG("ENTERING vfork_wrapper() => %p\n", fork_real);
+    WRAPPER_DEBUG("ENTERING vfork_wrapper() => %p\n", (void *)fork_real);
 
     if (interposer_get_active()) {
         return fork_wrapper(call, fork_real);
@@ -492,7 +492,7 @@ vfork(void)
 system_wrapper(const char *call, int (*next) (const char *), const char *str)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING system_wrapper() => %p [%s ...]\n", next, str);
+    WRAPPER_DEBUG("ENTERING system_wrapper() => %p [%s ...]\n", (void *)next, str);
 
     // See comments in fork() wrapper.
     _audit_flush(call);
@@ -516,7 +516,7 @@ popen_wrapper(const char *call,
               const char *command, const char *mode)
 {
     FILE *ret;
-    WRAPPER_DEBUG("ENTERING popen_wrapper() => %p [%s ...]\n", next, command);
+    WRAPPER_DEBUG("ENTERING popen_wrapper() => %p [%s ...]\n", (void *)next, command);
 
     // See comments in fork() wrapper.
     _audit_flush(call);
@@ -640,7 +640,7 @@ open_wrapper(const char *call,
              const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
-    WRAPPER_DEBUG("ENTERING open_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING open_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     assert(next);
     ret = (*next)(path, oflag, mode);
@@ -676,7 +676,7 @@ open64_wrapper(const char *call,
                int (*next) (const char *, int, ...),
                const char *path, int oflag, mode_t mode)
 {
-    WRAPPER_DEBUG("ENTERING open64_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING open64_wrapper() => %p [%s ...]\n", (void *)next, path);
     oflag |= O_LARGEFILE;
     return open_wrapper(call, next, path, oflag, mode);
 }
@@ -716,7 +716,7 @@ openat_wrapper(const char *call,
              int fildes, const char *path, int oflag, mode_t mode)
 {
     int ret, saved_errno;
-    WRAPPER_DEBUG("ENTERING openat_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING openat_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     ret = (*next)(fildes, path, oflag, mode);
     saved_errno = errno;
@@ -802,7 +802,7 @@ creat_wrapper(const char *call,
               int (*next) (const char *, mode_t), const char *path, mode_t mode)
 {
     int oflag;
-    WRAPPER_DEBUG("ENTERING creat_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING creat_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     UNUSED(next);
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
@@ -822,7 +822,7 @@ creat64_wrapper(const char *call,
 {
     int oflag;
     static int (*open64_real) (const char *, int, ...);
-    WRAPPER_DEBUG("ENTERING creat64_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING creat64_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     if (!open64_real) {
         open64_real = (int (*)(const char *, int, ...))_get_real("open64");
@@ -861,7 +861,7 @@ fopen_wrapper(const char *call,
 {
     FILE *ret;
     int saved_errno;
-    WRAPPER_DEBUG("ENTERING fopen_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING fopen_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     ret = (*next)(path, mode);
     saved_errno = errno;
@@ -885,7 +885,7 @@ fopen64_wrapper(const char *call,
                 FILE *(*next)(const char *, const char *),
                 const char *path, const char *mode)
 {
-    WRAPPER_DEBUG("ENTERING fopen64_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING fopen64_wrapper() => %p [%s ...]\n", (void *)next, path);
     return fopen_wrapper(call, next, path, mode);
 }
 
@@ -903,7 +903,7 @@ freopen_wrapper(const char *call,
 {
     FILE *ret;
     int saved_errno;
-    WRAPPER_DEBUG("ENTERING freopen_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING freopen_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     ret = (*next)(path, mode, stream);
     saved_errno = errno;
@@ -928,7 +928,7 @@ freopen64_wrapper(const char *call,
                   FILE *(*next)(const char *, const char *, FILE *),
                   const char *path, const char *mode, FILE *stream)
 {
-    WRAPPER_DEBUG("ENTERING freopen64_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING freopen64_wrapper() => %p [%s ...]\n", (void *)next, path);
     return freopen_wrapper(call, next, path, mode, stream);
 }
 
@@ -970,7 +970,7 @@ mkdir_wrapper(const char *call,
              const char *path, mode_t mode)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING mkdir_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING mkdir_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
@@ -1005,7 +1005,7 @@ mkdirp_wrapper(const char *call,
              const char *path, mode_t mode)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING mkdirp_wrapper() => %p [%s ...]\n", next, path);
+    WRAPPER_DEBUG("ENTERING mkdirp_wrapper() => %p [%s ...]\n", (void *)next, path);
 
     ret = (*next)(path, mode);
     if (ret == 0) {
@@ -1027,7 +1027,7 @@ link_wrapper(const char *call,
              const char *existing, const char *newpath)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING link_wrapper() => %p [%s => %s]\n", next, existing, newpath);
+    WRAPPER_DEBUG("ENTERING link_wrapper() => %p [%s => %s]\n", (void *)next, existing, newpath);
 
     ret = (*next)(existing, newpath);
     if (ret == 0) {
@@ -1049,7 +1049,7 @@ symlink_wrapper(const char *call,
                 const char *name1, const char *name2)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING symlink_wrapper() => %p [%s -> %s]\n", next, name1, name2);
+    WRAPPER_DEBUG("ENTERING symlink_wrapper() => %p [%s -> %s]\n", (void *)next, name1, name2);
 
     ret = (*next)(name1, name2);
     if (ret == 0) {
@@ -1071,7 +1071,7 @@ rename_wrapper(const char *call,
                const char *oldpath, const char *newpath)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING rename_wrapper() => %p [%s >> %s]\n", next, oldpath, newpath);
+    WRAPPER_DEBUG("ENTERING rename_wrapper() => %p [%s >> %s]\n", (void *)next, oldpath, newpath);
 
     ret = (*next)(oldpath, newpath);
 
@@ -1120,7 +1120,7 @@ rename_wrapper(const char *call,
 unlink_wrapper(const char *call, int (*next) (const char *), const char *path)
 {
     int ret;
-    WRAPPER_DEBUG("ENTERING unlink_wrapper() => %p [%s]\n", next, path);
+    WRAPPER_DEBUG("ENTERING unlink_wrapper() => %p [%s]\n", (void *)next, path);
 
     // In this special case we record the op BEFORE performing it
     // in order to collect metadata from the path before it goes away.
@@ -1212,7 +1212,7 @@ interposed_finalize(void)
 /* static */ void
 _exit_wrapper(const char *call, void (*next) (int), int status)
 {
-    WRAPPER_DEBUG("ENTERING _exit_wrapper() => %p [%d]\n", next, status);
+    WRAPPER_DEBUG("ENTERING _exit_wrapper() => %p [%d]\n", (void *)next, status);
     // Apparently exit() and _exit() are separate entry points on Solaris
     // and Linux, but on FreeBSD and OSX exit() calls _exit(). On those
     // platforms we must still intercept _exit() for programs which call
@@ -1239,7 +1239,7 @@ _Exit_wrapper(const char *call, void (*next) (int), int status)
 {
     // Since both signature and semantics are guaranteed identical
     // we can use the _exit() wrapper.
-    WRAPPER_DEBUG("ENTERING _Exit_wrapper() => %p [%d]\n", next, status);
+    WRAPPER_DEBUG("ENTERING _Exit_wrapper() => %p [%d]\n", (void *)next, status);
     _exit_wrapper(call, next, status);
 }
 

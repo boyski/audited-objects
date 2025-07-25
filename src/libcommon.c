@@ -154,6 +154,62 @@ auditor_setInactive(void)
     Activated = LIBAO_INACTIVE;
 }
 
+// Internal service routine. There are certain files we truly don't
+// care about and just want to ignore as early as possible.
+static int
+_ignore_path(const char *path)
+{
+    int rc = 1;
+    const char *pend;
+
+    pend = endof(path);
+
+    if (!strncmp(path, "/proc/", 6) || !strncmp(path, "/xfn/", 5) ||
+        !strncmp(path, "/dev/", 5) || !strncmp(path, "/devices/", 9)) {
+        // Typical "special" Unix file-like items.
+    } else if (strstr(path, "/.ccache/")) {
+        // There's no good reason to use ccache with AO but try to
+        // behave reasonably if it happens anyway.
+#if defined(linux)
+    } else if (!strcmp(path, "/etc/mtab") || !strcmp(path, "/proc/mounts")) {
+        // On Linux all processes seem to open /etc/mtab.
+        // And we ourselves need to open /proc/mounts.
+#elif defined(__APPLE__)
+    } else if (strstr(path, "-Tmp-")) {
+        // There's a lot of screwy stuff going on under /private/var/...
+        // in OS X 10.5. No idea what these files are but they certainly
+        // appear to be temp files based on their names.
+    } else if (!strncmp(path, "/cores/", 7)) {
+        // Vide infra. This is where OS X puts its core files.
+#endif  // __APPLE__
+    } else if ((pend - 5) >= path && !strcmp(pend - 5, "/core")) {
+        // Nothing more embarrassing than dumping core (esp. if it's
+        // our fault) and then uploading the core file ...
+        // IDEA but it may be better to skip these only at upload time
+        // (i.e. record the action but don't save the result).
+        // There are legitimate operations which *read* a core file.
+    } else if (util_is_tmp(path)) {
+        // We used to not trust this, on the theory that data is often
+        // communicated between processes in the form of temp files,
+        // such as a compiler leaving a .s file in /tmp for the
+        // assembler to process and remove. But it was enabled and
+        // the test suite still passes, so left in at least until
+        // it causes trouble. If we stop filtering tmp files here we
+        // need to start filtering them at upload time.
+    } else if (!strncmp(path, "/tmp/sh", 7) && atoi(path + 7) > 0) {
+        // The shell tends to keep here-documents in a file called
+        // "/tmp/shnnnnn" where "nnnnn" is based on the pid.
+    } else if (IgnorePathRE && re_match__(IgnorePathRE, path)) {
+        // User-configurable set of ignorable files. We may
+        // eventually want to shift the hard-wired patterns
+        // above to this model.
+    } else {
+        rc = 0;
+    }
+
+    return rc;
+}
+
 // Internal service routine. Called from intercepted system calls
 // to register a file access (read, write, link, unlink, etc).
 static void

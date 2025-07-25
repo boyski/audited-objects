@@ -252,8 +252,6 @@ docs dox:
 
 $(TGTDIR)/putil.o: Putil/putil.h
 
-$(TGTDIR)/aotool.o: About/about.c
-
 $(TGTDIR)/%.o: %.c AO.h App.properties
 	$(CC) -c $(GFLAGS) $(CFLAGS) -o $@ $<
 

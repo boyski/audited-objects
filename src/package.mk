@@ -14,7 +14,6 @@ GTAR := gtar --owner=0 --group=0 --mode=u+rw --dereference
 SRCS := \
   $(src)/*.[ch] \
   $(src)/*.linkmap \
-  $(src)/About/about.c \
   $(src)/Interposer/*.* \
   $(src)/Putil/*.* \
   $(src)/Zip \

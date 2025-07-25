@@ -27,8 +27,7 @@
 /// there was ever an AIX auditor it would presumably need libaix.c.
 
 /// @cond static
-// Make sure we do this before bringing in AO.h because that defaults
-// to declaring these functions non-static.
+// Do this before including AO.h because it defaults to declaring functions non-static.
 #define PUTIL_DECLARE_FUNCTIONS_STATIC
 #include "Putil/putil.h"
 /// @endcond
@@ -48,9 +47,8 @@
 
 #include <assert.h>
 
-// Here we declare alternate names for some functions we'll be
-// intercepting in order that we can still call them directly as
-// needed within the auditor.
+// Declare alternate names for some functions we'll be intercepting so
+// we can still call them directly as needed within the auditor.
 static FILE *(*fopen_real) (const char *, const char *);
 static pid_t(*fork_real) (void);
 static int (*open_real) (const char *, int, ...);
@@ -97,9 +95,9 @@ _thread_mutex_unlock(void)
 /// @cond static
 // For ease of use, and for the benefit of code that's used
 // both inside and outside the auditor, we #define the above names
-// back to the original name. This allows us to say
+// back to the original name temporarily. This allows us to say
 // 'open(foo,O_RDONLY)' and know that we'll get the "real"
-// version of open() from either the auditor or our own app space.
+// version of open() from either the auditor or app space.
 // Code that's exclusive to the auditor can feel free to use
 // open_real() and so on directly.
 // Remember to undo these just after including libcommon.c!
@@ -126,7 +124,7 @@ _thread_mutex_unlock(void)
 // object options and no alternate .o is required.
 #include "libcommon.c"
 
-// The special symbols above must be #undef-ed here
+// The special symbols above must be #undef-ed ASAP
 // so we can intercept them under their real names.
 #undef fopen
 #undef fork
@@ -181,7 +179,7 @@ _get_real(const char *fcn)
 /// This function will be called at the <i>earliest possible
 /// opportunity</i> once the audited command is fully initialized
 /// and running. This generally means at the first interposed
-/// function called after main(). We would love to figure out a
+/// function called after main(). It would be great to figure out a
 /// way to get earlier, e.g. to interpose on main() itself, but
 /// for now this is the best we have and it seems to work fine.
 /// @param[in] call     the name of the interposed function call
@@ -245,7 +243,7 @@ _pre_exec(const char *call, const char *path,
     // so we're about to embark on a suicide mission. Flush and
     // send all accumulated data in case we don't come back,
     // but leave the audit open in the unlikely event we do.
-    // Note: we need to synchronize around this flush because it
+    // Note: must synchronize around this flush because it
     // operates on AuditFD from a potentially multithreaded code path.
 
     if (pthread_mutex_lock_real) {
@@ -528,7 +526,7 @@ popen_wrapper(const char *call,
     return ret;
 }
 
-// We probably should have an interposer for posix_spawn here ...
+// There probably should be an interposer for posix_spawn here ...
 
 static void
 _enable_thread_support(const char *call)
@@ -1204,8 +1202,8 @@ interposed_finalize(void)
 }
 
 /// Interpose over the _exit() function.
-/// Most exits are caught by interposed_finalize(), but an explicit
-/// call to _exit() skips the destructor, so we catch it here by
+/// Most exits are caught by interposed_finalize() but an explicit
+/// call to _exit() skips the destructor so it's handled here by
 /// interposition instead.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function

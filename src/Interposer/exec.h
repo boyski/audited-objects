@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_EXEC_H
-#define	_INTERPOSER_EXEC_H
+#define _INTERPOSER_EXEC_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -43,6 +43,6 @@ WRAP(int, isaexec, (const char *path, char *const argv[], char *const envp[]), p
 }
 #endif
 
-#endif	/* _INTERPOSER_EXEC_H */
+#endif  /* _INTERPOSER_EXEC_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

@@ -16,22 +16,22 @@
  */
 
 #ifndef _INTERPOSER_PRELOAD_H
-#define	_INTERPOSER_PRELOAD_H
+#define _INTERPOSER_PRELOAD_H
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 #if defined(__APPLE__)
-#define PRELOAD_EV	"DYLD_INSERT_LIBRARIES"
-#else	/*__APPLE__*/
-#define PRELOAD_EV	"LD_PRELOAD"
-#endif	/*__APPLE__*/
+#define PRELOAD_EV      "DYLD_INSERT_LIBRARIES"
+#else   /*__APPLE__*/
+#define PRELOAD_EV      "LD_PRELOAD"
+#endif  /*__APPLE__*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_PRELOAD_H */
+#endif  /* _INTERPOSER_PRELOAD_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

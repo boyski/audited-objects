@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_THREADS_H
-#define	_INTERPOSER_THREADS_H
+#define _INTERPOSER_THREADS_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -30,7 +30,7 @@ extern "C" {
 
 WRAP(int, pthread_create,
     (pthread_t *thread, const pthread_attr_t *attr,
-	void *(*start_func)(void*), void *arg),
+        void *(*start_func)(void*), void *arg),
     thread, attr, start_func, arg)
 
 WRAP_NORETURN(void, pthread_exit, (void *value_ptr), value_ptr)
@@ -43,17 +43,17 @@ WRAP_NORETURN(void, pthread_exit, (void *value_ptr), value_ptr)
 
 WRAP(int, thr_create,
     (void *stack_base, size_t stack_size,
-	void *(*start_func)(void*), void *arg, long flags, thread_t *new_ID),
+        void *(*start_func)(void*), void *arg, long flags, thread_t *new_ID),
     stack_base, stack_size, start_func, arg, flags, new_ID)
 
 WRAP_NORETURN(void, thr_exit, (void *status), status)
 
-#endif	/*sun*/
+#endif  /*sun*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_THREADS_H */
+#endif  /* _INTERPOSER_THREADS_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

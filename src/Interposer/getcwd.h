@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_GETCWD_H
-#define	_INTERPOSER_GETCWD_H
+#define _INTERPOSER_GETCWD_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -30,6 +30,6 @@ WRAP(char *, getcwd, (char *buf, size_t size), buf, size)
 }
 #endif
 
-#endif	/* _INTERPOSER_GETCWD_H */
+#endif  /* _INTERPOSER_GETCWD_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

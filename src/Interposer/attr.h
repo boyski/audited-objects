@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_ATTR_H
-#define	_INTERPOSER_ATTR_H
+#define _INTERPOSER_ATTR_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -36,12 +36,12 @@ WRAP(int, fchown, (int fildes, uid_t owner, gid_t group), fildes, owner, group)
 #ifdef AT_FDCWD
 WRAP(int, fchownat, (int fildes, const char *path, uid_t owner, gid_t group, int flag), fildes, path, owner, group, flag)
 WRAP(int, futimesat, (int fildes, const char *path, const struct timeval times[2]), fildes, path, times)
-#endif	/*AT_FDCWD*/
+#endif  /*AT_FDCWD*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_ATTR_H */
+#endif  /* _INTERPOSER_ATTR_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=4 et tw=100 cc=+1

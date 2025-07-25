@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_EXIT_H
-#define	_INTERPOSER_EXIT_H
+#define _INTERPOSER_EXIT_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -58,6 +58,6 @@ WRAP_NORETURN(void, _Exit, (int status), status)
 }
 #endif
 
-#endif	/* _INTERPOSER_EXIT_H */
+#endif  /* _INTERPOSER_EXIT_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

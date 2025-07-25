@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_FORK_H
-#define	_INTERPOSER_FORK_H
+#define _INTERPOSER_FORK_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -28,7 +28,7 @@ WRAP_VOID(pid_t, fork)
 
 #if defined(sun)
 WRAP_VOID(pid_t, fork1)
-#endif	/*sun*/
+#endif  /*sun*/
 
 #if defined(linux)
 #include <sched.h>
@@ -36,7 +36,7 @@ WRAP_VOID(pid_t, fork1)
 // need a special-case macro. If we need this wrapper at all, that is.
 // WRAP(int, clone, (int (*fn)(void *), void *child_stack, int flags, void *arg),
 //      fn, child_stack, flags, arg)
-#endif	/*linux*/
+#endif  /*linux*/
 
 // vfork is a very special case. It cannot be wrapped generically
 // because of the rule that the function it returns to must not
@@ -53,6 +53,6 @@ WRAP(FILE *, popen,  (const char *command, const char *mode), command, mode)
 }
 #endif
 
-#endif	/* _INTERPOSER_FORK_H */
+#endif  /* _INTERPOSER_FORK_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

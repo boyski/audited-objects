@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_LINK_H
-#define	_INTERPOSER_LINK_H
+#define _INTERPOSER_LINK_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -36,12 +36,12 @@ WRAP(int, rmdir,  (const char *path), path)
 WRAP(int, renameat, (int fromfd, const char *oldpath, int tofd, const char *newpath), fromfd, oldpath, tofd, newpath)
 WRAP(int, linkat,   (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags), olddirfd, oldpath, newdirfd, newpath, flags)
 WRAP(int, unlinkat, (int dirfd, const char *path, int flag), dirfd, path, flag)
-#endif	/*AT_FDCWD*/
+#endif  /*AT_FDCWD*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_LINK_H */
+#endif  /* _INTERPOSER_LINK_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

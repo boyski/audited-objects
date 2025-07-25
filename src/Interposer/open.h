@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_OPEN_H
-#define	_INTERPOSER_OPEN_H
+#define _INTERPOSER_OPEN_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -68,12 +68,12 @@ WRAP_OPENAT(int, openat)
 WRAP_OPENAT(int, __openat_2)
 WRAP_OPENAT(int, openat64)
 WRAP_OPENAT(int, __openat64_2)
-#endif	/*AT_FDCWD*/
+#endif  /*AT_FDCWD*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_OPEN_H */
+#endif  /* _INTERPOSER_OPEN_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

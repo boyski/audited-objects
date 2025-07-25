@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_REALPATH_H
-#define	_INTERPOSER_REALPATH_H
+#define _INTERPOSER_REALPATH_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -31,6 +31,6 @@ WRAP(char *, realpath, (const char *file_name, char *resolved_name),
 }
 #endif
 
-#endif	/* _INTERPOSER_REALPATH_H */
+#endif  /* _INTERPOSER_REALPATH_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

@@ -16,7 +16,7 @@
  */
 
 #ifndef _INTERPOSER_STAT_H
-#define	_INTERPOSER_STAT_H
+#define _INTERPOSER_STAT_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -29,11 +29,11 @@ extern "C" {
 WRAP(int, __xstat,  (int ver, const char *path, struct stat *buf), ver, path, buf)
 WRAP(int, __lxstat, (int ver, const char *path, struct stat *buf), ver, path, buf)
 WRAP(int, __fxstat, (int ver, int fildes, struct stat *buf), ver, fildes, buf)
-#else	/*_STAT_VER*/
+#else   /*_STAT_VER*/
 WRAP(int,  stat, (const char *path, struct stat *buf), path, buf)
 WRAP(int, lstat, (const char *path, struct stat *buf), path, buf)
 WRAP(int, fstat, (int fildes, struct stat *buf), fildes, buf)
-#endif	/*_STAT_VER*/
+#endif  /*_STAT_VER*/
 
 // Transitional lf64 stat calls for Solaris and Linux and ?? 32-bit objects.
 // Note that Solaris/X86 is very weird: the 32-bit environment looks like
@@ -43,24 +43,24 @@ WRAP(int, fstat, (int fildes, struct stat *buf), fildes, buf)
 WRAP(int, __xstat64,  (int ver, const char *path, struct stat64 *buf), ver, path, buf)
 WRAP(int, __lxstat64, (int ver, const char *path, struct stat64 *buf), ver, path, buf)
 WRAP(int, __fxstat64, (int ver, int fildes, struct stat64 *buf), ver, fildes, buf)
-#else	/*_STAT_VER*/
+#else   /*_STAT_VER*/
 #if !defined(BSD)
 WRAP(int,  stat64, (const char *path, struct stat64 *buf), path, buf)
 WRAP(int, lstat64, (const char *path, struct stat64 *buf), path, buf)
 WRAP(int, fstat64, (int fildes, struct stat64 *buf), fildes, buf)
-#endif	/*BSD*/
-#endif	/*_STAT_VER*/
+#endif  /*BSD*/
+#endif  /*_STAT_VER*/
 
 // This is an additional suite introduced on Solaris.
 #ifdef AT_FDCWD
 WRAP(int, fstatat, (int fildes, const char *path, struct stat *buf, int flag), fildes, path, buf, flag)
 WRAP(int, fstatat64, (int fildes, const char *path, struct stat64 *buf, int flag), fildes, path, buf, flag)
-#endif	/*AT_FDCWD*/
+#endif  /*AT_FDCWD*/
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif	/* _INTERPOSER_STAT_H */
+#endif  /* _INTERPOSER_STAT_H */
 
-// vim: sw=4 ts=8 tw=100 cc=+1
+// vim: sw=4 ts=8 et tw=100 cc=+1

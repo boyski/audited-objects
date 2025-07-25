@@ -83,7 +83,8 @@ ifneq (,$(findstring Linux,$(TGTARCH)))
   endif
 endif
 
-DFLAGS := -D_REENTRANT
+DFLAGS := $(EXTRA_DFLAGS)
+DFLAGS += -D_REENTRANT
 DFLAGS += -DFILE_OFFSET_BITS=64
 DFLAGS += -D_GNU_SOURCE
 

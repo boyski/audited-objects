@@ -95,8 +95,8 @@ _mon_verbosity(ca_o ca, CCS action)
     vb_printf(VB_CA, "%s: %s", action, ca_get_line(ca));
 }
 
-// Support debugging/verbosity. Deletes nothing and
-// returns a string which must be freed manually.
+// Support debugging/verbosity. Delete nothing,
+// return a string which must be freed manually.
 static CCS
 _mon_tostring(void)
 {

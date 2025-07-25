@@ -291,7 +291,7 @@ vb_bitmatch(long bit)
 /// @param[in] bit      a long specifying a single bit
 /// @param[in] fmt      a printf-style format string
 void
-vb_printfA(long bit, const char *fmt, ...)
+vb_printf(long bit, const char *fmt, ...)
 {
     va_list ap;
 

@@ -102,12 +102,8 @@ extern FILE *vb_get_stream(void);
 extern void vb_addstr(CCS);
 extern void vb_addbit(int);
 extern int vb_bitmatch(long);
-extern void vb_printfA(long, const char *, ...);
+extern void vb_printf(long, const char *, ...);
 extern void vb_fini(void);
-
-/// @cond VB
-#define vb_printf           vb_printfA
-/// @endcond VB
 
 #endif // VB_H
 

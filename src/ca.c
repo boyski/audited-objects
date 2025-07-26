@@ -140,7 +140,7 @@ _ca_cmp_codes(CCS ccode1, CCS ccode2)
     return strcmp(ccode1, ccode2);
 }
 
-/// Finalizer for CmdKey class - releases all allocated memory.
+/// Finalizer for CmdKey class - release all allocated memory.
 /// @param[in] ck       the CmdKey object pointer
 void
 ck_destroy(ck_o ck)

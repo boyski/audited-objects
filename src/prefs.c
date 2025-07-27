@@ -20,12 +20,10 @@
 /// This file basically manages access to the properties table
 /// (see prop.c) by implementing a hierarchy of properties locations
 /// (look here, then there, then somewhere else, etc). The actual
-/// work of reading the properties files is done in prop.c.
+/// work of reading properties files is done in prop.c.
 
 #include "AO.h"
-
 #include "PREFS.h"
-
 #include "PROP.h"
 #include "RE.h"
 

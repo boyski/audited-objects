@@ -21,22 +21,22 @@
 /// format is the same. Essentially, properties are a set of key-value
 /// pairs describing local or personal configuration choices.
 ///
-/// In the Java model the *FIRST* setting of a property wins.  In other
-/// words once a property is set, subsequent settings are no-ops unless
+/// In the Java properties model the *FIRST* setting wins.  In other
+/// words once a property is set subsequent settings are no-ops unless
 /// the previous value is explicitly deleted in between. Functions for
 /// overriding values are provided.
 ///
 /// Properties can be marked as public, private, or internal depending
 /// on whether the user is likely to have an interest in them. The
 /// difference between private and internal is that private properties
-/// could be promoted to public, whereas internal properties would
-/// never make sense to expose.
+/// could potentially be promoted to public whereas internal properties
+/// would never make sense to expose.
 ///
 /// Properties may optionally be exported which causes them to be
-/// made available to child processes (typically via the auditor).
+/// made available to child processes (typically in the auditor).
 ///
 /// All property names are case-insensitive but by convention we use
-/// UPPERCASE for internal names and MixedCase for exposed names.
+/// UPPERCASE for internal names and MixedCase for public or private.
 
 #include "AO.h"
 
@@ -722,7 +722,7 @@ _prop_replace_char(CS bp, char newchar, char oldchar)
     }
 }
 
-/// Constructor - creates a new (singleton) Properties object.
+/// Constructor - create a new (singleton) Properties object.
 /// @param[in] app      the name of this application
 void
 prop_init(CCS app)
@@ -751,8 +751,8 @@ _prop_get_value(prop_e prop)
     return proptab[prop].pr_value;
 }
 
-// Parses out a line from a *.properties file. Handles leading and
-// trailing whitespace and delimiters as per the J2SE 1.4 Properties spec.
+// Parse out a line from a *.properties file. Handle leading and trailing
+// whitespace and delimiters as per the J2SE 1.4 Properties spec.
 static int
 _prop_process_line(CS line, int win)
 {
@@ -823,7 +823,7 @@ _prop_process_line(CS line, int win)
     return 0;
 }
 
-/// Looks up a property by its string name.
+/// Look up a property by its string name.
 /// @param[in] name     a string representing a property
 /// @return the property
 prop_e
@@ -840,7 +840,7 @@ prop_from_name(CCS name)
     return P_BADPROP;
 }
 
-/// Looks up a property by its string name and returns its value
+/// Look up a property by its string name and returns its value
 /// @param[in] name     a string representing a property
 /// @return the named property's value, or NULL
 CCS
@@ -856,7 +856,7 @@ prop_value_from_name(CCS name)
     }
 }
 
-/// Looks up a property and returns its string name.
+/// Look up a property and returns its string name.
 /// @param[in] prop     a property
 /// @return the name of the property
 CCS
@@ -865,7 +865,7 @@ prop_to_name(prop_e prop)
     return proptab[prop].pr_name;
 }
 
-/// Sets a boolean property to true.
+/// Set a boolean property to true.
 /// @param[in] prop     a boolean-valued property
 void
 prop_set_true(prop_e prop)
@@ -873,7 +873,7 @@ prop_set_true(prop_e prop)
     prop_put_ulong(prop, 1);
 }
 
-/// Sets a boolean property, replacing the pre-existing
+/// Set a boolean property, replacing the pre-existing
 /// value if present.
 /// @param[in] prop     a boolean-valued property
 void
@@ -883,7 +883,7 @@ prop_override_true(prop_e prop)
     prop_set_true(prop);
 }
 
-/// Returns true iff the boolean property specified is true.
+/// Return true iff the boolean property specified is true.
 /// Note that "true/false" and "yes/no" are accepted values.
 /// Otherwise, non-zero integral values are considered true
 /// and all others are considered false.
@@ -895,7 +895,7 @@ prop_is_true(prop_e prop)
     return prop_get_ulong(prop) ? 1 : 0;
 }
 
-/// Returns true iff the property has been set to a value.
+/// Return true iff the property has been set to a value.
 /// A zero-length string is considered the same as a null string,
 /// i.e. having no value.
 /// Does not look at default values, only explicit settings.
@@ -910,7 +910,7 @@ prop_has_value(prop_e prop)
     return value && *value;
 }
 
-/// Queries whether the property specified is public (aka documented).
+/// Query whether the property specified is public (aka documented).
 /// @param[in] prop     a property
 /// @return 1 if the specified property is public
 int
@@ -930,7 +930,7 @@ _prop_report_missing(prop_e prop, int isfatal)
     }
 }
 
-// Internal support routine. Returns a property's value as a string.
+// Internal support routine. Return a property's value as a string.
 static CCS
 _prop_get_str(prop_e prop, int isfatal)
 {
@@ -954,8 +954,8 @@ _prop_get_str(prop_e prop, int isfatal)
     return result;
 }
 
-/// Retrieves a string-valued property by key.
-/// Feature: translates the value "<NULL>" to a null string. thus
+/// Retrieve a string-valued property by key.
+/// Feature: translates the value "<NULL>" to a null string, thus
 /// allowing a null value to be set explicitly via e.g. "Foo = <NULL>".
 /// @param[in] prop     a property
 /// @return the value of the property as a string
@@ -971,7 +971,7 @@ prop_get_str(prop_e prop)
     }
 }
 
-/// Gets an unsigned numeric-valued property. Accepts values in decimal or hex.
+/// Get an unsigned numeric-valued property. Accepts values in decimal or hex.
 /// @param[in] prop     a property
 /// @return the value of the property as an unsigned long
 unsigned long
@@ -991,7 +991,7 @@ prop_get_ulong(prop_e prop)
     return strtoul(str, NULL, base);
 }
 
-/// Gets a signed numeric-valued property. Accepts values in decimal or hex.
+/// Get a signed numeric-valued property. Accepts values in decimal or hex.
 /// @param[in] prop     a property
 /// @return the value of the property as a signed long
 long
@@ -1023,15 +1023,15 @@ _prop_put_str(prop_e prop, CCS val)
     }
 }
 
-/// Sets a string-valued property. Storage is allocated for the new string.
+/// Set a string-valued property. Storage is allocated for the new string.
 /// If the value is exported AND we may need to modify its value down the
 /// road, it must be padded upon first export. This is because it's
 /// crucial that the change not force growth in (and thus a potential
-/// realloc of) the env block in an audited process. I.e. we may export
+/// realloc of) the env block in an audited process. I.e. we might export
 /// "1" as "         1" in order to reserve all the env space
 /// possibly needed for a 32-bit value. Luckily, strtol and friends
 /// ignore leading whitespace. For string-valued properties we must
-/// remember to trim it off ourselves.
+/// remember to trim it ourselves.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as a string
 void
@@ -1050,7 +1050,7 @@ prop_put_str(prop_e prop, CCS val)
     }
 }
 
-/// Sets a string numeric-valued property, replacing the pre-existing
+/// Set a string numeric-valued property, replacing the pre-existing
 /// value if present.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as a string
@@ -1061,7 +1061,7 @@ prop_override_str(prop_e prop, CCS val)
     prop_put_str(prop, val);
 }
 
-/// Sets a signed numeric-valued property. Integral-valued but
+/// Set a signed numeric-valued property. Integral-valued but
 /// handled as a long for flexibility.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as a signed long
@@ -1074,8 +1074,8 @@ prop_put_long(prop_e prop, long val)
     prop_put_str(prop, vbuf);
 }
 
-/// Sets an unsigned numeric-valued property. Integral-valued but
-/// handled as a long for flexibility.
+/// Set an unsigned numeric-valued property. Integral-valued but
+/// handled as a ulong for flexibility.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as an unsigned long
 void
@@ -1087,7 +1087,7 @@ prop_put_ulong(prop_e prop, unsigned long val)
     prop_put_str(prop, vbuf);
 }
 
-/// Sets an unsigned numeric-valued property, replacing the pre-existing
+/// Set an unsigned numeric-valued property, replacing the pre-existing
 /// value if present.
 /// @param[in] prop     a property
 /// @param[in] val      the new value for this property as an unsigned long
@@ -1120,7 +1120,7 @@ prop_unset(prop_e prop, int unexport)
     }
 }
 
-/// Returns the name of the current application.
+/// Return the name of the current application.
 /// Each Property 'object' has a special "app" property.
 /// This value is prefixed to env vars representing properties.
 /// @return the official application name
@@ -1165,7 +1165,7 @@ _prop_load_from_ev(CS buf)
         // to set a property via the env without having different
         // semantics vs setting the same property in a file.
         // In other words only the top-level process finds it in the
-        // env, while child processes use the normal inheritance path.
+        // env while child processes use the normal inheritance path.
         if (!(proptab[prop].pr_flags & PROP_FLAG_EXPORT)) {
             prop_unexport(prop, 0);
         }
@@ -1173,7 +1173,7 @@ _prop_load_from_ev(CS buf)
     }
 }
 
-/// Given a properties file, load it into the properties object.
+/// Load the supplied properties file into the properties object.
 /// @param[in] fname    the name of a properties file
 /// @param[in] verbose  verbosity string, or NULL
 /// @param[in] win      boolean - should this setting win over previous?
@@ -1294,7 +1294,7 @@ _prop_export(prop_e prop)
     return;
 }
 
-/// Make sure the specified property will not be exported to children.
+/// Ensure the specified property will not be exported to children.
 /// This has no effect on the current setting of the property.
 /// WARNING: must not be called from the auditor.
 /// @param[in] prop     the specified property
@@ -1315,7 +1315,7 @@ prop_unexport(prop_e prop, int forever)
     return;
 }
 
-/// Returns the 'desc' (description) field of the specified property.
+/// Return the 'desc' (description) field of the specified property.
 /// @param[in] prop     a property
 /// @return the property's description string
 CCS
@@ -1324,7 +1324,7 @@ prop_desc(prop_e prop)
     return proptab[prop].pr_desc;
 }
 
-/// Prints the known set of properties and their current values.
+/// Print the known set of properties and their current values.
 /// @param[in] all      boolean - if true, show undocumented properties too
 /// @param[in] verbose  boolean - if true, show property descriptions
 /// @param[in] exe      the name of the current program
@@ -1374,7 +1374,7 @@ prop_help(int all, int verbose, CCS exe)
     }
 }
 
-/// Dumps all known properties to stderr. A zero argument prints only
+/// Dump all known properties to stderr. A zero argument prints only
 /// user-visible properties, non-zero prints internal ones too.
 /// This is primarily a convenience to be called from a debugger.
 /// @param[in] all      boolean - if true, show all properties
@@ -1473,7 +1473,7 @@ prop_mod_str(prop_e prop, CCS val, char *const *envp)
     }
 }
 
-/// Modifies an unsigned numeric-valued property in place.
+/// Mofify an unsigned numeric-valued property in place.
 /// @param[in] prop     a property
 /// @param[in] val      the new value
 /// @param[in,out] envp optionally, a pointer to a custom env block
@@ -1732,7 +1732,7 @@ prop_unexport_all(void)
     }
 }
 
-/// Finalizer - releases all storage of the "singleton properties object".
+/// Finalize - releases all storage of the "singleton properties object".
 void
 prop_fini(void)
 {

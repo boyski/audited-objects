@@ -21,9 +21,12 @@
 /// @file
 /// @brief Declarations for json.c
 
+#include "cJSON.h"
+
 typedef struct cJSON json_t;
 
 CCS json_from_ca_csv(CCS);
+int json_same(const void *, const void *);
 json_t *json_parse(CCS);
 
 #endif // JSON_H

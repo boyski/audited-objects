@@ -21,7 +21,6 @@
 
 #include "Putil/putil.h"
 
-#include "cJSON.h"
 #include "JSON.h"
 #include "VB.h"
 
@@ -132,6 +131,98 @@ json_from_ca_csv(CCS ca_csv)
     jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;
+}
+
+#if 0
+/// Compare two cJSON items for content equality, recursively.
+/// @param[in] a  "left" json object
+/// @param[in] b  "right" json object
+/// @return 0 iff a and b differ
+int
+json_same(const cJSON *a, const cJSON *b)
+{
+    if (!a || !b) {
+        return a == b;
+    }
+
+    // Different types are never equal
+    if (a->type != b->type) {
+        return 0;
+    }
+
+    switch (a->type) {
+        case cJSON_String:
+            return strcmp(a->valuestring, b->valuestring) == 0;
+
+        case cJSON_Number:
+            return a->valuedouble == b->valuedouble;
+
+        case cJSON_True:
+        case cJSON_False:
+        case cJSON_NULL:
+            return 1; // Type match is sufficient
+
+        case cJSON_Object: {
+            // Compare all key-value pairs
+            cJSON *a_item = a->child;
+            cJSON *b_item = b->child;
+
+            // Count items first
+            if (cJSON_GetArraySize((cJSON*)a) != cJSON_GetArraySize((cJSON*)b)) {
+                return 0;
+            }
+
+            // Check each key-value pair: is a present in b with same value?
+            while (a_item) {
+                cJSON *b_match = cJSON_GetObjectItem((cJSON*)b_item, a_item->string);
+                if (!b_match || !json_same(a_item, b_match)) {
+                    return 0;
+                }
+                a_item = a_item->next;
+            }
+            return 1;
+        }
+
+        case cJSON_Array: {
+            int size_a = cJSON_GetArraySize((cJSON*)a);
+            int size_b = cJSON_GetArraySize((cJSON*)b);
+            if (size_a != size_b) {
+                return 0;
+            }
+
+            for (int i = 0; i < size_a; i++) {
+                cJSON *item_a = cJSON_GetArrayItem((cJSON*)a, i);
+                cJSON *item_b = cJSON_GetArrayItem((cJSON*)b, i);
+                if (!json_same(item_a, item_b)) {
+                    return 0;
+                }
+            }
+            return 1;
+        }
+
+        default:
+            return 0;
+    }
+    return 0;
+}
+#endif
+
+/// Compare two cJSON items for content equality, recursively.
+/// @param[in] a  "left" json object
+/// @param[in] b  "right" json object
+/// @return 0 iff a and b differ
+int
+json_same(const void *a, const void *b)
+{
+    CS str_a, str_b;
+    int same;
+
+    str_a = cJSON_PrintUnformatted((cJSON *)a);
+    str_b = cJSON_PrintUnformatted((cJSON *)b);
+    same = str_a && str_b && (strcmp(str_a, str_b) == 0);
+    free(str_a);
+    free(str_b);
+    return same;
 }
 
 /// Parse a null-terminated string containing JSON data.

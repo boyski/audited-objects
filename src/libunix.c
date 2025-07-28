@@ -1203,7 +1203,7 @@ interposed_finalize(void)
 
 /// Interpose over the _exit() function.
 /// Most exits are caught by interposed_finalize() but an explicit
-/// call to _exit() skips the destructor so it's handled here by
+/// call to _exit() skips the destructor so it's special-cased by
 /// interposition instead.
 /// @param[in] call     the name of the interposed function in string form
 /// @param[in] next     a pointer to the interposed function
@@ -1214,7 +1214,7 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
 {
     WRAPPER_DEBUG("ENTERING _exit_wrapper() => %p [%d]\n", (void *)next, status);
     // Apparently exit() and _exit() are separate entry points on Solaris
-    // and Linux, but on FreeBSD and OSX exit() calls _exit(). On those
+    // and Linux, but on FreeBSD and OSX exit() calls _exit(). On the former
     // platforms we must still intercept _exit() for programs which call
     // it directly but need a guard for other programs so they won't
     // try to send EOA twice.

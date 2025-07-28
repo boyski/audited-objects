@@ -32,7 +32,7 @@ would cover both but from the POV of the linked program these are two
 completely different symbols. Therefore, in order to reliably audit
 file operations it's necessary to find and intercept all file-opening
 APIs. And similar for other operations, e.g. to hook exit we must
-interpose on exit(), _exit(), and in some cases Exit().
+interpose on exit(), _exit(), and in some cases _Exit().
 
 Interposition is handled differently on Unix and Windows:
 
@@ -157,15 +157,15 @@ containing 'command3' is part of its own input set.
 This discussion starts in the realm of epistemology. Consider the
 question "What exactly is a file?" which leads to further questions: Is
 "/usr/include/stdio.h" a file or just a name for a place where a file
-could legally exist? If a file containing data exists at path /x/y/z at
-time A, and later at time B /x/y/z also exists but with different data,
-is it a different file or the same file updated? Does it matter if we
-changed the data by opening the original file for write (same inode)
-or by unlinking it and writing a new one (new inode)? If we take /x/y/z
-and rename it to /x/y/zz and then place different data at /x/y/z, how
-many new files have been created and what are their names?  If /x/y/z
-existed at both time A and time B with the same data, does that mean
-it was the same file both times? Etc.
+could legally exist? If a file containing data exists at path /XX/YY/ZZ
+at time A, and later at time B /XX/YY/ZZ also exists but with different
+data, is it a different file or the same file updated? Does it matter
+if we changed the data by opening the original file for write (same
+inode) or by unlinking it and writing a new one (new inode)? If we
+take /XX/YY/ZZ and rename it to /XX/YY/ZZ123 and then place different
+data at /XX/YY/ZZ, how many new files have been created and what are
+their names?  If /XX/YY/ZZ existed at both time A and time B with the
+same data, does that mean it was the same file both times? Etc.
 
 From the OS kernel/filesystem perspective, these questions have clear
 answers.  In a (Unix) file system a file is uniquely described by the
@@ -177,14 +177,14 @@ its OID (Object ID). Thus, even if an element is accessed via two
 different paths on two different machines on two different continents,
 ClearCase is untroubled by identity crises.
 
-One can think of this as epistemology or one can think in terms
-of database administration. A relational database has the concept
-of a "primary key", defined (loosely) as an attribute which uniqely
-describes at most one row. A classic (though USA-centric) example is a
-Social Security number: people may change their names, and two people
-may share the same name, but at least in theory everyone has a unique
-SSN. By making the person's real name be an attribute of the synthetic
-primary key name confusion can be avoided.
+One can think of this as epistemology or one can think in terms of
+database administration. A relational database has the concept of a
+"primary key", defined (loosely) as an attribute which uniqely describes
+at most one row. A classic (though USA-centric) example is a Social
+Security number: people may change their names, and two people may share
+the same name, but at least in theory everyone has a unique SSN. By
+making a person's real name an attribute of the synthetic primary key,
+name confusion can be avoided.
 
 Being filesystem-independent, AO doesn't have the luxury of an obvious
 primary key. Realistically, the only thing all filesystems have in
@@ -319,20 +319,21 @@ produced or modified by the command). If, for instance, a temp file is
 created, used, and unlinked within a command we have no interest in it.
 
 For this reason, file accesses are not reported as they happen. Instead
-they're kept in a little in-memory database (hash table or similar) as
+they're kept in a little in-memory database (hash table or similar) while
 the command runs. During exit processing the audit record is simplified
 before being dumped out. Files created and unlinked are removed from
 the audit record, multiple write events are compressed to a single
 write, etc.  This simplification process is called B<cancellation>.
 
-Unfortunately cancellation isn't good enough. Many builds use temp
+However, cancellation isn't good enough. Many programs use temp
 files to communicate between processes which run one after the other.
-A typical compiler such as gcc might be implemented as a control program
-which under the covers runs a preprocessor to create temp file A, then
-runs a front end which reads A and writes intermediate language to temp
-file B. Then a back-end program reads B and writes assembler code to C,
-and finally the assembler reads C and writes the C<real> output file. The
-driver program unlinks all temp files as soon as they've been consumed.
+A compiler such as gcc tends to be implemented as a control program
+which runs a preprocessor to create temp file A, then runs a front end
+which reads A and writes intermediate language to temp file B. Then a
+back-end program reads B and writes assembler code to C, and finally
+the assembler reads C and writes the C<real> output file. The linker
+might even be invoked at the end. The driver program unlinks all temp
+files as soon as they've been consumed.
 
 Similarly, many builds accumulate data in a temp file and then rename
 it to a C<real> target when done. Yacc and lex are often used like
@@ -354,11 +355,12 @@ audit. Intra-command simplification similar to cancellation can be done
 within this group and, as above, only file events which survive this
 winnowing are recorded.
 
-It's important to realize that cancellation and aggregation are best
-thought of as optimizations; in other words it's not a fatal error if a
-temp file is recorded unnecessarily. It simply means that an overhead
-will be paid for tracking it and that the C<bookkeeping> may be a
-little muddier.
+Cancellation and aggregation are best thought of as optimizations;
+in other words it's not a fatal error if a temp file is recorded
+unnecessarily. It simply means there will be some overhead cost for
+tracking and storing it and the C<bookkeeping> may be a little muddier.
+It's best to identify and solve such things by tuning the regexes but
+it's not a necessity.
 
 =head1 COPYRIGHT
 

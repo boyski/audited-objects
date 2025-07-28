@@ -7,10 +7,10 @@ certain understanding of classical build procedures and terminology
 
 =head2 Auditing Technology
 
-What makes AO possible is the auditing technology based on "symbol
+What makes AO possible is an auditing technology based on "symbol
 interposition". This means intercepting all calls to particular system
 services, typically system calls, by defining another symbol of the
-same name in a place which is searched earlier.  Thus the audited
+same name in a path which is searched earlier.  Thus the audited
 process will find the "interposed" symbol instead of the "real" one.
 The interposed symbol points to a function which will do what we need
 done, such as registering that a given file was opened, then pass
@@ -18,6 +18,21 @@ the request along to the function pointed at by the "real" symbol. Note
 that although we typically want to use this to monitor system calls,
 there's no requirement that the interposed symbol be that of a system
 call. Any library function may be interposed on.
+
+It's critical to understand the boundary at which this happens. Unix
+has a traditional API separation between Chapter 2 (system calls)
+and Chapter 3 (utility functions). It would be nice if this was the
+dividing line such that we only need to interpose on system calls
+but unfortunately that's not it. The border is not betweeh chapters
+2 and 3 but between each dynamically-linked program and the C library
+(libc.so).  An example may clarify: a program may open one file directly
+with the open(2) system call and another file using fopen(3), which will
+eventually need to call open(). It would be nice if one hook on open()
+would cover both but from the POV of the linked program these are two
+completely different symbols. Therefore, in order to reliably audit
+file operations it's necessary to find and intercept all file-opening
+APIs. And similar for other operations, e.g. to hook exit we must
+interpose on exit(), _exit(), and in some cases Exit().
 
 Interposition is handled differently on Unix and Windows:
 
@@ -89,15 +104,15 @@ important limitation they all seem to share is that they're "passive".
 They're like historians; they cannot alter the course of events but
 can only describe it after the fact.
 
-The unique (?) feature of AO is that it intercepts not only file access
-calls (open, rename, etc.) but process management calls (fork, exec).
-By providing "hooks" into both areas, AO can guide and tune the process
-tree in real time. Consider a program XX which reads some set of input
-files and writes an output file. AO can intercept the parent process
-just as it's about to run XX and compare the current state of each
-input file read by XX with the current state of its output file. If
-its database says the current input files are known to lead to the
-currently existing output file, AO knows the output is "up to date"
+The unique (?) feature of AO is that it intercepts not only file
+access calls (open, rename, etc.) but process management calls (fork,
+exec, exit).  By providing "hooks" into both areas, AO can guide and
+tune the process tree in real time. Consider a program XX which reads
+some set of input files and writes an output file. AO can intercept
+the parent process just as it's about to run XX and compare the current
+state of each input file read by XX with the current state of its output
+file. If its database says the current input files are known to lead to
+the currently existing output file, AO knows the output is "up to date"
 and can tell the parent to skip running XX.  From the user's point of
 view XX will appear to have run in zero time, generally a major speedup.
 
@@ -140,9 +155,9 @@ containing 'command3' is part of its own input set.
 =head2 Path Names
 
 This discussion starts in the realm of epistemology. Consider the
-question "What constitutes a file?" which leads to further questions:
-Is "/usr/include/stdio.h" a file or just a name for a place where a
-file could legally exist? If a file containing data exists at /x/y/z at
+question "What exactly is a file?" which leads to further questions: Is
+"/usr/include/stdio.h" a file or just a name for a place where a file
+could legally exist? If a file containing data exists at path /x/y/z at
 time A, and later at time B /x/y/z also exists but with different data,
 is it a different file or the same file updated? Does it matter if we
 changed the data by opening the original file for write (same inode)
@@ -162,14 +177,14 @@ its OID (Object ID). Thus, even if an element is accessed via two
 different paths on two different machines on two different continents,
 ClearCase is untroubled by identity crises.
 
-One can think of this as epistemology or one can think in terms of
-database administration. A relational database has the concept of
-a "primary key", defined (loosely) as an attribute which uniqely
-describes at most one row. A classic though USA-centric example is a
+One can think of this as epistemology or one can think in terms
+of database administration. A relational database has the concept
+of a "primary key", defined (loosely) as an attribute which uniqely
+describes at most one row. A classic (though USA-centric) example is a
 Social Security number: people may change their names, and two people
 may share the same name, but at least in theory everyone has a unique
 SSN. By making the person's real name be an attribute of the synthetic
-primary key, the SSN, name confusion can be avoided.
+primary key name confusion can be avoided.
 
 Being filesystem-independent, AO doesn't have the luxury of an obvious
 primary key. Realistically, the only thing all filesystems have in
@@ -213,8 +228,8 @@ the file "/usr/extra/postgresql/src/backend/utils/mb/alt.c". Or
 rather, that's what Lucy is seeing; Sean sees
 "/home/sean/stuff/postgresql/src/backend/utils/mb/alt.c".  Considered as
 a PRP, both are using "src/backend/utils/mb/alt.c". The PRP is considered
-the primary key while the base directory is ignored (actually it's
-recorded but not generally used for anything).
+the primary key while the base directory is ignored (it's recorded but
+not generally used for anything).
 
 In terms of mechanism, this boundary point can be established in two
 ways. The auditing process searches back up towards the root looking

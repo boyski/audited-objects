@@ -17,10 +17,9 @@
 
 /// @file
 /// @brief Support for user-defined preferences.
-/// This file basically manages access to the properties table
-/// (see prop.c) by implementing a hierarchy of properties locations
-/// (look here, then there, then somewhere else, etc). The actual
-/// work of reading properties files is done in prop.c.
+/// This file manages access to the properties table (see prop.c)
+/// by implementing a hierarchy of places to search for property
+/// files. The work of reading properties files is done in prop.c.
 
 #include "AO.h"
 #include "PREFS.h"
@@ -135,7 +134,8 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     prop_put_str(P_PROGNAME, progname);
     putil_free(progname);
 
-    // Load initial properties from environment
+    // Load initial properties from environment.
+    // Since prop values are sticky these will usually win.
     prop_load(NULL, verbose, 0);
 
     if (ext) {
@@ -202,11 +202,9 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
             prop_load(bdcfg, verbose, 1);
             putil_free(bdcfg);
 
-            // The location of this file establishes the default
-            // project base.
+            // The location of this file establishes the default project base.
             if ((pdir = putil_dirname(cfgpath))) {
-                prop_put_str(P_BASE_DIR,
-                    putil_canon_path(pdir, NULL, 0));
+                prop_put_str(P_BASE_DIR, pdir);
                 putil_free(pdir);
             }
             putil_free(cfgpath);
@@ -215,7 +213,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 
             // If no project config file exists, use cwd for project base.
             if ((cwd = util_get_cwd())) {
-                prop_put_str(P_BASE_DIR, putil_canon_path((CS)cwd, NULL, 0));
+                prop_put_str(P_BASE_DIR, cwd);
                 putil_free(cwd);
             } else {
                 putil_syserr(2, "util_get_cwd()");

@@ -263,7 +263,6 @@ PUTIL_API CS putil_get_systemdir(CS, size_t);
 PUTIL_API CS putil_realpath(CCS, int);
 PUTIL_API CS *putil_prepend2argv(CS *, ...);
 PUTIL_API size_t putil_searchpath(CCS, CCS, CCS, unsigned long, CS, CS *);
-PUTIL_API CS putil_canon_path(CS, CS, size_t);
 PUTIL_API CS putil_path_strstr(CCS, CCS);
 PUTIL_API void *putil_malloc(size_t);
 PUTIL_API void *putil_malloc_str(size_t);
@@ -947,16 +946,6 @@ putil_getexecpath(void)
     return NULL;
 }
 
-PUTIL_CLASS CS
-putil_canon_path(CS path, CS newpath, size_t len)
-{
-    if (newpath) {
-	return strncpy(newpath, path, len);
-    } else {
-	return path;
-    }
-}
-
 /////////////////////////////////////////////////////////////////////////////
 
 // There's no strstr() function on Windows so we synthesize one.
@@ -1154,7 +1143,6 @@ _putil_never_called(void)
     putil_prepend2argv(NULL);
     putil_get_homedir(PUTIL_NULLSTR, 0);
     putil_get_systemdir(PUTIL_NULLSTR, 0);
-    putil_canon_path(PUTIL_NULLSTR, PUTIL_NULLSTR, 0);
     putil_path_strstr(PUTIL_NULLSTR, PUTIL_NULLSTR);
     putil_malloc(0);
     putil_malloc_str(0);

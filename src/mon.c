@@ -31,8 +31,6 @@
 
 #include "AO.h"
 
-#include "curl/curl.h"
-
 #include "hash.h"
 
 #include "CA.h"

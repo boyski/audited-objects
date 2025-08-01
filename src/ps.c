@@ -38,8 +38,6 @@
 
 #include "hash.h"
 
-#include "curl/curl.h"
-
 /// @cond static
 #define PS_NO_DCODE                     ""
 /// @endcond static

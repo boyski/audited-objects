@@ -22,6 +22,7 @@
 /// files. The work of reading properties files is done in prop.c.
 
 #include "AO.h"
+#include "HEAP.h"
 #include "PREFS.h"
 #include "PROP.h"
 #include "RE.h"
@@ -38,56 +39,17 @@
 static CS
 _find_file_up(CCS name)
 {
-    CS dir;
-    CCS project_base_glob;
-    CS result;
+    CS dir, result;
 
     if (!(dir = (CS)util_get_cwd())) {
         putil_syserr(0, "util_get_cwd");
         exit(2);
     }
 
-    project_base_glob = prop_get_str(P_PROJECT_BASE_GLOB);
-
     while (strcmp(dir, "/")) {
-        char *glob;
-        char *pdir;
+        CS pdir;
 
-        // Optionally, break when the specified glob is matched.
-        if (project_base_glob) {
-            wordexp_t wexp;
-            CS scratch;
-            CS g;
-
-            scratch = putil_strdup(project_base_glob);
-
-            for (g = util_strsep(&scratch, " "); g; g = util_strsep(&scratch, " ")) {
-                asprintf(&glob, "%s/%s", dir, g);
-                switch (wordexp(glob, &wexp, WRDE_NOCMD)) {
-                    case 0:
-                        if (wexp.we_wordc > 0 && !access(wexp.we_wordv[0], F_OK)) {
-                            asprintf(&result, "%s/%s", dir, putil_basename(wexp.we_wordv[0]));
-                            wordfree(&wexp);
-                            putil_free(glob);
-                            putil_free(dir);
-                            return result;
-                        } else {
-                            wordfree(&wexp);
-                        }
-                        break;
-                    case WRDE_NOSPACE:
-                        wordfree(&wexp);
-                        break;
-                    default:
-                        break;
-                }
-                putil_free(glob);
-            }
-
-            putil_free(scratch);
-        }
-
-        asprintf(&result, "%s%s%s", dir, DIRSEP(), name);
+        TRY(asprintf(&result, "%s%s%s", dir, DIRSEP(), name), "asprintf()");
         if (!access(result, F_OK)) {
             putil_free(dir);
             return result;

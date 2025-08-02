@@ -250,7 +250,6 @@ typedef enum {
     P_PERL_CMD,
     P_PRINT_ELAPSED,
     P_PROGNAME,
-    P_PROJECT_BASE_GLOB,
     P_PROJECT_NAME,
     P_PTX_STRATEGY,
     P_REUSE_ROADMAP,
@@ -615,15 +614,6 @@ extern void prop_fini(void);
         PROP_FLAG_INTERNAL,
         0,
         P_PROGNAME,
-    },
-    {
-        "Project.Base.GLOB",
-        NULL,
-        "Pattern matching base dir of project",
-        NULL,
-        PROP_FLAG_PRIVATE,
-        0,
-        P_PROJECT_BASE_GLOB,
     },
     {
         "Project.Name",

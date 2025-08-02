@@ -1336,8 +1336,7 @@ prop_load(CCS fname, CCS verbose, int win)
                     strcpy(bp, tp);
                 }
                 if (_prop_process_line(buf, win)) {
-                    putil_warn("malformed line (%d) in %s: '%s'", ln, fname,
-                               buf);
+                    putil_warn("malformed line (%d) in %s: '%s'", ln, fname, buf);
                 }
             }
             fclose(fp);
@@ -1348,13 +1347,15 @@ prop_load(CCS fname, CCS verbose, int win)
         }
     } else {
         int offset;
-
         char **envp;
 
         for (envp = environ; *envp; envp++) {
             if ((offset = _prop_matches_ev_name(*envp))) {
-                strcpy(buf, *envp + offset);
-                _prop_load_from_ev(buf);
+                CS tmpbuf;
+
+                tmpbuf = putil_strdup(*envp + offset);
+                _prop_load_from_ev(tmpbuf);
+                putil_free(tmpbuf);
             }
         }
 

@@ -293,9 +293,10 @@ PUTIL_API int putil_uname(struct utsname *);
 // and optional supporting arguments. Exit with failure code.
 // Supporting arguments are a printf() format string followed
 // by respective printf() arguments.
+// TODO: derive "prog" before first call.
 #define DIE_(err_msg, ...) if (1) { \
     fprintf(stderr, "%s: Error: %s() %s:%d %s", \
-    prog, __FUNCTION__, __FILE__, __LINE__, err_msg); \
+    "prog", __func__, __FILE__, __LINE__, err_msg); \
     if (errno) fprintf(stderr, " %s", strerror(errno)); \
     if (strcmp(FIRST_ARG(__VA_ARGS__), "")) \
         fprintf(stderr, ": " __VA_ARGS__); \

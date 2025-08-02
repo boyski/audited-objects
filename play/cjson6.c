@@ -24,8 +24,6 @@ main(void)
         cJSON_AddItemToArray(string_array, string_item);
     }
     
-    cJSON_AddItemToObject(string_array, "strings", string_array);
-    
     // Convert to JSON string and print
     char *json_string = cJSON_Print(string_array);
     

@@ -311,41 +311,41 @@ PUTIL_API int putil_uname(struct utsname *);
 // FILEs are limited to (256-3) in most Unix implementations. But of
 // course stderr will have been pre-allocated. If it's been closed
 // since then, not our problem.
-#define _PUTIL_PRINTMSG_(keyword, f, l, fmt)                \
-{                                   \
-    CS srcdbg;                              \
-    va_list ap;                             \
-    va_start(ap, fmt);                          \
-    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword);        \
-    if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) {        \
-    fprintf(stderr, "[at %s:%d] ", putil_basename(f), l);       \
-    }                                   \
-    (void) vfprintf(stderr, fmt, ap);                   \
-    va_end(ap);                             \
-    (void) fputc('\n', stderr);                     \
+#define _PUTIL_PRINTMSG_(keyword, f, l, fmt) \
+{ \
+    CS srcdbg; \
+    va_list ap; \
+    va_start(ap, fmt); \
+    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword); \
+    if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) { \
+    fprintf(stderr, "[at %s:%d] ", putil_basename(f), l); \
+    } \
+    (void) vfprintf(stderr, fmt, ap); \
+    va_end(ap); \
+    (void) fputc('\n', stderr); \
 }
 
-#define _PUTIL_PRINTMSGW_(keyword, f, l, fmt)               \
-{                                   \
-    CS srcdbg;                              \
-    va_list ap;                             \
-    va_start(ap, fmt);                          \
-    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword);        \
-    if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) {        \
-    fprintf(stderr, "[at %s:%d] ", putil_basename(f), l);       \
-    }                                   \
-    (void) vfwprintf(stderr, fmt, ap);                  \
-    va_end(ap);                             \
-    (void) fputc('\n', stderr);                     \
+#define _PUTIL_PRINTMSGW_(keyword, f, l, fmt) \
+{ \
+    CS srcdbg; \
+    va_list ap; \
+    va_start(ap, fmt); \
+    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword); \
+    if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) { \
+    fprintf(stderr, "[at %s:%d] ", putil_basename(f), l); \
+    } \
+    (void) vfwprintf(stderr, fmt, ap); \
+    va_end(ap); \
+    (void) fputc('\n', stderr); \
 }
 
 #define _PUTIL_ABORT_() unlink("/cores/core");  abort()
 
-#define _PUTIL_ERROR_DEBUG_(level, file, line)              \
-    if (Putil_Strict_Error < 0) {                   \
-    _PUTIL_ABORT_();                        \
-    } else if (Putil_Strict_Error >= level) {               \
-    exit(2);                            \
+#define _PUTIL_ERROR_DEBUG_(level, file, line) \
+    if (Putil_Strict_Error < 0) { \
+    _PUTIL_ABORT_(); \
+    } else if (Putil_Strict_Error >= level) { \
+    exit(2); \
     }
 
 #define PUTIL_UNKNOWN_STR   "??"
@@ -435,8 +435,7 @@ putil_path_max(void)
 
 // This API was originally based on the Win32 SearchPath function.
 PUTIL_CLASS size_t
-putil_searchpath(CCS srchpath, CCS prog, CCS ext,
-            unsigned long buflen, CS buf, CS *basepart)
+putil_searchpath(CCS srchpath, CCS prog, CCS ext, unsigned long buflen, CS buf, CS *basepart)
 {
     CS spath, p, e;
     size_t len = 0;
@@ -449,63 +448,65 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext,
     buf[0] = '\0';
 
     if (strchr(prog, '/')) {
-    CS rbuf;
+        CS rbuf;
 
-    if ((rbuf = putil_realpath(prog, 0))) {
-        snprintf(buf, buflen, "%s", rbuf);
-        putil_free(rbuf);
-        return strlen(buf);
-    } else {
-        return 0;
-    }
+        if ((rbuf = putil_realpath(prog, 0))) {
+            snprintf(buf, buflen, "%s", rbuf);
+            putil_free(rbuf);
+            return strlen(buf);
+        } else {
+            return 0;
+        }
     }
 
     if (srchpath) {
-    spath = putil_strdup(srchpath);
+        spath = putil_strdup(srchpath);
     } else {
-    if (! (p = getenv("PATH")))
-        return 0;
-    spath = putil_strdup(p);
+        if (! (p = getenv("PATH"))) {
+            return 0;
+        }
+        spath = putil_strdup(p);
     }
 
     for (p = spath; p; p = e + 1) {
 
-    if ((e = strchr(p, ':')))
-        *e = '\0';
+        if ((e = strchr(p, ':')))
+            *e = '\0';
 
-    if (*p == '/') {
-        strcpy(buf, p);
-    } else if (*p == '.' || *p == '\0') {
-        if (! getcwd(buf, PATH_MAX)) {
-        putil_syserr(0, ".");
-        continue;
+        if (*p == '/') {
+            strcpy(buf, p);
+        } else if (*p == '.' || *p == '\0') {
+            if (! getcwd(buf, PATH_MAX)) {
+            putil_syserr(0, ".");
+            continue;
+            }
+        } else {
+            continue;
         }
-    } else {
-        continue;
-    }
 
-    // If buffer not big enough, return required size.
-    if (strlen(buf) + baselen > buflen) {
-        len = strlen(buf) + baselen;
-        buf[0] = '\0';
-        break;
-    }
+        // If buffer not big enough, return required size.
+        if (strlen(buf) + baselen > buflen) {
+            len = strlen(buf) + baselen;
+            buf[0] = '\0';
+            break;
+        }
 
-    strcat(buf, "/");
-    if (basepart)
-        *basepart = endof(buf);
-    strcat(buf, prog);
+        strcat(buf, "/");
+        if (basepart) {
+            *basepart = endof(buf);
+        }
+        strcat(buf, prog);
 
-    if (!access(buf, X_OK)) {
-        len = strlen(buf);
-        break;
-    }
+        if (!access(buf, X_OK)) {
+            len = strlen(buf);
+            break;
+        }
 
-    if (!e) {
-        len = 0;
-        buf[0] = '\0';
-        break;
-    }
+        if (!e) {
+            len = 0;
+            buf[0] = '\0';
+            break;
+        }
     }
 
     putil_free(spath);
@@ -574,18 +575,18 @@ putil_syserr_(CCS f, int l, int code, CCS string)
     msg = strerror(errno);
 
     if (code) {
-    if (string) {
-        putil_error_(f,l, "%s: %s", string, msg);
+        if (string) {
+            putil_error_(f,l, "%s: %s", string, msg);
+        } else {
+            putil_error_(f,l, "%s", msg);
+        }
+        exit(code);
     } else {
-        putil_error_(f,l, "%s", msg);
-    }
-    exit(code);
-    } else {
-    if (string) {
-        putil_warn_(f,l, "%s: %s", string, msg);
-    } else {
-        putil_warn_(f,l, "%s", msg);
-    }
+        if (string) {
+            putil_warn_(f,l, "%s: %s", string, msg);
+        } else {
+            putil_warn_(f,l, "%s", msg);
+        }
     }
 }
 
@@ -598,10 +599,10 @@ putil_lnkerr_(CCS f, int l, int code, CCS name1, CCS name2)
     
     msg = strerror(errno);
     if (code) {
-    putil_error_(f,l, "%s -> %s: %s", name2, name1, msg);
-    exit(code);
+        putil_error_(f,l, "%s -> %s: %s", name2, name1, msg);
+        exit(code);
     } else {
-    putil_warn_(f,l, "%s -> %s: %s", name2, name1, msg);
+        putil_warn_(f,l, "%s -> %s: %s", name2, name1, msg);
     }
 }
 
@@ -615,10 +616,10 @@ putil_get_homedir(CS buf, size_t buflen)
     buf[0] = '\0';
 
     if ((h = getenv("HOME"))) {
-    if (bytelen(h) <= buflen) {
-        strcpy(buf, h);
-        return buf;
-    }
+        if (bytelen(h) <= buflen) {
+            strcpy(buf, h);
+            return buf;
+        }
     }
 
     return NULL;
@@ -629,7 +630,7 @@ putil_get_homedir(CS buf, size_t buflen)
 PUTIL_CLASS CS
 putil_get_systemdir(CS buf, size_t buflen)
 {
-    snprintf(buf, buflen, "/etc");
+    (void)snprintf(buf, buflen, "/etc");
     return buf;
 }
 
@@ -650,45 +651,45 @@ putil_realpath(CCS path, int guess)
     len = sizeof(resolved);
 
     if (realpath(path, resolved)) {
-    // Feeble attempt at making realpath more secure ...
-    if (strlen(resolved) >= len)
-        abort();
+        // Feeble attempt at making realpath more secure ...
+        if (strlen(resolved) >= len)
+            abort();
     } else {
-    if (!guess) {
-        return NULL;
-    }
-
-    if (errno != ENOENT) {
-        return NULL;
-    } else if (*path == '/') {
-        char *parent;
-
-        // This recursion should always break at "/" (the root).
-        if ((parent = putil_dirname(path))) {
-        CS rbuf;
-
-        if ((rbuf = putil_realpath(parent, guess))) {
-            snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((CS)path));
-            putil_free(parent);
-            putil_free(rbuf);
-        } else {
-            putil_free(parent);
+        if (!guess) {
             return NULL;
         }
-        }
-    } else {
-        if (getcwd(resolved, len - strlen(path) - sizeof(char))) {
-        strcat(resolved, "/");
-        strcat(resolved, path);
+
+        if (errno != ENOENT) {
+            return NULL;
+        } else if (*path == '/') {
+            char *parent;
+
+            // This recursion should always break at "/" (the root).
+            if ((parent = putil_dirname(path))) {
+                CS rbuf;
+
+                if ((rbuf = putil_realpath(parent, guess))) {
+                    snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((CS)path));
+                    putil_free(parent);
+                    putil_free(rbuf);
+                } else {
+                    putil_free(parent);
+                    return NULL;
+                }
+            }
         } else {
-        return NULL;
+            if (getcwd(resolved, len - strlen(path) - sizeof(char))) {
+                strcat(resolved, "/");
+                strcat(resolved, path);
+            } else {
+                return NULL;
+            }
         }
-    }
     }
 
     // Some realpath() implementations return NULL if path doesn't exist.
     if (!guess && access(resolved, F_OK)) {
-    return NULL;
+        return NULL;
     }
 
     return putil_strdup(resolved);
@@ -711,25 +712,26 @@ putil_readlink(CCS path)
     ssize_t len, l1;
     CS buf;
 
-    if (!path)
-    return NULL;
+    if (!path) {
+        return NULL;
+    }
 
     len = strlen(path) + 1;
     buf = putil_malloc(len);
 
     while(1) {
-    l1 = readlink(path, buf, len);
-    if (l1 == -1) {
-        putil_free(buf);
-        buf = NULL;
-        break;
-    } else if (l1 == len) {
-        len *= 2;
-        buf = putil_realloc(buf, len);
-    } else {
-        buf[l1] = '\0';
-        break;
-    }
+        l1 = readlink(path, buf, len);
+        if (l1 == -1) {
+            putil_free(buf);
+            buf = NULL;
+            break;
+        } else if (l1 == len) {
+            len *= 2;
+            buf = putil_realloc(buf, len);
+        } else {
+            buf[l1] = '\0';
+            break;
+        }
     }
 
     return buf;
@@ -742,8 +744,9 @@ putil_dirname(CCS path)
 {
     CS result;
 
-    if (!path)
-    return NULL;
+    if (!path) {
+        return NULL;
+    }
 
     result = (CS)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
 
@@ -752,11 +755,11 @@ putil_dirname(CCS path)
     // while others modify the parameter string. The
     // following is safe in both cases, thread-safety aside.
     {
-    char *buf;
+        char *buf;
 
-    buf = putil_strdup(path);
-    strcpy(result, dirname(buf));
-    putil_free(buf);
+        buf = putil_strdup(path);
+        strcpy(result, dirname(buf));
+        putil_free(buf);
     }
     return result;
 }
@@ -769,9 +772,10 @@ putil_mkdir_p(CCS path)
     char *parent;
 
     if ((parent = putil_dirname(path))) {
-    if (access(parent, F_OK))
-        (void)putil_mkdir_p(parent);
-    putil_free(parent);
+        if (access(parent, F_OK)) {
+            (void)putil_mkdir_p(parent);
+        }
+        putil_free(parent);
     }
     return mkdir(path, 0777);
 }
@@ -784,22 +788,23 @@ putil_prog(void)
     static CCS me = NULL;
 
     if (me != NULL) {
-    return me;
+        return me;
     }
 
     if ((me = putil_getexecpath())) {
-    CCS lastf = strrchr(me, '/');
-    CCS lastb = strrchr(me, '\\');
-    if (lastf && lastb) {
-        me = (lastf > lastb) ? (lastf + 1) : (lastb + 1);
-    } else if (lastf) {
-        me = lastf + 1;
-    } else if (lastb) {
-        me = lastb + 1;
-    }
-    return me;
+        CCS lastf = strrchr(me, '/');
+        CCS lastb = strrchr(me, '\\');
+
+        if (lastf && lastb) {
+            me = (lastf > lastb) ? (lastf + 1) : (lastb + 1);
+        } else if (lastf) {
+            me = lastf + 1;
+        } else if (lastb) {
+            me = lastb + 1;
+        }
+        return me;
     } else {
-    return "????";
+        return "????";
     }
 }
 
@@ -821,9 +826,10 @@ putil_argv_from_environ(int *p_argc)
     CS *av;
     av = *_NSGetArgv();
     if (p_argc) {
-    int i;
-    for (i = 0; av[i]; i++)
-    *p_argc = i;
+        int i;
+        for (i = 0; av[i]; i++) {
+            *p_argc = i;
+        }
     }
     return av;
 #else   /*__APPLE__*/
@@ -832,27 +838,29 @@ putil_argv_from_environ(int *p_argc)
 
     // In case we end up getting called late, make sure to remember the
     // original location of the environment block.
-    if (! orig_environ)
-    orig_environ = environ;
+    if (! orig_environ) {
+        orig_environ = environ;
+    }
     
     p = orig_environ - 2;
 
     if (*p) {
-    // For this value we need a number smaller than a pointer but
-    // larger than any possible argc value. Since ARG_MAX must
-    // include the pointer to the argument as well as the argument
-    // itself, the number of pointers which would fit into ARG_MAX
-    // bytes is a conservative estimate.
-    ULONG64 not_ptr = ARG_MAX/sizeof(CS);
-    ULONG64 p2i;
-    do {
-        p2i = (ULONG64) *--p;
-    } while (p2i > not_ptr);
-    if (p_argc)
-        *p_argc = (int)p2i;
-    return p+1;
+        // For this value we need a number smaller than a pointer but
+        // larger than any possible argc value. Since ARG_MAX must
+        // include the pointer to the argument as well as the argument
+        // itself, the number of pointers which would fit into ARG_MAX
+        // bytes is a conservative estimate.
+        ULONG64 not_ptr = ARG_MAX/sizeof(CS);
+        ULONG64 p2i;
+        do {
+            p2i = (ULONG64) *--p;
+        } while (p2i > not_ptr);
+        if (p_argc) {
+            *p_argc = (int)p2i;
+        }
+        return p+1;
     } else {
-    return NULL;
+        return NULL;
     }
 #endif  /*__APPLE__*/
 }
@@ -871,10 +879,11 @@ putil_getexecpath(void)
     char buf[PATH_MAX + 1], pbuf[PATH_MAX];
 
     // This can't change once we derive it ...
-    if (xname[0] != '\0')
-    return xname;
+    if (xname[0] != '\0') {
+        return xname;
+    }
 
-    memset(buf, 0, sizeof(buf));
+    (void)memset(buf, 0, sizeof(buf));
 
 // On Linux the "classic hack" doesn't always find the full path to
 // the executable. So we try /proc first. If that doesn't work,
@@ -888,59 +897,64 @@ putil_getexecpath(void)
 // So we look for something past the environ block that looks like a path.
 #if defined(linux)
     {
-    ssize_t llen;
+        ssize_t llen;
 
-    if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
-        char **e;
-        CS p;
+        if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
+            char **e;
+            CS p;
 
-        for (e = environ; *(e + 1); e++)
-        ;
-        p = strchr(*e, '\0') + 1;
-        if (*p == '/') {
-        (void)strcpy(buf, p);
+            for (e = environ; *(e + 1); e++)
+                ;
+            p = strchr(*e, '\0') + 1;
+            if (*p == '/') {
+                (void)strcpy(buf, p);
+            } else {
+                buf[0] = '\0';
+                return NULL;
+            }
         } else {
-        buf[0] = '\0';
-        return NULL;
+            buf[llen] = '\0';
         }
-    } else {
-        buf[llen] = '\0';
-    }
     }
 #else
     if (! putil_is_absolute(buf)) {
-    // At this point we've found we're on a system without a
-    // 100% ironclad way of getting the exec path. Try digging
-    // up the argv, which only works if argv immediately
-    // precedes the environ block in memory, and seeing if we
-    // can do something with argv[0]. Note that many Unix books,
-    // FAQs, etc. deprecate this but it does usually "work".
-    char **argv = putil_argv_from_environ(NULL);
-    if (argv) {
-        (void)strcpy(buf, argv[0]);
-    } else {
-        buf[0] = '\0';
-        return NULL;
-    }
+        // At this point we've found we're on a system without a
+        // 100% ironclad way of getting the exec path. Try digging
+        // up the argv, which only works if argv immediately
+        // precedes the environ block in memory, and seeing if we
+        // can do something with argv[0]. Note that many Unix books,
+        // FAQs, etc. deprecate this but it does usually "work".
+        char **argv = putil_argv_from_environ(NULL);
+        if (argv) {
+            size_t len = strlen(argv[0]);
+
+            (void)strncpy(buf, argv[0], len);
+            buf[len] = '\0';
+        } else {
+            buf[0] = '\0';
+            return NULL;
+        }
     }
 
 #endif
 
     // If we ended up with an absolute path we're done.
     if (putil_is_absolute(buf)) {
-    return strcpy(xname, buf);
+        return strcpy(xname, buf);
     }
 
     // Search PATH for it.
-    if (putil_searchpath(NULL, buf, NULL, charlen(pbuf), pbuf, NULL))
-    return strcpy(xname, pbuf);
+    if (putil_searchpath(NULL, buf, NULL, charlen(pbuf), pbuf, NULL)) {
+        return strcpy(xname, pbuf);
+    }
 
     // Last try - look for it in the CWD.
     if (!access(buf, X_OK)) {
-    if (getcwd(xname, charlen(xname)) == NULL)
-        putil_syserr(1, "getcwd");
-    strcat(xname, "/");
-    return strcat(xname, buf);
+        if (getcwd(xname, charlen(xname)) == NULL) {
+            putil_syserr(1, "getcwd");
+        }
+        strcat(xname, "/");
+        return strcat(xname, buf);
     }
 
     buf[0] = '\0';
@@ -949,7 +963,7 @@ putil_getexecpath(void)
 
 /////////////////////////////////////////////////////////////////////////////
 
-// There's no strstr() function on Windows so we synthesize one.
+// There's no strstr() function on Windows so synthesize one.
 PUTIL_CLASS CS
 putil_path_strstr(CCS s1, CCS s2)
 {
@@ -962,8 +976,10 @@ PUTIL_CLASS void *
 putil_malloc(size_t size)
 {
     void *ptr = malloc(size);
-    if (ptr == NULL)
-    putil_syserr(2, "malloc");
+
+    if (ptr == NULL) {
+        putil_syserr(2, "malloc");
+    }
     return ptr;
 }
 
@@ -981,8 +997,9 @@ PUTIL_CLASS void *
 putil_calloc(size_t nelem, size_t elsize)
 {
     void *ptr = calloc(nelem, elsize);
-    if (ptr == NULL)
-    putil_syserr(2, "calloc");
+    if (ptr == NULL) {
+        putil_syserr(2, "calloc");
+    }
     return ptr;
 }
 
@@ -992,8 +1009,9 @@ PUTIL_CLASS void *
 putil_realloc(void *ptr, size_t size)
 {
     ptr = realloc(ptr, size);
-    if (ptr == NULL)
-    putil_syserr(2, "realloc");
+    if (ptr == NULL) {
+        putil_syserr(2, "realloc");
+    }
     return ptr;
 }
 
@@ -1046,12 +1064,13 @@ putil_unsetenv(CCS name)
 
     len = strlen(name);
     for (ep = environ; *ep; ++ep) {
-    if (!strncmp(*ep, name, len) && ep[0][len] == '=') {
-        CS *np;
+        if (!strncmp(*ep, name, len) && ep[0][len] == '=') {
+            CS *np;
 
-        for (np = ep; np[0]; np++)
-        np[0] = np[1];
-    }
+            for (np = ep; np[0]; np++) {
+                np[0] = np[1];
+            }
+        }
     }
 }
 
@@ -1074,11 +1093,13 @@ putil_prepend2argv(CS *argv, ...)
     va_list ap;
 
     // Count the strings in argv.
-    for (i = 0; argv[i]; i++);
+    for (i = 0; argv[i]; i++)
+        ;
 
     // Count the additional strings.
     va_start(ap, argv);
-    for (; va_arg(ap, CCS); i++);
+    for (; va_arg(ap, CCS); i++)
+        ;
     va_end(ap);
 
     // Allocate the new argv
@@ -1087,13 +1108,13 @@ putil_prepend2argv(CS *argv, ...)
     // Rewind 'ap' and put the extras at the front of the array ...
     va_start(ap, argv);
     while ((str = (CS) va_arg(ap, CS))) {
-    *np++ = str;
+        *np++ = str;
     }
     va_end(ap);
 
     // ... followed by the argv ...
     while (*argv) {
-    *np++ = *argv++;
+        *np++ = *argv++;
     }
 
     // ... and a terminating null.
@@ -1109,8 +1130,9 @@ putil_tmpdir(CS tbuf, size_t tlen)
 {
     CCS t;
 
-    if (!(t = getenv("TMPDIR")))
-    t = "/tmp";
+    if (!(t = getenv("TMPDIR"))) {
+        t = "/tmp";
+    }
     snprintf(tbuf, tlen, "%s/", t);
     return tbuf;
 }
@@ -1162,7 +1184,7 @@ _putil_never_called(void)
 #if !defined(__clang__)
     // Avoid warning via bogus recursive call.
     if (0) {
-    _putil_never_called();
+        _putil_never_called();
     }
 #endif  /*__clang__*/
 }

@@ -149,6 +149,7 @@ OBJS := \
   bsd_getopt.o \
   ca.o \
   code.o \
+  heap.o \
   json.o \
   make.o \
   moment.o \

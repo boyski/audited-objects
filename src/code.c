@@ -350,11 +350,11 @@ code_from_path(CCS path, CS buf, size_t len)
     // Release the buffer whether things went well or not.
     putil_free(mdata);
     if (fdata) {
+        vb_printf(VB_MAP, "Unmapping %p", fdata);
         if (munmap((void *)fdata, size) == -1) {
             putil_syserr(0, path);
             return NULL;
         }
-        vb_printf(VB_MAP, "Unmapped %p", fdata);
     }
 
     // An empty buffer signals a failure to derive the dcode.

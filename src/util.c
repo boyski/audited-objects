@@ -103,10 +103,10 @@ void
 util_unmap_file(unsigned char *fdata, uint64_t extent)
 {
     if (fdata) {
+        vb_printf(VB_MAP, "Unmapping %p", fdata);
         if (munmap((void *)fdata, extent) == -1) {
             putil_syserr(0, "munmap");
         }
-        vb_printf(VB_MAP, "Unmapped %p", fdata);
     }
 }
 

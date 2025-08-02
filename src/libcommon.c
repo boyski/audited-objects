@@ -514,11 +514,9 @@ _audit_open(void)
 
         FILE *tfp;
 
-        // Create an unnamed/unlinked temp file. Unfortunately this
-        // returns a stream and not a descriptor. We try not to use
-        // up stdio streams because they're limited to 256 in many cases,
-        // so we convert it to a high-numbered descriptor and close
-        // the stream.
+        // Create an unnamed/unlinked temp file. This returns a stream,
+        // not a descriptor, so in order to avoid using up stdio streams
+        // convert it to a high-numbered descriptor and close the stream.
         if (!(tfp = tmpfile())) {
             putil_syserr(0, "tmpfile");
             exit(2);
@@ -554,7 +552,10 @@ _audit_open(void)
         }
 
         // Each new cmd and/or process must create its own temp file.
-        fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+        if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) == -1) {
+            putil_syserr(0, "fcntl");
+            exit(2);
+        }
     }
 
     return fd;

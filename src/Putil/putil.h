@@ -677,7 +677,7 @@ putil_realpath(CCS path, int guess)
 		}
 	    }
 	} else {
-	    if (getcwd(resolved, len - charlen(path) - sizeof(char))) {
+	    if (getcwd(resolved, len - strlen(path) - sizeof(char))) {
 		strcat(resolved, "/");
 		strcat(resolved, path);
 	    } else {

@@ -418,10 +418,11 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
 
     vb_printf(VB_MON, "RECVING FROM: SOCKET %d", *sockp);
     buf = (char *)vbuf;
+    (void)memset(buf, 0, len);
     for (p = buf;;) {
         ret = recv(*sockp, p, len - (p - buf), 0);
         if (ret == INVALID_SOCKET) {
-            if (errno == EINTR) {
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
             }
             putil_syserr(0, "recv()");
@@ -616,8 +617,7 @@ _audit_start(CCS call)
         _monitor_recv_line(&ReportSocket, ack_soa, sizeof(ack_soa));
         _monitor_close(&ReportSocket, 0);
 
-        vb_printf(VB_MON, "CONTINUING [%s] WITH %s",
-            ack_soa, ca_get_line(CurrentCA));
+        vb_printf(VB_MON, "CONTINUING [%s] WITH %s", ack_soa, ca_get_line(CurrentCA));
 
         if (!strcmp(ack_soa, ACK_FAILURE)) {
             _audit_end("exit", EXITING, 2);
@@ -768,7 +768,7 @@ _audit_end(CCS call, int exiting, long status)
     }
 
     // Write the EOA marker if we're exiting AND an SOA was sent.
-    if (exiting && ca_get_started(CurrentCA)) {
+    if (exiting && CurrentCA && ca_get_started(CurrentCA)) {
         CCS hdr;
         CS eoa_hdr;
 

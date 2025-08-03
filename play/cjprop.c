@@ -183,18 +183,17 @@ prop_fini(void)
 int
 main(int argc, char **argv)
 {
+    (void)argc;
     prop_init(argv[1]);
-    for (int i = 2; i < argc; i++) {
-        CS prop = argv[i];
-        CCS exported = prop_is_exported(prop) ? "True" : "False";
-        printf("%s: '%s' [%s]\n", prop, prop_get_str(prop), exported);
-        prop_put_str(prop, "Hello");
-    }
-    for (int i = 2; i < argc; i++) {
-        CS prop = argv[i];
+
+    cJSON *property = NULL;
+    cJSON_ArrayForEach(property, Properties) {
+        CCS prop = property->string;
         CCS exported = prop_is_exported(prop) ? "True" : "False";
         printf("%s: '%s' [%s]\n", prop, prop_get_str(prop), exported);
     }
+
+
     prop_fini();
 
     return 0;

@@ -30,7 +30,7 @@ define FFLAGS :=
   -fPIC
   -fstack-protector-strong
   -pedantic
-  -std=c17
+  -std=c2x
 endef
 
 define DFLAGS :=
@@ -42,22 +42,19 @@ IFLAGS := -I$(OPS)include
 hash := \#
 CFLAGS := $(filter-out $(hash)%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
 
-CJSON := $(patsubst %.c,%,$(wildcard cjson*.c))
+CJSON := $(patsubst %.c,%,$(wildcard cj*.c))
 
 .PHONY: all
-all: $(CJSON) git2a
+all: $(CJSON)
 
 cjson: cjson.c
 	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lcjson
 
-cjson%: cjson%.c
+cj%: cj%.c
 	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lcjson
 
-git2a: git2a.c
-	$(CC) -o $@ $(CFLAGS) $< -L$(OPS)Linux_x86_64/lib -lgit2 -lpcre -lpthread -lz
-
 .PHONY: clean
-clean: cleanups := $(wildcard cjson? git2?)
+clean: cleanups := $(wildcard $(basename $(CJSON)))
 clean:
 	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
 

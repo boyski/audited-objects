@@ -249,7 +249,6 @@ typedef enum {
     P_PCMDID,
     P_PERL_CMD,
     P_PRINT_ELAPSED,
-    P_PROGNAME,
     P_PROJECT_NAME,
     P_PTX_STRATEGY,
     P_REUSE_ROADMAP,
@@ -607,15 +606,6 @@ extern void prop_fini(void);
         P_PRINT_ELAPSED,
     },
     {
-        "PROGNAME",
-        NULL,
-        "Name of the running program (best guess)",
-        NULL,
-        PROP_FLAG_INTERNAL,
-        0,
-        P_PROGNAME,
-    },
-    {
         "Project.Name",
         NULL,
         "Assign a name to this project",
@@ -831,13 +821,17 @@ extern void prop_fini(void);
 };
 // *INDENT-ON*
 
-// Utility: switch one char for another
+/// Switch one char for another in a string buffer.
+/// @param[in,out] buf a modifiable null-terminated string
+/// @param[in] oldchar the character to be replaced
+/// @param[in] newchar the replacement character
+/// @return the modified buffer
 static void
-_prop_replace_char(CS bp, char newchar, char oldchar)
+_prop_replace_char(CS buf, char oldchar, char newchar)
 {
-    for (; *bp; bp++) {
-        if (*bp == oldchar) {
-            *bp = newchar;
+    for (; *buf; buf++) {
+        if (*buf == oldchar) {
+            *buf = newchar;
         }
     }
 }
@@ -1274,7 +1268,7 @@ _prop_load_from_ev(CS buf)
     }
 
     *bp++ = '\0';
-    _prop_replace_char(buf, '.', '_');
+    _prop_replace_char(buf, '_', '.');
     prop = prop_from_name(buf);
     if (prop < 0) {
         putil_warn("unrecognized property: %s", buf);
@@ -1371,7 +1365,7 @@ static CS
 _prop_to_ev(prop_e prop, CS buf, size_t len)
 {
     snprintf(buf, len, "%s%s", PropEnvPrefix, prop_to_name(prop));
-    _prop_replace_char(buf, '_', '.');
+    _prop_replace_char(buf, '.', '_');
     util_strup(buf);
     return buf;
 }
@@ -1491,7 +1485,8 @@ prop_help(int all, int verbose, CCS exe)
 
     if (verbose && exe) {
         printf("LOADED FROM:\n");
-        prefs_init(exe, PROP_EXT, "\t");
+        prefs_env_init(PROP_EXT, "\t");
+        prefs_file_init(PROP_EXT, "\t");
     }
 }
 

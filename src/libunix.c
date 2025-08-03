@@ -34,6 +34,8 @@
 
 #include "AO.h"
 
+static char *ProgramName = AUDITOR;
+
 // We go out of our way to explicitly include these headers here, even
 // though they've probably already been included, because we're about
 // to #define the things they declare and it's critical that they be

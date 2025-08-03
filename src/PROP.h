@@ -76,7 +76,6 @@ typedef enum {
     P_PCMDID,
     P_PERL_CMD,
     P_PRINT_ELAPSED,
-    P_PROGNAME,
     P_PROJECT_NAME,
     P_PTX_STRATEGY,
     P_REUSE_ROADMAP,

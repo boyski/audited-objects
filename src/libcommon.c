@@ -862,7 +862,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // We do not want to take properties from files within the
     // auditor as the CWD may be changing, so everything we care
     // about should have been placed in the environment by now.
-    prefs_init(exe, NULL, NULL);
+    prefs_env_init(NULL, NULL);
 
     if (prop_has_value(P_DEPTH)) {
         // Find the current depth and increment it for child cmds.

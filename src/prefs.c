@@ -75,26 +75,14 @@ _find_file_up(CCS name)
 }
 
 /// Find all properties files and env vars and set current prefs from them.
-/// @param[in] exe      the name of the running executable
 /// @param[in] ext      the extension to look for on the properties files
 /// @param[in] verbose  verbosity prefix string, or NULL for no verbosity
 void
-prefs_init(CCS exe, CCS ext, CCS verbose)
+prefs_init(CCS ext, CCS verbose)
 {
     CS cfgpath;
-    CS progname;
     char *exedir;
     CCS p;
-
-    // Store the short program name for error msgs etc.
-    if ((p = strrchr(exe, '/'))) {
-        progname = putil_strdup(p + 1);
-    } else {
-        progname = putil_strdup(exe);
-    }
-
-    prop_put_str(P_PROGNAME, progname);
-    putil_free(progname);
 
     // Load initial properties from environment.
     // Since prop values are sticky these will usually win.
@@ -136,7 +124,7 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
 
         // Try a truly global properties file at ../etc from the directory
         // the executable is in.
-        if ((exedir = putil_dirname(exe))) {
+        if ((exedir = putil_dirname(ProgramName))) {
             CS globalcfg = NULL;
             CS appdir;
 
@@ -199,6 +187,13 @@ prefs_init(CCS exe, CCS ext, CCS verbose)
     }
 
     return;
+}
+
+/// Finalize prefs data.
+void
+prefs_fini(void)
+{
+    // Nothing to do here.
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

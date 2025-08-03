@@ -21,7 +21,9 @@
 /// @file
 /// @brief Declarations for prefs.c
 
-extern void prefs_init(CCS, CCS, CCS);
+void prefs_env_init(CCS, CCS, CCS);
+void prefs_file_init(CCS, CCS, CCS);
+void prefs_fini(void);
 
 #endif // PREFS_H
 

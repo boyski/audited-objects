@@ -111,3 +111,5 @@ main(void)
 
     return 0;
 }
+
+// vim: sw=4 ts=4 et tw=100 cc=+1

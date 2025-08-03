@@ -26,6 +26,7 @@
 
 #include "CA.h"
 #include "CODE.h"
+#include "HEAP.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PA.h"
@@ -43,6 +44,8 @@
 #if !defined(BSD)
 #include <alloca.h>
 #endif  // BSD
+
+static char *ProgramName = NULL;
 
 static char self_license[] = "\
 Copyright (c) 2002-2025 David Boyce.  All rights reserved.\n\
@@ -266,13 +269,10 @@ static void
 _usage(int rc)
 {
     FILE *fp;
-    CCS prog;
-
-    prog = prop_get_str(P_PROGNAME);
 
     fp = rc ? stderr : stdout;
 
-    fprintf(fp, "USAGE: %s [<options>]", prog);
+    fprintf(fp, "USAGE: %s [<options>]", ProgramName);
     fprintf(fp, " { make | run <prog> | <action> } [args...]\n");
     fprintf(fp, "FLAGS:\n");
 
@@ -298,11 +298,11 @@ _usage(int rc)
     _usg_line(fp, "-X", P_EXECUTE_ONLY, NULL);
 
     fprintf(fp, "EXAMPLES:\n");
-    fprintf(fp, "   %s help\n", prog);
-    fprintf(fp, "   %s ping\n", prog);
-    fprintf(fp, "   %s -o@ -F Makefile.new make -s clean all\n", prog);
-    fprintf(fp, "   %s make clean all\n", prog);
-    fprintf(fp, "   %s lsbuilds -s\n", prog);
+    fprintf(fp, "   %s help\n", ProgramName);
+    fprintf(fp, "   %s ping\n", ProgramName);
+    fprintf(fp, "   %s -o@ -F Makefile.new make -s clean all\n", ProgramName);
+    fprintf(fp, "   %s make clean all\n", ProgramName);
+    fprintf(fp, "   %s lsbuilds -s\n", ProgramName);
 
     putil_exit(rc);
 }
@@ -530,7 +530,7 @@ _action(CCS action, int argc, CS const *argv)
         printf(HELP_FMT, "substitute", "apply standard %-formatting to the input string");
         printf("\n");
     } else {
-        fprintf(stderr, "%s: Error: unrecognized action '%s'\n", prop_get_str(P_PROGNAME), action);
+        fprintf(stderr, "%s: Error: unrecognized action '%s'\n", ProgramName, action);
     }
 
     return rc;
@@ -543,18 +543,17 @@ _action(CCS action, int argc, CS const *argv)
 int
 main(int argc, CS *argv)
 {
-    CCS exe;
     CCS action;
     CS dscript = NULL;
     CS redo_script = NULL;
     int proplevel = -1;
     int rc = 0;
 
+    heap_init();
+
     // Figure out the full path to the current executable program.
     // Should be done asap, before anything happens to argv.
-    if (!(exe = putil_getexecpath())) {
-        putil_die("unable to determine path to argv[0]\n");
-    }
+    ProgramName = heap_save(util_strdown(putil_strdup(ENV_PFX)));
 
     // Initialize verbosity. Should be done before most
     // other initializations since they may use verbosity.
@@ -578,7 +577,7 @@ main(int argc, CS *argv)
 
     // Load properties from the documented sequence of prop files and
     // the environment.
-    prefs_init(exe, PROP_EXT, NULL);
+    prefs_init(PROP_EXT, NULL);
 
     // Initialize the hash-code generator.
     code_init();
@@ -927,7 +926,7 @@ main(int argc, CS *argv)
 
     // Diagnostic: dump properties and quit.
     if (proplevel >= 0) {
-        prop_help(proplevel, vb_bitmatch(VB_STD), exe);
+        prop_help(proplevel, vb_bitmatch(VB_STD), ProgramName);
         exit(0);
     }
 
@@ -1099,10 +1098,10 @@ main(int argc, CS *argv)
             fprintf(stderr, "+ dtrace -s %s -c '%s'\n", dscript, argv[4]);
         }
 
-        make_init(exe);
+        make_init(ProgramName);
 
         // RUN AND AUDIT THE COMMAND.
-        rc = run_cmd(exe, (CS *)argv, logfile);
+        rc = run_cmd(ProgramName, (CS *)argv, logfile);
 
         putil_free(logfile);
 
@@ -1114,6 +1113,10 @@ main(int argc, CS *argv)
     }
 
     code_fini();
+
+    prefs_fini();
+
+    heap_fini();
 
     return rc;
 }

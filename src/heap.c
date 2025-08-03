@@ -41,6 +41,7 @@
 #include "Putil/putil.h"
 
 #include "HEAP.h"
+#include "VB.h"
 
 #include "cJSON.h"
 
@@ -53,8 +54,9 @@ heap_init(void)
     TRY(HeapJson = cJSON_CreateArray(), "cJSON_CreateArray()");
 }
 
-/// Convert the supplied string to "permanent" status. The original will be
-/// freed, so it must be on the heap, and the "permanent" copy is returned.
+/// Convert the supplied string to "permanent" status. The original must be
+/// on the heap and is freed here. The "permanent" copy is returned and will
+/// not be freed until heap_fini().
 CS
 heap_save(CS savestr)
 {
@@ -70,6 +72,11 @@ heap_save(CS savestr)
 void
 heap_fini(void)
 {
+    if (vb_bitmatch(VB_TMP)) {
+        CS jsonstr = cJSON_Print(HeapJson);
+        vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);
+        free(jsonstr);
+    }
     cJSON_Delete(HeapJson);
     HeapJson = NULL;
 }

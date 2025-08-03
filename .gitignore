@@ -26,6 +26,8 @@ dlldata.c
 *.dll
 *.exe
 *.lib
+*.log
+*.out
 *.pch
 *.pdb
 *.sbr

@@ -1,0 +1,111 @@
+// Copyright (c) 2002-2025 David Boyce.  All rights reserved.
+
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/// @file
+/// @brief Support for Properties objects.
+/// TODO
+
+#include "PROP.h"
+
+CS
+_prop_getenv(CCS prop)
+{
+    CS env_var;
+    asprintf(&env_var, "%s%s", ENV_PFX, prop);
+    CCS value = getenv(env_var);
+    free(env_var);
+    return value;
+}
+
+CCS
+prop_get_str(CCS prop)
+{
+    return _prop_getenv(prop);
+}
+
+CCS
+prop_set_str(CCS prop, CCS newval)
+{
+    CS oldval = _prop_getenv(prop);
+    size_t oldlen = strlen(oldval);
+    size_t newlen = strlen(newval);
+    assert(newlen <= oldlen);
+    (void)strncpy(oldval, newval, oldlen);
+    oldval[newlen] = '\0';
+    return prop_get_str(prop);
+}
+
+long
+prop_get_long(CCS prop)
+{
+    CCS strval = prop_get_str(prop);
+    return strtol(strval, NULL, 0);
+}
+
+long
+prop_set_long(CCS prop, long newval)
+{
+    CS oldval = _prop_getenv(prop);
+    assert(oldval);
+    char newbuf[256];  // way longer than any stringified integral value
+    (void)snprintf(newbuf, sizeof(newbuf), "%*ld", (int)strlen(oldval), newval);
+    prop_set_str(prop, newbuf);
+    return prop_get_long(prop);
+}
+
+unsigned long
+prop_get_ulong(CCS prop)
+{
+    CCS strval = prop_get_str(prop);
+    return strtoul(strval, NULL, 0);
+}
+
+unsigned long
+prop_set_ulong(CCS prop, unsigned long newval)
+{
+    CS oldval = _prop_getenv(prop);
+    assert(oldval);
+    char newbuf[256];  // way longer than any stringified integral value
+    (void)snprintf(newbuf, sizeof(newbuf), "%*lu", (int)strlen(oldval), newval);
+    prop_set_str(prop, newbuf);
+    return prop_get_ulong(prop);
+}
+
+bool
+prop_has_value(CCS prop)
+{
+    return _prop_getenv(prop) ? true : false;
+}
+
+bool
+prop_is_true(CCS prop)
+{
+    CS oldval = _prop_getenv(prop);
+    assert(oldval);
+    return *oldval && strtoul(oldval, NULL, 0) != 0;
+}
+
+bool
+prop_set_bool(CCS prop, bool on_or_off)
+{
+    CS oldval = _prop_getenv(prop);
+    assert(oldval && *oldval);
+    (void)strcpy(oldval, on_or_off ? "1" : "0");
+    return prop_is_true(prop);
+}
+
+// vim: sw=4 ts=4 et tw=100 cc=+1

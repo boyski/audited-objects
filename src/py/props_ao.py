@@ -1,4 +1,4 @@
-"""Support for .properties files."""
+"""Support for properties files."""
 
 #############################################################################
 # Copyright (c) 2005-2025 David Boyce.  All rights reserved.
@@ -17,7 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-import configparser
+import collections
+import copy
+import json
 import os
 import os.path as op
 import site
@@ -41,39 +43,69 @@ def find_file_up(wanted, start_dir='.'):
     return None
 
 
-class Properties():
-    """Parse AO .properties files and allow lookups."""
+def dict_merge(a, b):
+    """
+    Recursively combine two data structures comprised of dicts.
 
-    def __init__(self, pfx='ao'):
-        self.pfx = pfx
-        self.cfg = configparser.ConfigParser()
+    In case of collision, "a" wins and a warning is optionally given.
+    Lists are 'merged' by turning them into sets, combining
+    the sets, and sorting the result back into a list.
+    """
+    if not isinstance(b, dict):
+        return b
+    for key in b:
+        if key in a and isinstance(a[key], collections.abc.Mapping):
+            a[key] = dict_merge(a[key], b[key])
+        elif key in a and (isinstance(a[key], list) and
+                           isinstance(b[key], list)):
+            if not b[key]:
+                pass
+            elif not a[key]:
+                a[key] = b[key]
+            elif a[key] != b[key]:
+                a[key] += [k for k in b[key] if k not in a[key]]
+        else:
+            if a.get(key) is None:
+                a[key] = copy.deepcopy(b[key])
+
+    return a
+
+
+class Properties():
+    """Parse AO properties files and allow lookups."""
+
+    def __init__(self, name='ao_properties.json'):
+        self.name = name
+        self.cfg = {}
 
         # Highly unlikely to exist but for completeness ...
-        etc_props = f'/etc/{self.pfx}.properties'
+        etc_props = op.join('/etc', name)
         if op.isfile(etc_props):
-            self.parse(etc_props)
+            props = json.load(etc_props)
+            dict_merge(self.cfg, props)
 
         # Look for a properties file at the base of the project.
-        proj_props = find_file_up(
-            op.join(f'.{self.pfx}', f'{self.pfx}.properties'))
+        proj_props = find_file_up(op.join('.ao', name))
         if proj_props:
-            self.parse(proj_props)
+            props = json.load(proj_props)
+            dict_merge(self.cfg, props)
 
         # Let exported properties win.
-        pfxup = self.pfx.upper() + '_'
+        pfxup = 'AO_'
+        props = {}
         for ev, value in os.environ.items():
             if ev.startswith((pfxup, '_' + pfxup)):
                 name = ev.split(pfxup, 1)[1]
-                self.cfg['UNNAMED'][name] = value
+                props[name] = value
+        if props:
+            dict_merge(self.cfg, props)
+
+        # Keep keys sorted alphabetically. No particular reason.
+        self.cfg = {key: self.cfg[key] for key in sorted(self.cfg)}
 
     def get(self, prop, default=None):
         """Return the value of the named property."""
-        return self.cfg['UNNAMED'].get(prop, default)
-
-    def parse(self, path):
-        """Parse the provided properties file."""
-        with open(path, encoding='utf-8') as f:
-            self.cfg.read_string('[UNNAMED]\n' + f.read())
+        return self.cfg.get(prop, default)
 
 
 # vim: sw=4:et:tw=79:cc=+1

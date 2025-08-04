@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""
+
+EXAMPLES:
+
+Do this to that:
+
+    %(prog)s --do-this --to-that ...
+
+"""
+
+# $ Copyright Broadcom $
+#
+#
+# <<Broadcom-WL-IPTag/Proprietary>>
+
+import argparse
+import json
+import os.path as op
+
+
+def main():
+    """Entry point for standalone use."""
+
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        'propfile',
+        help="configuration JSON file")
+    opts = parser.parse_args()
+
+    with open(opts.propfile, encoding='utf-8') as f:
+        jdoc = json.load(f)
+
+    header = '_' + op.basename(opts.propfile).replace('.', '_')
+    print(f'#ifndef {header}')
+    print(f'#define {header}\n')
+    for i, name in enumerate(jdoc['properties'], start=1):
+        print('#define %-30s %d' % (name, i))
+    print(f'\n#endif // {header}')
+
+
+if __name__ == '__main__':
+    main()
+
+# Local Variables:
+# mode: Python
+# indent-tabs-mode: nil
+# python-indent: 4
+# fill-column: 79
+# End:
+#
+# vim: sw=4:et:tw=79:cc=+1

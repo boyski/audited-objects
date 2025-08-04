@@ -345,7 +345,7 @@ class ## _get_ ## attr(class ## _o obj)                             \
 // Stuff which differs per platform ...
 ////////////////////////////////////////////////////////////////////////////
 
-# Hard-wired because the client and auditor must agree.
+// Hard-wired because the client and auditor must agree.
 #define ENV_PFX "AO"
 
 /// The name of the auditing shared library. Must be hard-wired so the

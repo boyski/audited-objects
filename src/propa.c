@@ -19,6 +19,7 @@
 /// @brief Support for Properties objects.
 /// TODO
 
+// Needed until -std=c2x is reached.
 #include <stdbool.h>
 
 #include "Putil/putil.h"

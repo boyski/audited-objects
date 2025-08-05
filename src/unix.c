@@ -157,6 +157,20 @@ _unix_read_available(int fd)
 static FILE *LogFP = NULL;
 
 #ifdef TODO
+static int
+get_env_size(char **env)
+{
+    int count = 0;
+    while (env[count] != NULL) {
+        char *p = strchr(env[count], '=');
+        *p = '\0';
+        printf("COUNTING: [%d] %s\n", count, env[count]);
+        count++;
+        *p = '=';
+    }
+    return count;
+}
+
 // Internal service routine for sorting the environment.
 static int
 _qsort_env(const void *p1, const void *p2)
@@ -393,19 +407,20 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             putil_free(shlibdir);
         }
 
+        // For simplistic debugging.
+        system("env | egrep 'AO_|LD_'");
+
         // Actually run the command under control of the audit lib.
+        char **child_environ = environ;
+
 #ifdef TODO
         // Sorting is required on Windows, just a nice frill on Unix.
-        int env_count = 0;
-        for (int env_count = 0; environ[env_count]; env_count++)
-            ;
-        char **new_environ;
-        new_environ = (char **)alloca((env_count + 1) * sizeof(void *));
-        qsort(new_environ, env_count + 1, sizeof(char *), _qsort_env);
-        execvpe(path, argv, new_environ);
-#else
-        execvp(path, argv);
+        int env_size = get_env_size(environ);
+        printf("Count=%d\n", env_size);
+        child_environ = (char **)alloca((env_size) * sizeof(void *));
+        qsort(child_environ, env_size, sizeof(char *), _qsort_env);
 #endif
+        execvpe(path, argv, child_environ);
 
         // Give an error if we were unable to exec at all.
         putil_die("%s: %s", path, strerror(errno));

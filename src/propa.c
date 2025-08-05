@@ -19,6 +19,7 @@
 /// @brief Support for Properties objects.
 /// TODO
 
+#include "Putil/putil.h"
 #include "PROP.h"
 
 CS
@@ -26,9 +27,15 @@ _prop_getenv(CCS prop)
 {
     CS env_var;
     asprintf(&env_var, "%s%s", ENV_PFX, prop);
-    CCS value = getenv(env_var);
+    CS value = getenv(env_var);
     free(env_var);
     return value;
+}
+
+CCS
+prop_get_app(void)
+{
+    return "ao";  // TODO must be doable better somehow
 }
 
 CCS
@@ -61,7 +68,7 @@ prop_set_long(CCS prop, long newval)
 {
     CS oldval = _prop_getenv(prop);
     assert(oldval);
-    char newbuf[256];  // way longer than any stringified integral value
+    char newbuf[256];  // much longer than any stringified integral value
     (void)snprintf(newbuf, sizeof(newbuf), "%*ld", (int)strlen(oldval), newval);
     prop_set_str(prop, newbuf);
     return prop_get_long(prop);
@@ -79,7 +86,7 @@ prop_set_ulong(CCS prop, unsigned long newval)
 {
     CS oldval = _prop_getenv(prop);
     assert(oldval);
-    char newbuf[256];  // way longer than any stringified integral value
+    char newbuf[256];  // much longer than any stringified integral value
     (void)snprintf(newbuf, sizeof(newbuf), "%*lu", (int)strlen(oldval), newval);
     prop_set_str(prop, newbuf);
     return prop_get_ulong(prop);
@@ -96,7 +103,7 @@ prop_is_true(CCS prop)
 {
     CS oldval = _prop_getenv(prop);
     assert(oldval);
-    return *oldval && strtoul(oldval, NULL, 0) != 0;
+    return strcmp(oldval, "true") == 0;
 }
 
 bool
@@ -104,7 +111,7 @@ prop_set_bool(CCS prop, bool on_or_off)
 {
     CS oldval = _prop_getenv(prop);
     assert(oldval && *oldval);
-    (void)strcpy(oldval, on_or_off ? "1" : "0");
+    (void)strcpy(oldval, on_or_off ? "true" : "false");
     return prop_is_true(prop);
 }
 

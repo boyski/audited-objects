@@ -19,6 +19,7 @@
 /// @brief Support for Properties objects.
 /// TODO
 
+#include "Putil/putil.h"
 #include "PROP.h"
 
 #include "cJSON.h"
@@ -44,7 +45,7 @@ _prop_get_value(CCS prop)
     return _prop_get_key(prop, "value");
 }
 
-int
+static int
 _prop_get_pad(CCS prop)
 {
     cJSON *item = _prop_get_item(prop);
@@ -58,10 +59,22 @@ _prop_get_pad(CCS prop)
 }
 
 bool
+prop_is_public(CCS prop)
+{
+    return prop != NULL;  // TODO - temp hack
+}
+
+bool
 prop_is_exported(CCS prop)
 {
     cJSON *result = _prop_get_key(prop, "exported");
     return cJSON_IsTrue(result);
+}
+
+CCS
+prop_get_app(void)
+{
+    return "ao";  // TODO must be doable better somehow
 }
 
 CCS
@@ -70,6 +83,13 @@ prop_get_str(CCS prop)
     cJSON *result = _prop_get_value(prop);
     if (cJSON_IsNull(result)) {
         return NULL;
+    }
+    if (cJSON_IsNumber(result)) {
+        CS strval;
+        asprintf(&strval, "%d", result->valueint);
+        return strval;  // TODO needs to be freed
+    } else if (cJSON_IsBool(result)) {
+        return cJSON_IsTrue(result) ? "true" : "false";
     }
     return cJSON_GetStringValue(result);
 }
@@ -123,6 +143,16 @@ prop_set_ulong(CCS prop, unsigned long newval)
 }
 
 bool
+prop_has_value(CCS prop)
+{
+    cJSON *result = _prop_get_value(prop);
+    if (result && cJSON_IsString(result)) {
+        return *cJSON_GetStringValue(result) ? true : false;
+    }
+    return false;
+}
+
+bool
 prop_is_true(CCS prop)
 {
     cJSON *value = _prop_get_value(prop);
@@ -131,13 +161,20 @@ prop_is_true(CCS prop)
 }
 
 bool
-prop_has_value(CCS prop)
+prop_set_bool(CCS prop, bool on_or_off)
 {
-    CCS value = _prop_get_value(prop);
-    if (value) {
-        return *value ? true : false;
+    cJSON *value = _prop_get_value(prop);
+    assert(cJSON_IsBool(value));
+    if (on_or_off) {
+        value->type = cJSON_True;
+        value->valueint = 1;
+        value->valuedouble = 1.0;
+    } else {
+        value->type = cJSON_False;
+        value->valueint = 0;
+        value->valuedouble = 0.0;
     }
-    return false;
+    return prop_is_true(prop);
 }
 
 CCS
@@ -147,22 +184,26 @@ prop_desc(CCS prop)
 }
 
 void
-prop_init(CS path)
+prop_init(CCS path)
 {
-    // Read the specified file into a string in JSON format.
-    FILE *fp = fopen(path, "r");
-    struct stat stbuf;
-    fstat(fileno(fp), &stbuf);
-    size_t len = (size_t)stbuf.st_size;
-    CS json_string = malloc(len + 1);
-    fread(json_string, 1, len, fp);
-    json_string[len] = '\0';
-    fclose(fp);
+    if (path) {
+        // Read the specified file into a string in JSON format.
+        FILE *fp = fopen(path, "r");
+        struct stat stbuf;
+        fstat(fileno(fp), &stbuf);
+        size_t len = (size_t)stbuf.st_size;
+        CS json_string = malloc(len + 1);
+        fread(json_string, 1, len, fp);
+        json_string[len] = '\0';
+        fclose(fp);
 
-    // Parse the JSON string into an actual JSON object.
-    cJSON *json = cJSON_Parse(json_string);
-    free(json_string);
-    Properties = cJSON_GetObjectItem(json, "properties");
+        // Parse the JSON string into an actual JSON object.
+        cJSON *json = cJSON_Parse(json_string);
+        free(json_string);
+        Properties = cJSON_GetObjectItem(json, "properties");
+    } else {
+        Properties = cJSON_CreateObject();
+    }
 
     // Environment settings override file-derived properties.
     for (char **envp = environ; *envp; envp++) {
@@ -184,16 +225,43 @@ prop_init(CS path)
         CCS prop = property->string;
         if (prop_is_exported(prop)) {
             CS envstr;
-            asprintf(&envstr, "%s%s=%s", ENV_PFX, prop, prop_get_str(prop));
+            CCS prop_val = prop_get_str(prop);
+            asprintf(&envstr, "%s%s=%s", ENV_PFX, prop, prop_val ? prop_val : "");
             putenv(envstr);  // TODO will show as memory leak
         }
     }
 }
 
+/// Finalize properties data.
 void
 prop_fini(void)
 {
     cJSON_Delete(Properties);
+}
+
+/// Print the known set of properties and their current values.
+/// @param[in] verbose  boolean - if true, show property descriptions
+/// @param[in] all      boolean - if true, show internal properties too
+void
+prop_help(int verbose, int all)
+{
+    if (verbose) {
+        printf("\nPROPERTIES [current values]:\n\n");
+    }
+
+    cJSON *property = NULL;
+    cJSON_ArrayForEach(property, Properties) {
+        CCS prop = property->string;
+        if (!(all || prop_is_public(prop))) {
+            continue;
+        }
+        CCS exp = prop_is_exported(prop) ? "*" : "";
+        if (verbose) {
+            printf("%s%s: %s\n", prop, exp, prop_desc(prop));
+        } else {
+            puts(prop);
+        }
+    }
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

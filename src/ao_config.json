@@ -191,7 +191,7 @@
       "description": "Boolean - use the pre-existing roadmap (debugging use only)",
       "value": false
     },
-    "ROADMAP_FILE": {
+    "ROADMAPFILE": {
       "description": "Path to the file containing the CA/PS/PTX database",
       "value": null
     },

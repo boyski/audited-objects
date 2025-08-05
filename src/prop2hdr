@@ -36,8 +36,8 @@ def main():
     header = '_' + op.basename(opts.propfile).replace('.', '_')
     print(f'#ifndef {header}')
     print(f'#define {header}\n')
-    for i, name in enumerate(jdoc['properties'], start=1):
-        print('#define P_%-32s %d' % (name, i))
+    for name in sorted(jdoc['properties']):
+        print('#define P_%-32s "%s"' % (name, name))
     print(f'\n#endif // {header}')
 
 

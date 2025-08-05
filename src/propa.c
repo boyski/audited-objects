@@ -22,7 +22,7 @@
 #include "Putil/putil.h"
 #include "PROP.h"
 
-CS
+static CS
 _prop_getenv(CCS prop)
 {
     CS env_var;

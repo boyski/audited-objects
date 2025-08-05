@@ -264,4 +264,22 @@ prop_help(int verbose, int all)
     }
 }
 
+#ifdef UNIT_TEST
+int
+main(void)
+{
+    prop_init("ao_config.json");
+    printf("Properties in the monitor environment:\n");
+    system("env | grep ^AO_");
+    printf("\nProperty mods:\n");
+    CCS prop = "AUDIT_IGNORE_PATH_RE";
+    printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
+    printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
+    printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
+    printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
+    prop_fini();
+    return 0;
+}
+#endif
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

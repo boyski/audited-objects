@@ -115,4 +115,27 @@ prop_set_bool(CCS prop, bool on_or_off)
     return prop_is_true(prop);
 }
 
+#ifdef UNIT_TEST
+int
+main(void)
+{
+    // Show auditor properties from the environment.
+    for (char **envp = environ; *envp; envp++) {
+        if (!strncmp(*envp, ENV_PFX, sizeof(ENV_PFX) - 1)) {
+            char *prop = strdup(*envp + 3);
+            char *value = strchr(prop, '=');
+            *value++ = '\0';
+            printf("ENV: %s='%s'\n", prop, value);
+            printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
+            printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
+            printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
+            printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
+            free(prop);
+        }
+    }
+
+    return 0;
+}
+#endif
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

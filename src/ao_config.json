@@ -274,5 +274,6 @@
       "description": "Extension flags directed to subsystems",
       "value": null
     }
-  }
+  },
+  "version": "2.0.1"
 }

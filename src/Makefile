@@ -71,7 +71,7 @@ endef
 SHLIBFLAGS := -shared
 INST_PREFIX := ${HOME}/$(TGTARCH)
 
-GFLAGS := -g
+GFLAGS := -g3
 
 SHLIBDIR := /lib
 
@@ -87,14 +87,6 @@ DFLAGS := $(EXTRA_DFLAGS)
 DFLAGS += -D_REENTRANT
 DFLAGS += -DFILE_OFFSET_BITS=64
 DFLAGS += -D_GNU_SOURCE
-
-# Compile in the version number if accessible.
-include App.properties
-ifneq ($(APPLICATION_VERSION),)
-  DFLAGS += -DAPPLICATION_VERSION='"$(APPLICATION_VERSION)"'
-else
-  APPLICATION_VERSION := 0.0
-endif
 
 # Really just used by one target but passed to all for now.
 BUILTON := $(shell uname -mnrs)
@@ -253,7 +245,7 @@ docs dox:
 
 $(TGTDIR)/putil.o: Putil/putil.h
 
-$(TGTDIR)/%.o: %.c AO.h App.properties
+$(TGTDIR)/%.o: %.c AO.h
 	$(CC) -c $(GFLAGS) $(CFLAGS) -o $@ $<
 
 $(TGTDIR)/properties.h: ./prop2hdr ao_config.json

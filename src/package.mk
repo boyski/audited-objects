@@ -4,8 +4,6 @@ src := .
 rel := ../rel
 ops := ../OPS
 
-include $(src)/App.properties
-
 .PHONY: all
 all: release
 
@@ -20,8 +18,7 @@ SRCS := \
   $(src)/pl \
   $(src)/Makefile \
   $(src)/DOXYFILE \
-  $(src)/.indent.pro \
-  $(src)/App.properties
+  $(src)/.indent.pro
 
 TGTARCH := $(CPUARCH)
 

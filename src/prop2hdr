@@ -37,7 +37,7 @@ def main():
     print(f'#ifndef {header}')
     print(f'#define {header}\n')
     for i, name in enumerate(jdoc['properties'], start=1):
-        print('#define %-30s %d' % (name, i))
+        print('#define P_%-32s %d' % (name, i))
     print(f'\n#endif // {header}')
 
 

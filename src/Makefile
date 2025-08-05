@@ -160,7 +160,8 @@ OBJS := $(addprefix $(TGTDIR)/, \
 
 IFLAGS := -I. -I$(TGTDIR) -I$(OPS)/include
 
-CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
+# Recursively expanded by design.
+CFLAGS = $(filter-out #%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
 
 AUDITOR	:= libAO.so
 LIBAO := $(addprefix $(LIBDIR)/,$(AUDITOR))
@@ -270,6 +271,17 @@ _relink:
 
 .PHONY: relink
 relink: _relink all
+
+TESTS := propa propm
+TARGETS += $(TESTS)
+
+$(TESTS): CFLAGS += -DUNIT_TEST
+$(TESTS): $$(@).c | $$(@D)
+	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
+	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
+
+.PHONY: tests
+tests: $(TESTS)
 
 .PHONY: tags
 tags:

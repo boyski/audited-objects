@@ -121,7 +121,7 @@ _thread_mutex_unlock(void)
 // when used in the shared library will want to be compiled -fPIC
 // but the same file used in the monitor process is just another
 // bit of application code which doesn't need -fPIC. Compiling
-// the same .c file into 2 difference .o files with different
+// the same .c file into 2 different .o files with different
 // compiler options would be difficult, confusing, and wasteful
 // of space. When included here they inherit the required shared
 // object options and no alternate .o is required.

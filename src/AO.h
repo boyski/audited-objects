@@ -210,14 +210,6 @@
 //#define AO_EXTERN extern
 //#endif
 
-/// The name of the app: used for finding properties.
-#define APPLICATION_NAME "AO"
-
-/// Current published version of the app.
-#if !defined(APPLICATION_VERSION)
-#define APPLICATION_VERSION "0.0"
-#endif
-
 /// The field separator within the audit files. This is also understood
 /// on the server side - changes must be made in both places.
 #define FS1 ","

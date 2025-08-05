@@ -190,7 +190,7 @@ else ifneq ($(DARWIN),)
   GFLAGS :=
   SYSLIBS := -L/usr/lib
   SHLIBFLAGS := -dynamiclib -flat_namespace -multiply_defined suppress
-  SHLIBFLAGS += -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
+  #SHLIBFLAGS += -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
   PLDLIBS :=
   DLL_LIBS := -Wl,-search_paths_first -Wl,-Z $(DLL_LIBS)
 endif

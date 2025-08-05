@@ -270,31 +270,12 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         }
     }
 
-    // This property allows the entire auditing process to be dummied out;
-    // we simply run the specified command, wait for it, and return.
+    // This property allows the entire auditing process to be dummied out.
+    // Simply run the specified command and return.
     if (prop_is_true(P_EXECUTE_ONLY)) {
-        if ((childpid = fork()) < 0) {
-            putil_syserr(0, "fork");
-            exit(2);
-        } else if (childpid == 0) {
-            execvp(path, argv);
-            putil_syserr(0, path);
-            exit(2);
-        } else {
-            if (waitpid(childpid, &wstat, 0) == -1) {
-                putil_syserr(0, path);
-                ExitStatus = 5;
-            } else if (WIFEXITED(wstat)) {
-                ExitStatus = WEXITSTATUS(wstat);
-            } else {
-                ExitStatus = 2;
-            }
-// Pragma to suppress an apparently bogus gcc -fanalyzer complaint.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wanalyzer-fd-leak"
-            return ExitStatus;
-#pragma GCC diagnostic pop
-        }
+        execvp(path, argv);
+        putil_syserr(0, path);
+        exit(2);
     }
 
     // The grandparent dir of this exe becomes the base where

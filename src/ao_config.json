@@ -270,10 +270,13 @@
       "value": "STD",
       "exported": true
     },
+    "VERSION": {
+      "description": "Current application version",
+      "value": "2.0.1"
+    },
     "WFLAG": {
       "description": "Extension flags directed to subsystems",
       "value": null
     }
-  },
-  "version": "2.0.1"
+  }
 }

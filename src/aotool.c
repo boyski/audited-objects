@@ -311,7 +311,7 @@ _usage(int rc)
 static void
 _print_version(int full)
 {
-    printf("%s=%s\n", APPLICATION_NAME, APPLICATION_VERSION);
+    printf("%s=%s\n", "AO", prop_get_str(P_VERSION));
 
     if (full) {
         fputs(putil_builton(), stdout);

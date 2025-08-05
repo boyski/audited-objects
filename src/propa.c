@@ -19,6 +19,8 @@
 /// @brief Support for Properties objects.
 /// TODO
 
+#include <stdbool.h>
+
 #include "Putil/putil.h"
 #include "PROP.h"
 

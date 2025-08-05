@@ -49,7 +49,7 @@ make_init(CCS exe)
         if (exe && (exedir = putil_dirname(exe))) {
             if ((appdir = putil_dirname(exedir))) {
 
-                asprintf(&fragment, "%s/etc/%s.mk", appdir, prop_get_app());
+                asprintf(&fragment, "%s/etc/%s.mk", appdir, exe);
                 putil_free(appdir);
             }
             putil_free(exedir);

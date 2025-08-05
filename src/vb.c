@@ -208,13 +208,13 @@ vb_addstr(CCS vbstr)
             if (asprintf(&newval, "%s,%s", currval, vbstr) < 0) {
                 putil_syserr(2, NULL);
             }
-            prop_override_str(P_VERBOSITY, newval);
+            prop_set_str(P_VERBOSITY, newval);
             putil_free(newval);
         } else {
-            prop_override_str(P_VERBOSITY, vbstr);
+            prop_set_str(P_VERBOSITY, vbstr);
         }
     } else {
-        prop_put_str(P_VERBOSITY, vbstr);
+        prop_set_str(P_VERBOSITY, vbstr);
     }
 
     // Mark the mask as needing to be recalculated.
@@ -233,17 +233,16 @@ vb_addbit(int addbit)
 static long
 _vb_name2mask(CCS list)
 {
-    long mask;
+    // Default to 'standard' verbosity.
+    long mask = 1 << VB_STD;
 
-    CS t;
+    if (!list) {
+        return mask;
+    }
 
     char buf[1024];
-
-    // Default to 'standard' verbosity.
-    mask = 1 << VB_STD;
-
     snprintf(buf, charlen(buf), "%s", list);
-    for (t = strtok(buf, ","); t; t = strtok(NULL, ",")) {
+    for (CS t = strtok(buf, ","); t; t = strtok(NULL, ",")) {
         if (!stricmp(t, "OFF") || *t == '-') {
             mask = 0;
         } else if (!stricmp(t, "ON")) {

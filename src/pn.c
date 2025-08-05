@@ -196,22 +196,11 @@ pn_verbosity(pn_o pn, CCS verb, CCS ext)
 {
     if (vb_bitmatch(VB_STD)) {
         CS tpath;
-        CCS plat;
 
         if (prop_is_true(P_ABSOLUTE_PATHS)) {
             tpath = putil_strdup(pn_get_abs(pn));
         } else {
             tpath = putil_strdup(pn_get_rel(pn));
-        }
-
-        if ((plat = prop_get_str(P_MONITOR_PLATFORM)) && *plat == 'w') {
-            char *p;
-
-            for (p = tpath; *p; p++) {
-                if (*p == '/') {
-                    *p = '\\';
-                }
-            }
         }
 
         if (ext) {

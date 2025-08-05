@@ -144,7 +144,8 @@ $(INST_PREFIX)/bin/%: py/% | $$(@D)
 	@chmod u+wx $?
 	@test -L $@ || (set -x; cp -p $< $@)
 
-OBJS := \
+# List of object files linked into the monitor.
+OBJS := $(addprefix $(TGTDIR)/, \
   aotool.o \
   bsd_getopt.o \
   ca.o \
@@ -155,8 +156,7 @@ OBJS := \
   moment.o \
   mon.o \
   pn.o \
-  prefs.o \
-  prop.o \
+  propm.o \
   pa.o \
   ps.o \
   putil.o \
@@ -164,9 +164,9 @@ OBJS := \
   unix.o \
   util.o \
   vb.o \
-  zips.o
+  zips.o)
 
-IFLAGS := -I. -I$(OPS)/include
+IFLAGS := -I. -I$(TGTDIR) -I$(OPS)/include
 
 CFLAGS := $(filter-out #%,$(strip $(WFLAGS) $(FFLAGS) $(DFLAGS) $(IFLAGS)))
 
@@ -224,8 +224,7 @@ COMMINCS := \
   moment.c \
   pa.c \
   pn.c \
-  prefs.c \
-  prop.c \
+  propa.c \
   ps.c \
   re.c \
   util.c \
@@ -257,10 +256,15 @@ $(TGTDIR)/putil.o: Putil/putil.h
 $(TGTDIR)/%.o: %.c AO.h App.properties
 	$(CC) -c $(GFLAGS) $(CFLAGS) -o $@ $<
 
+$(TGTDIR)/properties.h: ./prop2hdr ao_config.json
+	./$^ > $@
+
+$(OBJS) $(LIBAO): | $(TGTDIR)/properties.h
+
 #############################################################################
 
-$(AOTOOL): $(addprefix $(TGTDIR)/,$(OBJS)) | $$(@D)
-	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(addprefix $(TGTDIR)/,$(OBJS)) \
+$(AOTOOL): $(OBJS) | $$(@D)
+	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
 $(LIBAO): CFLAGS := $(patsubst -std=%,-std=c17,$(CFLAGS))

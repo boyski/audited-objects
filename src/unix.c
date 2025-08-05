@@ -156,6 +156,18 @@ _unix_read_available(int fd)
 // Making this static instead of automatic makes Coverity happy.
 static FILE *LogFP = NULL;
 
+#ifdef TODO
+// Internal service routine for sorting the environment.
+static int
+_qsort_env(const void *p1, const void *p2)
+{
+    const char **lp = (const char **)p1;
+    const char **rp = (const char **)p2;
+
+    return strcmp(*lp, *rp);
+}
+#endif
+
 /// The Unix version of the function which actually runs and audits the
 /// child command. The child command is run via fork/exec/wait while
 /// this process sticks around to become the "monitor".
@@ -184,6 +196,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     unsigned int i;
 
     path = argv[0];
+    system("env | grep ^AO_");
 
     ports = prop_get_ulong(P_MONITOR_LISTENERS);
     listeners = putil_malloc(ports * sizeof(int));
@@ -344,7 +357,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             snprintf(endof(portstr), len - strlen(portstr), "%u:", port);
         }
 
-        prop_override_str(P_MONITOR_PORT, portstr);
+        prop_set_str(P_MONITOR_PORT, portstr);
         putil_free(portstr);
     }
 
@@ -380,8 +393,19 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             putil_free(shlibdir);
         }
 
-        // Run the command under control of the audit lib.
+        // Actually run the command under control of the audit lib.
+#ifdef TODO
+        // Sorting is required on Windows, just a nice frill on Unix.
+        int env_count = 0;
+        for (int env_count = 0; environ[env_count]; env_count++)
+            ;
+        char **new_environ;
+        new_environ = (char **)alloca((env_count + 1) * sizeof(void *));
+        qsort(new_environ, env_count + 1, sizeof(char *), _qsort_env);
+        execvpe(path, argv, new_environ);
+#else
         execvp(path, argv);
+#endif
 
         // Give an error if we were unable to exec at all.
         putil_die("%s: %s", path, strerror(errno));

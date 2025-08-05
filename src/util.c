@@ -774,7 +774,7 @@ util_open_output_file(CCS ofile)
             }
             putil_free(obuf);
 
-            prop_override_str(P_OUTPUT_FILE, abuf);
+            prop_set_str(P_OUTPUT_FILE, abuf);
 
             snprintf(OutputFile, charlen(OutputFile), "%s", abuf);
 

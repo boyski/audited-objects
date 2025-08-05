@@ -1444,7 +1444,7 @@ prop_desc(prop_e prop)
 /// @param[in] verbose  boolean - if true, show property descriptions
 /// @param[in] exe      the name of the current program
 void
-prop_help(int all, int verbose, CCS exe)
+prop_help(int all, int verbose)
 {
     int prop;
     char name[PROP_NAME_MAX];
@@ -1481,12 +1481,6 @@ prop_help(int all, int verbose, CCS exe)
         if (verbose && proptab[prop + 1].pr_name) {
             fputc('\n', stdout);
         }
-    }
-
-    if (verbose && exe) {
-        printf("LOADED FROM:\n");
-        prefs_env_init(PROP_EXT, "\t");
-        prefs_file_init(PROP_EXT, "\t");
     }
 }
 

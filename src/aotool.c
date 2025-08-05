@@ -45,7 +45,7 @@
 #include <alloca.h>
 #endif  // BSD
 
-static char *ProgramName = NULL;
+static char *ProgramName = "ao";  // could derive dynamically?
 
 static char self_license[] = "\
 Copyright (c) 2002-2025 David Boyce.  All rights reserved.\n\
@@ -247,7 +247,7 @@ _print_elapsed_time(void)
 
 // Internal service routine. Print a usage message line for a property.
 static void
-_usg_line(FILE *fp, CCS flag, prop_e prop, CCS desc)
+_usg_line(FILE *fp, CCS flag, CCS prop, CCS desc)
 {
     if (!prop_is_public(prop)) {
         return;
@@ -258,8 +258,7 @@ _usg_line(FILE *fp, CCS flag, prop_e prop, CCS desc)
     } else {
         char buf[1024];
 
-        snprintf(buf, charlen(buf), "%s [=%s]",
-            prop_desc(prop), prop_to_name(prop));
+        snprintf(buf, charlen(buf), "%s [=%s]", prop_desc(prop), prop);
         fprintf(fp, USAGE_FMT, flag, buf);
     }
 }
@@ -333,17 +332,10 @@ _action(CCS action, int argc, CS const *argv)
 
     if (!strcmp(action, "Property") || !strcmp(action, "property")) {
         // Print the current value of the named property.
-        int i;
-        CCS str;
-
-        for (i = 0; i < argc; i++) {
+        for (int i = 0; i < argc; i++) {
+            CCS prop = argv[i];
             if (vb_bitmatch(VB_STD)) {
-                printf("%s=", argv[i]);
-            }
-            if ((str = prop_value_from_name(argv[i]))) {
-                printf("%s\n", str);
-            } else {
-                printf("\n");
+                printf("%s=%s", prop, prop_get_str(prop));
             }
         }
     } else if (!strcmp(action, "Substitute") || !strcmp(action, "substitute")) {
@@ -424,7 +416,7 @@ _action(CCS action, int argc, CS const *argv)
 
             switch (c) {
                 case 'a':
-                    prop_override_true(P_ABSOLUTE_PATHS);
+                    prop_set_bool(P_ABSOLUTE_PATHS, true);
                     break;
                 case 'l':
                     long_flag = 1;
@@ -536,6 +528,53 @@ _action(CCS action, int argc, CS const *argv)
     return rc;
 }
 
+/// Search upward from a given directory toward the filesystem
+/// root looking for the named file.
+/// @param[in] name     filename or trailing path fragment to search for
+/// @param[in] dir      starting directory (cwd if NULL)
+/// @return path to found file on the heap, or NULL
+static CS
+_find_file_up(CCS ending, CS dir)
+{
+    CS result;
+
+    if (dir) {
+        dir = putil_realpath(dir, 1);
+    } else {
+        if (!(dir = (CS)util_get_cwd())) {
+            putil_syserr(0, "util_get_cwd");
+            exit(2);
+        }
+    }
+
+    while (strcmp(dir, "/")) {
+        CS pdir;
+
+        TRY(asprintf(&result, "%s%s%s", dir, DIRSEP(), ending), "asprintf()");
+        if (!access(result, F_OK)) {
+            putil_free(dir);
+            return result;
+        } else {
+            putil_free(result);
+        }
+
+        // Quit when we reach the root even if the root is not
+        // called '/' (like on Windows).
+        if ((pdir = putil_dirname(dir))) {
+            if (strlen(pdir) >= strlen(dir)) {
+                putil_free(pdir);
+                break;
+            } else {
+                putil_free(dir);
+                dir = pdir;
+            }
+        }
+    }
+
+    putil_free(dir);
+    return NULL;
+}
+
 /// Entry point for the client program.
 /// @param[in] argc     the number of arguments
 /// @param[in] argv     the classic argument vector taken by every main routine
@@ -545,20 +584,14 @@ main(int argc, CS *argv)
 {
     CCS action;
     CS dscript = NULL;
-    CS redo_script = NULL;
     int proplevel = -1;
     int rc = 0;
 
     heap_init();
 
-    // Figure out the full path to the current executable program.
-    // Should be done asap, before anything happens to argv.
-    ProgramName = heap_save(util_strdown(putil_strdup(ENV_PFX)));
-
     // Initialize verbosity. Should be done before most
     // other initializations since they may use verbosity.
     vb_init();
-    atexit(vb_fini);
 
     // Initialize the properties database and at the same time
     // arrange for it to be finalized at exit. Doing it this
@@ -568,22 +601,12 @@ main(int argc, CS *argv)
     // to explicitly free data right before exit like this is
     // to avoid spurious warnings from memory leak detectors like
     // valgrind and make real problems more obvious.
-    prop_init(APPLICATION_NAME);
-    atexit(prop_fini);
-    // This has been known to cause core dumps on Linux. I think the
-    // problem is since fixed but since it does no real good, as noted,
-    // I'm leaving it off for now.
-    //atexit(prop_unexport_all);
-
-    // Load properties from the documented sequence of prop files and
-    // the environment.
-    prefs_init(PROP_EXT, NULL);
+    CCS cfgfile = _find_file_up(".ao/ao_config.json", NULL);
+    prop_init(cfgfile);
+    putil_free(cfgfile);
 
     // Initialize the hash-code generator.
     code_init();
-
-    // Default this to on; make auditing is tough without it.
-    prop_override_true(P_MAKE_ONESHELL);
 
     // Ugly hack. There may be a better way to handle this within the getopt
     // API but for now this fixes the UI.
@@ -600,15 +623,13 @@ main(int argc, CS *argv)
         int c;
 
         // *INDENT-OFF*
-        static CS short_opts = "+1adf:hl:mo:p:qrtuv::wxAC:DEH::M:O:RSTUV:W:XY";
+        static CS short_opts = "+adf:hl:mo:p:qrtuv::wxAC:EH::M:O:RSTUV:W:XY";
         static struct option long_opts[] = {
-            {"oneshell",        no_argument,       NULL, '1'},
             {"absolute-paths",  no_argument,       NULL, 'a'},
             {"agg-level",       required_argument, NULL, LF('A', 'G')},
             {"audit-only",      no_argument,       NULL, 'A'},
             {"directory",       required_argument, NULL, 'C'},
             {"download-only",   no_argument,       NULL, 'd'},
-            {"download-silent", no_argument,       NULL, 'D'},
             {"dtrace",          required_argument, NULL, LF('D', 'T')},
             {"client-platform", required_argument, NULL, LF('C', 'P')},
             {"error-strict",    no_argument,       NULL, 'E'},
@@ -629,7 +650,6 @@ main(int argc, CS *argv)
             {"leave-roadmap",   no_argument,       NULL, 'r'},
             {"reuse-roadmap",   no_argument,       NULL, 'R'},
             {"strict",          no_argument,       NULL, 'S'},
-            {"script",          required_argument, NULL, LF('s', 'c')},
             {"print-elapsed",   no_argument,       NULL, 't'},
             {"upload-only",     no_argument,       NULL, 'u'},
             {"uncompressed-transfers", no_argument, NULL, 'U'},
@@ -652,20 +672,16 @@ main(int argc, CS *argv)
 
         switch (c) {
 
-            case '1':
-                prop_unset(P_MAKE_ONESHELL, 0);
-                break;
-
             case 'a':
-                prop_override_true(P_ABSOLUTE_PATHS);
+                prop_set_bool(P_ABSOLUTE_PATHS, true);
                 break;
 
             case LF('A', 'G'):
-                prop_override_str(P_AGGREGATION_STYLE, bsd_optarg);
+                prop_set_str(P_AGGREGATION_STYLE, bsd_optarg);
                 break;
 
             case 'A':
-                prop_override_true(P_AUDIT_ONLY);
+                prop_set_bool(P_AUDIT_ONLY, true);
                 break;
 
             case 'C':
@@ -684,18 +700,11 @@ main(int argc, CS *argv)
                 break;
 
             case LF('C', 'P'):
-                prop_override_str(P_MONITOR_PLATFORM, bsd_optarg);
-                break;
-
-            // Undocumented - debug downloads without modifying state.
-            // We may not need this forever.
-            case 'D':
-                prop_unset(P_DOWNLOAD_ONLY, 0);
-                prop_put_ulong(P_DOWNLOAD_ONLY, 2);
+                prop_set_str(P_MONITOR_PLATFORM, bsd_optarg);
                 break;
 
             case 'd':
-                prop_override_true(P_DOWNLOAD_ONLY);
+                prop_set_bool(P_DOWNLOAD_ONLY, true);
                 break;
 
             case LF('D', 'T'):
@@ -703,11 +712,11 @@ main(int argc, CS *argv)
                 break;
 
             case 'E':
-                prop_put_long(P_STRICT_ERROR, 1);
+                prop_set_long(P_STRICT_ERROR, 1);
                 break;
 
             case LF('L', 'S'):
-                prop_override_ulong(P_LOG_TIME_STAMP, 1);
+                prop_set_ulong(P_LOG_TIME_STAMP, 1);
                 break;
 
             case 'l':
@@ -715,50 +724,50 @@ main(int argc, CS *argv)
                     CS lbuf;
 
                     if (*bsd_optarg == ':') {
-                        prop_override_ulong(P_LOG_TIME_STAMP, 1);
+                        prop_set_ulong(P_LOG_TIME_STAMP, 1);
                         bsd_optarg++;
                     }
 
                     if (putil_is_absolute(bsd_optarg)) {
-                        prop_override_str(P_LOG_FILE, bsd_optarg);
+                        prop_set_str(P_LOG_FILE, bsd_optarg);
                     } else if ((lbuf = putil_realpath(bsd_optarg, 1))) {
-                        prop_override_str(P_LOG_FILE, lbuf);
+                        prop_set_str(P_LOG_FILE, lbuf);
                         putil_free(lbuf);
                     } else {
                         putil_syserr(0, bsd_optarg);
-                        prop_override_str(P_LOG_FILE, bsd_optarg);
+                        prop_set_str(P_LOG_FILE, bsd_optarg);
                     }
                 }
                 break;
 
             case 'f':
-                prop_override_str(P_MAKE_FILE, bsd_optarg);
+                prop_set_str(P_MAKE_FILE, bsd_optarg);
                 break;
 
             case 'M':
                 if (!bsd_optarg || !strcmp(bsd_optarg, "D")) {
-                    prop_override_str(P_MAKE_DEPENDS, ".d");
+                    prop_set_str(P_MAKE_DEPENDS, ".d");
                 } else {
-                    prop_override_str(P_MAKE_DEPENDS, bsd_optarg);
+                    prop_set_str(P_MAKE_DEPENDS, bsd_optarg);
                 }
                 break;
 
             case 'm':
-                prop_override_true(P_MEMBERS_ONLY);
+                prop_set_bool(P_MEMBERS_ONLY, true);
                 break;
 
             case 'o':
                 // fallthrough
             case 'O':
                 if (!bsd_optarg || !strcmp(bsd_optarg, "@")) {
-                    prop_override_str(P_OUTPUT_FILE, DEVNULL);
+                    prop_set_str(P_OUTPUT_FILE, DEVNULL);
                 } else {
-                    prop_override_str(P_OUTPUT_FILE, bsd_optarg);
+                    prop_set_str(P_OUTPUT_FILE, bsd_optarg);
                 }
                 break;
 
             case 'p':
-                prop_override_str(P_PROJECT_NAME, bsd_optarg);
+                prop_set_str(P_PROJECT_NAME, bsd_optarg);
                 break;
 
                 // Generate runtime linker profile output.
@@ -772,40 +781,34 @@ main(int argc, CS *argv)
                 break;
 
             case 'R':
-                prop_override_true(P_REUSE_ROADMAP);
-                prop_unset(P_DOWNLOAD_ONLY, 0);
-                prop_put_ulong(P_DOWNLOAD_ONLY, 2);
+                prop_set_bool(P_REUSE_ROADMAP, true);
+                prop_set_ulong(P_DOWNLOAD_ONLY, 2);
                 // fallthrough
             case 'r':
-                prop_override_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
-                prop_override_true(P_LEAVE_ROADMAP);
+                prop_set_str(P_ROADMAPFILE, ROADMAP_DEFAULT_NAME);
+                prop_set_bool(P_LEAVE_ROADMAP, true);
                 break;
 
             case 'S':
-                prop_put_ulong(P_STRICT, 1);
-                prop_put_ulong(P_STRICT_DOWNLOAD, 1);
-                prop_put_ulong(P_STRICT_UPLOAD, 1);
-                break;
-
-            case LF('s', 'c'):
-                redo_script = bsd_optarg;
+                prop_set_ulong(P_STRICT, 1);
+                prop_set_ulong(P_STRICT_DOWNLOAD, 1);
+                prop_set_ulong(P_STRICT_UPLOAD, 1);
                 break;
 
             case 't':
-                prop_unset(P_PRINT_ELAPSED, 1);
-                prop_put_str(P_PRINT_ELAPSED, "-1");
+                prop_set_str(P_PRINT_ELAPSED, "-1");
                 break;
 
             case 'u':
-                prop_override_ulong(P_UPLOAD_ONLY, 1);
+                prop_set_ulong(P_UPLOAD_ONLY, 1);
                 break;
 
             case 'U':
-                prop_override_ulong(P_UNCOMPRESSED_TRANSFERS, 1);
+                prop_set_ulong(P_UNCOMPRESSED_TRANSFERS, 1);
                 break;
 
             case 'V':           // keep verbosity out of auditor
-                prop_unexport(P_VERBOSITY, 1);
+                // prop_unexport(P_VERBOSITY, 1);
                 // fallthrough
             case 'v':
                 vb_addstr(bsd_optarg);
@@ -851,10 +854,10 @@ main(int argc, CS *argv)
 
                     if ((old = prop_get_str(P_WFLAG))) {
                         asprintf(&str, "%s\n%s", old, bsd_optarg);
-                        prop_override_str(P_WFLAG, str);
+                        prop_set_str(P_WFLAG, str);
                         putil_free(str);
                     } else {
-                        prop_put_str(P_WFLAG, bsd_optarg);
+                        prop_set_str(P_WFLAG, bsd_optarg);
                     }
                 }
                 break;
@@ -864,12 +867,12 @@ main(int argc, CS *argv)
                 break;
 
             case 'X':
-                prop_override_true(P_EXECUTE_ONLY);
-                prop_put_ulong(P_PRINT_ELAPSED, 1);
+                prop_set_bool(P_EXECUTE_ONLY, true);
+                prop_set_ulong(P_PRINT_ELAPSED, 1);
                 break;
 
             case 'Y':
-                prop_override_true(P_SYNCHRONOUS_TRANSFERS);
+                prop_set_bool(P_SYNCHRONOUS_TRANSFERS, true);
                 break;
 
             case 'h':
@@ -914,19 +917,19 @@ main(int argc, CS *argv)
             if ((dash = strchr(ptr, '-')) && ISDIGIT(dash[1])) {
                 *dash = '\0';
             }
-            prop_put_str(P_PROJECT_NAME, ptr);
+            prop_set_str(P_PROJECT_NAME, ptr);
             putil_free(ptr);
         }
     }
 
     // Recycling would break full-makefile generation.
     if (prop_has_value(P_MAKE_FILE) && !prop_has_value(P_MAKE_DEPENDS)) {
-        prop_override_ulong(P_UPLOAD_ONLY, 1);
+        prop_set_ulong(P_UPLOAD_ONLY, 1);
     }
 
     // Diagnostic: dump properties and quit.
     if (proplevel >= 0) {
-        prop_help(proplevel, vb_bitmatch(VB_STD), ProgramName);
+        prop_help(proplevel, vb_bitmatch(VB_STD));
         exit(0);
     }
 
@@ -968,23 +971,19 @@ main(int argc, CS *argv)
             }
         }
 
-        // These values are pre-exported to reserve env-block space.
-        // To not do so would risk a dangerous realloc of the 'environ'
-        // pointer within an unsuspecting host process.
-
         // Reserve a block of env space for the current cmd depth.
-        prop_put_ulong(P_DEPTH, 0);
+        prop_set_ulong(P_DEPTH, 0);
 
         // Reserve a block of env space for the parent cmd id.
         // Seed it with our pid.
-        prop_put_ulong(P_PCMDID, getpid());
+        prop_set_ulong(P_PCMDID, getpid());
 
         // Reserve a block of env space for the parent cmd code.
-        prop_put_str(P_PCCODE, CSV_NULL_FIELD);
+        prop_set_str(P_PCCODE, CSV_NULL_FIELD);
 
         // This needs to be present in the env from the start even when off.
         // But being a boolean it only needs room for one digit.
-        prop_put_ulong(P_AGGREGATED_SUBCMD, 0);
+        prop_set_ulong(P_AGGREGATED_SUBCMD, 0);
 
         // Allow the cmd to be preceded by EV's in the manner of the shell.
         while (strchr(*argv, '=')) {
@@ -1005,7 +1004,7 @@ main(int argc, CS *argv)
         if ((rmap = prop_get_str(P_ROADMAPFILE))) {
             if (!putil_is_absolute(rmap)) {
                 if ((rmap = putil_realpath(rmap, 1))) {
-                    prop_override_str(P_ROADMAPFILE, rmap);
+                    prop_set_str(P_ROADMAPFILE, rmap);
                     putil_free(rmap);
                 } else {
                     putil_syserr(2, prop_get_str(P_ROADMAPFILE));
@@ -1013,7 +1012,7 @@ main(int argc, CS *argv)
             }
         } else if (prop_has_value(P_SERVER)) {
             rmap = tempnam(NULL, "rmap.");
-            prop_put_str(P_ROADMAPFILE, rmap);
+            prop_set_str(P_ROADMAPFILE, rmap);
             putil_free(rmap);
         }
 
@@ -1029,56 +1028,6 @@ main(int argc, CS *argv)
             // very fast session expiration but it could happen.
             if (mon_begin_session()) {
                 putil_die("can't get a session at %s", prop_get_str(P_SERVER));
-            }
-        }
-
-        if (redo_script) {
-            FILE *fp;
-
-            if (!(fp = fopen(redo_script, "w"))) {
-                putil_syserr(2, redo_script);
-            } else {
-                extern char **environ;
-                size_t plen;
-                char **pblock;
-                char **envp;
-                struct utsname sysdata;
-
-                // This is just to get a sorted environment list.
-                plen = prop_new_env_block_sizeA(environ);
-                pblock = (char **)alloca(plen);
-                memset(pblock, 0, plen);
-                (void)prop_custom_envA(pblock, environ);
-
-                fprintf(fp, "#!/bin/sh\n\n");
-
-                if (!putil_uname(&sysdata)) {
-                        fprintf(fp, "# Original host: %s %s %s %s %s\n\n",
-                                sysdata.sysname, sysdata.nodename, sysdata.release,
-                                sysdata.version, sysdata.machine);
-                }
-
-                fprintf(fp, "# Original environment settings:\n");
-                for (envp = pblock + 1; *envp; envp++) {
-                    char *t;
-
-                    if (**envp == '_') {
-                        continue;
-                    }
-
-                    fputs(": export ", fp);
-                    for (t = *envp; *t && *t != '='; t++) {
-                        fputc(*t, fp);
-                    }
-                    fputc(*t++, fp);
-                    fprintf(fp, "'%s'\n", t);
-                }
-                fprintf(fp, "cd '%s' || exit 2\n", cwd);
-                fprintf(fp, "exec %s\n", util_requote_argv(argv));
-
-                (void)fchmod(fileno(fp), 0755);
-                (void)fclose(fp);
-                vb_printf(VB_STD, "redo script written to '%s'", redo_script);
             }
         }
 
@@ -1114,7 +1063,9 @@ main(int argc, CS *argv)
 
     code_fini();
 
-    prefs_fini();
+    prop_fini();
+
+    vb_fini();
 
     heap_fini();
 

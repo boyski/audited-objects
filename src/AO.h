@@ -345,15 +345,13 @@ class ## _get_ ## attr(class ## _o obj)                             \
 // Stuff which differs per platform ...
 ////////////////////////////////////////////////////////////////////////////
 
-// Hard-wired because the client and auditor must agree.
-#define ENV_PFX "AO"
-
 /// The name of the auditing shared library. Must be hard-wired so the
 /// client knows what to "inject" into the audited program.
 #define AUDITOR         "libAO.so"
 
 // Drag these in here because (a) just about everybody needs them and
 // (b) they may need to be "above" other internal headers.
+#include "properties.h"
 #include "UTIL.h"
 #include "VB.h"
 

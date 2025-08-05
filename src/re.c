@@ -43,7 +43,7 @@
 
 /* Documented in the header to avoid triggering some doxygen problem. */
 void *
-re_init__(CCS name, CCS restr)
+re_init__(CCS name, CCS regex)
 {
     pcre2_code *re = NULL;
     PCRE2_SIZE erroffset;
@@ -54,11 +54,11 @@ re_init__(CCS name, CCS restr)
     opts |= PCRE2_CASELESS;
 #endif // __APPLE__
 
-    vb_printf(VB_RE, "COMPILING %s='%s'", name, restr);
+    vb_printf(VB_RE, "COMPILING %s='%s'", name, regex);
 
-    if (*restr) {
+    if (*regex) {
         re = pcre2_compile(
-            (PCRE2_SPTR8)restr,      /* pattern */
+            (PCRE2_SPTR8)regex,      /* pattern */
             PCRE2_ZERO_TERMINATED,   /* length */
             opts,                    /* options */
             &errorcode,              /* error code */
@@ -79,11 +79,12 @@ re_init__(CCS name, CCS restr)
 
 /* Documented in the header to avoid triggering some doxygen problem. */
 void *
-re_init_prop__(prop_e prop)
+re_init_prop__(CCS prop)
 {
-    char *restr;
+    void *result = NULL;
 
-    if ((restr = (char *)prop_get_str(prop)) && *restr && !ISSPACE(*restr)) {
+    if (prop_has_value(prop)) {
+        CS regex = putil_strdup(prop_get_str(prop));
 
         /*
          * Allow REs to be specified as e.g. m%regexp%, partly because
@@ -92,21 +93,21 @@ re_init_prop__(prop_e prop)
          * specially because that could confuse users trying to match
          * paths containing (say) the 5 characters "/tmp/".
          */
-        if (*restr == 'm') {
-            char *start, *end;
+        if (*regex == 'm') {
+            CS start, end;
 
-            if ((start = restr + 1) && (end = strchr(restr, '\0'))) {
+            if ((start = regex + 1) && (end = strchr(regex, '\0'))) {
                 if (--end > start && *start == *end && !ISALPHA(*end)) {
                     *end = '\0';
-                    restr += 2;
+                    regex += 2;
                 }
             }
         }
 
-        return re_init__(prop_to_name(prop), restr);
-    } else {
-        return NULL;
+        result = re_init__(prop, regex);
+        putil_free(regex);
     }
+    return result;
 }
 
 /* Documented in the header to avoid triggering some doxygen problem. */

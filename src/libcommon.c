@@ -31,9 +31,7 @@
 
 #include "pn.c"
 
-#include "prefs.c"
-
-#include "prop.c"
+#include "propa.c"
 
 #include "pa.c"
 
@@ -68,7 +66,6 @@ static ca_o CurrentCA;
 static int AuditFD = -1;
 static void *IgnorePathRE;
 static void *IgnoreProgRE;
-static void *AllowedWritePathRE;
 
 /// The socket through which all communication to the monitor takes place.
 SOCKET ReportSocket = INVALID_SOCKET;
@@ -290,12 +287,6 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
             // Read ops don't need to be time-stamped.
             moment_get_systime(&tstamp);
             pa_set_timestamp(pa, tstamp);
-
-            // User may choose to limit legal pathnames for writes.
-            if (AllowedWritePathRE && !re_match__(AllowedWritePathRE, path)) {
-                putil_die("disallowed write to '%s' per /%s/", path,
-                    prop_get_str(P_ALLOWED_WRITE_PATH_RE));
-            }
         }
 
         // Finish by recording this path action.
@@ -626,7 +617,7 @@ _audit_start(CCS call)
         } else if (!strcmp(ack_soa, ACK_OK_AGG)) {
             // Optimization: suppress shopping in aggregated children.
             if (prop_has_value(P_AGGREGATED_SUBCMD)) {
-                prop_mod_ulong(P_AGGREGATED_SUBCMD, 1, NULL);
+                prop_set_ulong(P_AGGREGATED_SUBCMD, 1);
             }
         } else if (!strcmp(ack_soa, ACK_OK)) {
             // Everything normal - carry on.
@@ -856,26 +847,18 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Initialize verbosity asap.
     vb_init();
 
-    // Can't see any properties without initializing this first.
-    prop_init(APPLICATION_NAME);
-
-    // We do not want to take properties from files within the
-    // auditor as the CWD may be changing, so everything we care
-    // about should have been placed in the environment by now.
-    prefs_env_init(NULL, NULL);
-
     if (prop_has_value(P_DEPTH)) {
         // Find the current depth and increment it for child cmds.
         // From here on P_DEPTH is a lie for the current cmd.
         Depth = prop_get_ulong(P_DEPTH);
-        prop_mod_ulong(P_DEPTH, Depth + 1, NULL);
+        prop_set_ulong(P_DEPTH, Depth + 1);
 
         pccode = prop_get_str(P_PCCODE);
     } else {
         // Special case to allow "naked" testing of the auditor via e.g.
         // "LD_PRELOAD=/path/to/libAO.so some-command".
-        prop_override_true(P_NO_MONITOR);
-        vb_printf(VB_OFF, "running in %s mode", prop_to_name(P_NO_MONITOR));
+        prop_set_bool(P_NO_MONITOR, true);
+        vb_printf(VB_OFF, "running in %s mode", P_NO_MONITOR);
     }
 
     // Initialize the hash-code generation.
@@ -900,7 +883,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
                 vb_printf(VB_OFF, "ACTIVATED ON [%ld] '%s'", pid, exe);
                 auditor_setActive();
                 // Can't remove this EV - must change it in place.
-                prop_mod_str(P_ACTIVATION_PROG_RE, "", NULL);
+                prop_set_str(P_ACTIVATION_PROG_RE, "");
             } else {
                 vb_printf(VB_OFF, "INACTIVATED ON [%ld] '%s'", pid, exe);
                 return pid;
@@ -1021,7 +1004,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // parent ccode. From here on the environment will be a lie
     // but we have the truth in the CA object.
     if (prop_has_value(P_PCCODE)) {
-        prop_mod_str(P_PCCODE, ca_get_ccode(CurrentCA), NULL);
+        prop_set_str(P_PCCODE, ca_get_ccode(CurrentCA));
     }
 
     // Special case - show the program itself as a file that we read
@@ -1033,9 +1016,6 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
 
     // Potential instruction from the user to ignore certain programs.
     IgnoreProgRE = re_init_prop__(P_AUDIT_IGNORE_PROG_RE);
-
-    // Potential instruction from the user to limit legal write ops.
-    AllowedWritePathRE = re_init_prop__(P_ALLOWED_WRITE_PATH_RE);
 
     return pid;
 }

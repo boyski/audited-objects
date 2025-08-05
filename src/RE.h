@@ -26,10 +26,10 @@
 // at least) which use those names. Ideally we would limit exports
 // from the auditor to prevent such problems across the board but
 // that's a painful manual task which tends to bite you every time
-// you add a new interposition, and may not be an option on every
-// platform. This is why double underscores eg re_init__() are used.
+// you add a new interposition and may not be an option on every
+// platform. Instead double underscores eg re_init__() are used.
 
-/// Compiles the supplied regular expression and returns
+/// Compile the supplied regular expression and return
 /// the compiled form ready for passing to re_match__().
 /// The name is strictly for debug/informational purposes.
 /// NOTE: the extraneous underscores are to prevent conflict with
@@ -39,23 +39,22 @@
 /// @return a compiled regular expression or NULL
 extern void *re_init__(CCS name, CCS restr);
 
-/// Reads a regular expression from the specified property and returns
+/// Read a regular expression from the specified property and return
 /// the compiled form ready for passing to re_match__(). If the property
 /// has no value, or its value is a zero-length string, or begins
-/// with whitespace, NULL is returned. The whitespace check is
-/// required by the way we have to treat environment variables
-/// within the auditor.
+/// with whitespace, return NULL. The whitespace check is required
+/// by the way we have to treat environment variables in the auditor.
 /// NOTE: the extraneous underscores are to prevent conflict with
 /// existing APIs.
 /// @param[in] prop     a property representing a regular expression
 /// @return a compiled regular expression or NULL
-extern void *re_init_prop__(prop_e prop);
+extern void *re_init_prop__(CCS prop);
 
-/// Matches the provided regular expression against the provided string.
-/// Returns the matched substring or NULL on no match. If either
-/// parameter is NULL, the result is NULL.
+/// Match the provided regular expression against the provided string.
+/// Return the matched substring or NULL on no match. If either
+/// parameter is NULL the result is NULL.
 /// NOTE: the <I>value</I> of the returned match is not thread-safe
-/// because it is written to a static buffer. When used in a boolean
+/// because it's written to a static buffer. When used in a boolean
 /// (match/no match) fashion, however, the result can be considered
 /// thread-safe. The matched substring is only present for debugging
 /// purposes anyway.
@@ -66,7 +65,7 @@ extern void *re_init_prop__(prop_e prop);
 /// @return the matched substring, or NULL if no match
 extern CCS re_match__(void *re, CCS str);
 
-/// Frees the compiled regular expression when no longer needed.
+/// Free the compiled regular expression when no longer needed.
 /// The pointer is freed and set to NULL.
 /// NOTE: the extraneous underscores are to prevent conflict with
 /// existing APIs.

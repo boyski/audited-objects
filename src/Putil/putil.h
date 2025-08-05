@@ -786,6 +786,7 @@ putil_mkdir_p(CCS path)
 PUTIL_CLASS CCS
 putil_prog(void)
 {
+#ifdef TODO
     static CCS me = NULL;
 
     if (me != NULL) {
@@ -807,6 +808,9 @@ putil_prog(void)
     } else {
         return "????";
     }
+#else
+    return "ao";
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////

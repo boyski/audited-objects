@@ -34,8 +34,8 @@
 /// @endcond prefs
 
 // Search upward from the current working directory toward the
-// filesystem root looking for the named file. Return the path
-// to said file in buf if found or NULL if not found.
+// filesystem root looking for the named file. Return a path
+// to the file on the heap if found or NULL.
 static CS
 _find_file_up(CCS name)
 {

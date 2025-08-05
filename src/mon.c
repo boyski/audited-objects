@@ -77,7 +77,7 @@ mon_init(void)
     prog_weak_re = re_init_prop__(P_AGGREGATION_PROG_WEAK_RE);
 
     if (prop_is_true(P_UPLOAD_ONLY) || prop_is_true(P_AUDIT_ONLY)) {
-        prop_unset(P_ROADMAPFILE, 0);
+        // prop_unset(P_ROADMAPFILE, 0);
     } else {
         // shop_init();
     }

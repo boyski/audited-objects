@@ -15,6 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Needed until -std=c2x is reached.
+#include <stdbool.h>
+
 // Suppress "ISO C forbids conversion of object pointer to function pointer"
 #pragma GCC diagnostic ignored "-Wpedantic"
 // Suppress "warning: no previous prototype for ..."
@@ -33,8 +36,6 @@
 /// @endcond
 
 #include "AO.h"
-
-static char *ProgramName = AUDITOR;
 
 // We go out of our way to explicitly include these headers here, even
 // though they've probably already been included, because we're about
@@ -213,7 +214,7 @@ interposed_late_init(const char *call)
         // Put the pid of the *current* process into the env block as the
         // *parent* cmd id.
         if (prop_has_value(P_PCMDID)) {
-            prop_mod_ulong(P_PCMDID, pid, NULL);
+            prop_set_ulong(P_PCMDID, pid);
         }
         // Turn on the auditor and go.
         interposer_set_active(1);
@@ -317,40 +318,14 @@ execve_wrapper(const char *call,
             ret = (*next)(path, argv, envp);
         }
     } else {
-        size_t plen;
-        char **pblock, **ep;
-        int found;
-
-        // If the audited program uses exec[lv]e to compose
-        // its own environment, we need special-case code to force our
-        // own control EV's back into that env block.
-        // The code below will return a new env block with our
-        // properties re-exported to it. The envp starts at (pblock+1).
-
-        plen = prop_new_env_block_sizeA(envp);
-        pblock = (char **)alloca(plen);
-        memset(pblock, 0, plen);
-        (void)prop_custom_envA(pblock, envp);
-
-        // If the host process assembles a custom environment which
-        // does not retain LD_PRELOAD, that process branch will be
-        // unaudited. This is a hole we ought to plug but it seems
-        // unlikely so for now we will just warn about it. If it
-        // ever actually happens it should be easy enough to fix.
-        for (found = 0, ep = pblock + 1; *ep; ep++) {
-            if (!strncmp(*ep, PRELOAD_EV, strlen(PRELOAD_EV))) {
-                found = 1;
-                break;
-            }
-        }
-        if (!found) {
+        if (!getenv(PRELOAD_EV)) {
             putil_warn("%s setting lost in exev[lv]e() call", PRELOAD_EV);
         }
 
         if (dbg) {
-            ret = (*next)(argv[0], argv, pblock + 1);
+            ret = (*next)(argv[0], argv, envp);
         } else {
-            ret = (*next)(path, argv, pblock + 1);
+            ret = (*next)(path, argv, envp);
         }
     }
 
@@ -1199,7 +1174,6 @@ interposed_finalize(void)
      * optimized "production mode" which skips the explicit cleanup.
      */
     code_fini();
-    prop_fini();
     vb_fini();
 }
 
@@ -1223,7 +1197,6 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
     if (CurrentCA) {
         _audit_end(call, EXITING, status);
         code_fini();
-        prop_fini();
         vb_fini();
     }
 

@@ -19,119 +19,29 @@
 #define PROP_H
 
 /// @file
-/// @brief Declarations for prop.c
+/// @brief Declarations shared by propm.c and propa.c
 
-/// @cond PROP
-#define PROP_EXT            ".properties"
-/// @endcond PROP
+extern char **environ;
 
-#include <sys/types.h>
+// Hard-wired because monitor and auditor must agree.
+#define ENV_PFX "AO_"
 
-/// The set of defined properties, not all of them published to users.
-/// The list is kept in alphabetical order after a couple of special
-/// cases which makes the help output more readable among other things.
-/// *NOTE: THESE MUST BE KEPT IN SYNC WITH 'proptab' in prop.c!*
-typedef enum {
-    P_BADPROP = -1,
-    P_APP,
-    // Alphabetical from here.
-    P_ABSOLUTE_PATHS,
-    P_ACTIVATION_PROG_RE,
-    P_AGGREGATED_SUBCMD,
-    P_AGGREGATION_LINE_BREAK_RE,
-    P_AGGREGATION_LINE_STRONG_RE,
-    P_AGGREGATION_LINE_WEAK_RE,
-    P_AGGREGATION_PROG_BREAK_RE,
-    P_AGGREGATION_PROG_STRONG_RE,
-    P_AGGREGATION_PROG_WEAK_RE,
-    P_AGGREGATION_STYLE,
-    P_ALLOWED_WRITE_PATH_RE,
-    P_AUDIT_IGNORE_PATH_RE,
-    P_AUDIT_IGNORE_PROG_RE,
-    P_AUDIT_ONLY,
-    P_BASE_DIR,
-    P_CSV,
-    P_DCODE_ALL,
-    P_DCODE_CACHE_SECS,
-    P_DEPTH,
-    P_DOWNLOAD_ONLY,
-    P_EXECUTE_ONLY,
-    P_LEAVE_ROADMAP,
-    P_LOG_FILE,
-    P_LOG_TIME_STAMP,
-    P_MAKE_DEPENDS,
-    P_MAKE_FILE,
-    P_MAKE_ONESHELL,
-    P_MEMBERS_ONLY,
-    P_MMAP_LARGER_THAN,
-    P_MONITOR_LISTENERS,
-    P_MONITOR_HOST,
-    P_MONITOR_PLATFORM,
-    P_MONITOR_PORT,
-    P_MONITOR_TIMEOUT_SECS,
-    P_NO_MONITOR,
-    P_ORIGINAL_DATESTAMP,
-    P_OUTPUT_FILE,
-    P_PCCODE,
-    P_PCMDID,
-    P_PERL_CMD,
-    P_PRINT_ELAPSED,
-    P_PROJECT_NAME,
-    P_PTX_STRATEGY,
-    P_REUSE_ROADMAP,
-    P_ROADMAPFILE,
-    P_SERVER,
-    P_SERVER_CONTEXT,
-    P_SERVER_LOG_LEVEL,
-    P_SESSIONID,
-    P_SESSION_TIMEOUT_SECS,
-    P_SHOP_IGNORE_PATH_RE,
-    P_SHOP_TIME_PRECISION,
-    P_STRICT,
-    P_STRICT_AUDIT,
-    P_STRICT_DOWNLOAD,
-    P_STRICT_ERROR,
-    P_STRICT_UPLOAD,
-    P_SYNCHRONOUS_TRANSFERS,
-    P_TRACK_ENV_RE,
-    P_UNCOMPRESSED_TRANSFERS,
-    P_UPLOAD_ONLY,
-    P_UPLOAD_READS,
-    P_VERBOSITY,
-    P_WFLAG,
-} prop_e;
-
-extern void prop_init(CCS);
-extern CCS prop_get_app(void);
-extern void prop_set_true(prop_e);
-extern void prop_override_true(prop_e);
-extern int prop_is_true(prop_e);
-extern int prop_has_value(prop_e);
-extern int prop_is_public(prop_e);
-extern void prop_put_str(prop_e, CCS);
-extern void prop_put_long(prop_e, long);
-extern void prop_put_ulong(prop_e, unsigned long);
-extern void prop_override_str(prop_e, CCS);
-extern void prop_override_ulong(prop_e, unsigned long);
-extern void prop_mod_str(prop_e, CCS, char *const *);
-extern void prop_mod_ulong(prop_e, unsigned long, char *const *);
-extern const char *prop_get_str(prop_e);
-extern unsigned long prop_get_ulong(prop_e);
-extern long prop_get_long(prop_e);
-extern void prop_unset(prop_e, int);
-extern void prop_load(CCS, CCS, int);
-extern prop_e prop_from_name(CCS);
-extern CCS prop_value_from_name(CCS);
-extern CCS prop_to_name(prop_e);
-extern void prop_unexport(prop_e, int);
-extern CCS prop_desc(prop_e);
-extern void prop_assert(prop_e);
-extern void prop_help(int, int, CCS);
-extern void prop_dump(int);
-extern size_t prop_new_env_block_sizeA(char *const *);
-extern char *const *prop_custom_envA(char **, char *const *);
-extern void prop_unexport_all(void);
-extern void prop_fini(void);
+bool prop_is_public(CCS);
+bool prop_is_exported(CCS);
+CCS prop_get_app(void);
+CCS prop_get_str(CCS);
+CCS prop_set_str(CCS, CCS);
+long prop_get_long(CCS);
+long prop_set_long(CCS, long);
+unsigned long prop_get_ulong(CCS);
+unsigned long prop_set_ulong(CCS, unsigned long);
+bool prop_has_value(CCS);
+bool prop_is_true(CCS);
+bool prop_set_bool(CCS, bool);
+CCS prop_desc(CCS);
+void prop_init(CCS);
+void prop_fini(void);
+void prop_help(int, int);
 
 #endif // PROP_H
 

@@ -22,6 +22,8 @@
 /// client-side-only actions, and general initialization
 /// of the client program.
 
+#include <sys/resource.h>
+
 #include "AO.h"
 
 #include "CA.h"
@@ -44,8 +46,6 @@
 #if !defined(BSD)
 #include <alloca.h>
 #endif  // BSD
-
-static char *ProgramName = "ao";  // could derive dynamically?
 
 static char self_license[] = "\
 Copyright (c) 2002-2025 David Boyce.  All rights reserved.\n\
@@ -268,10 +268,11 @@ static void
 _usage(int rc)
 {
     FILE *fp;
+    CCS prog = basename((CS)prop_get_str(P_MONITOR_PATH));
 
     fp = rc ? stderr : stdout;
 
-    fprintf(fp, "USAGE: %s [<options>]", ProgramName);
+    fprintf(fp, "USAGE: %s [<options>]", prog);
     fprintf(fp, " { make | run <prog> | <action> } [args...]\n");
     fprintf(fp, "FLAGS:\n");
 
@@ -297,11 +298,11 @@ _usage(int rc)
     _usg_line(fp, "-X", P_EXECUTE_ONLY, NULL);
 
     fprintf(fp, "EXAMPLES:\n");
-    fprintf(fp, "   %s help\n", ProgramName);
-    fprintf(fp, "   %s ping\n", ProgramName);
-    fprintf(fp, "   %s -o@ -F Makefile.new make -s clean all\n", ProgramName);
-    fprintf(fp, "   %s make clean all\n", ProgramName);
-    fprintf(fp, "   %s lsbuilds -s\n", ProgramName);
+    fprintf(fp, "   %s help\n", prog);
+    fprintf(fp, "   %s ping\n", prog);
+    fprintf(fp, "   %s -o@ -F Makefile.new make -s clean all\n", prog);
+    fprintf(fp, "   %s make clean all\n", prog);
+    fprintf(fp, "   %s lsbuilds -s\n", prog);
 
     putil_exit(rc);
 }
@@ -522,7 +523,8 @@ _action(CCS action, int argc, CS const *argv)
         printf(HELP_FMT, "substitute", "apply standard %-formatting to the input string");
         printf("\n");
     } else {
-        fprintf(stderr, "%s: Error: unrecognized action '%s'\n", ProgramName, action);
+        fprintf(stderr, "%s: Error: unrecognized action '%s'\n",
+            basename((CS)prop_get_str(P_MONITOR_PATH)), action);
     }
 
     return rc;
@@ -541,10 +543,7 @@ _find_file_up(CCS ending, CS dir)
     if (dir) {
         dir = putil_realpath(dir, 1);
     } else {
-        if (!(dir = (CS)util_get_cwd())) {
-            putil_syserr(0, "util_get_cwd");
-            exit(2);
-        }
+        TRY(dir = (CS)util_get_cwd(), "util_get_cwd()");
     }
 
     while (strcmp(dir, "/")) {
@@ -575,6 +574,33 @@ _find_file_up(CCS ending, CS dir)
     return NULL;
 }
 
+// Request the maximum number of file descriptors allowed by the kernel.
+static void
+_maximize_fds(void)
+{
+    struct rlimit rlims = {0, 0};
+
+    if (getrlimit(RLIMIT_NOFILE, &rlims)) {
+        putil_syserr(0, "getrlimit()");
+        return;
+    }
+
+#if defined(__APPLE__)
+    rlims.rlim_cur = min(OPEN_MAX, rlims.rlim_max)
+#else // !APPLE
+    rlims.rlim_cur = rlims.rlim_max;
+#endif // __APPLE__
+
+    if (setrlimit(RLIMIT_NOFILE, &rlims)) {
+        putil_syserr(0, "setrlimit()");
+    }
+
+    // TODO - force-enable core dumps during the debug phase.
+    // Should be removed someday and left to the caller.
+    struct rlimit core_limit = {RLIM_INFINITY, RLIM_INFINITY};
+    setrlimit(RLIMIT_CORE, &core_limit);
+}
+
 /// Entry point for the client program.
 /// @param[in] argc     the number of arguments
 /// @param[in] argv     the classic argument vector taken by every main routine
@@ -586,6 +612,13 @@ main(int argc, CS *argv)
     CS dscript = NULL;
     int proplevel = -1;
     int rc = 0;
+
+    // Bump the number of allowed file descriptors to the maximum
+    // because the monitor is likely to use a fair number. There's
+    // no real bound on fds in use since the monitor may behave
+    // asynchronously with respect to both audited child processes
+    // and local write operations.
+    _maximize_fds();
 
     heap_init();
 
@@ -692,9 +725,7 @@ main(int argc, CS *argv)
                     if (!QuietMode) {
                         fprintf(stderr, "+ cd %s\n", cd_to);
                     }
-                    if (chdir(cd_to)) {
-                        putil_syserr(2, cd_to);
-                    }
+                    TRY(!chdir(cd_to), "chdir(cd_to)");
                     putil_free(cd_to);
                 }
                 break;
@@ -952,10 +983,7 @@ main(int argc, CS *argv)
             _usage(1);
         }
 
-        if (!(cwd = util_get_cwd())) {
-            putil_syserr(0, "getcwd()");
-            exit(2);
-        }
+        TRY(cwd = util_get_cwd(), "util_get_cwd()");
 
         // The auditor ignores anything it considers to be a temp
         // file, which can cause terribly confusing behavior if
@@ -1047,10 +1075,10 @@ main(int argc, CS *argv)
             fprintf(stderr, "+ dtrace -s %s -c '%s'\n", dscript, argv[4]);
         }
 
-        make_init(ProgramName);
+        make_init(prop_get_str(P_MONITOR_PATH));
 
         // RUN AND AUDIT THE COMMAND.
-        rc = run_cmd(ProgramName, (CS *)argv, logfile);
+        rc = run_cmd(prop_get_str(P_MONITOR_PATH), (CS *)argv, logfile);
 
         putil_free(logfile);
 

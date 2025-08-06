@@ -279,7 +279,7 @@ relink: _relink all
 TESTS := propa propm
 TARGETS += $(TESTS)
 
-$(TESTS): CFLAGS += -DUNIT_TEST
+$(TESTS): CFLAGS += -DUNIT_TEST -DPUTIL_DECLARE_FUNCTIONS_GLOBAL
 $(TESTS): $$(@).c | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))

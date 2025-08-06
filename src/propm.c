@@ -19,7 +19,7 @@
 /// @brief Support for Properties objects.
 /// TODO
 
-#include "Putil/putil.h"
+#include "AO.h"
 #include "PROP.h"
 
 #include "cJSON.h"
@@ -204,6 +204,9 @@ prop_init(CCS path)
     } else {
         Properties = cJSON_CreateObject();
     }
+
+    // Record and export the path to this running program.
+    prop_set_str(P_MONITOR_PATH, putil_getexecpath());
 
     // Environment settings override file-derived properties.
     for (char **envp = environ; *envp; envp++) {

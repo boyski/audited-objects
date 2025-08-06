@@ -311,19 +311,19 @@ _monitor_open(SOCKET *sockp, CCS call)
     }
 
     if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-        putil_syserr(0, "socket");
+        putil_syserr(2, "socket");
         exit(2);
     }
 
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
                    &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-        putil_syserr(0, "SO_REUSEADDR");
+        putil_syserr(2, "SO_REUSEADDR");
         exit(2);
     }
 
     if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
                    &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-        putil_syserr(0, "SO_REUSEPORT");
+        putil_syserr(2, "SO_REUSEPORT");
         exit(2);
     }
 
@@ -359,7 +359,7 @@ _monitor_open(SOCKET *sockp, CCS call)
         }
     }
 
-    putil_syserr(0, host_port);
+    putil_syserr(2, host_port);
     exit(2);
 }
 
@@ -369,7 +369,7 @@ _monitor_send(SOCKET *sockp, const void *buf, size_t len)
 {
     vb_printf(VB_MON, "SENDING TO: SOCKET %d", *sockp);
     if (util_send_all(*sockp, buf, len, 0) < 0) {
-        putil_syserr(0, "send");
+        putil_syserr(2, "send");
         exit(2);
     }
 }
@@ -390,7 +390,7 @@ _monitor_recv_line(SOCKET *sockp, const void *vbuf, size_t len)
             if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
             }
-            putil_syserr(0, "recv()");
+            putil_syserr(2, "recv()");
             exit(2);
             break;
         } else if (ret == 0) {
@@ -464,7 +464,7 @@ _audit_open(void)
                     asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
                     fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
                     if (fd == -1) {
-                        putil_syserr(0, obuf);
+                        putil_syserr(2, obuf);
                         exit(2);
                     }
                     putil_free(obuf);
@@ -483,7 +483,7 @@ _audit_open(void)
         // not a descriptor, so in order to avoid using up stdio streams
         // convert it to a high-numbered descriptor and close the stream.
         if (!(tfp = tmpfile())) {
-            putil_syserr(0, "tmpfile");
+            putil_syserr(2, "tmpfile");
             exit(2);
         }
 
@@ -505,20 +505,20 @@ _audit_open(void)
         // for the next available descriptor.
         if (fd == -1) {
             if ((fd = dup(fileno(tfp))) == -1) {
-                putil_syserr(0, "dup");
+                putil_syserr(2, "dup");
                 exit(2);
             }
         }
 
         // Now the stream can go away to preserve limited stdio count.
         if (fclose(tfp)) {
-            putil_syserr(0, "fclose");
+            putil_syserr(2, "fclose");
             exit(2);
         }
 
         // Each new cmd and/or process must create its own temp file.
         if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) == -1) {
-            putil_syserr(0, "fcntl");
+            putil_syserr(2, "fcntl");
             exit(2);
         }
     }
@@ -541,7 +541,7 @@ _audit_start(CCS call)
     // Allocate and format the cmdline SOA header.
     hdr = ca_format_header(CurrentCA);
     if (!hdr || asprintf(&soa_hdr, "%s%s", SOA, hdr) < 0) {
-        putil_syserr(0, NULL);
+        putil_syserr(2, NULL);
         exit(2);
     }
     putil_free(hdr);
@@ -613,7 +613,7 @@ _audit_start(CCS call)
         }
     } else {
         if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
-            putil_syserr(0, "write");
+            putil_syserr(2, "write");
             exit(2);
         }
         putil_free(soa_hdr);
@@ -716,7 +716,7 @@ _audit_end(CCS call, int exiting, long status)
 
             // Rewind the temp file and send its contents to the monitor.
             if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-                putil_syserr(0, "lseek");
+                putil_syserr(2, "lseek");
                 exit(2);
             }
 
@@ -725,7 +725,7 @@ _audit_end(CCS call, int exiting, long status)
                     if (errno == EINTR) {
                         continue;
                     }
-                    putil_syserr(0, "read");
+                    putil_syserr(2, "read");
                     exit(2);
                 }
                 _monitor_send(&ReportSocket, buf, n);
@@ -742,14 +742,14 @@ _audit_end(CCS call, int exiting, long status)
         hdr = ca_format_header(CurrentCA);
         assert(hdr);
         if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
-            putil_syserr(0, NULL);
+            putil_syserr(2, NULL);
             exit(2);
         }
         putil_free(hdr);
 
         if (ReportSocket == INVALID_SOCKET) {
             if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
-                putil_syserr(0, "write");
+                putil_syserr(2, "write");
                 exit(2);
             }
         } else {
@@ -765,11 +765,11 @@ _audit_end(CCS call, int exiting, long status)
         // In case more data is written to the temp file, reposition
         // its pointer at the beginning.
         if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-            putil_syserr(0, "lseek");
+            putil_syserr(2, "lseek");
             exit(2);
         }
         if (ftruncate(AuditFD, 0)) {
-            putil_syserr(0, "ftruncate");
+            putil_syserr(2, "ftruncate");
             exit(2);
         }
     }
@@ -892,7 +892,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
         char hostbuf[HOST_NAME_MAX];
 
         if (gethostname(hostbuf, sizeof(hostbuf))) {
-            putil_syserr(0, "gethostname()");
+            putil_syserr(2, "gethostname()");
             exit(2);
         }
 

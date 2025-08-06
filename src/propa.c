@@ -53,6 +53,11 @@ prop_set_str(CCS prop, CCS newval)
     CS oldval = _prop_getenv(prop);
     size_t oldlen = strlen(oldval);
     size_t newlen = strlen(newval);
+#if 0
+    if (newlen > oldlen) {
+        fprintf(stderr, "%s: OLD='%s' NEW='%s'\n", prop, oldval, newval);
+    }
+#endif
     assert(newlen <= oldlen);
     (void)strncpy(oldval, newval, oldlen);
     oldval[newlen] = '\0';

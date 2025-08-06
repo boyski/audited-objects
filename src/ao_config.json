@@ -76,7 +76,7 @@
     },
     "DEPTH": {
       "description": "Special modifiable EV carrying the cmd depth",
-      "value": null,
+      "value": 0,
       "exported": true,
       "padding": 10
     },
@@ -127,6 +127,11 @@
     "MONITOR_HOST": {
       "description": "Host on which monitor is running for audit delivery connections",
       "value": "127.0.0.1",
+      "exported": true
+    },
+    "MONITOR_PATH": {
+      "description": "Path to the running executable",
+      "value": null,
       "exported": true
     },
     "MONITOR_PLATFORM": {

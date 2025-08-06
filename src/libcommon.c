@@ -271,8 +271,8 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
 }
 
 // NOTE: We currently open and close two sockets per audited cmd;
-// once to deliver the SOA at initialization time, after which we
-// block until it's closed by the monitor, and then a second at
+// a 1st to deliver the SOA at initialization time, after which we
+// block until it's closed by the monitor, and then a 2nd socket at
 // finalization time to deliver everything else. I've considered
 // trying to keep a single socket open right through on the theory
 // (untested) that opening two sockets has a measurable cost, but
@@ -303,29 +303,20 @@ _monitor_open(SOCKET *sockp, CCS call)
     char host_port[256] = "???";
     int tries;
 
-    UNUSED(call);
+    vb_printf(VB_MON, "OPENING SOCKET FROM %s", call);
 
     if (*sockp != INVALID_SOCKET) {
         vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
         return;
     }
 
-    if (((*sockp = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-        putil_syserr(2, "socket");
-        exit(2);
-    }
+    TRY(socket(PF_INET, SOCK_STREAM, 0) != INVALID_SOCKET, "socket()");
 
-    if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
-                   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-        putil_syserr(2, "SO_REUSEADDR");
-        exit(2);
-    }
+    TRY(setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
+                    &so_reuse, sizeof(so_reuse)) != SOCKET_ERROR, "setsockopt(SO_REUSEADDR)");
 
-    if (setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT,
-                   &so_reuse, sizeof(so_reuse)) == SOCKET_ERROR) {
-        putil_syserr(2, "SO_REUSEPORT");
-        exit(2);
-    }
+    TRY(setsockopt(*sockp, SOL_SOCKET, SO_REUSEPORT, &so_reuse, sizeof(so_reuse)) != SOCKET_ERROR,
+                    "setsockopt(SO_REUSEPORT)");
 
     host = prop_get_str(P_MONITOR_HOST);
     portstr = prop_get_str(P_MONITOR_PORT);
@@ -420,16 +411,11 @@ _monitor_flush(SOCKET *sockp)
 static void
 _monitor_close(SOCKET *sockp, int exiting)
 {
-    UNUSED(exiting);
-
-    vb_printf(VB_MON, "CLOSING: SOCKET %d", *sockp);
-    if (*sockp == INVALID_SOCKET) {
-        return;
+    vb_printf(VB_MON, "CLOSING: SOCKET %d [exiting=%d]", *sockp, exiting);
+    if (*sockp != INVALID_SOCKET) {
+        close(*sockp);
+        *sockp = INVALID_SOCKET;
     }
-
-    close(*sockp);
-
-    *sockp = INVALID_SOCKET;
 }
 
 // Internal service routine. Return a file descriptor suitable

@@ -249,7 +249,7 @@ docs dox:
 $(TGTDIR)/putil.o: Putil/putil.h
 
 $(TGTDIR)/%.o: %.c AO.h
-	$(CC) -c $(GFLAGS) $(CFLAGS) -o $@ $<
+	$(CC) -c -o $@ $(GFLAGS) $(CFLAGS) $<
 
 $(TGTDIR)/properties.h: ./prop2hdr ao_config.json
 	./$^ > $@

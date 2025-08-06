@@ -322,7 +322,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     unsigned int i;
 
     path = argv[0];
-    system("env | grep ^AO_");
+    system("env | egrep 'AO_|LD_'");
 
     ports = prop_get_ulong(P_MONITOR_LISTENERS);
     listeners = putil_malloc(ports * sizeof(int));
@@ -496,9 +496,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             _interposer_preload_on(AUDITOR, shlibdir);
             putil_free(shlibdir);
         }
-
-        // For simplistic debugging.
-        system("env | egrep 'AO_|LD_'");
 
         // Actually run the command under control of the audit lib.
         char **child_environ = environ;

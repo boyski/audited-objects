@@ -33,7 +33,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "Interposer/libinterposer.h"
+#include "Interposer/preload.h"
 
 // This is a "self-pipe" - the monitor process uses it so we can
 // handle "asynchronous-end conditions" - core dumps and the like -
@@ -46,6 +46,146 @@ static int done_pipe[2];
 static int doneflag = 0;
 static int ExitStatus = 0;
 static int Started = 0;
+
+/****************************************************************************
+ * The two funcs (interposer_preload_{on,off}) turn a preloaded library
+ * on and off (duh) by adding to or subtracting from the LD_PRELOAD EV.
+ * On Mac OSX the equivalent var is DYLD_INSERT_LIBRARIES which only works
+ * in the presence of DYLD_FORCE_FLAT_NAMESPACE.
+ ***************************************************************************/
+
+static void
+_interposer_die(const char *string)
+{
+    if (string) {
+        fprintf(stderr, "INTERPOSER: Error: %s: %s\n", string, strerror(errno));
+    } else {
+        fprintf(stderr, "INTERPOSER: Error: %s\n", strerror(errno));
+    }
+    exit(2);
+}
+
+static void
+_interposer_preload_on(const char *so, const char *base)
+{
+    char *ldp, *nldp;
+    char lib_buf[PATH_MAX];
+
+    (void)snprintf(lib_buf, sizeof(lib_buf), "%s/lib64/%s", base, so);
+
+    ldp = getenv(PRELOAD_EV);
+
+    // The documentation says LD_PRELOAD* is a *space* separated
+    // list, but that's kind of unusual and in fact colons seem
+    // to work fine so we use them. Spaces work fine too though.
+    if (ldp && *ldp) {
+        // Currently we put our .so after any existing libraries.
+        // It remains to be seen whether before or after is a better plan.
+        if (asprintf(&nldp, "%s=%s:%s", PRELOAD_EV, ldp, lib_buf) < 0) {
+            _interposer_die(NULL);
+        }
+    } else {
+        if (asprintf(&nldp, "%s=%s", PRELOAD_EV, lib_buf) < 0) {
+            _interposer_die(NULL);
+        }
+    }
+
+    if (putenv(nldp))
+        _interposer_die("putenv");
+
+#if defined(__APPLE__)
+    if (putenv("DYLD_FORCE_FLAT_NAMESPACE=1"))
+        _interposer_die("putenv");
+#endif  /*__APPLE__*/
+}
+
+#if 0
+
+static void
+_interposer_preload_off(const char *so, char *const envp[], int all)
+{
+    extern char **environ;
+    char **env;
+
+    env = envp ? (char **)envp : environ;
+
+    for (; *env; env++) {
+        // Match any EV beginning with LD_PRELOAD=.
+        if (!strncmp(*env, PRELOAD_EV "=", sizeof(PRELOAD_EV) + 1)) {
+            char *ev, *ldpname, *nbuf, *lib, *ldpath, *e;
+            size_t evlen;
+
+            if (all) {
+                **env = '_';
+                continue;
+            }
+
+            ev = *env;
+            evlen = strlen(ev);
+
+            // Copy the EV into a buffer we can modify with impunity,
+            // then snip it into a name/value pair.
+            ldpname = putil_malloc(evlen + 2);
+            strcpy(ldpname, ev);
+            if (!(ldpath = strchr(ldpname, '='))) {
+                return; // can't happen but makes gcc -fanalyzer happier
+            }
+
+            // Start the new construction buffer with "<EV>=" ...
+            nbuf = putil_malloc(evlen + 2);
+            strcpy(nbuf, ldpname);
+            strcat(nbuf, "=");
+
+            // Work our way through the space-separated list with strtok().
+            // Since colon-separated lists also work they're handled too.
+            // Paths ending with our shared-object name are skipped,
+            // anything else is copied to the new buffer.
+            // Pathnames containing spaces are SOL but blame that
+            // on whoever decided LD_PRELOAD* was a space-separated list.
+            for (lib = strtok(ldpath, " :"); lib; lib = strtok(NULL, " :")) {
+                if (!endswith(lib, so)) {
+                    strcat(nbuf, lib);
+                    strcat(nbuf, " ");
+                }
+            }
+
+            // Trim trailing space.
+            e = strchr(nbuf, '\0');
+            while (isspace((int)*--e))
+                *e = '\0';
+
+            // If operating on a custom environment, modify it in place.
+            // If operating on the standard 'environ' array, interact
+            // with it via standard OS APIs.
+            // Ideally, esp. when dealing with
+            // an explicit env block, we should shuffle other EVs
+            // down and remove the LD_PRELOAD* slot entirely in
+            // cases where it should be empty. But instead we end
+            // up doing the equivalent of 'putenv("LD_PRELOAD=")'.
+            // This is where we miss the BSD unsetenv() function.
+            if (envp) {
+                strcpy(ev, nbuf);
+                putil_free(nbuf);
+            } else {
+                putenv(nbuf);
+            }
+
+            putil_free(ldpname);
+        }
+    }
+}
+
+// Potentially useful for debugging purposes but has no "production" value.
+static void
+_interposer_preload_dbg(const char *location)
+{
+    char *pld;
+
+    if ((pld = getenv(PRELOAD_EV))) {
+        fprintf(stderr, "%s: %s='%s'\n", location, PRELOAD_EV, pld);
+    }
+}
+#endif // 0
 
 // Request the maximum number of file descriptors allowed by the kernel.
 static void
@@ -289,7 +429,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     // Special case for truly "raw" output. There's no need
     // for a monitor process here; just inject and exec.
     if (shlibdir && prop_is_true(P_NO_MONITOR)) {
-        libinterposer_preload_on(AUDITOR, shlibdir);
+        _interposer_preload_on(AUDITOR, shlibdir);
         execvp(path, argv);
         putil_syserr(0, path);
         exit(2);
@@ -384,7 +524,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
         // Turn on the auditor.
         if (shlibdir) {
-            libinterposer_preload_on(AUDITOR, shlibdir);
+            _interposer_preload_on(AUDITOR, shlibdir);
             putil_free(shlibdir);
         }
 

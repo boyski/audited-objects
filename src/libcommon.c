@@ -21,32 +21,6 @@
 /// to be a LibWin.cpp too but since Windows support was dropped the split
 /// is merely historical.
 
-#include "ca.c"
-
-#include "code.c"
-
-#include "json.c"
-
-#include "moment.c"
-
-#include "pn.c"
-
-#include "propa.c"
-
-#include "pa.c"
-
-#include "ps.c"
-
-#include "re.c"
-
-#include "util.c"
-
-#include "vb.c"
-
-#include "xxhash.c" // xxhash routines may also come in via code.c
-
-#include "zips.c"
-
 #include "ACK.h"
 
 #include <signal.h>

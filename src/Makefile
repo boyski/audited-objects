@@ -208,21 +208,23 @@ ifneq (,$(MEMDBG))
   endif   #dmalloc
 endif   #MEMDBG
 
-# The list of source files included by libAO.so.
-COMMINCS := \
-  libcommon.c \
-  ca.c \
-  code.c \
-  json.c \
-  moment.c \
-  pa.c \
-  pn.c \
-  propa.c \
-  ps.c \
-  re.c \
-  util.c \
-  vb.c \
-  zips.c
+# The list of object files linked by libAO.so.
+LIBOBJS := $(addprefix $(TGTDIR)/,$(sort \
+  ca.o \
+  code.o \
+  json.o \
+  moment.o \
+  pa.o \
+  pn.o \
+  propa.o \
+  ps.o \
+  putil.o \
+  re.o \
+  util.o \
+  vb.o \
+  xxhash.o \
+  zips.o \
+))
 
 INTERPOSERS := $(wildcard Interposer/*.h)
 
@@ -260,9 +262,10 @@ $(AOTOOL): $(OBJS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
-$(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(CFLAGS))
-$(LIBAO): libunix.c AO.h libcommon.c $(COMMINCS) $(INTERPOSERS) | $$(@D)
-	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $(SHLIBFLAGS) $(LINKMAP64) $< \
+$(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(filter-out --pedantic -Wmissing-prototypes,$(CFLAGS)))
+$(LIBAO): libunix.c libcommon.c $(LIBOBJS) AO.h $(INTERPOSERS) | $$(@D)
+	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) \
+	  $(SHLIBFLAGS) $(LINKMAP64) $(LIBOBJS) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))
 
 .PHONY: _relink

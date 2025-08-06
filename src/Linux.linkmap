@@ -2,7 +2,6 @@
 # TODO clean them up eventually.
 V1.0 {
     local:
-	_libinterposer_*;
 	_pcre_*;
 	_putil_*;
 	_real_*;

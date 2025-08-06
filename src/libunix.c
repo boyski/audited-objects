@@ -15,40 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Needed until -std=c2x is reached.
-#include <stdbool.h>
-
-// Suppress "ISO C forbids conversion of object pointer to function pointer"
-#pragma GCC diagnostic ignored "-Wpedantic"
-// Suppress "warning: no previous prototype for ..."
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 /// @file
 /// @brief The part of the auditor library which is specific
 /// to Unix. More precisely it is specific to ELF-based,
 /// SVR4-derived or -inspired operating systems. If, for instance,
 /// there was ever an AIX auditor it would presumably need libaix.c.
+/// Includes "libcommon.c" which is the part that should be common
+/// across platforms.
 
-/// @cond static
-// Do this before including AO.h because it defaults to declaring functions non-static.
-#define PUTIL_DECLARE_FUNCTIONS_STATIC
-#include "Putil/putil.h"
-/// @endcond
-
-#include "AO.h"
-
-// We go out of our way to explicitly include these headers here, even
-// though they've probably already been included, because we're about
-// to #define the things they declare and it's critical that they be
-// read and their include-guards set before that happens.
+#include <assert.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 
-#include <assert.h>
+// Needed until -std=c2x is reached.
+#include <stdbool.h>
+
+#include "Putil/putil.h"
+
+#include "AO.h"
+#include "CA.h"
+#include "CODE.h"
+#include "PA.h"
+#include "RE.h"
+
+#include "Interposer/preload.h"
 
 // Declare alternate names for some functions we'll be intercepting so
 // we can still call them directly as needed within the auditor.
@@ -94,6 +88,9 @@ _thread_mutex_unlock(void)
 
 // Contains some declarations used by the common code.
 #include "Interposer/interposer.h"
+
+// TODO I think these weird defines/undefs bracketing the inclusion
+// of libcommon.c may be obsolete.
 
 /// @cond static
 // For ease of use, and for the benefit of code that's used
@@ -146,7 +143,6 @@ _thread_mutex_unlock(void)
 #include "Interposer/link.h"
 #include "Interposer/open.h"
 #include "Interposer/threads.h"
-#include "Interposer/libinterposer.h"
 
 //WRAP(int, chdir, (const char *path), path)
 

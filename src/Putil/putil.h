@@ -425,8 +425,7 @@ putil_path_max(void)
     path_max = PATH_MAX;
 #else
     path_max = pathconf(path, _PC_PATH_MAX);
-    if (path_max <= 0)
-    path_max = 256; /* should never happen but be safe if it does */
+    assert(path_max > 0);
 #endif
 
     return path_max;

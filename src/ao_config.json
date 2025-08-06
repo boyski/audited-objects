@@ -6,13 +6,13 @@
     },
     "ACTIVATION_PROG_RE": {
       "description": "Regular expression describing programs which trigger an audit",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "AGGREGATED_SUBCMD": {
       "description": "Boolean - disable build avoidance within aggregated subcommands",
-      "value": false,
-      "exported": true
+      "exported": true,
+      "value": false
     },
     "AGGREGATION_LINE_BREAK_RE": {
       "description": "Break-aggregation RE based on cmd line",
@@ -44,13 +44,13 @@
     },
     "AUDIT_IGNORE_PATH_RE": {
       "description": "Regular expression matching pathnames to be completely ignored",
-      "value": "/tmp\\d+\\b|/tmp/[^/]+$|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$",
-      "exported": true
+      "exported": true,
+      "value": "/tmp\\d+\\b|/tmp/[^/]+$|\\b(\\.bak|\\.BAK)|\\.cmake\\.state$"
     },
     "AUDIT_IGNORE_PROG_RE": {
       "description": "Regular expression matching programs to be completely ignored",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "AUDIT_ONLY": {
       "description": "Boolean - audit file and command activity but do no uploads or downloads",
@@ -58,13 +58,13 @@
     },
     "BASE_DIR": {
       "description": "The root of this project tree",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "CSV": {
       "description": "Boolean - transitional flag to use the older CSV format instead of JSON",
-      "value": false,
-      "exported": true
+      "exported": true,
+      "value": false
     },
     "DCODE_ALL": {
       "description": "Boolean - derive data-code for all involved files",
@@ -76,9 +76,9 @@
     },
     "DEPTH": {
       "description": "Special modifiable EV carrying the cmd depth",
-      "value": 0,
       "exported": true,
-      "padding": 12
+      "padding": 12,
+      "value": 0
     },
     "DOWNLOAD_ONLY": {
       "description": "Boolean - allow downloads but no uploads",
@@ -120,19 +120,19 @@
       "description": "Use memory mapping to read files larger than this size",
       "value": "32768"
     },
+    "MONITOR_HOST": {
+      "description": "Host on which monitor is running for audit delivery connections",
+      "exported": true,
+      "value": "127.0.0.1"
+    },
     "MONITOR_LISTENERS": {
       "description": "Number of ports on which to listen for audit deliveries",
       "value": "3"
     },
-    "MONITOR_HOST": {
-      "description": "Host on which monitor is running for audit delivery connections",
-      "value": "127.0.0.1",
-      "exported": true
-    },
     "MONITOR_PATH": {
       "description": "Path to the running executable",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "MONITOR_PLATFORM": {
       "description": "Type of client platform",
@@ -140,8 +140,8 @@
     },
     "MONITOR_PORT": {
       "description": "Port(s) on which monitor listens for audit delivery connections",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "MONITOR_TIMEOUT_SECS": {
       "description": "How often to check health of audited process, in seconds",
@@ -149,31 +149,31 @@
     },
     "NO_MONITOR": {
       "description": "Boolean - dump truly raw audit data without aggregation",
-      "value": false,
-      "exported": true
+      "exported": true,
+      "value": false
     },
     "ORIGINAL_DATESTAMP": {
       "description": "Boolean - set mod time of downloaded files back to uploaded time",
-      "value": true,
-      "exported": true
+      "exported": true,
+      "value": true
     },
     "OUTPUT_FILE": {
       "description": "Dump output data to specified file",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "PCCODE": {
       "description": "Special modifiable EV holding the parent cmd code",
-      "value": null,
       "exported": true,
       "padding": 64,
-      "comment": "Buffer big enough for SHA-1 hash plus metadata."
+      "comment": "Buffer big enough for SHA-1 hash plus metadata.",
+      "value": null
     },
     "PCMDID": {
       "description": "Special modifiable EV holding the parent pid",
-      "value": null,
       "exported": true,
-      "padding": 12
+      "padding": 12,
+      "value": null
     },
     "PERL_CMD": {
       "description": "Name of or path to the preferred Perl binary",
@@ -185,8 +185,8 @@
     },
     "PROJECT_NAME": {
       "description": "Assign a name to this project",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "PTX_STRATEGY": {
       "description": "Selection criteria for downloadable PTXes",
@@ -226,8 +226,8 @@
     },
     "SHOP_TIME_PRECISION": {
       "description": "Number of decimal digits to consider in timestamp comparisons",
-      "value": "6",
-      "comment": "This is here because of a historical Unix flaw: though some systems *track* file times to the granularity of nanoseconds, the only POSIX/SUS way of *setting* a timestamp is utimes() which can handle only microseconds. Thus, comparing nanoseconds is unfair because a command like \"touch\" cannot control them."
+      "comment": "This is here because of a historical Unix flaw: though some systems *track* file times to the granularity of nanoseconds, the only POSIX/SUS way of *setting* a timestamp is utimes() which can handle only microseconds. Thus, comparing nanoseconds is unfair because a command like \"touch\" cannot control them.",
+      "value": "6"
     },
     "STRICT": {
       "description": "Boolean - a shorthand for all strict options",
@@ -255,8 +255,8 @@
     },
     "TRACK_ENV_RE": {
       "description": "Regular expression matching environment variables to show in audit",
-      "value": null,
-      "exported": true
+      "exported": true,
+      "value": null
     },
     "UNCOMPRESSED_TRANSFERS": {
       "description": "Boolean - handle compression/decompression on server",
@@ -272,8 +272,8 @@
     },
     "VERBOSITY": {
       "description": "Set verbosity flags",
-      "value": "STD",
-      "exported": true
+      "exported": true,
+      "value": "STD"
     },
     "VERSION": {
       "description": "Current application version",

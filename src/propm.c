@@ -52,10 +52,10 @@ _prop_get_pad(CCS prop)
     // Find out how much padding is needed in the value.
     // This only matters for exported props, usually numeric.
     cJSON *padding = cJSON_GetObjectItem(item, "padding");
-    if (!cJSON_IsNull(padding)) {
-        return (int)cJSON_GetNumberValue(padding);
+    if (!padding || cJSON_IsNull(padding)) {
+        return 0;
     }
-    return 0;
+    return (int)cJSON_GetNumberValue(padding);
 }
 
 bool
@@ -97,6 +97,7 @@ prop_get_str(CCS prop)
 CCS
 prop_set_str(CCS prop, CCS newval)
 {
+    assert(newval);
     cJSON *item = _prop_get_item(prop);
     int pad = prop_is_exported(prop) ? _prop_get_pad(prop) : 0;
     if (pad > 0) {
@@ -272,15 +273,17 @@ int
 main(void)
 {
     prop_init("ao_config.json");
-    printf("Properties in the monitor environment:\n");
+    printf("Starting properties:\n");
     system("env | grep ^AO_");
     printf("\nProperty mods:\n");
-    CCS prop = "AUDIT_IGNORE_PATH_RE";
-    printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
+    CCS prop = "PCMDID";
+    //printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
     printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
     printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
     printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
     prop_fini();
+    printf("\nEnding properties:\n");
+    system("env | grep ^AO_");
     return 0;
 }
 #endif

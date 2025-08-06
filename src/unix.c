@@ -321,8 +321,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int wstat = 0;
     unsigned int i;
 
-    path = argv[0];
     system("env | egrep 'AO_|LD_'");
+
+    path = argv[0];
 
     ports = prop_get_ulong(P_MONITOR_LISTENERS);
     listeners = putil_malloc(ports * sizeof(int));

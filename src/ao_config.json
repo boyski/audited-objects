@@ -78,7 +78,7 @@
       "description": "Special modifiable EV carrying the cmd depth",
       "value": 0,
       "exported": true,
-      "padding": 10
+      "padding": 12
     },
     "DOWNLOAD_ONLY": {
       "description": "Boolean - allow downloads but no uploads",
@@ -173,7 +173,7 @@
       "description": "Special modifiable EV holding the parent pid",
       "value": null,
       "exported": true,
-      "padding": 10
+      "padding": 12
     },
     "PERL_CMD": {
       "description": "Name of or path to the preferred Perl binary",

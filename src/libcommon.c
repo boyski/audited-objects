@@ -800,23 +800,26 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     CCS str;
     CCS pccode = NULL;
 
+    // Stash the path to argv[0] asap because it could be modified.
+    (void)putil_getexecpath();
+
     // For a reason I don't understand, and would have to read
     // the Perl sources to learn, re-setting env vars with
-    // putenv() causes perl to dump core. But when modifying
-    // them in place there's no problem.
+    // putenv() causes perl to dump core though modifying them
+    // in place is no problem.
     // Best guess is that perl maintains a static pointer to
     // the env block and the putenv() causes a realloc of said
     // env block leaving perl's pointer dangling.
     // The main point is that even if this isn't exactly what's
     // happening in perl such a case *could* happen in any
     // program. Therefore the rule is that the auditor must *NEVER*
-    // add or modify an env var via putenv(). The wrapper program must
+    // add or modify an env var via putenv(). The monitor program must
     // make sure an EV is already present with sufficient padding
     // and the auditor can then twiddle those bits in place.
-    // For instance, if an EV must hold a 32-bit value we allocate
-    // 11 bytes for its value in the wrapper because that's the
-    // number of characters needed to represent 2**32 in decimal
-    // followed by \0.
+    // For instance, if an EV must hold a 32-bit value the monitor
+    // must export it padded to 12 bytes which is the number
+    // of chars needed to represent a null-terminated "-2147483648".
+    // The initial value should come here like FOOBAR="          1".
 
     // Initialize verbosity asap.
     vb_init();

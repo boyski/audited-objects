@@ -190,7 +190,7 @@ interposed_late_init(const char *call)
 
     // Must be done before putenv() is called as that could
     // realloc the 'environ' pointer away from argv.
-    exe = putil_prog();
+    exe = putil_progname();
 
     // Certain libc functions must be called from within this library.
     // We need the real semantics; wrappers are apt to get into loops.

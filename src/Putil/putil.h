@@ -255,7 +255,7 @@ PUTIL_API size_t putil_path_max(void);
 PUTIL_API CS putil_basename(CCS);
 PUTIL_API CS putil_dirname(CCS);
 PUTIL_API int putil_mkdir_p(CCS);
-PUTIL_API CCS putil_prog(void);
+PUTIL_API CCS putil_progname(void);
 PUTIL_API CS *putil_argv_from_environ(int *);
 PUTIL_API CCS putil_getexecpath(void);
 PUTIL_API CS putil_get_homedir(CS, size_t);
@@ -293,14 +293,14 @@ PUTIL_API int putil_uname(struct utsname *);
 // and optional supporting arguments. Exit with failure code.
 // Supporting arguments are a printf() format string followed
 // by respective printf() arguments.
-// TODO: derive "prog" before first call.
 #define DIE_(err_msg, ...) if (1) { \
     fprintf(stderr, "%s: Error: %s() %s:%d %s", \
-    "prog", __func__, __FILE__, __LINE__, err_msg); \
+    putil_getexecpath(), __func__, __FILE__, __LINE__, err_msg); \
     if (errno) fprintf(stderr, " %s", strerror(errno)); \
     if (strcmp(FIRST_ARG(__VA_ARGS__), "")) \
         fprintf(stderr, ": " __VA_ARGS__); \
     fputc('\n', stderr); \
+    if (getenv("AO_DEBUG")) abort(); \
     exit(EXIT_FAILURE); \
 }
 // Call the function and check whether condition is true.
@@ -317,7 +317,7 @@ PUTIL_API int putil_uname(struct utsname *);
     CS srcdbg; \
     va_list ap; \
     va_start(ap, fmt); \
-    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword); \
+    fprintf(stderr, "%s: %s: ", putil_progname(), #keyword); \
     if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) { \
     fprintf(stderr, "[at %s:%d] ", putil_basename(f), l); \
     } \
@@ -331,7 +331,7 @@ PUTIL_API int putil_uname(struct utsname *);
     CS srcdbg; \
     va_list ap; \
     va_start(ap, fmt); \
-    fprintf(stderr, "%s: %s: ", putil_prog(), #keyword); \
+    fprintf(stderr, "%s: %s: ", putil_progname(), #keyword); \
     if ((srcdbg = getenv("PUTIL_SRCDBG")) && atoi(srcdbg)) { \
     fprintf(stderr, "[at %s:%d] ", putil_basename(f), l); \
     } \
@@ -580,6 +580,9 @@ putil_syserr_(CCS f, int l, int code, CCS string)
         } else {
             putil_error_(f,l, "%s", msg);
         }
+        if (getenv("AO_DEBUG")) {
+            abort();
+        }
         exit(code);
     } else {
         if (string) {
@@ -783,33 +786,9 @@ putil_mkdir_p(CCS path)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS CCS
-putil_prog(void)
+putil_progname(void)
 {
-#ifdef TODO
-    static CCS me = NULL;
-
-    if (me != NULL) {
-        return me;
-    }
-
-    if ((me = putil_getexecpath())) {
-        CCS lastf = strrchr(me, '/');
-        CCS lastb = strrchr(me, '\\');
-
-        if (lastf && lastb) {
-            me = (lastf > lastb) ? (lastf + 1) : (lastb + 1);
-        } else if (lastf) {
-            me = lastf + 1;
-        } else if (lastb) {
-            me = lastb + 1;
-        }
-        return me;
-    } else {
-        return "????";
-    }
-#else
-    return "ao";
-#endif
+    return basename((CS)putil_getexecpath());
 }
 
 /////////////////////////////////////////////////////////////////////////////

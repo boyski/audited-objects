@@ -262,7 +262,8 @@ $(AOTOOL): $(OBJS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
-$(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(filter-out --pedantic -Wmissing-prototypes,$(CFLAGS)))
+$(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(filter-out \
+  %-pedantic -Wmissing-prototypes,$(CFLAGS)))
 $(LIBAO): libunix.c libcommon.c $(LIBOBJS) AO.h $(INTERPOSERS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) \
 	  $(SHLIBFLAGS) $(LINKMAP64) $(LIBOBJS) $< \

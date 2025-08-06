@@ -77,7 +77,7 @@
     "DEPTH": {
       "description": "Special modifiable EV carrying the cmd depth",
       "exported": true,
-      "padding": 12,
+      "padding": 22,
       "value": 0
     },
     "DOWNLOAD_ONLY": {
@@ -172,7 +172,7 @@
     "PCMDID": {
       "description": "Special modifiable EV holding the parent pid",
       "exported": true,
-      "padding": 12,
+      "padding": 22,
       "value": null
     },
     "PERL_CMD": {

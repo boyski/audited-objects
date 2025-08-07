@@ -22,6 +22,8 @@
 #include "AO.h"
 #include "PROP.h"
 
+#include "properties.h"
+
 #include "cJSON.h"
 
 static cJSON *Properties;
@@ -61,7 +63,8 @@ _prop_get_pad(CCS prop)
 bool
 prop_is_public(CCS prop)
 {
-    return prop != NULL;  // TODO - temp hack
+    // TODO - for now, ignore the public/private distinction.
+    return prop != NULL;
 }
 
 bool
@@ -96,7 +99,7 @@ prop_get_str(CCS prop)
     CS strval;
     if (cJSON_IsNumber(result)) {
         asprintf(&strval, "%d", result->valueint);
-        return strval;  // TODO needs to be freed
+        return strval;  // TODO will show as memory leak
     }
     strval = cJSON_GetStringValue(result);
     return strval ? strval : "";

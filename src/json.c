@@ -73,7 +73,7 @@ static CCS
 _json_to_str(void *obj)
 {
     if (vb_bitmatch(VB_TMP)) {
-        return cJSON_Print(obj); // TODO: for potentially easier debugging
+        return cJSON_Print(obj); // for potentially easier debugging
     }
     return cJSON_PrintUnformatted(obj);
 }

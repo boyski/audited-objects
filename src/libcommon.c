@@ -305,8 +305,6 @@ _monitor_open(SOCKET *sockp, CCS call)
 
     vb_printf(VB_MON, "OPENING SOCKET FROM %s", call);
 
-    // TODO one of these is redundant.
-    assert(*sockp == INVALID_SOCKET);
     if (*sockp != INVALID_SOCKET) {
         vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
         return;

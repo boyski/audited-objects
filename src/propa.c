@@ -25,6 +25,8 @@
 #include "Putil/putil.h"
 #include "PROP.h"
 
+#include "properties.h"
+
 static CS
 _prop_getenv(CCS prop)
 {
@@ -38,7 +40,7 @@ _prop_getenv(CCS prop)
 CCS
 prop_get_app(void)
 {
-    return "ao";  // TODO must be doable better somehow
+    return basename((CS)prop_get_str(P_MONITOR_PATH));
 }
 
 CCS

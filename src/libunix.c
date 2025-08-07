@@ -89,8 +89,8 @@ _thread_mutex_unlock(void)
 // Contains some declarations used by the common code.
 #include "Interposer/interposer.h"
 
-// TODO I think these weird defines/undefs bracketing the inclusion
-// of libcommon.c may be obsolete.
+// TODO These weird defines/undefs bracketing the inclusion
+// of libcommon.c *may* be obsolete.
 
 /// @cond static
 // For ease of use, and for the benefit of code that's used

@@ -953,6 +953,7 @@ util_strsep(char **stringp, CCS delim)
 }
 
 // TODO with JSON replacing CSV this may become obsolete.
+//
 /// A partial URL-encoding function which encodes only a subset of
 /// characters normally treated by a URL encoder. Currently only [,%]
 /// plus newline are encoded. Commas and newlines are encoded to allow

@@ -1,5 +1,5 @@
 # There are some obsolete symbols mentioned here but they do no harm.
-# TODO clean them up eventually.
+# TODO scrub this list eventually.
 V1.0 {
     local:
 	_pcre_*;

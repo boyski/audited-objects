@@ -19,8 +19,12 @@
 /// @brief Support for JSON formatting.
 /// Wrapper over the cJSON open-source library.
 
-#include "Putil/putil.h"
+#include <assert.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "TYPES.h"
 #include "JSON.h"
 #include "VB.h"
 
@@ -104,7 +108,7 @@ json_from_ca_csv(CCS ca_csv)
     cJSON *palist = cJSON_CreateArray();
     cJSON_AddItemToObject(root, "PathActions", palist);
 
-    for (copy = line = putil_strdup(ca_csv); (nl = strchr(line, '\n')); line = nl + 1) {
+    for (copy = line = strdup(ca_csv); (nl = strchr(line, '\n')); line = nl + 1) {
         *nl = '\0';
         assert(isdigit(*line) || isupper(*line));
         if isdigit(*line) {
@@ -125,10 +129,10 @@ json_from_ca_csv(CCS ca_csv)
             cJSON_AddItemToArray(palist, pa);
         }
     }
-    putil_free(copy);
+    free(copy);
     jsonstr = (CS)_json_to_str(root);
     _json_delete(root);
-    jsonstr = putil_realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
+    jsonstr = realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;
 }

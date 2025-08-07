@@ -342,6 +342,7 @@ class ## _get_ ## attr(class ## _o obj)                             \
 // Drag these in here because (a) just about everybody needs them and
 // (b) they may need to be "above" other internal headers.
 #include "properties.h"
+#include "TYPES.h"
 #include "UTIL.h"
 #include "VB.h"
 

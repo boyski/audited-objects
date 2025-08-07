@@ -19,10 +19,14 @@
 /// @brief Support for Properties objects.
 /// TODO
 
-// Needed until -std=c2x is reached.
-#include <stdbool.h>
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "Putil/putil.h"
+#include <stdbool.h>  // TODO - needed until -std=c2x is reached
+
+#include "TYPES.h"
 #include "PROP.h"
 
 #include "properties.h"

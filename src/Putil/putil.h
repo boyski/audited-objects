@@ -134,9 +134,6 @@ typedef int         SOCKET;
 extern char **environ;
 #endif  /*__APPLE__*/
 
-typedef char *CS;
-typedef const char *CCS;
-
 #ifndef PUTIL_BUILTON
 #define PUTIL_BUILTON       "UNKNOWN "
 #endif
@@ -236,47 +233,47 @@ typedef unsigned long ULONG64;
 extern "C" {
 #endif
 
-PUTIL_API CCS putil_builton(void);
+PUTIL_API const char *putil_builton(void);
 PUTIL_API void putil_strict_error(int);
-PUTIL_API void putil_exit_(CCS, int, int);
-PUTIL_API void putil_error_(CCS, int, CCS, ...)
+PUTIL_API void putil_exit_(const char *, int, int);
+PUTIL_API void putil_error_(const char *, int, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-PUTIL_API void putil_int_(CCS, int, CCS, ...)
+PUTIL_API void putil_int_(const char *, int, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-PUTIL_API void putil_die_(CCS, int, CCS, ...)
+PUTIL_API void putil_die_(const char *, int, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-PUTIL_API void putil_warn_(CCS, int, CCS, ...)
+PUTIL_API void putil_warn_(const char *, int, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-PUTIL_API void putil_srcdbg_(CCS, int, CCS, ...)
+PUTIL_API void putil_srcdbg_(const char *, int, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-PUTIL_API void putil_syserr_(CCS, int, int, CCS);
-PUTIL_API void putil_lnkerr_(CCS, int, int, CCS, CCS);
+PUTIL_API void putil_syserr_(const char *, int, int, const char *);
+PUTIL_API void putil_lnkerr_(const char *, int, int, const char *, const char *);
 PUTIL_API size_t putil_path_max(void);
-PUTIL_API CS putil_basename(CCS);
-PUTIL_API CS putil_dirname(CCS);
-PUTIL_API int putil_mkdir_p(CCS);
-PUTIL_API CCS putil_progname(void);
-PUTIL_API CS *putil_argv_from_environ(int *);
-PUTIL_API CCS putil_getexecpath(void);
-PUTIL_API CS putil_get_homedir(CS, size_t);
-PUTIL_API CS putil_get_systemdir(CS, size_t);
-PUTIL_API CS putil_realpath(CCS, int);
-PUTIL_API CS *putil_prepend2argv(CS *, ...);
-PUTIL_API size_t putil_searchpath(CCS, CCS, CCS, unsigned long, CS, CS *);
-PUTIL_API CS putil_path_strstr(CCS, CCS);
+PUTIL_API char *putil_basename(const char *);
+PUTIL_API char *putil_dirname(const char *);
+PUTIL_API int putil_mkdir_p(const char *);
+PUTIL_API const char *putil_progname(void);
+PUTIL_API char **putil_argv_from_environ(int *);
+PUTIL_API const char *putil_getexecpath(void);
+PUTIL_API char *putil_get_homedir(char *, size_t);
+PUTIL_API char *putil_get_systemdir(char *, size_t);
+PUTIL_API char *putil_realpath(const char *, int);
+PUTIL_API char **putil_prepend2argv(char **, ...);
+PUTIL_API size_t putil_searchpath(const char *, const char *, const char *, unsigned long, char *, char **);
+PUTIL_API char *putil_path_strstr(const char *, const char *);
 PUTIL_API void *putil_malloc(size_t);
 PUTIL_API void *putil_malloc_str(size_t);
 PUTIL_API void *putil_calloc(size_t, size_t);
 PUTIL_API void *putil_realloc(void *, size_t);
 PUTIL_API void putil_free_(const void *);
-PUTIL_API CS putil_strdup(CCS);
-PUTIL_API CS putil_getenv(CCS);
-PUTIL_API int putil_putenv(CS);
-PUTIL_API void putil_unsetenv(CCS);
+PUTIL_API char *putil_strdup(const char *);
+PUTIL_API char *putil_getenv(const char *);
+PUTIL_API int putil_putenv(char *);
+PUTIL_API void putil_unsetenv(const char *);
 #define DIRSEP()    "/"
 #define PATHSEP()   ":"
-PUTIL_API CCS putil_tmpdir(CS, size_t);
-PUTIL_API CCS putil_readlink(CCS);
+PUTIL_API const char *putil_tmpdir(char *, size_t);
+PUTIL_API const char *putil_readlink(const char *);
 
 #include <sys/utsname.h>
 PUTIL_API int putil_uname(struct utsname *);
@@ -292,7 +289,7 @@ PUTIL_API int putil_uname(struct utsname *);
 // since then, not our problem.
 #define _PUTIL_PRINTMSG_(keyword, f, l, fmt) \
 { \
-    CS srcdbg; \
+    char *srcdbg; \
     va_list ap; \
     va_start(ap, fmt); \
     fprintf(stderr, "%s: %s: ", putil_progname(), #keyword); \
@@ -306,7 +303,7 @@ PUTIL_API int putil_uname(struct utsname *);
 
 #define _PUTIL_PRINTMSGW_(keyword, f, l, fmt) \
 { \
-    CS srcdbg; \
+    char *srcdbg; \
     va_list ap; \
     va_start(ap, fmt); \
     fprintf(stderr, "%s: %s: ", putil_progname(), #keyword); \
@@ -366,7 +363,7 @@ PUTIL_CLASS char putil_platform[] = "@(#) " PUTIL_BUILTON "/" PUTIL_COMPILER_;
 static int Putil_Strict_Error = 0;
 #endif
 
-PUTIL_CLASS CCS
+PUTIL_CLASS const char *
 putil_builton(void)
 {
     return strchr(putil_platform, ' ') + 1;
@@ -384,7 +381,7 @@ putil_strict_error(int level)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_exit_(CCS f, int l, int status)
+putil_exit_(const char *f, int l, int status)
 {
     if (f && l && status) {
     _PUTIL_ERROR_DEBUG_(3, f, l);
@@ -413,20 +410,21 @@ putil_path_max(void)
 
 // This API was originally based on the Win32 SearchPath function.
 PUTIL_CLASS size_t
-putil_searchpath(CCS srchpath, CCS prog, CCS ext, unsigned long buflen, CS buf, CS *basepart)
+putil_searchpath(const char *srchpath, const char *prog, const char *ext,
+                unsigned long buflen, char *buf, char **basepart)
 {
-    CS spath, p, e;
+    char *spath, *p, *e;
     size_t len = 0;
     int baselen;
 
-    (void)ext;  // to keep compiler happy - we don't use extensions on unix.
+    (void)ext;  // keep compiler happy - unix doesn't rely on extensions.
     
     baselen = strlen(prog) + 1;
 
     buf[0] = '\0';
 
     if (strchr(prog, '/')) {
-        CS rbuf;
+        char *rbuf;
 
         if ((rbuf = putil_realpath(prog, 0))) {
             snprintf(buf, buflen, "%s", rbuf);
@@ -495,7 +493,7 @@ putil_searchpath(CCS srchpath, CCS prog, CCS ext, unsigned long buflen, CS buf, 
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_error_(CCS f, int l, CCS fmt, ...)
+putil_error_(const char *f, int l, const char *fmt, ...)
 {
     _PUTIL_PRINTMSG_(Error, f,l, fmt);
     _PUTIL_ERROR_DEBUG_(2, f, l);
@@ -504,7 +502,7 @@ putil_error_(CCS f, int l, CCS fmt, ...)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_int_(CCS f, int l, CCS fmt, ...)
+putil_int_(const char *f, int l, const char *fmt, ...)
 {
     _PUTIL_PRINTMSG_(Internal Error, f, l, fmt);
     unlink("/cores/core");  // OS X doesn't like to overwrite core files
@@ -514,7 +512,7 @@ putil_int_(CCS f, int l, CCS fmt, ...)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_die_(CCS f, int l, CCS fmt, ...)
+putil_die_(const char *f, int l, const char *fmt, ...)
 {
     _PUTIL_PRINTMSG_(Error, f,l, fmt);
     _PUTIL_ERROR_DEBUG_(0, f, l);
@@ -524,7 +522,7 @@ putil_die_(CCS f, int l, CCS fmt, ...)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_warn_(CCS f, int l, CCS fmt, ...)
+putil_warn_(const char *f, int l, const char *fmt, ...)
 {
     _PUTIL_PRINTMSG_(Warning, f, l, fmt);
     _PUTIL_ERROR_DEBUG_(2, f, l);
@@ -533,9 +531,9 @@ putil_warn_(CCS f, int l, CCS fmt, ...)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_srcdbg_(CCS f, int l, CCS fmt, ...)
+putil_srcdbg_(const char *f, int l, const char *fmt, ...)
 {
-    CS t;
+    char *t;
 
     if ((t = getenv("PUTIL_SRCDBG")) && atoi(t)) {
     _PUTIL_PRINTMSG_(Warning, f, l, fmt);
@@ -546,7 +544,7 @@ putil_srcdbg_(CCS f, int l, CCS fmt, ...)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_syserr_(CCS f, int l, int code, CCS string)
+putil_syserr_(const char *f, int l, int code, const char *string)
 {
     char *msg;
     
@@ -574,7 +572,7 @@ putil_syserr_(CCS f, int l, int code, CCS string)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void
-putil_lnkerr_(CCS f, int l, int code, CCS name1, CCS name2)
+putil_lnkerr_(const char *f, int l, int code, const char *name1, const char *name2)
 {
     char *msg;
     
@@ -589,10 +587,10 @@ putil_lnkerr_(CCS f, int l, int code, CCS name1, CCS name2)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_get_homedir(CS buf, size_t buflen)
+PUTIL_CLASS char *
+putil_get_homedir(char *buf, size_t buflen)
 {
-    CS h;
+    char *h;
 
     buf[0] = '\0';
 
@@ -608,8 +606,8 @@ putil_get_homedir(CS buf, size_t buflen)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_get_systemdir(CS buf, size_t buflen)
+PUTIL_CLASS char *
+putil_get_systemdir(char *buf, size_t buflen)
 {
     (void)snprintf(buf, buflen, "/etc");
     return buf;
@@ -623,8 +621,8 @@ putil_get_systemdir(CS buf, size_t buflen)
 // on some systems.
 // Note that this will resolve symlinks, just as SUS says realpath() does.
 // Also note that it's just as insecure as the original.
-PUTIL_CLASS CS
-putil_realpath(CCS path, int guess)
+PUTIL_CLASS char *
+putil_realpath(const char *path, int guess)
 {
     char resolved[PATH_MAX + 1];
     size_t len;
@@ -647,10 +645,10 @@ putil_realpath(CCS path, int guess)
 
             // This recursion should always break at "/" (the root).
             if ((parent = putil_dirname(path))) {
-                CS rbuf;
+                char *rbuf;
 
                 if ((rbuf = putil_realpath(parent, guess))) {
-                    snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((CS)path));
+                    snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((char *)path));
                     putil_free(parent);
                     putil_free(rbuf);
                 } else {
@@ -678,20 +676,20 @@ putil_realpath(CCS path, int guess)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_basename(CCS path)
+PUTIL_CLASS char *
+putil_basename(const char *path)
 {
-    return basename((CS)path);
+    return basename((char *)path);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 // Like readlink(2) but allocates and returns a null-terminated buffer.
-PUTIL_CLASS CCS
-putil_readlink(CCS path)
+PUTIL_CLASS const char *
+putil_readlink(const char *path)
 {
     ssize_t len, l1;
-    CS buf;
+    char *buf;
 
     if (!path) {
         return NULL;
@@ -720,16 +718,16 @@ putil_readlink(CCS path)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_dirname(CCS path)
+PUTIL_CLASS char *
+putil_dirname(const char *path)
 {
-    CS result;
+    char *result;
 
     if (!path) {
         return NULL;
     }
 
-    result = (CS)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
+    result = (char *)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
 
     // We do this double copying because some dirname()
     // implementations (FreeBSD) return a ptr to static storage
@@ -748,7 +746,7 @@ putil_dirname(CCS path)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS int
-putil_mkdir_p(CCS path)
+putil_mkdir_p(const char *path)
 {
     char *parent;
 
@@ -763,10 +761,10 @@ putil_mkdir_p(CCS path)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CCS
+PUTIL_CLASS const char *
 putil_progname(void)
 {
-    return basename((CS)putil_getexecpath());
+    return basename((char *)putil_getexecpath());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -779,12 +777,12 @@ putil_progname(void)
 // when we find a value (p2i) smaller than any valid ptr.
 // NOTE: I've seen some references on the web to __xargv. Not sure
 // what platform, whose libc implements this. If any.
-PUTIL_CLASS CS *
+PUTIL_CLASS char **
 putil_argv_from_environ(int *p_argc)
 {
 #if defined(__APPLE__)
     // OSX has its own way (as usual).
-    CS *av;
+    char **av;
     av = *_NSGetArgv();
     if (p_argc) {
         int i;
@@ -795,7 +793,7 @@ putil_argv_from_environ(int *p_argc)
     return av;
 #else   /*__APPLE__*/
     static char **orig_environ;
-    CS *p;
+    char **p;
 
     // In case we end up getting called late, make sure to remember the
     // original location of the environment block.
@@ -811,7 +809,7 @@ putil_argv_from_environ(int *p_argc)
         // include the pointer to the argument as well as the argument
         // itself, the number of pointers which would fit into ARG_MAX
         // bytes is a conservative estimate.
-        ULONG64 not_ptr = ARG_MAX/sizeof(CS);
+        ULONG64 not_ptr = ARG_MAX/sizeof(char *);
         ULONG64 p2i;
         do {
             p2i = (ULONG64) *--p;
@@ -833,7 +831,7 @@ putil_argv_from_environ(int *p_argc)
 // has a chance to get realloc-ed away from argv. This will cause
 // the result to be stashed in a static buffer, so it may safely
 // be used later as long as it was called early.
-PUTIL_CLASS CCS
+PUTIL_CLASS const char *
 putil_getexecpath(void)
 {
     static char xname[PATH_MAX];
@@ -862,7 +860,7 @@ putil_getexecpath(void)
 
         if ((llen = readlink("/proc/self/exe", buf, charlen(buf) - 1)) == -1) {
             char **e;
-            CS p;
+            char *p;
 
             for (e = environ; *(e + 1); e++)
                 ;
@@ -925,8 +923,8 @@ putil_getexecpath(void)
 /////////////////////////////////////////////////////////////////////////////
 
 // There's no strstr() function on Windows so synthesize one.
-PUTIL_CLASS CS
-putil_path_strstr(CCS s1, CCS s2)
+PUTIL_CLASS char *
+putil_path_strstr(const char *s1, const char *s2)
 {
     return strstr(s1, s2);
 }
@@ -986,18 +984,18 @@ putil_free_(const void *ptr)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_strdup(CCS s1)
+PUTIL_CLASS char *
+putil_strdup(const char *s1)
 {
     size_t len = bytelen(s1);
-    CS newstr = (CS)putil_malloc(len + sizeof(char));
+    char *newstr = (char *)putil_malloc(len + sizeof(char));
     return strcpy(newstr, s1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS
-putil_getenv(CCS name)
+PUTIL_CLASS char *
+putil_getenv(const char *name)
 {
     return getenv(name);
 }
@@ -1005,7 +1003,7 @@ putil_getenv(CCS name)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS int
-putil_putenv(CS string)
+putil_putenv(char *string)
 {
     return putenv(string);
 }
@@ -1018,15 +1016,15 @@ putil_putenv(CS string)
 // else would you remove from the env? - and it's always possible the
 // libc env code uses some internal allocator, so we leave it.
 PUTIL_CLASS void
-putil_unsetenv(CCS name)
+putil_unsetenv(const char *name)
 {
-    CS *ep;
+    char **ep;
     size_t len;
 
     len = strlen(name);
     for (ep = environ; *ep; ++ep) {
         if (!strncmp(*ep, name, len) && ep[0][len] == '=') {
-            CS *np;
+            char **np;
 
             for (np = ep; np[0]; np++) {
                 np[0] = np[1];
@@ -1045,11 +1043,11 @@ putil_uname(struct utsname *name)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CS *
-putil_prepend2argv(CS *argv, ...)
+PUTIL_CLASS char **
+putil_prepend2argv(char **argv, ...)
 {
     char **nargv, **np;
-    CS str;
+    char *str;
     int i;
     va_list ap;
 
@@ -1059,7 +1057,7 @@ putil_prepend2argv(CS *argv, ...)
 
     // Count the additional strings.
     va_start(ap, argv);
-    for (; va_arg(ap, CCS); i++)
+    for (; va_arg(ap, const char *); i++)
         ;
     va_end(ap);
 
@@ -1068,7 +1066,7 @@ putil_prepend2argv(CS *argv, ...)
 
     // Rewind 'ap' and put the extras at the front of the array ...
     va_start(ap, argv);
-    while ((str = (CS) va_arg(ap, CS))) {
+    while ((str = (char *) va_arg(ap, char *))) {
         *np++ = str;
     }
     va_end(ap);
@@ -1086,10 +1084,10 @@ putil_prepend2argv(CS *argv, ...)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS CCS
-putil_tmpdir(CS tbuf, size_t tlen)
+PUTIL_CLASS const char *
+putil_tmpdir(char *tbuf, size_t tlen)
 {
-    CCS t;
+    const char *t;
 
     if (!(t = getenv("TMPDIR"))) {
         t = "/tmp";

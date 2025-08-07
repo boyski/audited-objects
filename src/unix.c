@@ -268,21 +268,6 @@ _unix_read_available(int fd)
 // Making this static instead of automatic makes Coverity happy.
 static FILE *LogFP = NULL;
 
-#ifdef TODO
-static int
-get_env_size(char **env)
-{
-    int count = 0;
-    while (env[count] != NULL) {
-        char *p = strchr(env[count], '=');
-        *p = '\0';
-        printf("COUNTING: [%d] %s\n", count, env[count]);
-        count++;
-        *p = '=';
-    }
-    return count;
-}
-
 // Internal service routine for sorting the environment.
 static int
 _qsort_env(const void *p1, const void *p2)
@@ -292,7 +277,6 @@ _qsort_env(const void *p1, const void *p2)
 
     return strcmp(*lp, *rp);
 }
-#endif
 
 /// The Unix version of the function which actually runs and audits the
 /// child command. The child command is run via fork/exec/wait while
@@ -465,7 +449,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     }
 
     // Show exported properties just before fork/exec.
-    system("env | grep -E '^(AO_|LD_)' | sort");
+    if (vb_bitmatch(VB_TMP)) {
+        system("env | grep -E '^(AO_|LD_)' | sort");
+    }
 
     if ((childpid = fork()) < 0) {
         putil_syserr(2, "fork");
@@ -499,16 +485,17 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             putil_free(shlibdir);
         }
 
-        // Actually run the command under control of the audit lib.
-        char **child_environ = environ;
-
-#ifdef TODO
-        // Sorting is required on Windows, just a nice frill on Unix.
-        int env_size = get_env_size(environ);
-        printf("Count=%d\n", env_size);
-        child_environ = (char **)alloca((env_size) * sizeof(void *));
+        // Sorting the env before exec is not required but a nice frill.
+        int env_size;
+        for (env_size = 0; environ[env_size]; env_size++);
+        char **child_environ = (char **)alloca((env_size + 1) * sizeof(void *));
+        for (int j = 0; environ[j]; j++) {
+            child_environ[j] = environ[j];
+        }
+        child_environ[env_size] = NULL;
         qsort(child_environ, env_size, sizeof(char *), _qsort_env);
-#endif
+
+        // Now actually run the command under control of the audit lib.
         execvpe(path, argv, child_environ);
 
         // Give an error if we were unable to exec at all.

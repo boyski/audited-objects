@@ -74,7 +74,7 @@ heap_fini(void)
 {
     if (vb_bitmatch(VB_TMP)) {
         CS jsonstr = cJSON_Print(HeapJson);
-        vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);
+        //vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);  TODO causes core dump
         free(jsonstr);
     }
     cJSON_Delete(HeapJson);

@@ -73,14 +73,8 @@ INST_PREFIX := ${HOME}/$(TGTARCH)
 
 GFLAGS := -g3
 
-SHLIBDIR := /lib
-
 ifneq (,$(findstring Linux,$(TGTARCH)))
   LINUX := 1
-  ifneq (,$(findstring _x86_64,$(TGTARCH)))
-    SHLIBDIR := /lib64
-    LINUX_X86_64 := 1
-  endif
 endif
 
 DFLAGS := $(EXTRA_DFLAGS)
@@ -182,8 +176,6 @@ OPSLIBDIR := $(OPS)/Linux_x86_64/lib
 ifneq ($(LINUX),)
   SHLIBFLAGS += -z defs -z interpose -z combreloc -z lazy
   LINKMAP := -Wl,--version-script=Linux.linkmap
-  LINKMAP32 := $(LINKMAP)
-  LINKMAP64 := $(LINKMAP)
   PLDLIBS := -lm -lrt -ldl
 else ifneq ($(DARWIN),)
   CFLAGS += -fno-common # Q: add -dynamic too?
@@ -266,7 +258,7 @@ $(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(filter-out \
   %-pedantic -Wmissing-prototypes,$(CFLAGS)))
 $(LIBAO): libunix.c libcommon.c $(LIBOBJS) AO.h $(INTERPOSERS) | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) \
-	  $(SHLIBFLAGS) $(LINKMAP64) $(LIBOBJS) $< \
+	  $(SHLIBFLAGS) $(LINKMAP) $(LIBOBJS) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))
 
 .PHONY: _relink

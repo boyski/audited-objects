@@ -272,7 +272,7 @@ TESTS := propa propm
 TARGETS += $(TESTS)
 
 $(TESTS): CFLAGS += -DUNIT_TEST -DPUTIL_DECLARE_FUNCTIONS_GLOBAL
-$(TESTS): $$(@).c | $$(@D)
+$(TESTS): $$(@).c heap.c | $$(@D)
 	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 

@@ -20,6 +20,7 @@
 /// TODO
 
 #include "AO.h"
+#include "HEAP.h"
 #include "PROP.h"
 
 #include "properties.h"
@@ -78,9 +79,8 @@ void
 prop_export(CCS prop)
 {
     CCS value = prop_get_str(prop);
-    CS envstr;
-    asprintf(&envstr, "%s%s=%s", ENV_PFX, prop, value ? value : "");
-    putenv(envstr);  // TODO will show as memory leak
+    CS envstr = heap_sprintf("%s%s=%s", ENV_PFX, prop, value ? value : "");
+    putenv(envstr);
 }
 
 CCS

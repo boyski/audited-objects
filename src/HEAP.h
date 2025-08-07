@@ -23,7 +23,7 @@
 
 void heap_init(void);
 CS heap_save(CS);
-CS heap_printf(const char *, ...);
+CS heap_sprintf(const char *, ...);
 void heap_fini(void);
 
 #endif // HEAP_H

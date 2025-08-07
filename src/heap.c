@@ -38,9 +38,9 @@
 /// reduces the number of bogus memory-leak warnings, and maybe even
 /// real memory leaks.
 
-#include "Putil/putil.h"
-
+#include "AO.h"
 #include "HEAP.h"
+#include "TRY.h"
 #include "VB.h"
 
 #include "cJSON.h"
@@ -71,7 +71,7 @@ heap_save(CS savestr)
 /// Create a new formatted string a la asprintf() and record the result
 /// to be automatically freed by heap_fini().
 CS
-heap_printf(const char *fmt, ...)
+heap_sprintf(const char *fmt, ...)
 {
     va_list args;
     CS newstr;

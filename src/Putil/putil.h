@@ -286,28 +286,6 @@ PUTIL_API int putil_uname(struct utsname *);
 }
 #endif
 
-// Get first argument of __VA_ARGS__ if any.
-#define FIRST_ARG(...) FIRST_ARG__(__VA_ARGS__, throwaway)
-#define FIRST_ARG__(first, ...) "" #first
-// Print caller function name, file name, line_number, error message
-// and optional supporting arguments. Exit with failure code.
-// Supporting arguments are a printf() format string followed
-// by respective printf() arguments.
-#define DIE_(err_msg, ...) if (1) { \
-    fprintf(stderr, "%s: Error: %s() %s:%d %s", \
-    putil_getexecpath(), __func__, __FILE__, __LINE__, err_msg); \
-    if (errno) fprintf(stderr, " %s", strerror(errno)); \
-    if (strcmp(FIRST_ARG(__VA_ARGS__), "")) \
-        fprintf(stderr, ": " __VA_ARGS__); \
-    fputc('\n', stderr); \
-    if (getenv("AO_DEBUG")) abort(); \
-    exit(EXIT_FAILURE); \
-}
-// Call the function and check whether condition is true.
-// If not, call the DIE_() macro above with "cond" as a string
-// and optional supporting arguments.
-#define TRY(cond, ...) if (!(cond)) {DIE_(#cond, ##__VA_ARGS__);}
-
 // We try not to use stdio functions anywhere in this file, because
 // FILEs are limited to (256-3) in most Unix implementations. But of
 // course stderr will have been pre-allocated. If it's been closed

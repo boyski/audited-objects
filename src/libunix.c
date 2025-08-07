@@ -41,6 +41,7 @@
 #include "CODE.h"
 #include "PA.h"
 #include "RE.h"
+#include "TRY.h"
 
 #include "Interposer/preload.h"
 

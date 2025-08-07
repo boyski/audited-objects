@@ -216,7 +216,7 @@ prop_desc(CCS prop)
 }
 
 void
-prop_init(CCS path)
+prop_init(CCS exe, CCS path)
 {
     if (path) {
         // Read the specified file into a string in JSON format.
@@ -238,7 +238,7 @@ prop_init(CCS path)
     }
 
     // Record and export the path to this running program.
-    prop_set_str(P_MONITOR_PATH, putil_getexecpath());
+    prop_set_str(P_MONITOR_PATH, exe);
 
     // Environment settings override file-derived properties.
     for (char **envp = environ; *envp; envp++) {
@@ -318,10 +318,13 @@ prop_dump(void)
 }
 
 #ifdef UNIT_TEST
+
+#include "Putil/putil.h"
+
 int
 main(void)
 {
-    prop_init("ao_config.json");
+    prop_init(putil_getexecpath(), "ao_config.json");
     printf("Starting properties:\n");
     system("env | grep ^AO_");
     printf("\nProperty mods:\n");

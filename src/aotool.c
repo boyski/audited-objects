@@ -639,12 +639,12 @@ main(int argc, CS *argv)
     if (cfgdir) {
         CS cfgfile;
         asprintf(&cfgfile, "%s/ao_config.json", cfgdir);
-        prop_init(cfgfile);
+        prop_init(putil_getexecpath(), cfgfile);
         prop_set_str(P_BASE_DIR, cfgdir);
         putil_free(cfgdir);
         putil_free(cfgfile);
     } else {
-        prop_init("ao_config.json");
+        prop_init(putil_getexecpath(), "ao_config.json");
         CS basedir = getcwd(NULL, 0);
         prop_set_str(P_BASE_DIR, basedir);
         putil_free(basedir);

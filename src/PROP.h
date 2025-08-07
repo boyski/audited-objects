@@ -40,7 +40,7 @@ bool prop_has_value(CCS);
 bool prop_is_true(CCS);
 bool prop_set_bool(CCS, bool);
 CCS prop_desc(CCS);
-void prop_init(CCS);
+void prop_init(CCS, CCS);
 void prop_fini(void);
 void prop_help(int, int);
 void prop_dump(void);

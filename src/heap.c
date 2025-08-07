@@ -41,7 +41,6 @@
 #include "AO.h"
 #include "HEAP.h"
 #include "TRY.h"
-#include "VB.h"
 
 #include "cJSON.h"
 
@@ -87,11 +86,13 @@ heap_sprintf(const char *fmt, ...)
 void
 heap_fini(void)
 {
+#ifdef TODO
     if (vb_bitmatch(VB_TMP)) {
         CS jsonstr = cJSON_Print(HeapJson);
-        //vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);  TODO causes core dump
+        vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);  causes core dump
         free(jsonstr);
     }
+#endif
     cJSON_Delete(HeapJson);
     HeapJson = NULL;
 }

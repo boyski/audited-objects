@@ -93,12 +93,13 @@ prop_get_str(CCS prop)
     if (cJSON_IsNull(result)) {
         return NULL;
     }
+    CS strval;
     if (cJSON_IsNumber(result)) {
-        CS strval;
         asprintf(&strval, "%d", result->valueint);
         return strval;  // TODO needs to be freed
     }
-    return cJSON_GetStringValue(result);
+    strval = cJSON_GetStringValue(result);
+    return strval ? strval : "";
 }
 
 CCS
@@ -157,11 +158,25 @@ prop_set_ulong(CCS prop, unsigned long newval)
 bool
 prop_has_value(CCS prop)
 {
-    cJSON *result = _prop_get_value(prop);
-    if (result && cJSON_IsString(result)) {
-        return *cJSON_GetStringValue(result) ? true : false;
+    cJSON *item = _prop_get_item(prop);
+    
+    if (!item || cJSON_IsInvalid(item) || cJSON_IsNull(item)) {
+        return false;
     }
-    return false;
+    
+    cJSON *value = cJSON_GetObjectItem(item, "value");
+    if (!value || cJSON_IsInvalid(value) || cJSON_IsNull(value)) {
+        return false;
+    }
+
+    if (cJSON_IsString(value)) {
+        CCS strval = cJSON_GetStringValue(value);
+        if (strval == NULL || !*strval) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 bool

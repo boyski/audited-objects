@@ -68,6 +68,21 @@ heap_save(CS savestr)
     return cJSON_GetStringValue(saved);
 }
 
+/// Create a new formatted string a la asprintf() and record the result
+/// to be automatically freed by heap_fini().
+CS
+heap_printf(const char *fmt, ...)
+{
+    va_list args;
+    CS newstr;
+    
+    va_start(args, fmt);
+    TRY(vasprintf(&newstr, fmt, args) != -1, "vasprintf()");
+    va_end(args);
+    
+    return heap_save(newstr);
+}
+
 /// Finalize and free "permanent" heap allocations.
 void
 heap_fini(void)

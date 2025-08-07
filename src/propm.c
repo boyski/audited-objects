@@ -174,18 +174,30 @@ prop_has_value(CCS prop)
         if (strval == NULL || !*strval) {
             return false;
         }
+    } else if (cJSON_IsNumber(value)) {
+        return true;
+    } else if (cJSON_IsBool(value)) {
+        return true;
     }
     
-    return true;
+    return false;
 }
 
 bool
 prop_is_true(CCS prop)
 {
+    bool result;
     if (prop_has_value(prop)) {
-        return prop_get_long(prop) ? true : false;
+        cJSON *value = _prop_get_key(prop, "value");
+        if (cJSON_IsBool(value)) {
+            result = cJSON_IsTrue(value);
+        } else if (cJSON_IsNumber(value)) {
+            result = cJSON_GetStringValue(value) ? true : false;
+        } else if (cJSON_IsString(value)) {
+            result = !strcmp(cJSON_GetStringValue(value), "true") ? true : false;
+        }
     }
-    return false;
+    return result;
 }
 
 bool

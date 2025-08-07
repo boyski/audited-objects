@@ -171,9 +171,7 @@ prop_has_value(CCS prop)
 
     if (cJSON_IsString(value)) {
         CCS strval = cJSON_GetStringValue(value);
-        if (strval == NULL || !*strval) {
-            return false;
-        }
+        return (strval && *strval) ? true : false;
     } else if (cJSON_IsNumber(value)) {
         return true;
     } else if (cJSON_IsBool(value)) {
@@ -186,7 +184,7 @@ prop_has_value(CCS prop)
 bool
 prop_is_true(CCS prop)
 {
-    bool result;
+    bool result = false;
     if (prop_has_value(prop)) {
         cJSON *value = _prop_get_key(prop, "value");
         if (cJSON_IsBool(value)) {
@@ -194,7 +192,8 @@ prop_is_true(CCS prop)
         } else if (cJSON_IsNumber(value)) {
             result = cJSON_GetStringValue(value) ? true : false;
         } else if (cJSON_IsString(value)) {
-            result = !strcmp(cJSON_GetStringValue(value), "true") ? true : false;
+            CCS strval = cJSON_GetStringValue(value);
+            result = strcmp(strval, "false") && strcmp(strval, "0");
         }
     }
     return result;
@@ -332,7 +331,8 @@ main(void)
     printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
     printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? "true" : "false");
     prop_set_bool(prop, true);
-    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? "true" : "false");
+    bool answer = prop_is_true(prop);
+    printf("PROP: %s='%s'\n", prop, answer ? "true" : "false");
     prop_fini();
     printf("\nEnding properties:\n");
     system("env | grep ^AO_");

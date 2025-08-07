@@ -180,8 +180,8 @@
       "value": "perl"
     },
     "PRINT_ELAPSED": {
-      "description": "Boolean - print the elapsed wall-clock time at exit",
-      "value": false
+      "description": "Print elapsed wall-clock time at exit if > 0",
+      "value": 0
     },
     "PROJECT_NAME": {
       "description": "Assign a name to this project",

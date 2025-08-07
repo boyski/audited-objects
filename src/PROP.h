@@ -26,9 +26,6 @@ extern char **environ;
 // Hard-wired because monitor and auditor must agree.
 #define ENV_PFX "AO_"
 
-#define JSON_TRUE "true"
-#define JSON_FALSE "false"
-
 bool prop_is_public(CCS);
 bool prop_is_exported(CCS);
 void prop_export(CCS);

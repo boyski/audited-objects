@@ -97,8 +97,6 @@ prop_get_str(CCS prop)
         CS strval;
         asprintf(&strval, "%d", result->valueint);
         return strval;  // TODO needs to be freed
-    } else if (cJSON_IsBool(result)) {
-        return cJSON_IsTrue(result) ? JSON_TRUE : JSON_FALSE;
     }
     return cJSON_GetStringValue(result);
 }
@@ -169,21 +167,16 @@ prop_has_value(CCS prop)
 bool
 prop_is_true(CCS prop)
 {
-    CCS value = prop_get_str(prop);
-    if (!strncmp(value, JSON_TRUE, sizeof(JSON_TRUE))) {
-        return true;
-    } else if (!strncmp(value, JSON_FALSE, sizeof(JSON_FALSE))) {
-        return false;
-    } else {
+    if (prop_has_value(prop)) {
         return prop_get_long(prop) ? true : false;
     }
+    return false;
 }
 
 bool
 prop_set_bool(CCS prop, bool on_or_off)
 {
-    // "true" is padded by one space to match "false".
-    prop_set_str(prop, on_or_off ? JSON_TRUE " " : JSON_FALSE);
+    prop_set_long(prop, on_or_off ? 1 : 0);
     return prop_is_true(prop);
 }
 
@@ -228,7 +221,13 @@ prop_init(CCS path)
         *equals = '\0';
         CS value = equals + 1;
         CCS prop = strchr(envstr, '_') + 1;
-        prop_set_str(prop, value);
+        if (!strcmp(value, "true")) {
+            prop_set_bool(prop, true);
+        } else if (!strcmp(value, "false")) {
+            prop_set_bool(prop, false);
+        } else {
+            prop_set_str(prop, value);
+        }
         free(envstr);
     }
 
@@ -304,9 +303,9 @@ main(void)
     printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
     prop = "CSV";
     printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
-    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? JSON_TRUE : JSON_FALSE);
+    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? "true" : "false");
     prop_set_bool(prop, true);
-    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? JSON_TRUE : JSON_FALSE);
+    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? "true" : "false");
     prop_fini();
     printf("\nEnding properties:\n");
     system("env | grep ^AO_");

@@ -305,12 +305,14 @@ _monitor_open(SOCKET *sockp, CCS call)
 
     vb_printf(VB_MON, "OPENING SOCKET FROM %s", call);
 
+    // TODO one of these is redundant.
+    assert(*sockp == INVALID_SOCKET);
     if (*sockp != INVALID_SOCKET) {
         vb_printf(VB_MON, "ALREADY OPEN: SOCKET %d", *sockp);
         return;
     }
 
-    TRY(socket(PF_INET, SOCK_STREAM, 0) != INVALID_SOCKET, "socket()");
+    TRY((*sockp = socket(PF_INET, SOCK_STREAM, 0)) != INVALID_SOCKET, "socket()");
 
     TRY(setsockopt(*sockp, SOL_SOCKET, SO_REUSEADDR,
                     &so_reuse, sizeof(so_reuse)) != SOCKET_ERROR, "setsockopt(SO_REUSEADDR)");

@@ -1107,7 +1107,7 @@ _ca_format_cooked_palist(ca_o ca)
 CCS
 ca_to_str(ca_o ca)
 {
-    CCS csv, subs, pas, oldfmt;
+    CCS csv, subs, pas;
     size_t len;
 
     csv = ca_format_header(ca);
@@ -1134,7 +1134,7 @@ ca_to_str(ca_o ca)
     // is that we currently have to deliver a series of different JSON
     // documents with an artificial separator. It would be better to
     // deliver a single complete document.
-    if (((oldfmt = prop_get_str(P_CSV)) && *oldfmt)) {
+    if (prop_is_true(P_CSV)) {
         return csv;
     } else {
         CCS json = json_from_ca_csv(csv);

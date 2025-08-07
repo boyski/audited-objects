@@ -71,10 +71,19 @@ prop_is_exported(CCS prop)
     return cJSON_IsTrue(result);
 }
 
+void
+prop_export(CCS prop)
+{
+    CCS value = prop_get_str(prop);
+    CS envstr;
+    asprintf(&envstr, "%s%s=%s", ENV_PFX, prop, value ? value : "");
+    putenv(envstr);  // TODO will show as memory leak
+}
+
 CCS
 prop_get_app(void)
 {
-    return "ao";  // TODO must be doable better somehow
+    return basename((CS)prop_get_str(P_MONITOR_PATH));
 }
 
 CCS
@@ -89,7 +98,7 @@ prop_get_str(CCS prop)
         asprintf(&strval, "%d", result->valueint);
         return strval;  // TODO needs to be freed
     } else if (cJSON_IsBool(result)) {
-        return cJSON_IsTrue(result) ? "true" : "false";
+        return cJSON_IsTrue(result) ? JSON_TRUE : JSON_FALSE;
     }
     return cJSON_GetStringValue(result);
 }
@@ -98,8 +107,9 @@ CCS
 prop_set_str(CCS prop, CCS newval)
 {
     assert(newval);
+    bool exported = prop_is_exported(prop);
     cJSON *item = _prop_get_item(prop);
-    int pad = prop_is_exported(prop) ? _prop_get_pad(prop) : 0;
+    int pad = exported ? _prop_get_pad(prop) : 0;
     if (pad > 0) {
         CS padval;
         asprintf(&padval, "%*s", pad, newval);
@@ -107,6 +117,9 @@ prop_set_str(CCS prop, CCS newval)
         free(padval);
     } else {
         cJSON_ReplaceItemInObject(item, "value", cJSON_CreateString(newval));
+    }
+    if (exported) {
+        prop_export(prop);
     }
     return prop_get_str(prop);
 }
@@ -156,25 +169,21 @@ prop_has_value(CCS prop)
 bool
 prop_is_true(CCS prop)
 {
-    cJSON *value = _prop_get_value(prop);
-    assert(cJSON_IsBool(value));
-    return cJSON_IsTrue(value);
+    CCS value = prop_get_str(prop);
+    if (!strncmp(value, JSON_TRUE, sizeof(JSON_TRUE))) {
+        return true;
+    } else if (!strncmp(value, JSON_FALSE, sizeof(JSON_FALSE))) {
+        return false;
+    } else {
+        return prop_get_long(prop) ? true : false;
+    }
 }
 
 bool
 prop_set_bool(CCS prop, bool on_or_off)
 {
-    cJSON *value = _prop_get_value(prop);
-    assert(cJSON_IsBool(value));
-    if (on_or_off) {
-        value->type = cJSON_True;
-        value->valueint = 1;
-        value->valuedouble = 1.0;
-    } else {
-        value->type = cJSON_False;
-        value->valueint = 0;
-        value->valuedouble = 0.0;
-    }
+    // "true" is padded by one space to match "false".
+    prop_set_str(prop, on_or_off ? JSON_TRUE " " : JSON_FALSE);
     return prop_is_true(prop);
 }
 
@@ -218,7 +227,7 @@ prop_init(CCS path)
         CS equals = strchr(envstr, '=');
         *equals = '\0';
         CS value = equals + 1;
-        CS prop = envstr + sizeof(ENV_PFX);
+        CCS prop = strchr(envstr, '_') + 1;
         prop_set_str(prop, value);
         free(envstr);
     }
@@ -228,10 +237,7 @@ prop_init(CCS path)
     cJSON_ArrayForEach(property, Properties) {
         CCS prop = property->string;
         if (prop_is_exported(prop)) {
-            CS envstr;
-            CCS prop_val = prop_get_str(prop);
-            asprintf(&envstr, "%s%s=%s", ENV_PFX, prop, prop_val ? prop_val : "");
-            putenv(envstr);  // TODO will show as memory leak
+            prop_export(prop);
         }
     }
 }
@@ -268,6 +274,21 @@ prop_help(int verbose, int all)
     }
 }
 
+void
+prop_dump(void)
+{
+    cJSON *property = NULL;
+    cJSON_ArrayForEach(property, Properties) {
+        CCS prop = property->string;
+        CCS value = prop_get_str(prop);
+        if (value) {
+            fprintf(stderr, "%s='%s'\n", prop, value);
+        } else {
+            fprintf(stderr, "%s=\n", prop);
+        }
+    }
+}
+
 #ifdef UNIT_TEST
 int
 main(void)
@@ -276,11 +297,16 @@ main(void)
     printf("Starting properties:\n");
     system("env | grep ^AO_");
     printf("\nProperty mods:\n");
-    CCS prop = "PCMDID";
-    //printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
+    CCS prop = "AUDIT_IGNORE_PATH_RE";
+    printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
     printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
     printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
     printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
+    prop = "CSV";
+    printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
+    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? JSON_TRUE : JSON_FALSE);
+    prop_set_bool(prop, true);
+    printf("PROP: %s='%s'\n", prop, prop_is_true(prop) ? JSON_TRUE : JSON_FALSE);
     prop_fini();
     printf("\nEnding properties:\n");
     system("env | grep ^AO_");

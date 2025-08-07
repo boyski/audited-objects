@@ -123,6 +123,12 @@ prop_set_bool(CCS prop, bool on_or_off)
     return prop_is_true(prop);
 }
 
+void
+prop_dump(void)
+{
+    system("set -x; env | grep ^AO_ 1>&2");
+}
+
 #ifdef UNIT_TEST
 int
 main(void)

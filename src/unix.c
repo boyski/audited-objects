@@ -321,8 +321,6 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     int wstat = 0;
     unsigned int i;
 
-    system("env | egrep 'AO_|LD_'");
-
     path = argv[0];
 
     ports = prop_get_ulong(P_MONITOR_LISTENERS);
@@ -465,6 +463,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         prop_set_str(P_MONITOR_PORT, portstr);
         putil_free(portstr);
     }
+
+    // Show exported properties just before fork/exec.
+    system("env | grep -E '^(AO_|LD_)' | sort");
 
     if ((childpid = fork()) < 0) {
         putil_syserr(2, "fork");

@@ -595,8 +595,8 @@ _maximize_fds(void)
         putil_syserr(0, "setrlimit()");
     }
 
-    // TODO - force-enable core dumps during the debug phase.
-    // Should be removed someday and left to the caller.
+    // Force-enable core dumps during the debug phase.
+    // TODO - should be removed someday and left to the caller.
     struct rlimit core_limit = {RLIM_INFINITY, RLIM_INFINITY};
     setrlimit(RLIMIT_CORE, &core_limit);
 }
@@ -634,9 +634,20 @@ main(int argc, CS *argv)
     // to explicitly free data right before exit like this is
     // to avoid spurious warnings from memory leak detectors like
     // valgrind and make real problems more obvious.
-    CCS cfgfile = _find_file_up(".ao/ao_config.json", NULL);
-    prop_init(cfgfile);
-    putil_free(cfgfile);
+    CS cfgdir = _find_file_up(".ao", NULL);
+    if (cfgdir) {
+        CS cfgfile;
+        asprintf(&cfgfile, "%s/ao_config.json", cfgdir);
+        prop_init(cfgfile);
+        prop_set_str(P_BASE_DIR, cfgdir);
+        putil_free(cfgdir);
+        putil_free(cfgfile);
+    } else {
+        prop_init("ao_config.json");
+        CS basedir = getcwd(NULL, 0);
+        prop_set_str(P_BASE_DIR, basedir);
+        putil_free(basedir);
+    }
 
     // Initialize the hash-code generator.
     code_init();

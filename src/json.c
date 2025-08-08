@@ -167,6 +167,19 @@ json_parse(CCS json_data)
     return cJSON_Parse(json_data);
 }
 
+// To be filled in, maybe.
+#ifdef NOT_YET
+json_t
+json_dict_create()
+{
+}
+
+void
+json_dict_delete()
+{
+}
+#endif
+
 #ifdef UNIT_TEST_json
 int
 main(void)

@@ -16,29 +16,33 @@
  */
 
 /// @file
-/// @brief Support for malloc()/calloc()/free().
+/// @brief Support for heap_{malloc,calloc,free,etc}().
 /// Functions here are basically just pass-throughs to the underlying
-/// heap management functions. This layer exists to keep code analysis
-/// tools happy.
+/// heap management functions while recording the pointer in a JSON
+/// structure. This layer exists to keep code analysis tools happy.
+///
 /// Say we want to add an environment variable. Putting it in a
 /// static buffer runs the theoretical risk of buffer overflow.
-/// Putting it on the heap is better all around. The problem is
+/// Putting it on the heap is better all around, but the problem is
 /// that both can trigger code analysis complaints. It's perfectly
 /// reasonable in practice to malloc() a little storage and add
 /// it to the environment and know it will be cleaned up by exit()
 /// automatically. Totally fine, but it will be reported by valgrind
-/// and similar tools as a memory leak. And the static buffer may
-/// trigger a possible-overrun warning, in addition to being dumb.
+/// and static analysis tools as a memory leak. Whereas a static buffer
+/// may trigger a possible-overrun warning in addition to being dumb.
+///
 /// The solution used here takes advantage of a feature of the cJSON
 /// library; a cJSON document is torn down and deallocated automatically
 /// by one call to cJSON_Delete(root).
-/// Therefore, memory allocated here may be attached to a JSON doc
+///
+/// Therefore, memory allocated here will be attached to a JSON doc
 /// which is explicitly destroyed at exit time. It's a bit of overkill
 /// since exit() would do the same job for free but this bookkeeping
 /// reduces the number of bogus memory-leak warnings, and maybe even
-/// real memory leaks.
+/// some actual memory leaks.
 
 #include "AO.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "TRY.h"
 
@@ -95,7 +99,7 @@ heap_fini(void)
         if (vb_bitmatch(VB_TMP)) {
             CS jsonstr = cJSON_Print(HeapJson);
             vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr); // causes core dump
-            free(jsonstr);
+            FREE(jsonstr);
         }
         cJSON_Delete(HeapJson);
         HeapJson = NULL;

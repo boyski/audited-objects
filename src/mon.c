@@ -740,8 +740,7 @@ mon_fini(void)
 
     if (AuditHash) {
         if (hash_count(AuditHash)) {
-            putil_warn("%d audits left over:",
-                (int)hash_count(AuditHash));
+            putil_warn("%d audits left over:", (int)hash_count(AuditHash));
             mon_dump();
         }
         hash_destroy(AuditHash);

@@ -718,29 +718,14 @@ putil_readlink(const char *path)
 
 /////////////////////////////////////////////////////////////////////////////
 
+// The returned string needs to be freed manually.
 PUTIL_CLASS char *
 putil_dirname(const char *path)
 {
-    char *result;
-
     if (!path) {
         return NULL;
     }
-
-    result = (char *)putil_malloc(strlen(path) + 2); /* may need extra \ on &*#@ Windows */
-
-    // We do this double copying because some dirname()
-    // implementations (FreeBSD) return a ptr to static storage
-    // while others modify the parameter string. The
-    // following is safe in both cases, thread-safety aside.
-    {
-        char *buf;
-
-        buf = putil_strdup(path);
-        strcpy(result, dirname(buf));
-        putil_free(buf);
-    }
-    return result;
+    return dirname(putil_strdup(path));
 }
 
 /////////////////////////////////////////////////////////////////////////////

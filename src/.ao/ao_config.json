@@ -1,1 +1,9 @@
-../ao_config.json
+{
+  "properties": {
+    "PROJECT_NAME": {
+      "description": "Assign a name to this project",
+      "exported": true,
+      "value": "AO"
+    }
+  }
+}

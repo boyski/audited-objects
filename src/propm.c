@@ -22,12 +22,57 @@
 #include "AO.h"
 #include "HEAP.h"
 #include "PROP.h"
+#include "TRY.h"
 
 #include "properties.h"
 
 #include "cJSON.h"
 
 static cJSON *Properties;
+
+/// Search upward from a given directory toward the filesystem
+/// root looking for the named file.
+/// @param[in] name     filename or trailing path fragment to search for
+/// @param[in] dir      starting directory (cwd if NULL)
+/// @return path to found file on the heap, or NULL
+static CS
+_find_file_up(CCS ending, CS dir)
+{
+    CS result;
+
+    if (dir) {
+        dir = putil_realpath(dir, 1);
+    } else {
+        TRY(dir = (CS)util_get_cwd(), "util_get_cwd()");
+    }
+
+    while (strcmp(dir, "/")) {
+        CS pdir;
+
+        TRY(asprintf(&result, "%s%s%s", dir, DIRSEP(), ending), "asprintf()");
+        if (!access(result, F_OK)) {
+            putil_free(dir);
+            return result;
+        } else {
+            putil_free(result);
+        }
+
+        // Quit when we reach the root even if the root is not
+        // called '/' (like on Windows).
+        if ((pdir = putil_dirname(dir))) {
+            if (strlen(pdir) >= strlen(dir)) {
+                putil_free(pdir);
+                break;
+            } else {
+                putil_free(dir);
+                dir = pdir;
+            }
+        }
+    }
+
+    putil_free(dir);
+    return NULL;
+}
 
 static cJSON *
 _prop_get_item(CCS prop)
@@ -215,32 +260,67 @@ prop_desc(CCS prop)
     return cJSON_GetStringValue(cJSON_GetObjectItem(_prop_get_item(prop), "description"));
 }
 
-void
-prop_init(CCS exe, CCS path)
+static cJSON *
+_prop_parse_cfg(CCS path)
 {
-    if (path) {
-        // Read the specified file into a string in JSON format.
-        FILE *fp = fopen(path, "r");
-        struct stat stbuf;
-        fstat(fileno(fp), &stbuf);
-        size_t len = (size_t)stbuf.st_size;
-        CS json_string = malloc(len + 1);
-        fread(json_string, 1, len, fp);
-        json_string[len] = '\0';
-        fclose(fp);
+    // Read the config file into a string in JSON format.
+    FILE *fp = fopen(path, "r");
+    struct stat stbuf;
+    TRY(!fstat(fileno(fp), &stbuf), "fstat()");
+    size_t len = (size_t)stbuf.st_size;
+    CS json_string = malloc(len + 1);
+    (void)fread(json_string, 1, len, fp);
+    json_string[len] = '\0';
+    (void)fclose(fp);
 
-        // Parse the JSON string into an actual JSON object.
-        cJSON *json = cJSON_Parse(json_string);
-        free(json_string);
-        Properties = cJSON_GetObjectItem(json, "properties");
-    } else {
-        Properties = cJSON_CreateObject();
-    }
+    // Parse the JSON string into an actual JSON object.
+    cJSON *json = cJSON_Parse(json_string);
+    free(json_string);
+    cJSON *item = cJSON_GetObjectItem(json, "properties");
+    return item;
+}
+
+void
+prop_init(CCS exe)
+{
+    CCS cfgfile = "ao_config.json";
+    CS exedir = putil_dirname(exe);
+    CS appdir = putil_dirname(exedir);
+    CS initcfg;
+    asprintf(&initcfg, "%s/etc/%s", appdir, cfgfile);
+    putil_free(appdir);
+    assert(initcfg);
+
+    Properties = _prop_parse_cfg(initcfg);
+    free(initcfg);
 
     // Record and export the path to this running program.
     prop_set_str(P_MONITOR_PATH, exe);
 
-    // Environment settings override file-derived properties.
+    // Now the standard, out-of-the-box properties have been read.
+    // Next, handle customizations.
+
+    // Find the project base.
+    CCS cfgdir = ".ao";
+    CS cfgpath = _find_file_up(cfgdir, NULL);
+    CS basedir = cfgpath ? putil_dirname(cfgpath) : getcwd(NULL, 0);
+    prop_set_str(P_BASE_DIR, basedir);
+    free(basedir);
+
+    // Look for a per-project config file and let its settings
+    // override the standard ones.
+    CS projcfg;
+    asprintf(&projcfg, "%s/%s", cfgpath, cfgfile);
+    free(cfgpath);
+    cJSON *projprops = _prop_parse_cfg(projcfg);
+    cJSON *property = NULL;
+    cJSON_ArrayForEach(property, projprops) {
+        cJSON *copy = cJSON_Duplicate(property, 1);
+        cJSON_ReplaceItemInObject(Properties, property->string, copy);
+    }
+    cJSON_Delete(projprops);
+
+    // Settings inherited from the environment override all files.
     for (char **envp = environ; *envp; envp++) {
         CS envstr = strdup(*envp);
         if (strncmp(envstr, ENV_PFX, sizeof(ENV_PFX) - 1)) {
@@ -261,10 +341,10 @@ prop_init(CCS exe, CCS path)
         free(envstr);
     }
 
-    // Export those properties marked for exporting.
-    cJSON *property = NULL;
-    cJSON_ArrayForEach(property, Properties) {
-        CCS prop = property->string;
+    // Last, export those properties marked for exporting.
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, Properties) {
+        CCS prop = item->string;
         if (prop_is_exported(prop)) {
             prop_export(prop);
         }
@@ -326,8 +406,8 @@ int
 main(void)
 {
     heap_init();
-    prop_init(putil_getexecpath(), "ao_config.json");
-    printf("Starting properties:\n");
+    prop_init(putil_getexecpath());
+    printf("Initial properties:\n");
     system("env | grep ^AO_");
     printf("\nProperty mods:\n");
     CCS prop = "AUDIT_IGNORE_PATH_RE";

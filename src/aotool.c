@@ -531,50 +531,6 @@ _action(CCS action, int argc, CS const *argv)
     return rc;
 }
 
-/// Search upward from a given directory toward the filesystem
-/// root looking for the named file.
-/// @param[in] name     filename or trailing path fragment to search for
-/// @param[in] dir      starting directory (cwd if NULL)
-/// @return path to found file on the heap, or NULL
-static CS
-_find_file_up(CCS ending, CS dir)
-{
-    CS result;
-
-    if (dir) {
-        dir = putil_realpath(dir, 1);
-    } else {
-        TRY(dir = (CS)util_get_cwd(), "util_get_cwd()");
-    }
-
-    while (strcmp(dir, "/")) {
-        CS pdir;
-
-        TRY(asprintf(&result, "%s%s%s", dir, DIRSEP(), ending), "asprintf()");
-        if (!access(result, F_OK)) {
-            putil_free(dir);
-            return result;
-        } else {
-            putil_free(result);
-        }
-
-        // Quit when we reach the root even if the root is not
-        // called '/' (like on Windows).
-        if ((pdir = putil_dirname(dir))) {
-            if (strlen(pdir) >= strlen(dir)) {
-                putil_free(pdir);
-                break;
-            } else {
-                putil_free(dir);
-                dir = pdir;
-            }
-        }
-    }
-
-    putil_free(dir);
-    return NULL;
-}
-
 // Request the maximum number of file descriptors allowed by the kernel.
 static void
 _maximize_fds(void)
@@ -619,32 +575,11 @@ main(int argc, CS *argv)
 
     heap_init();
 
-    // Initialize verbosity. Should be done before most
-    // other initializations since they may use verbosity.
-    vb_init();
+    // Initialize the properties database.
+    prop_init(putil_getexecpath());
 
-    // Initialize the properties database and at the same time
-    // arrange for it to be finalized at exit. Doing it this
-    // way ensures that it will be finalized last, meaning that
-    // other exit and error handling routines will have access
-    // to properties until the bitter end. Really, the only reason
-    // to explicitly free data right before exit like this is
-    // to avoid spurious warnings from memory leak detectors like
-    // valgrind and make real problems more obvious.
-    CS cfgdir = _find_file_up(".ao", NULL);
-    if (cfgdir) {
-        CS cfgfile;
-        asprintf(&cfgfile, "%s/ao_config.json", cfgdir);
-        prop_init(putil_getexecpath(), cfgfile);
-        prop_set_str(P_BASE_DIR, cfgdir);
-        putil_free(cfgdir);
-        putil_free(cfgfile);
-    } else {
-        prop_init(putil_getexecpath(), "ao_config.json");
-        CS basedir = getcwd(NULL, 0);
-        prop_set_str(P_BASE_DIR, basedir);
-        putil_free(basedir);
-    }
+    // Initialize verbosity. Must be done before anyone uses verbosity.
+    vb_init();
 
     // Initialize the hash-code generator.
     code_init();
@@ -1099,10 +1034,17 @@ main(int argc, CS *argv)
 
     code_fini();
 
-    prop_fini();
-
     vb_fini();
 
+    // Finalize properties as late as possible to ensure
+    // other exit and error handling routines will have access
+    // to them until the bitter end.
+    prop_fini();
+
+    // The main reason to explicitly free data right before exit like, even
+    // though it would happen at exit anyway, is to avoid spurious warnings
+    // from memory leak detectors like valgrind and make real memory leaks
+    // easier to find.
     heap_fini();
 
     return rc;

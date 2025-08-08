@@ -298,6 +298,7 @@ void                                                                \
 class ## _set_ ## attr(class ## _o obj, type val)                   \
 {                                                                   \
     free((void *)obj->class ## _ ## attr);                          \
+    obj->class ## _ ## attr = NULL;                                 \
     if ((val) && !CSV_FIELD_IS_NULL(val)) {                         \
         obj->class ## _ ## attr = strdup(val);                      \
     } else {                                                        \

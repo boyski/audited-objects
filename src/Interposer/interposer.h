@@ -237,6 +237,7 @@ n_type execl##n_style (const char *path, const char *arg0, ...) {              \
         }                                                                      \
     }                                                                          \
     free((void *)margv);                                                       \
+    margv = NULL;                                                              \
     return erc;                                                                \
 }
 

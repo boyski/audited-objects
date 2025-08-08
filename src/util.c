@@ -21,6 +21,7 @@
 
 #include "AO.h"
 
+#include "FREE.h"
 #include "PROP.h"
 #include "TRY.h"
 #include "UTIL.h"
@@ -217,7 +218,7 @@ util_get_cwd(void)
     len = putil_path_max() + 1;
     cwd = (CS)putil_malloc(len);
     if (!getcwd(cwd, len)) {
-        putil_free(cwd);
+        FREE(cwd);
         cwd = NULL;
     }
 #endif
@@ -248,7 +249,7 @@ util_get_rwd(void)
     } else {
         rwd = putil_strdup(".");
     }
-    putil_free(cwd);
+    FREE(cwd);
 
     return rwd;
 }
@@ -393,7 +394,7 @@ util_find_fsname(CCS path, CS buf, size_t len)
 
         if ((pdir = putil_dirname(path))) {
             result = util_find_fsname(pdir, buf, len);
-            putil_free(pdir);
+            FREE(pdir);
             return result;
         }
     }
@@ -450,9 +451,9 @@ util_find_fsname(CCS path, CS buf, size_t len)
                 }
             }
             fclose(mtab);
-            putil_free(lnbuf);
-            putil_free(mtbuf);
-            putil_free(fsbuf);
+            FREE(lnbuf);
+            FREE(mtbuf);
+            FREE(fsbuf);
         }
 
         if ((fnd = lfind(&tempnode, &fsmap, &fstype_cnt,
@@ -731,7 +732,7 @@ _util_finalize_output_file(void)
 
         if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
             TRY(rename(obuf, OutputFile), "rename()");
-            putil_free(obuf);
+            FREE(obuf);
         }
     }
 }
@@ -766,7 +767,7 @@ util_open_output_file(CCS ofile)
             if (!(abuf = putil_realpath(obuf, 1))) {
                 putil_syserr(2, obuf);
             }
-            putil_free(obuf);
+            FREE(obuf);
 
             prop_set_str(P_OUTPUT_FILE, abuf);
 
@@ -778,8 +779,8 @@ util_open_output_file(CCS ofile)
                 putil_syserr(2, tbuf);
             }
 
-            putil_free(abuf);
-            putil_free(tbuf);
+            FREE(abuf);
+            FREE(tbuf);
 
             atexit(_util_finalize_output_file);
         }
@@ -830,7 +831,7 @@ util_debug_from_here(void)
         } else {
             (void)sleep(2);
         }
-        putil_free(buf);
+        FREE(buf);
     }
 }
 

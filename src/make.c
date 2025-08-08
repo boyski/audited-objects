@@ -21,6 +21,7 @@
 #include "AO.h"
 
 #include "CA.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "MAKE.h"
 #include "PA.h"
@@ -50,9 +51,9 @@ make_init(CCS exe)
         if (exe && (exedir = putil_dirname(exe))) {
             if ((appdir = putil_dirname(exedir))) {
                 asprintf(&fragment, "%s/etc/ao.mk", appdir);
-                putil_free(appdir);
+                FREE(appdir);
             }
-            putil_free(exedir);
+            FREE(exedir);
         }
 
         if (!fragment) {
@@ -74,7 +75,7 @@ make_init(CCS exe)
             vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));
         }
 
-        putil_free(fragment);
+        FREE(fragment);
     } else {
         putil_warn(".ONESHELL mode suppressed, disaggregation likely");
     }
@@ -86,8 +87,8 @@ make_init(CCS exe)
             (void)util_substitute_params(str, &t);
             p = MakeCmd;
             asprintf(&MakeCmd, "%s --output='%s'", p, t);
-            putil_free(p);
-            putil_free(t);
+            FREE(p);
+            FREE(t);
         }
 
         p = MakeCmd;
@@ -96,7 +97,7 @@ make_init(CCS exe)
         } else {
             asprintf(&MakeCmd, "%s --full", p);
         }
-        putil_free(p);
+        FREE(p);
     } else {
         return;
     }
@@ -104,7 +105,7 @@ make_init(CCS exe)
     if (prop_is_true(P_MEMBERS_ONLY)) {
         p = MakeCmd;
         asprintf(&MakeCmd, "%s --members-only", p);
-        putil_free(p);
+        FREE(p);
     }
 
     if ((str = prop_get_str(P_WFLAG))) {
@@ -119,10 +120,10 @@ make_init(CCS exe)
                 }
                 p = MakeCmd;
                 asprintf(&MakeCmd, "%s %s", p, t);
-                putil_free(p);
+                FREE(p);
             }
         }
-        putil_free(s2);
+        FREE(s2);
     }
 
     p = MakeCmd;
@@ -131,7 +132,7 @@ make_init(CCS exe)
     } else {
         asprintf(&MakeCmd, "%s -", p);
     }
-    putil_free(p);
+    FREE(p);
 
     if (vb_bitmatch(VB_STD)) {
         fprintf(stderr, "+ %s\n", MakeCmd);
@@ -153,7 +154,7 @@ make_file(ca_o ca)
         if (fputs(cmdbuf, MakeFP) == EOF || fputs("\n", MakeFP) == EOF) {
             putil_syserr(0, "fputs(cmdbuf)");
         }
-        putil_free(cmdbuf);
+        FREE(cmdbuf);
         fflush(MakeFP);
     } else {
         return;
@@ -170,7 +171,7 @@ make_fini(void)
         putil_syserr(2, MakeCmd);
     }
 
-    putil_free(MakeCmd);
+    FREE(MakeCmd);
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

@@ -450,7 +450,7 @@ _audit_open(void)
                         putil_syserr(2, obuf);
                         exit(2);
                     }
-                    putil_free(obuf);
+                    FREE(obuf);
                 }
                 fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
             }
@@ -518,7 +518,7 @@ _audit_start(CCS call)
         putil_syserr(2, NULL);
         exit(2);
     }
-    putil_free(hdr);
+    FREE(hdr);
 
     // This is an optimization hack - lower-case is used to indicate
     // that this command is part of an aggregation and thus need not
@@ -546,7 +546,7 @@ _audit_start(CCS call)
         // allowing SOA to be sent in the same packet as EOA.
         _monitor_open(&ReportSocket, call);
         _monitor_send(&ReportSocket, soa_hdr, strlen(soa_hdr));
-        putil_free(soa_hdr);
+        FREE(soa_hdr);
 
         // Block until monitor acknowledges receipt of SOA.
         // This is needed to make sure it doesn't see EOA first.
@@ -587,7 +587,7 @@ _audit_start(CCS call)
         }
     } else {
         TRY(write(AuditFD, soa_hdr, strlen(soa_hdr)) != -1, "write()");
-        putil_free(soa_hdr);
+        FREE(soa_hdr);
     }
 
     return;
@@ -713,7 +713,7 @@ _audit_end(CCS call, int exiting, long status)
             putil_syserr(2, NULL);
             exit(2);
         }
-        putil_free(hdr);
+        FREE(hdr);
 
         if (ReportSocket == INVALID_SOCKET) {
             TRY(write(AuditFD, eoa_hdr, strlen(eoa_hdr)) != -1, "write()");
@@ -721,7 +721,7 @@ _audit_end(CCS call, int exiting, long status)
             _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
         }
 
-        putil_free(eoa_hdr);
+        FREE(eoa_hdr);
         ca_destroy(CurrentCA);
         CurrentCA = NULL;
         close(AuditFD);
@@ -847,7 +847,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     ca_set_pcmdid(CurrentCA, prop_get_ulong(P_PCMDID));
     ca_set_prog(CurrentCA, exe);
     ca_set_rwd(CurrentCA, rwd = util_get_rwd());
-    putil_free(rwd);
+    FREE(rwd);
 
     // This boolean means we've started a new cmd which will need
     // an SOA sent. Child processes should have this turned off,
@@ -877,7 +877,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
             *p = '\0';
             cmd_re = re_init__("TRACK_ENV_CMD", tstr);
             var_re = re_init__("TRACK_ENV_VAR", p + 1);
-            putil_free(tstr);
+            FREE(tstr);
         } else {
             cmd_re = re_init__("TRACK_ENV_CMD", str);
             var_re = NULL;
@@ -908,9 +908,9 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
             }
 
             encoded = util_encode_minimal(eblock);
-            putil_free(eblock);
+            FREE(eblock);
             ca_set_freetext(CurrentCA, encoded);
-            putil_free(encoded);
+            FREE(encoded);
         }
 
         if (cmd_re) {

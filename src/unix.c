@@ -24,6 +24,7 @@
 
 #include "ACK.h"
 #include "CA.h"
+#include "FREE.h"
 #include "MON.h"
 #include "PROP.h"
 #include "TRY.h"
@@ -166,12 +167,12 @@ _interposer_preload_off(const char *so, char *const envp[], int all)
             // This is where we miss the BSD unsetenv() function.
             if (envp) {
                 strcpy(ev, nbuf);
-                putil_free(nbuf);
+                FREE(nbuf);
             } else {
                 putenv(nbuf);
             }
 
-            putil_free(ldpname);
+            FREE(ldpname);
         }
     }
 }
@@ -337,7 +338,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
                     putil_syserr(2, logfile);
                     exit(2);
                 }
-                putil_free(tcmd);
+                FREE(tcmd);
             }
         }
 
@@ -360,7 +361,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
 
             cmdline = util_requote_argv(argv);
             fprintf(vb_get_stream(), "+ %s\n", cmdline);
-            putil_free(cmdline);
+            FREE(cmdline);
             time(&now);
             vb_printf(VB_ON, "STARTED: %s", util_strtrim(ctime(&now)));
         }
@@ -380,7 +381,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         putil_syserr(2, "dirname(exe)");
         exit(2);
     }
-    putil_free(pdir);
+    FREE(pdir);
 
     // Special case for truly "raw" output. There's no need
     // for a monitor process here; just inject and exec.
@@ -446,7 +447,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         }
 
         prop_set_str(P_MONITOR_PORT, portstr);
-        putil_free(portstr);
+        FREE(portstr);
     }
 
     // Show exported properties just before fork/exec.
@@ -483,7 +484,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         // Turn on the auditor.
         if (shlibdir) {
             _interposer_preload_on(AUDITOR, shlibdir);
-            putil_free(shlibdir);
+            FREE(shlibdir);
         }
 
         // Sorting the env before exec is not required but a nice frill.
@@ -532,7 +533,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         _exit(2);
     }
 
-    putil_free(shlibdir);
+    FREE(shlibdir);
 
     //////////////////////////////// PARENT //////////////////////////////
 
@@ -720,7 +721,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
             close(fd);
             FD_CLR(fd, &master_read_fds);
 
-            putil_free(buffer);
+            FREE(buffer);
         }
 
         // http_async_transfer(0);

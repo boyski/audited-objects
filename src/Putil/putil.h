@@ -169,11 +169,6 @@ typedef unsigned long ULONG64;
 #define __attribute__(x)
 #endif
 
-// This will free a pointer and then set the pointer to NULL.
-// Helps make random failures more deterministic and turns use-after-free
-// errors (which are generally subtle) into core dumps (unsubtle).
-#define putil_free(ptr) { putil_free_(ptr); ptr = NULL; }
-
 /////////////////////////////////////////////////////////////////////////////
 
 #define putil_is_absolute(path)         (*path == '/')
@@ -259,7 +254,6 @@ PUTIL_API char *putil_path_strstr(const char *, const char *);
 PUTIL_API void *putil_malloc(size_t);
 PUTIL_API void *putil_calloc(size_t, size_t);
 PUTIL_API void *putil_realloc(void *, size_t);
-PUTIL_API void putil_free_(const void *);
 PUTIL_API char *putil_strdup(const char *);
 PUTIL_API char *putil_getenv(const char *);
 PUTIL_API int putil_putenv(char *);
@@ -408,7 +402,7 @@ putil_searchpath(const char *srchpath, const char *prog, const char *ext,
 
         if ((rbuf = putil_realpath(prog, 0))) {
             snprintf(buf, buflen, "%s", rbuf);
-            putil_free(rbuf);
+            free((void *)rbuf);
             return strlen(buf);
         } else {
             return 0;
@@ -465,7 +459,7 @@ putil_searchpath(const char *srchpath, const char *prog, const char *ext,
         }
     }
 
-    putil_free(spath);
+    free((void *)spath);
 
     return len;
 }
@@ -629,10 +623,10 @@ putil_realpath(const char *path, int guess)
 
                 if ((rbuf = putil_realpath(parent, guess))) {
                     snprintf(resolved, leftlen(resolved), "%s/%s", rbuf, basename((char *)path));
-                    putil_free(parent);
-                    putil_free(rbuf);
+                    free((void *)parent);
+                    free((void *)rbuf);
                 } else {
-                    putil_free(parent);
+                    free((void *)parent);
                     return NULL;
                 }
             }
@@ -681,7 +675,7 @@ putil_readlink(const char *path)
     while(1) {
         l1 = readlink(path, buf, len);
         if (l1 == -1) {
-            putil_free(buf);
+            free((void *)buf);
             buf = NULL;
             break;
         } else if (l1 == len) {
@@ -719,7 +713,7 @@ putil_mkdir_p(const char *path)
         if (access(parent, F_OK)) {
             (void)putil_mkdir_p(parent);
         }
-        putil_free(parent);
+        free((void *)parent);
     }
     return mkdir(path, 0777);
 }
@@ -933,14 +927,6 @@ putil_realloc(void *ptr, size_t size)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS void
-putil_free_(const void *ptr)
-{
-    free((void *)ptr);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
 PUTIL_CLASS char *
 putil_strdup(const char *s1)
 {
@@ -1086,7 +1072,6 @@ _putil_never_called(void)
     putil_calloc(0, 0);
     putil_realloc(PUTIL_NULLSTR, 0);
     putil_strdup(PUTIL_NULLSTR);
-    putil_free_(PUTIL_NULLSTR);
     putil_argv_from_environ(NULL);
     putil_getenv(PUTIL_NULLSTR);
     putil_putenv(PUTIL_NULLSTR);

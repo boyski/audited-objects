@@ -28,6 +28,7 @@
 #include <stdbool.h>  // TODO - needed until -std=c2x is reached
 
 #include "TYPES.h"
+#include "FREE.h"
 #include "PROP.h"
 
 #include "properties.h"
@@ -38,7 +39,7 @@ _prop_getenv(CCS prop)
     CS env_var;
     asprintf(&env_var, "%s%s", ENV_PFX, prop);
     CS value = getenv(env_var);
-    free(env_var);
+    FREE(env_var);
     return value;
 }
 
@@ -151,7 +152,7 @@ main(void)
             printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
             printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
             printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
-            free(prop);
+            FREE(prop);
         }
     }
 

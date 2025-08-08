@@ -35,6 +35,7 @@
 
 #include "CA.h"
 #include "CODE.h"
+#include "FREE.h"
 #include "MAKE.h"
 #include "MON.h"
 #include "PROP.h"
@@ -114,7 +115,7 @@ _mon_tostring(void)
             result = (CCS)putil_realloc((void *)result, num * CHARSIZE);
             strcat((CS)result, str);
             strcat((CS)result, sep);
-            putil_free(str);
+            FREE(str);
         }
     } else {
         result = putil_strdup("(UNINITIALIZED)");
@@ -136,7 +137,7 @@ mon_dump(void)
     str = _mon_tostring();
     fputs(str, stderr);
     fputs(bars, stderr);
-    putil_free(str);
+    FREE(str);
 }
 
 // If this returns true, no PTX has been or will be created. We can still
@@ -199,7 +200,7 @@ _mon_process_ca(ca_o ca)
         (void)ca_foreach_cooked_pa(ca, _mon_process_pa, NULL);
     }
 
-    putil_free(cabuf);
+    FREE(cabuf);
 
     if (prop_has_value(P_MAKE_DEPENDS) || prop_has_value(P_MAKE_FILE)) {
         make_file(ca);
@@ -515,7 +516,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
                 // Whoops.
                 str = ca_to_str(eoa);
                 putil_warn("EOA skew: %s", str);
-                putil_free(str);
+                FREE(str);
                 mon_dump();
                 ca_destroy(eoa);
                 ck_destroy(ck);
@@ -660,7 +661,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
 
             str = pa_tostring(pa);
             putil_warn("PA skew [%s]", str);
-            putil_free(str);
+            FREE(str);
             mon_dump();
             ck_destroy(ck);
             pa_destroy(pa);

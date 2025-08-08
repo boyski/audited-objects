@@ -236,7 +236,7 @@ n_type execl##n_style (const char *path, const char *arg0, ...) {   \
         erc = stooge(path, margv);                  \
     }                               \
     }                                   \
-    putil_free(margv);                          \
+    free((void *)margv);                          \
     return erc;                             \
 }
 

@@ -21,6 +21,7 @@
 
 #include "AO.h"
 
+#include "FREE.h"
 #include "PROP.h"
 #include "MOMENT.h"
 #include "TRY.h"
@@ -208,7 +209,7 @@ vb_addstr(CCS vbstr)
 
             TRY(asprintf(&newval, "%s,%s", currval, vbstr) >= 0, "asprintf()");
             prop_set_str(P_VERBOSITY, newval);
-            putil_free(newval);
+            FREE(newval);
         } else {
             prop_set_str(P_VERBOSITY, vbstr);
         }

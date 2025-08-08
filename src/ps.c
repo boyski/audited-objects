@@ -32,6 +32,7 @@
 #include "AO.h"
 
 #include "CODE.h"
+#include "FREE.h"
 #include "PN.h"
 #include "PROP.h"
 #include "PS.h"
@@ -125,7 +126,7 @@ ps_newFromCSVString(CCS csv)
             !(dcode = util_strsep(&linebuf, FS1)) ||
             !(target = util_strsep(&linebuf, FS1))) {
         putil_int("bad format: '%s'", csv);
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     // *INDENT-ON*
@@ -149,12 +150,12 @@ ps_newFromCSVString(CCS csv)
         } else {
             ps_set_pn2(ps, pn_new(decoded, 0));
         }
-        putil_free(decoded);
+        FREE(decoded);
     }
 
     ps_set_pn(ps, pn_new(linebuf, 0));
 
-    putil_free(original);
+    FREE(original);
     return ps;
 }
 
@@ -278,8 +279,8 @@ ps_dcode_cache_fini(void)
             key = (CCS)hnode_getkey(hnp);
             val = (CCS)hnode_get(hnp);
             hnode_destroy(hnp);
-            putil_free(key);
-            putil_free(val);
+            FREE(key);
+            FREE(val);
         }
         hash_destroy(Dcode_Hash_Table);
         Dcode_Hash_Table = NULL;
@@ -328,7 +329,7 @@ _ps_get_cached_dcode(ps_o ps, CCS path)
                 dcode = (CCS)hnode_get(hnp);
                 vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
             }
-            putil_free(keybuf);
+            FREE(keybuf);
         }
     }
 
@@ -426,7 +427,7 @@ ps_stat(ps_o ps, int want_dcode)
         } else {
             ps_set_fsname(ps, fs);
         }
-        putil_free(fs);
+        FREE(fs);
     }
 
     if (statrc) {
@@ -451,7 +452,7 @@ ps_stat(ps_o ps, int want_dcode)
 
             if ((lbuf = putil_readlink(path))) {
                 ps_set_target(ps, lbuf);
-                putil_free(lbuf);
+                FREE(lbuf);
             } else {
                 putil_syserr(0, path);
                 return -1;
@@ -603,7 +604,7 @@ ps_toCSVString(ps_o ps)
         putil_syserr(0, buf);
     }
 
-    putil_free(target);
+    FREE(target);
 
     return buf;
 }
@@ -789,15 +790,15 @@ ps_destroy(ps_o ps)
         pn_destroy(ps->ps_pn2);
     }
     // Free all string pointers.
-    putil_free(ps->ps_dcode);
-    putil_free(ps->ps_fsname);
-    putil_free(ps->ps_target);
+    FREE(ps->ps_dcode);
+    FREE(ps->ps_fsname);
+    FREE(ps->ps_target);
 
     // Zero-fill the struct before freeing it - nicer for debugging.
     memset(ps, 0, sizeof(*ps));
 
     // Then free it.
-    putil_free(ps);
+    FREE(ps);
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

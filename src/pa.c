@@ -30,6 +30,7 @@
 #include "AO.h"
 
 #include "CA.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "PA.h"
 #include "PS.h"
@@ -197,7 +198,7 @@ pa_newFromCSVString(CCS csv)
             !(pccode     = util_strsep(&linebuf, FS1)) ||
             !(ccode      = util_strsep(&linebuf, FS1))) {
         putil_int("bad format: '%s'", csv);
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     // *INDENT-ON*
@@ -207,7 +208,7 @@ pa_newFromCSVString(CCS csv)
     pa_set_call(pa, call);
     if (pa_set_timestamp_str(pa, timestamp)) {
         putil_int("bad format: %s", timestamp);
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     pa_set_pid(pa, strtoul(pid, NULL, 10));
@@ -219,11 +220,11 @@ pa_newFromCSVString(CCS csv)
 
     // Hand the remainder off to the PS class ...
     if (!(ps = ps_newFromCSVString(linebuf))) {
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     pa_set_ps(pa, ps);
-    putil_free(original);
+    FREE(original);
     return pa;
 }
 
@@ -271,7 +272,7 @@ pa_toCSVString(pa_o pa)
             if (asprintf((char **)&buf, "%s%s\n", pabuf, psbuf) < 0) {
                 putil_syserr(0, "ps_toCSVString");
             }
-            putil_free(psbuf);
+            FREE(psbuf);
         } else {
             putil_syserr(0, "ps_toCSVString");
         }
@@ -295,7 +296,7 @@ pa_tostring(pa_o pa)
 
         str1 = pa_toCSVString(pa);
         asprintf((char **)&str, "(GONE) %s", str1);
-        putil_free(str1);
+        FREE(str1);
     }
 
     return str;
@@ -527,15 +528,15 @@ pa_destroy(pa_o pa)
     ps_destroy(pa->pa_ps);
 
     // Free all string pointers.
-    putil_free(pa->pa_call);
-    putil_free(pa->pa_pccode);
-    putil_free(pa->pa_ccode);
+    FREE(pa->pa_call);
+    FREE(pa->pa_pccode);
+    FREE(pa->pa_ccode);
 
     // Zero-fill the struct before freeing it - nicer for debugging.
     memset(pa, 0, sizeof(*pa));
 
     // Last, free the object itself.
-    putil_free(pa);
+    FREE(pa);
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

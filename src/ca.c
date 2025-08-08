@@ -30,6 +30,7 @@
 
 #include "CA.h"
 #include "CODE.h"
+#include "FREE.h"
 #include "JSON.h"
 #include "PA.h"
 #include "PN.h"
@@ -146,9 +147,9 @@ _ca_cmp_codes(CCS ccode1, CCS ccode2)
 void
 ck_destroy(ck_o ck)
 {
-    putil_free(ck->ck_ccode);
+    FREE(ck->ck_ccode);
     memset(ck, 0, sizeof(*ck));
-    putil_free(ck);
+    FREE(ck);
 }
 
 /// Ordering function (NOT method) for CAs in a hash table.
@@ -283,7 +284,7 @@ ca_newFromCSVString(CCS csv)
             !(ccode      = util_strsep(&linebuf, FS1)) ||
             !(pathcode   = util_strsep(&linebuf, FS1))) {
         putil_int("bad format: '%s'", csv);
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     // *INDENT-ON*
@@ -295,7 +296,7 @@ ca_newFromCSVString(CCS csv)
     ca_set_pcmdid(ca, strtoul(pcmdid, NULL, 10));
     if (moment_parse(&(ca->ca_starttime), starttime)) {
         putil_int("bad moment format: %s", starttime);
-        putil_free(original);
+        FREE(original);
         return NULL;
     }
     ca_set_duration(ca, strtoul(duration, NULL, 10));
@@ -313,7 +314,7 @@ ca_newFromCSVString(CCS csv)
                   ca_get_line(ca), ca_get_ccode(ca), ccode);
     }
 
-    putil_free(original);
+    FREE(original);
     return ca;
 }
 
@@ -488,7 +489,7 @@ ca_write(ca_o ca, int fd)
 
         if ((pabuf = pa_toCSVString(pa))) {
             TRY(write(fd, pabuf, strlen(pabuf)) != -1, "write()");
-            putil_free(pabuf);
+            FREE(pabuf);
         }
 
         // Dictionary bookkeeping.
@@ -614,7 +615,7 @@ ca_merge(ca_o leader, ca_o donor)
         leader->ca_subs = (CCS)putil_malloc((strlen(sub) + 1) * CHARSIZE);
         strcpy((CS)leader->ca_subs, sub);
     }
-    putil_free(sub);
+    FREE(sub);
 
     // Traverse the donor's raw list of PA's and move them into the leader's.
     if ((dict = donor->ca_raw_pa_dict)) {
@@ -908,7 +909,7 @@ ca_derive_pathcode(ca_o ca)
         char pcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
         (void)code_from_str(pca.pca_buf, pcbuf, charlen(pcbuf));
-        putil_free(pca.pca_buf);
+        FREE(pca.pca_buf);
         snprintf(endof(pcbuf), leftlen(pcbuf), "-%d", pca.pca_count);
         ca_set_pathcode(ca, pcbuf);
     } else {
@@ -986,7 +987,7 @@ ca_format_header(ca_o ca)
                 *n++ = *o;
             }
         }
-        putil_free(hdr);
+        FREE(hdr);
         hdr = (CS)putil_realloc(nhdr, strlen(nhdr) + CHARSIZE);
     }
 
@@ -1063,7 +1064,7 @@ _ca_format_palist_callback(pa_o pa, void *data)
         strcpy(fps->fp_buf + fps->fp_bufnext, pabuf);
         fps->fp_bufnext += len;
 
-        putil_free(pabuf);
+        FREE(pabuf);
     }
 
     return 0;
@@ -1111,7 +1112,7 @@ ca_to_str(ca_o ca)
     }
 
     strcat((CS)csv, pas);
-    putil_free(pas);
+    FREE(pas);
 
     // JSON bridge support. The current situation is ugly
     // and hacky with some CSV and some JSON. Once JSON proves out I hope
@@ -1123,7 +1124,7 @@ ca_to_str(ca_o ca)
         return csv;
     } else {
         CCS json = json_from_ca_csv(csv);
-        putil_free(csv);
+        FREE(csv);
         return json;
     }
 }
@@ -1138,7 +1139,7 @@ _ca_dump_pa(pa_o pa, void *data)
     str = pa_tostring(pa);
     fputs(pfx, stderr);
     fputs(str, stderr);
-    putil_free(str);
+    FREE(str);
 
     return 0;
 }
@@ -1158,7 +1159,7 @@ ca_dump(ca_o ca)
 
     hdr = ca_format_header(ca);
     fputs(hdr, stderr);
-    putil_free(hdr);
+    FREE(hdr);
 
     if (ca->ca_raw_pa_dict) {
         (void)ca_foreach_raw_pa(ca, _ca_dump_pa, "RAW: ");
@@ -1194,7 +1195,7 @@ ca_dump(ca_o ca)
 void
 ca_set_line(ca_o ca, CCS line)
 {
-    putil_free(ca->ca_line);
+    FREE(ca->ca_line);
 
     if (line) {
         CS l1, l2;
@@ -1364,18 +1365,18 @@ ca_destroy(ca_o ca)
     // TODO - figure out why this dumps core.
     // dict_destroy(ca->ca_raw_pa_dict);
 
-    putil_free(ca->ca_prog);
-    putil_free(ca->ca_host);
-    putil_free(ca->ca_recycled);
-    putil_free(ca->ca_rwd);
-    putil_free(ca->ca_pccode);
-    putil_free(ca->ca_ccode);
-    putil_free(ca->ca_pathcode);
-    putil_free(ca->ca_subs);
-    putil_free(ca->ca_freetext);
-    putil_free(ca->ca_line);
+    FREE(ca->ca_prog);
+    FREE(ca->ca_host);
+    FREE(ca->ca_recycled);
+    FREE(ca->ca_rwd);
+    FREE(ca->ca_pccode);
+    FREE(ca->ca_ccode);
+    FREE(ca->ca_pathcode);
+    FREE(ca->ca_subs);
+    FREE(ca->ca_freetext);
+    FREE(ca->ca_line);
     memset(ca, 0, sizeof(*ca));
-    putil_free(ca);
+    FREE(ca);
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

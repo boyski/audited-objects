@@ -20,6 +20,7 @@
 /// TODO
 
 #include "AO.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "PROP.h"
 #include "TRY.h"
@@ -51,26 +52,26 @@ _find_file_up(CCS ending, CS dir)
 
         TRY(asprintf(&result, "%s%s%s", dir, DIRSEP(), ending), "asprintf()");
         if (!access(result, F_OK)) {
-            putil_free(dir);
+            FREE(dir);
             return result;
         } else {
-            putil_free(result);
+            FREE(result);
         }
 
         // Quit when we reach the root even if the root is not
         // called '/' (like on Windows).
         if ((pdir = putil_dirname(dir))) {
             if (strlen(pdir) >= strlen(dir)) {
-                putil_free(pdir);
+                FREE(pdir);
                 break;
             } else {
-                putil_free(dir);
+                FREE(dir);
                 dir = pdir;
             }
         }
     }
 
-    putil_free(dir);
+    FREE(dir);
     return NULL;
 }
 
@@ -161,7 +162,7 @@ prop_set_str(CCS prop, CCS newval)
         CS padval;
         asprintf(&padval, "%*s", pad, newval);
         cJSON_ReplaceItemInObject(item, "value", cJSON_CreateString(padval));
-        free(padval);
+        FREE(padval);
     } else {
         cJSON_ReplaceItemInObject(item, "value", cJSON_CreateString(newval));
     }
@@ -275,7 +276,7 @@ _prop_parse_cfg(CCS path)
 
     // Parse the JSON string into an actual JSON object.
     cJSON *json = cJSON_Parse(json_string);
-    free(json_string);
+    FREE(json_string);
     cJSON *item = cJSON_GetObjectItem(json, "properties");
     return item;
 }
@@ -287,11 +288,11 @@ prop_init(CCS exe)
     CS appdir = putil_dirname(exedir);
     CS initcfg;
     asprintf(&initcfg, "%s/etc/ao_config.json", appdir);
-    putil_free(appdir);
+    FREE(appdir);
     assert(initcfg);
 
     Properties = _prop_parse_cfg(initcfg);
-    free(initcfg);
+    FREE(initcfg);
 
     // Record and export the path to this running program.
     prop_set_str(P_MONITOR_PATH, exe);
@@ -304,13 +305,13 @@ prop_init(CCS exe)
     CS cfgpath = _find_file_up(cfgdir, NULL);
     CS basedir = cfgpath ? putil_dirname(cfgpath) : getcwd(NULL, 0);
     prop_set_str(P_BASE_DIR, basedir);
-    free(basedir);
+    FREE(basedir);
 
     // Look for a per-project config file and let its settings
     // override previous ones.
     CS projcfg;
     asprintf(&projcfg, "%s/ao_project.json", cfgpath);
-    free(cfgpath);
+    FREE(cfgpath);
     if (!access(projcfg, F_OK)) {
         cJSON *projprops = _prop_parse_cfg(projcfg);
         cJSON *property = NULL;
@@ -320,7 +321,7 @@ prop_init(CCS exe)
         }
         cJSON_Delete(projprops);
     }
-    free(projcfg);
+    FREE(projcfg);
 
     // Look for a per-directory config file and let its settings
     // override previous ones.
@@ -339,7 +340,7 @@ prop_init(CCS exe)
     for (char **envp = environ; *envp; envp++) {
         CS envstr = strdup(*envp);
         if (strncmp(envstr, ENV_PFX, sizeof(ENV_PFX) - 1)) {
-            free(envstr);
+            FREE(envstr);
             continue;
         }
         CS equals = strchr(envstr, '=');
@@ -353,7 +354,7 @@ prop_init(CCS exe)
         } else {
             prop_set_str(prop, value);
         }
-        free(envstr);
+        FREE(envstr);
     }
 
     // Last, export those properties marked for exporting.

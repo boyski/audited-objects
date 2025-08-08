@@ -26,6 +26,7 @@
 
 #include "AO.h"
 
+#include "FREE.h"
 #include "PN.h"
 #include "PROP.h"
 #include "TRY.h"
@@ -104,10 +105,10 @@ pn_new(CCS path, int use_cwd)
 
             if ((cwd = util_get_cwd())) {
                 if (asprintf((CS *)&abspath, "%s/%s", cwd, path) < 0) {
-                    putil_free(cwd);
+                    FREE(cwd);
                     return NULL;
                 } else {
-                    putil_free(cwd);
+                    FREE(cwd);
                 }
             } else {
                 return NULL;
@@ -122,11 +123,11 @@ pn_new(CCS path, int use_cwd)
                         canonpath, canonpath + strlen(abspath) + 1,
                         "\\/", '/') < 0) {
             putil_warn("unable to canonicalize '%s'", abspath);
-            putil_free(abspath);
-            putil_free(canonpath);
+            FREE(abspath);
+            FREE(canonpath);
             return NULL;
         }
-        putil_free(abspath);
+        FREE(abspath);
         // Finally, set up the object with its canonicalized absolute path
         // plus the PRP offset if any.
         pn = (pn_o)putil_malloc(sizeof(*pn));
@@ -207,7 +208,7 @@ pn_verbosity(pn_o pn, CCS verb, CCS ext)
             vb_printf(VB_STD, "%s %s", verb, tpath);
         }
 
-        putil_free(tpath);
+        FREE(tpath);
     }
 }
 
@@ -217,13 +218,13 @@ void
 pn_destroy(pn_o pn)
 {
     // Free the only string pointer.
-    putil_free(pn->pn_abs);
+    FREE(pn->pn_abs);
 
     // Zero-fill the struct before freeing it - nicer for debugging.
     (void)memset(pn, 0, sizeof(*pn));
 
     // Free the object itself.
-    putil_free(pn);
+    FREE(pn);
 }
 
 /// @cond static

@@ -39,6 +39,7 @@
 #include "AO.h"
 #include "CA.h"
 #include "CODE.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "PA.h"
 #include "RE.h"
@@ -716,8 +717,8 @@ openat_wrapper(const char *call,
             if ((lbuf = putil_readlink(procbuf))) {
                 asprintf(&atpath, "%s/%s", lbuf, path);
                 _pa_record(call, atpath, NULL, ret, op);
-                putil_free(atpath);
-                putil_free(lbuf);
+                FREE(atpath);
+                FREE(lbuf);
             } else {
                 putil_warn("can't resolve %s relative to fd=%d", path, fildes);
             }

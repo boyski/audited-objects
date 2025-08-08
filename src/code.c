@@ -98,6 +98,7 @@
 #include "AO.h"
 
 #include "CODE.h"
+#include "FREE.h"
 #include "PROP.h"
 #include "ZIPS.h"
 
@@ -304,7 +305,7 @@ code_from_path(CCS path, CS buf, size_t len)
             data = mdata = putil_malloc(size);
             if (util_read_all(fd, mdata, size) != (ssize_t)size) {
                 putil_syserr(0, path);
-                putil_free(mdata);
+                FREE(mdata);
                 close(fd);
                 return NULL;
             }
@@ -319,7 +320,7 @@ code_from_path(CCS path, CS buf, size_t len)
                         _code_needs_patching(fdata, lookahead)) {
                 prot |= PROT_WRITE;
             }
-            putil_free(fdata);
+            FREE(fdata);
 
             // Mapping could fail if the file is too big for available swap.
             data = fdata = (unsigned char *)mmap64(0, size, prot, MAP_PRIVATE, fd, 0);
@@ -349,7 +350,7 @@ code_from_path(CCS path, CS buf, size_t len)
     code_from_buffer(data, size, path, buf, len);
 
     // Release the buffer whether things went well or not.
-    putil_free(mdata);
+    FREE(mdata);
     if (fdata) {
         vb_printf(VB_MAP, "Unmapping %p", fdata);
         if (munmap((void *)fdata, size) == -1) {

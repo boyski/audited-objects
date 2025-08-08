@@ -30,6 +30,7 @@
 
 #include "AO.h"
 
+#include "FREE.h"
 #include "PROP.h"
 #include "RE.h"
 
@@ -105,7 +106,7 @@ re_init_prop__(CCS prop)
         }
 
         result = re_init__(prop, regex);
-        putil_free(regex);
+        FREE(regex);
     }
     return result;
 }

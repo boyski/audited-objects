@@ -297,7 +297,7 @@ class ## _get_ ## attr(class ## _o obj)                             \
 void                                                                \
 class ## _set_ ## attr(class ## _o obj, type val)                   \
 {                                                                   \
-    putil_free(obj->class ## _ ## attr);                            \
+    free((void *)obj->class ## _ ## attr);                          \
     if ((val) && !CSV_FIELD_IS_NULL(val)) {                         \
     obj->class ## _ ## attr = putil_strdup(val);                    \
     } else {                                                        \

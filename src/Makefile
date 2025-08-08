@@ -208,6 +208,7 @@ endif   #MEMDBG
 LIBOBJS := $(addprefix $(TGTDIR)/,$(sort \
   ca.o \
   code.o \
+  heap.o \
   json.o \
   moment.o \
   pa.o \

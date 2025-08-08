@@ -244,6 +244,7 @@ prop_init(CCS exe, CCS path)
     for (char **envp = environ; *envp; envp++) {
         CS envstr = strdup(*envp);
         if (strncmp(envstr, ENV_PFX, sizeof(ENV_PFX) - 1)) {
+            free(envstr);
             continue;
         }
         CS equals = strchr(envstr, '=');

@@ -22,9 +22,9 @@
 /// @brief Declarations for heap.c
 
 void heap_init(void);
-CS heap_save(CS);
+void *heap_save(void *);
 CS heap_sprintf(CCS, ...);
-void heap_free(CS);
+void heap_free(void *);
 void heap_fini(void);
 
 #endif // HEAP_H

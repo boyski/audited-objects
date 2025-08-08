@@ -30,6 +30,7 @@
 #include "AO.h"
 
 #include "CA.h"
+#include "HEAP.h"
 #include "PA.h"
 #include "PS.h"
 

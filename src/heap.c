@@ -53,37 +53,34 @@ heap_init(void)
     TRY(HeapJson = cJSON_CreateArray(), "cJSON_CreateArray()");
 }
 
-/// Convert the supplied string to "permanent" status. The original must be
-/// on the heap and is freed here. The "permanent" copy is returned and will
-/// not be freed until heap_fini().
-CS
-heap_save(CS savestr)
+/// Convert the supplied string to "permanent" status. The original must be on
+/// the heap. The input pointer remains valid and is returned. The only change
+/// is that it will be freed automatically by heap_fini().
+void *
+heap_save(void *saveptr)
 {
-    cJSON *saved;
-
-    TRY(saved = cJSON_CreateString(savestr), "cJSON_CreateString()");
+    cJSON *saved = cJSON_CreateString(""); // Use a static string as a placeholder
+    saved->valuestring = (char *)saveptr;  // Overwrite placeholder with the void *
     TRY(cJSON_AddItemToArray(HeapJson, saved), "cJSON_AddItemToArray()");
-    free(savestr);
-    return cJSON_GetStringValue(saved);
+    return saveptr;
 }
 
-/// Create a new formatted string a la asprintf() and record the result
+/// Allocate a new formatted string a la asprintf() and record the result
 /// to be automatically freed by heap_fini().
 CS
 heap_sprintf(const char *fmt, ...)
 {
     va_list args;
-    
+
     CS newstr;
     va_start(args, fmt);
     TRY(vasprintf(&newstr, fmt, args) != -1, "vasprintf()");
     va_end(args);
-    
     return heap_save(newstr);
 }
 
 void
-heap_free(CS ptr)
+heap_free(void *ptr)
 {
     UNUSED(ptr); // TODO
 }

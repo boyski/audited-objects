@@ -590,11 +590,6 @@ _maximize_fds(void)
 #endif // __APPLE__
 
     TRY(!setrlimit(RLIMIT_NOFILE, &rlims), "setrlimit()");
-
-    // Force-enable core dumps during the debug phase.
-    // TODO - should be removed someday and left to the caller.
-    struct rlimit core_limit = {RLIM_INFINITY, RLIM_INFINITY};
-    setrlimit(RLIMIT_CORE, &core_limit);
 }
 
 /// Entry point for the client program.
@@ -615,6 +610,12 @@ main(int argc, CS *argv)
     // asynchronously with respect to both audited child processes
     // and local write operations.
     _maximize_fds();
+
+    // Force-enable core dumps when debugging.
+    if (getenv("AO_DEBUG")) {
+        struct rlimit core_limit = {RLIM_INFINITY, RLIM_INFINITY};
+        setrlimit(RLIMIT_CORE, &core_limit);
+    }
 
     heap_init();
 

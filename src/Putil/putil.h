@@ -255,8 +255,6 @@ PUTIL_API void *putil_malloc(size_t);
 PUTIL_API void *putil_calloc(size_t, size_t);
 PUTIL_API void *putil_realloc(void *, size_t);
 PUTIL_API char *putil_strdup(const char *);
-PUTIL_API char *putil_getenv(const char *);
-PUTIL_API int putil_putenv(char *);
 PUTIL_API void putil_unsetenv(const char *);
 #define DIRSEP()    "/"
 #define PATHSEP()   ":"
@@ -937,22 +935,6 @@ putil_strdup(const char *s1)
 
 /////////////////////////////////////////////////////////////////////////////
 
-PUTIL_CLASS char *
-putil_getenv(const char *name)
-{
-    return getenv(name);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-PUTIL_CLASS int
-putil_putenv(char *string)
-{
-    return putenv(string);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
 // Modeled on the FreeBSD unsetenv(). This can waste env space
 // by not using realloc to compress the env block to the new size,
 // but it will usually be used just before an exec anyway - when
@@ -1073,8 +1055,6 @@ _putil_never_called(void)
     putil_realloc(PUTIL_NULLSTR, 0);
     putil_strdup(PUTIL_NULLSTR);
     putil_argv_from_environ(NULL);
-    putil_getenv(PUTIL_NULLSTR);
-    putil_putenv(PUTIL_NULLSTR);
     putil_unsetenv(PUTIL_NULLSTR);
     putil_uname(NULL);
     putil_mkdir_p(PUTIL_NULLSTR);

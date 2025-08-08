@@ -63,16 +63,16 @@ make_init(CCS exe)
         } else {
             CS mf;
 
-            if ((mf = putil_getenv("MAKEFILES"))) {
+            if ((mf = getenv("MAKEFILES"))) {
                 if (!strstr(mf, fragment)) {
                     CS ev = heap_sprintf("MAKEFILES=%s %s", fragment, mf);
-                    putil_putenv(ev);
+                    putenv(ev);
                 }
             } else {
                 CS ev = heap_sprintf("MAKEFILES=%s", fragment);
-                putil_putenv(ev);
+                putenv(ev);
             }
-            vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));
+            vb_printf(VB_OFF, "export MAKEFILES=%s", getenv("MAKEFILES"));
         }
 
         FREE(fragment);

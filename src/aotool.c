@@ -761,7 +761,7 @@ main(int argc, CS *argv)
 
                 // Generate runtime linker profile output.
             case LF('P', '%'):
-                putil_putenv("LD_PROFILE=" AUDITOR);
+                putenv("LD_PROFILE=" AUDITOR);
                 break;
 
             case 'q':
@@ -809,15 +809,15 @@ main(int argc, CS *argv)
 
             case LF('D', 'M'):
 #if defined(__APPLE__)
-                putil_putenv("MallocScribble=1");
-                putil_putenv("MallocPreScribble=1");
-                putil_putenv("MallocBadFreeAbort=1");
-                putil_putenv("MallocCheckHeapAbort=1");
-                //putil_putenv("MallocStackLogging=1");
-                //putil_putenv("MallocStackLoggingNoCompact=1");
-                //putil_putenv("MallocCheckHeapStart=1000");
-                //putil_putenv("MallocCheckHeapEach=1000");
-                //putil_putenv("MallocCheckHeapSleep=-200");
+                putenv("MallocScribble=1");
+                putenv("MallocPreScribble=1");
+                putenv("MallocBadFreeAbort=1");
+                putenv("MallocCheckHeapAbort=1");
+                //putenv("MallocStackLogging=1");
+                //putenv("MallocStackLoggingNoCompact=1");
+                //putenv("MallocCheckHeapStart=1000");
+                //putenv("MallocCheckHeapEach=1000");
+                //putenv("MallocCheckHeapSleep=-200");
                 //(void)system("env | grep '^Malloc'");
 #else   // __APPLE__
                 putil_die("no malloc debugger implemented");
@@ -973,7 +973,7 @@ main(int argc, CS *argv)
 
         // Allow the cmd to be preceded by EV's in the manner of the shell.
         while (strchr(*argv, '=')) {
-            putil_putenv(*argv++);
+            putenv(*argv++);
         }
 
         // Determine whether the user requested a log file and

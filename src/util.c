@@ -818,7 +818,7 @@ util_debug_from_here(void)
 {
     char *ev;
 
-    if (!(ev = putil_getenv("_START_DEBUGGER")) || *ev != '0') {
+    if (!(ev = getenv("_START_DEBUGGER")) || *ev != '0') {
 
         char *buf;
 

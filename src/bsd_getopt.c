@@ -67,7 +67,7 @@
 #define warnx	putil_warn
 
 /*
- * Gnu like getopt_long() and BSD4.4 getsubopt()/optreset extensions
+ * Gnu-like getopt_long() and BSD4.4 getsubopt()/optreset extensions
  */
 
 static int getopt_internal(int, char * const *, char *);

@@ -108,7 +108,7 @@ ck_new(CCS ccode, unsigned long depth, unsigned long cmdid)
 
     ck = (ck_o)putil_calloc(1, sizeof(*ck));
 
-    ck->ck_ccode = putil_strdup(ccode);
+    TRY(ck->ck_ccode = strdup(ccode), "strdup()");
     ck->ck_depth = depth;
     ck->ck_cmdid = cmdid;
 
@@ -267,7 +267,7 @@ ca_newFromCSVString(CCS csv)
     // allocate a temporary copy. The pointer passed in will also
     // be changed, so we need to hold a copy of the original address
     // to be freed.
-    linebuf = original = putil_strdup(csv);
+    TRY(linebuf = original = strdup(csv), "strdup()");
 
     // *INDENT-OFF*
     if (    !(cmdid      = util_strsep(&linebuf, FS1)) ||
@@ -1225,7 +1225,7 @@ ca_set_line(ca_o ca, CCS line)
         if (ccbuf[0]) {
             snprintf(endof(ccbuf), leftlen(ccbuf),
                        "+%lu", (unsigned long)strlen(ca->ca_line));
-            ca->ca_ccode = putil_strdup(ccbuf);
+            TRY(ca->ca_ccode = strdup(ccbuf), "strdup()");
         } else {
             ca->ca_ccode = NULL;
         }

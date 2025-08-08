@@ -34,6 +34,7 @@
 #include "HEAP.h"
 #include "PA.h"
 #include "PS.h"
+#include "TRY.h"
 
 /// Object structure for describing audited files.
 struct path_action_s {
@@ -185,7 +186,7 @@ pa_newFromCSVString(CCS csv)
     // allocate a temporary copy. The pointer passed in will also
     // be changed, so we need to hold a copy of the original address
     // to be freed.
-    linebuf = original = putil_strdup(csv);
+    TRY(linebuf = original = strdup(csv), "strdup()");
 
     // *INDENT-OFF*
     if (    !(op         = util_strsep(&linebuf, FS1)) ||

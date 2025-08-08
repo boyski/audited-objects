@@ -872,7 +872,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
         if (strrchr(str, ':')) {
             CS tstr, p;
 
-            tstr = putil_strdup(str);
+            TRY(tstr = strdup(str), "strdup()");
             p = strrchr(tstr, ':');
             *p = '\0';
             cmd_re = re_init__("TRACK_ENV_CMD", tstr);

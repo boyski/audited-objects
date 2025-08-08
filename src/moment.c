@@ -278,6 +278,7 @@ moment_format_id(moment_s *mp)
     time_t seconds;
     struct tm *ptm;
     char buf[256];
+    CCS momstr;
 
     if (mp) {
         seconds = (time_t)mp->ntv_sec;
@@ -295,7 +296,8 @@ moment_format_id(moment_s *mp)
         putil_syserr(2, "strftime()");
     }
 
-    return putil_strdup(buf);
+    TRY(momstr = strdup(buf), "strdup()");
+    return momstr;
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

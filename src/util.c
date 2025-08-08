@@ -244,10 +244,11 @@ util_get_rwd(void)
     if (pbase && !pathncmp(cwd, pbase, plen)) {
         CCS p;
 
-        for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
-        rwd = putil_strdup(p);
+        for (p = cwd + plen; *p == '/' || *p == '\\'; p++)
+            ;
+        TRY(rwd = strdup(p), "strdup()");
     } else {
-        rwd = putil_strdup(".");
+        TRY(rwd = strdup("."), "strdup()");
     }
     FREE(cwd);
 

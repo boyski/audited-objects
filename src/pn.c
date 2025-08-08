@@ -68,13 +68,13 @@ _pn_abs_to_project_relative_path(CCS path)
 static CCS
 _pn_make_project_relative(CCS path)
 {
-    if (!putil_is_absolute(path)) {
-        CS ptmp;
-
-        TRY(asprintf(&ptmp, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0, "asprintf()");
-        return ptmp;
+    CS abspath;
+    if (putil_is_absolute(path)) {
+        TRY(abspath = strdup(path), "strdup()");
+    } else {
+        TRY(asprintf(&abspath, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0, "asprintf()");
     }
-    return putil_strdup(path);
+    return abspath;
 }
 
 /// Constructor.
@@ -99,7 +99,7 @@ pn_new(CCS path, int use_cwd)
 
         // Start by making sure we have an absolute path.
         if (putil_is_absolute(path)) {
-            abspath = putil_strdup(path);
+            TRY(abspath = strdup(path), "strdup()");
         } else {
             CCS cwd;
 
@@ -197,9 +197,9 @@ pn_verbosity(pn_o pn, CCS verb, CCS ext)
         CS tpath;
 
         if (prop_is_true(P_ABSOLUTE_PATHS)) {
-            tpath = putil_strdup(pn_get_abs(pn));
+            TRY(tpath = strdup(pn_get_abs(pn)), "strdup()");
         } else {
-            tpath = putil_strdup(pn_get_rel(pn));
+            TRY(tpath = strdup(pn_get_rel(pn)), "strdup()");
         }
 
         if (ext) {

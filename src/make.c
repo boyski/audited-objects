@@ -25,6 +25,7 @@
 #include "HEAP.h"
 #include "MAKE.h"
 #include "PA.h"
+#include "TRY.h"
 
 static CS MakeCmd;
 static FILE *MakeFP;
@@ -111,7 +112,7 @@ make_init(CCS exe)
     if ((str = prop_get_str(P_WFLAG))) {
         CS s2;
 
-        s2 = putil_strdup(str);
+        TRY(s2 = strdup(str), "strdup()");
         while ((t = util_strsep(&s2, "\n"))) {
             if (*t == 'm') {
                 t += 2;

@@ -104,7 +104,7 @@ _mon_tostring(void)
     CCS sep = "----\n";
 
     if (AuditHash) {
-        result = putil_strdup("");
+        TRY(result = strdup(""), "strdup()");
         hash_scan_begin(&hscan, AuditHash);
         for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
             size_t num;
@@ -118,7 +118,7 @@ _mon_tostring(void)
             FREE(str);
         }
     } else {
-        result = putil_strdup("(UNINITIALIZED)");
+        TRY(result = strdup("(UNINITIALIZED)"), "strdup()");
     }
 
     return result;

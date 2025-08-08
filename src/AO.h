@@ -299,9 +299,9 @@ class ## _set_ ## attr(class ## _o obj, type val)                   \
 {                                                                   \
     free((void *)obj->class ## _ ## attr);                          \
     if ((val) && !CSV_FIELD_IS_NULL(val)) {                         \
-    obj->class ## _ ## attr = putil_strdup(val);                    \
+        obj->class ## _ ## attr = strdup(val);                      \
     } else {                                                        \
-    obj->class ## _ ## attr = NULL;                                 \
+        obj->class ## _ ## attr = NULL;                             \
     }                                                               \
 }
 

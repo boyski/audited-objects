@@ -33,6 +33,7 @@
 #include "FREE.h"
 #include "PROP.h"
 #include "RE.h"
+#include "TRY.h"
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include "pcre2.h"
@@ -85,7 +86,8 @@ re_init_prop__(CCS prop)
     void *result = NULL;
 
     if (prop_has_value(prop)) {
-        CS regex = putil_strdup(prop_get_str(prop));
+        CS regex;
+        TRY(regex = strdup(prop_get_str(prop)), "strdup()");
 
         /*
          * Allow REs to be specified as e.g. m%regexp%, partly because

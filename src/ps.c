@@ -116,7 +116,7 @@ ps_newFromCSVString(CCS csv)
     // allocate a temporary copy. The pointer passed in will also
     // be changed, so we need to hold a copy of the original address
     // to be freed.
-    linebuf = original = putil_strdup(csv);
+    TRY(linebuf = original = strdup(csv), "strdup()");
 
     // *INDENT-OFF*
     if (!(datatype = util_strsep(&linebuf, FS1)) ||
@@ -292,7 +292,7 @@ ps_dcode_cache_fini(void)
 static void
 _ps_set_cached_dcode(ps_o ps, CCS path)
 {
-    CS key;
+    CS key, dcode;
 
     if (Dcode_Hash_Table && (Dcode_Offset == 0 ||
                              (ps->ps_moment.ntv_sec <
@@ -301,11 +301,11 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
 
         (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
 
-        if (asprintf(&key, "%" PRIu64 "%s%s%s%s",
-                           ps->ps_size, FS1, mtime, FS1, path) < 0) {
+        if (asprintf(&key, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, mtime, FS1, path) < 0) {
             putil_syserr(2, NULL);
         }
-        hash_alloc_insert(Dcode_Hash_Table, key, putil_strdup(ps->ps_dcode));
+        TRY(dcode = strdup(ps->ps_dcode), "strdup()");
+        hash_alloc_insert(Dcode_Hash_Table, key, dcode);
     }
 }
 

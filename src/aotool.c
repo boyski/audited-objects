@@ -388,7 +388,7 @@ _action(CCS action, int argc, CS const *argv)
 
             switch (c) {
                 case 's':
-                    dcode = putil_strdup(bsd_optarg);
+                    TRY(dcode = strdup(bsd_optarg), "strdup()");
                     break;
                 default:
                     break;
@@ -902,7 +902,7 @@ main(int argc, CS *argv)
 
         pbase = prop_get_str(P_BASE_DIR);
         if (pbase && (pjname = putil_basename(pbase)) && *pjname) {
-            ptr = putil_strdup(pjname);
+            TRY(ptr = strdup(pjname), "strdup()");
             if ((dash = strchr(ptr, '-')) && ISDIGIT(dash[1])) {
                 *dash = '\0';
             }

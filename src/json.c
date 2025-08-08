@@ -29,6 +29,8 @@
 #include "JSON.h"
 #include "VB.h"
 
+#include "cJSON.h"
+
 static CCS pa_fields[] = {
     "OP",
     "CALL",
@@ -159,7 +161,7 @@ json_same(const void *a, const void *b)
 /// Parse a null-terminated string containing JSON data.
 /// @param[in] json_data  null-terminated string in json format
 /// @return a JSON object
-json_t *
+json_t
 json_parse(CCS json_data)
 {
     return cJSON_Parse(json_data);

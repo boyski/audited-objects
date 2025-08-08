@@ -34,6 +34,7 @@
 #include "PA.h"
 #include "PN.h"
 #include "PS.h"
+#include "TRY.h"
 
 #include "dict.h"
 #include "hash.h"
@@ -241,9 +242,7 @@ ca_new(void)
 
     ca = (ca_o)putil_calloc(1, sizeof(*ca));
 
-    if (!(ca->ca_raw_pa_dict = dict_create(DICTCOUNT_T_MAX, pa_cmp))) {
-        putil_syserr(2, "dict_create()");
-    }
+    TRY(ca->ca_raw_pa_dict = dict_create(DICTCOUNT_T_MAX, pa_cmp), "dict_create()");
 
     return ca;
 }
@@ -488,9 +487,7 @@ ca_write(ca_o ca, int fd)
         }
 
         if ((pabuf = pa_toCSVString(pa))) {
-            if (write(fd, pabuf, strlen(pabuf)) == -1) {
-                putil_syserr(0, "write()");
-            }
+            TRY(write(fd, pabuf, strlen(pabuf)) != -1, "write()");
             putil_free(pabuf);
         }
 
@@ -516,11 +513,8 @@ ca_coalesce(ca_o ca)
     dict_raw = ca->ca_raw_pa_dict;
 
     assert(!ca->ca_cooked_pa_dict);
-    if ((dict_cooked = dict_create(DICTCOUNT_T_MAX, pa_cmp_by_pathname))) {
-        ca->ca_cooked_pa_dict = dict_cooked;
-    } else {
-        putil_syserr(2, "dict_create()");
-    }
+    TRY(dict_cooked = dict_create(DICTCOUNT_T_MAX, pa_cmp_by_pathname), "dict_create()");
+    ca->ca_cooked_pa_dict = dict_cooked;
 
     for (dnpr = dict_first(dict_raw); dnpr;) {
         pa_o raw_pa, ckd_pa;
@@ -572,16 +566,12 @@ ca_coalesce(ca_o ca)
                 dnode_destroy(dnpc);
                 _ca_verbosity_pa(ckd_pa, ca, "REMOVING");
                 pa_destroy(ckd_pa);
-                if (!(dnpc = dnode_create(NULL))) {
-                    putil_syserr(2, "dnode_create()");
-                }
+                TRY(dnpc = dnode_create(NULL), "dnode_create()");
                 ckd_pa = pa_copy(raw_pa);
                 dict_insert(dict_cooked, dnpc, ckd_pa);
             }
         } else {
-            if (!(dnpc = dnode_create(NULL))) {
-                putil_syserr(2, "dnode_create()");
-            }
+            TRY(dnpc = dnode_create(NULL), "dnode_create()");
             ckd_pa = pa_copy(raw_pa);
             dict_insert(dict_cooked, dnpc, ckd_pa);
         }
@@ -655,9 +645,7 @@ ca_record_pa(ca_o ca, pa_o pa)
     _ca_verbosity_pa(pa, ca, "RECORDING");
 
     // All data is in the key - that's why the value can be null.
-    if (!(dnp = dnode_create(NULL))) {
-        putil_syserr(2, "dnode_create()");
-    }
+    TRY(dnp = dnode_create(NULL), "dnode_create()");
     dict_insert(ca->ca_raw_pa_dict, dnp, pa);
 }
 
@@ -678,11 +666,8 @@ ca_start_group(ca_o ca, int strength)
 {
     assert(!ca->ca_group_hash);
 
-    ca->ca_group_hash =
-        hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func);
-    if (!ca->ca_group_hash) {
-        putil_syserr(2, "hash_create()");
-    }
+    TRY(ca->ca_group_hash = hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func),
+            "hash_create()");
     // Mark the leader as a member of its own club.
     ca_set_leader(ca, ca);
 

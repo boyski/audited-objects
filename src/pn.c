@@ -28,6 +28,7 @@
 
 #include "PN.h"
 #include "PROP.h"
+#include "TRY.h"
 
 /// Object structure for describing a pathname.
 struct path_name_s {
@@ -69,11 +70,8 @@ _pn_make_project_relative(CCS path)
     if (!putil_is_absolute(path)) {
         CS ptmp;
 
-        if (asprintf(&ptmp, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0) {
-            return ptmp;
-        } else {
-            putil_syserr(2, NULL);
-        }
+        TRY(asprintf(&ptmp, "%s/%s", prop_get_str(P_BASE_DIR), path) > 0, "asprintf()");
+        return ptmp;
     }
     return putil_strdup(path);
 }

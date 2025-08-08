@@ -39,6 +39,7 @@
 #include "MON.h"
 #include "PROP.h"
 #include "RE.h"
+#include "TRY.h"
 
 #include <time.h>
 
@@ -62,11 +63,8 @@ void
 mon_init(void)
 {
     if (!AuditHash) {
-        if (!(AuditHash =
-              hash_create(HASHCOUNT_T_MAX,
-              ca_o_hash_cmp, ca_o_hash_func))) {
-            putil_syserr(2, "hash_create()");
-        }
+        TRY((AuditHash = hash_create(HASHCOUNT_T_MAX, ca_o_hash_cmp, ca_o_hash_func)),
+            "hash_create()");
     }
 
     line_break_re = re_init_prop__(P_AGGREGATION_LINE_BREAK_RE);
@@ -328,11 +326,8 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
             // Put a pointer to this object in a table for quick lookup.
             // Due to the possibility of CAs and PAs arriving out of sync
             // we need a lookup to reassociate PAs with CAs at receive time.
-            if ((hnp = hnode_create(ca))) {
-                hash_insert(AuditHash, hnp, ck);
-            } else {
-                putil_syserr(2, "hnode_create()");
-            }
+            TRY(hnp = hnode_create(ca), "hnode_create()");
+            hash_insert(AuditHash, hnp, ck);
 
             aggprop = prop_get_str(P_AGGREGATION_STYLE);
 

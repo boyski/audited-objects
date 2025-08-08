@@ -581,10 +581,7 @@ _maximize_fds(void)
 {
     struct rlimit rlims = {0, 0};
 
-    if (getrlimit(RLIMIT_NOFILE, &rlims)) {
-        putil_syserr(0, "getrlimit()");
-        return;
-    }
+    TRY(!getrlimit(RLIMIT_NOFILE, &rlims), "getrlimit()");
 
 #if defined(__APPLE__)
     rlims.rlim_cur = min(OPEN_MAX, rlims.rlim_max)
@@ -592,9 +589,7 @@ _maximize_fds(void)
     rlims.rlim_cur = rlims.rlim_max;
 #endif // __APPLE__
 
-    if (setrlimit(RLIMIT_NOFILE, &rlims)) {
-        putil_syserr(0, "setrlimit()");
-    }
+    TRY(!setrlimit(RLIMIT_NOFILE, &rlims), "setrlimit()");
 
     // Force-enable core dumps during the debug phase.
     // TODO - should be removed someday and left to the caller.

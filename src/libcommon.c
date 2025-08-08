@@ -359,10 +359,7 @@ static void
 _monitor_send(SOCKET *sockp, const void *buf, size_t len)
 {
     vb_printf(VB_MON, "SENDING TO: SOCKET %d", *sockp);
-    if (util_send_all(*sockp, buf, len, 0) < 0) {
-        putil_syserr(2, "send");
-        exit(2);
-    }
+    TRY(util_send_all(*sockp, buf, len, 0) >= 0, "util_send_all()");
 }
 
 // Internal service routine.
@@ -468,10 +465,7 @@ _audit_open(void)
         // Create an unnamed/unlinked temp file. This returns a stream,
         // not a descriptor, so in order to avoid using up stdio streams
         // convert it to a high-numbered descriptor and close the stream.
-        if (!(tfp = tmpfile())) {
-            putil_syserr(2, "tmpfile");
-            exit(2);
-        }
+        TRY(tfp = tmpfile(), "tmpfile()");
 
         // If our preferred fd is not in use, try using it.
         // Try a few above that next - this is in case of a
@@ -497,16 +491,10 @@ _audit_open(void)
         }
 
         // Now the stream can go away to preserve limited stdio count.
-        if (fclose(tfp)) {
-            putil_syserr(2, "fclose");
-            exit(2);
-        }
+        TRY(!fclose(tfp), "fclose()");
 
         // Each new cmd and/or process must create its own temp file.
-        if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) == -1) {
-            putil_syserr(2, "fcntl");
-            exit(2);
-        }
+        TRY(fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) != -1, "fcntl()");
     }
 
     return fd;
@@ -598,10 +586,7 @@ _audit_start(CCS call)
             exit(0);
         }
     } else {
-        if (write(AuditFD, soa_hdr, strlen(soa_hdr)) == -1) {
-            putil_syserr(2, "write");
-            exit(2);
-        }
+        TRY(write(AuditFD, soa_hdr, strlen(soa_hdr)) != -1, "write()");
         putil_free(soa_hdr);
     }
 
@@ -701,10 +686,7 @@ _audit_end(CCS call, int exiting, long status)
             _monitor_open(&ReportSocket, call);
 
             // Rewind the temp file and send its contents to the monitor.
-            if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-                putil_syserr(2, "lseek");
-                exit(2);
-            }
+            TRY(lseek(AuditFD, 0, SEEK_SET) != (off_t)-1, "lseek()");
 
             while ((n = read(AuditFD, buf, sizeof(buf))) != 0) {
                 if (n == -1) {
@@ -734,10 +716,7 @@ _audit_end(CCS call, int exiting, long status)
         putil_free(hdr);
 
         if (ReportSocket == INVALID_SOCKET) {
-            if (write(AuditFD, eoa_hdr, strlen(eoa_hdr)) == -1) {
-                putil_syserr(2, "write");
-                exit(2);
-            }
+            TRY(write(AuditFD, eoa_hdr, strlen(eoa_hdr)) != -1, "write()");
         } else {
             _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
         }
@@ -754,10 +733,7 @@ _audit_end(CCS call, int exiting, long status)
             putil_syserr(2, "lseek");
             exit(2);
         }
-        if (ftruncate(AuditFD, 0)) {
-            putil_syserr(2, "ftruncate");
-            exit(2);
-        }
+        TRY(!ftruncate(AuditFD, 0), "ftruncate()");
     }
 
     // No ACK needed in no-monitor mode ...
@@ -880,11 +856,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     if (!ca_get_host(CurrentCA)) {
         char hostbuf[HOST_NAME_MAX];
 
-        if (gethostname(hostbuf, sizeof(hostbuf))) {
-            putil_syserr(2, "gethostname()");
-            exit(2);
-        }
-
+        TRY(!gethostname(hostbuf, sizeof(hostbuf)), "gethostname()");
         ca_set_host(CurrentCA, hostbuf);
     }
 

@@ -73,9 +73,7 @@ static void
 _thread_mutex_lock(void)
 {
     if (pthread_mutex_lock_real) {
-        if (pthread_mutex_lock_real(&StaticDataAccessMutex)) {
-            putil_syserr(2, "pthread_mutex_lock");
-        }
+        TRY(!pthread_mutex_lock_real(&StaticDataAccessMutex), "pthread_mutex_lock_real()");
     }
 }
 
@@ -247,9 +245,7 @@ _pre_exec(const char *call, const char *path,
     // operates on AuditFD from a potentially multithreaded code path.
 
     if (pthread_mutex_lock_real) {
-        if (pthread_mutex_lock_real(&ExecFlushMutex)) {
-            putil_syserr(2, "pthread_mutex_lock");
-        }
+        TRY(!pthread_mutex_lock_real(&ExecFlushMutex), "pthread_mutex_lock_real()");
     }
 
     _audit_end(call, NOT_EXITING, 0);

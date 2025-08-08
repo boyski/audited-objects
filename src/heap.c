@@ -82,6 +82,12 @@ heap_sprintf(const char *fmt, ...)
     return heap_save(newstr);
 }
 
+void
+heap_free(CS ptr)
+{
+    UNUSED(ptr); // TODO
+}
+
 /// Finalize and free "permanent" heap allocations.
 void
 heap_fini(void)

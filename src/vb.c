@@ -23,6 +23,7 @@
 
 #include "PROP.h"
 #include "MOMENT.h"
+#include "TRY.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -205,9 +206,7 @@ vb_addstr(CCS vbstr)
         if (*currval) {
             CS newval = NULL;
 
-            if (asprintf(&newval, "%s,%s", currval, vbstr) < 0) {
-                putil_syserr(2, NULL);
-            }
+            TRY(asprintf(&newval, "%s,%s", currval, vbstr) >= 0, "asprintf()");
             prop_set_str(P_VERBOSITY, newval);
             putil_free(newval);
         } else {

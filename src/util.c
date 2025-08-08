@@ -22,6 +22,7 @@
 #include "AO.h"
 
 #include "PROP.h"
+#include "TRY.h"
 #include "UTIL.h"
 
 #include <stdarg.h>
@@ -105,9 +106,7 @@ util_unmap_file(unsigned char *fdata, uint64_t extent)
 {
     if (fdata) {
         vb_printf(VB_MAP, "Unmapping %p", fdata);
-        if (munmap((void *)fdata, extent) == -1) {
-            putil_syserr(0, "munmap");
-        }
+        TRY(munmap((void *)fdata, extent) != -1, "munmap()");
     }
 }
 
@@ -233,27 +232,23 @@ util_get_rwd(void)
 {
     CCS cwd;
     CCS rwd = NULL;
+    CCS pbase;
+    size_t plen;
 
-    if ((cwd = util_get_cwd())) {
-        CCS pbase;
-        size_t plen;
-
-        if ((pbase = prop_get_str(P_BASE_DIR))) {
-            plen = strlen(pbase);
-        }
-
-        if (pbase && !pathncmp(cwd, pbase, plen)) {
-            CCS p;
-
-            for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
-            rwd = putil_strdup(p);
-        } else {
-            rwd = putil_strdup(".");
-        }
-        putil_free(cwd);
-    } else {
-        putil_syserr(0, "util_get_cwd()");
+    if ((pbase = prop_get_str(P_BASE_DIR))) {
+        plen = strlen(pbase);
     }
+
+    TRY(cwd = util_get_cwd(), "util_get_cwd()");
+    if (pbase && !pathncmp(cwd, pbase, plen)) {
+        CCS p;
+
+        for (p = cwd + plen; *p == '/' || *p == '\\'; p++);
+        rwd = putil_strdup(p);
+    } else {
+        rwd = putil_strdup(".");
+    }
+    putil_free(cwd);
 
     return rwd;
 }
@@ -735,9 +730,7 @@ _util_finalize_output_file(void)
         CS obuf;
 
         if (asprintf(&obuf, "%s.%ld.tmp", OutputFile, (long)getpid()) >= 0) {
-            if (rename(obuf, OutputFile)) {
-                putil_syserr(0, OutputFile);
-            }
+            TRY(rename(obuf, OutputFile), "rename()");
             putil_free(obuf);
         }
     }

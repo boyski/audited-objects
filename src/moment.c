@@ -38,6 +38,7 @@
 
 #include "MOMENT.h"
 #include "PROP.h"
+#include "TRY.h"
 
 /// @cond static
 #define MILLIS_PER_SECOND                               1000
@@ -67,9 +68,7 @@ moment_get_systime(moment_s *mptr)
 {
     struct timeval tv;
 
-    if ((gettimeofday(&tv, NULL) == -1)) {
-        putil_syserr(2, "gettimeofday()");
-    }
+    TRY(gettimeofday(&tv, NULL) != -1, "gettimeofday()");
     mptr->ntv_sec = tv.tv_sec;
     mptr->ntv_nsec = tv.tv_usec * 1000;
 

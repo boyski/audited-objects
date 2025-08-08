@@ -21,7 +21,7 @@
 /// @file
 /// @brief Support for the FREE() macro which automatically nulls its pointer.
 
-#define FREE(p) (free(p), &(p) = NULL)
+#define FREE(p) (free((void *)(p)), (p) = NULL)
 
 #endif // FREE_H
 

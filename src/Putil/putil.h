@@ -134,10 +134,6 @@ typedef int         SOCKET;
 extern char **environ;
 #endif  /*__APPLE__*/
 
-#ifndef PUTIL_BUILTON
-#define PUTIL_BUILTON       "UNKNOWN "
-#endif
-
 #define UNUSED(var)     (void)var
 
 // Old Windows-related names.
@@ -233,7 +229,6 @@ typedef unsigned long ULONG64;
 extern "C" {
 #endif
 
-PUTIL_API const char *putil_builton(void);
 PUTIL_API void putil_strict_error(int);
 PUTIL_API void putil_exit_(const char *, int, int);
 PUTIL_API void putil_error_(const char *, int, const char *, ...)
@@ -262,7 +257,6 @@ PUTIL_API char **putil_prepend2argv(char **, ...);
 PUTIL_API size_t putil_searchpath(const char *, const char *, const char *, unsigned long, char *, char **);
 PUTIL_API char *putil_path_strstr(const char *, const char *);
 PUTIL_API void *putil_malloc(size_t);
-PUTIL_API void *putil_malloc_str(size_t);
 PUTIL_API void *putil_calloc(size_t, size_t);
 PUTIL_API void *putil_realloc(void *, size_t);
 PUTIL_API void putil_free_(const void *);
@@ -346,14 +340,6 @@ PUTIL_API int putil_uname(struct utsname *);
 #define _PUTIL_STR(x)  #x
 #define _PUTIL_XSTR(x) _PUTIL_STR(x)
 
-#if defined(__GNUC__)
-#define PUTIL_COMPILER_ "GCC " __VERSION__
-#else
-#define PUTIL_COMPILER_ "unknown compiler/version"
-#endif
-
-PUTIL_CLASS char putil_platform[] = "@(#) " PUTIL_BUILTON "/" PUTIL_COMPILER_;
-
 #if defined(PUTIL_DECLARE_FUNCTIONS_STATIC) || defined(PUTIL_DECLARE_FUNCTIONS_GLOBAL)
 // This is a hack for allowing the application to register at runtime
 // a preference for how to handle errors which are not necessarily
@@ -362,12 +348,6 @@ PUTIL_CLASS char putil_platform[] = "@(#) " PUTIL_BUILTON "/" PUTIL_COMPILER_;
 // -1 means to dump core on any error.
 static int Putil_Strict_Error = 0;
 #endif
-
-PUTIL_CLASS const char *
-putil_builton(void)
-{
-    return strchr(putil_platform, ' ') + 1;
-}
 
 PUTIL_CLASS void
 putil_strict_error(int level)
@@ -930,14 +910,6 @@ putil_malloc(size_t size)
 /////////////////////////////////////////////////////////////////////////////
 
 PUTIL_CLASS void *
-putil_malloc_str(size_t size)
-{
-    return putil_malloc(size * sizeof(char));
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-PUTIL_CLASS void *
 putil_calloc(size_t nelem, size_t elsize)
 {
     void *ptr = calloc(nelem, elsize);
@@ -1094,7 +1066,6 @@ void _putil_never_called(void);
 void
 _putil_never_called(void)
 {
-    putil_builton();
     putil_strict_error(0);
     putil_exit(0);
     putil_error(" ");
@@ -1112,7 +1083,6 @@ _putil_never_called(void)
     putil_get_systemdir(PUTIL_NULLSTR, 0);
     putil_path_strstr(PUTIL_NULLSTR, PUTIL_NULLSTR);
     putil_malloc(0);
-    putil_malloc_str(0);
     putil_calloc(0, 0);
     putil_realloc(PUTIL_NULLSTR, 0);
     putil_strdup(PUTIL_NULLSTR);

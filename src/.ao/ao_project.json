@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "PROJECT_NAME": {
+      "description": "Name of current project",
+      "exported": true,
+      "value": "AO"
+    }
+  }
+}

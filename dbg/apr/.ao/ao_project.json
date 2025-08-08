@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "AGGREGATION_LINE_STRONG_RE": {
+      "description": "Strong-aggregation RE based on cmd line",
+      "value": "m%^(?:/usr|/usr/xpg4)?/bin/[a-z]*sh\s+.*\s-E\s%"
+    }
+  }
+}

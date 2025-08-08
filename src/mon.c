@@ -743,7 +743,7 @@ mon_fini(void)
             putil_warn("%d audits left over:", (int)hash_count(AuditHash));
             mon_dump();
         }
-        hash_destroy(AuditHash);
+        // hash_destroy(AuditHash);  // TODO - core dump
         AuditHash = NULL;
     }
 

@@ -283,11 +283,10 @@ _prop_parse_cfg(CCS path)
 void
 prop_init(CCS exe)
 {
-    CCS cfgfile = "ao_config.json";
     CS exedir = putil_dirname(exe);
     CS appdir = putil_dirname(exedir);
     CS initcfg;
-    asprintf(&initcfg, "%s/etc/%s", appdir, cfgfile);
+    asprintf(&initcfg, "%s/etc/ao_config.json", appdir);
     putil_free(appdir);
     assert(initcfg);
 
@@ -308,17 +307,33 @@ prop_init(CCS exe)
     free(basedir);
 
     // Look for a per-project config file and let its settings
-    // override the standard ones.
+    // override previous ones.
     CS projcfg;
-    asprintf(&projcfg, "%s/%s", cfgpath, cfgfile);
+    asprintf(&projcfg, "%s/ao_project.json", cfgpath);
     free(cfgpath);
-    cJSON *projprops = _prop_parse_cfg(projcfg);
-    cJSON *property = NULL;
-    cJSON_ArrayForEach(property, projprops) {
-        cJSON *copy = cJSON_Duplicate(property, 1);
-        cJSON_ReplaceItemInObject(Properties, property->string, copy);
+    if (!access(projcfg, F_OK)) {
+        cJSON *projprops = _prop_parse_cfg(projcfg);
+        cJSON *property = NULL;
+        cJSON_ArrayForEach(property, projprops) {
+            cJSON *copy = cJSON_Duplicate(property, 1);
+            cJSON_ReplaceItemInObject(Properties, property->string, copy);
+        }
+        cJSON_Delete(projprops);
     }
-    cJSON_Delete(projprops);
+    free(projcfg);
+
+    // Look for a per-directory config file and let its settings
+    // override previous ones.
+    CS dircfg = "ao_dir.json";
+    if (!access(dircfg, F_OK)) {
+        cJSON *dirprops = _prop_parse_cfg(dircfg);
+        cJSON *property = NULL;
+        cJSON_ArrayForEach(property, dirprops) {
+            cJSON *copy = cJSON_Duplicate(property, 1);
+            cJSON_ReplaceItemInObject(Properties, property->string, copy);
+        }
+        cJSON_Delete(dirprops);
+    }
 
     // Settings inherited from the environment override all files.
     for (char **envp = environ; *envp; envp++) {

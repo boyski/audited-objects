@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "AGGREGATION_PROG_STRONG_RE": {
+      "description": "Strong-aggregation RE based on prog name",
+      "value": "perl$"
+    }
+  }
+}

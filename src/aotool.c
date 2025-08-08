@@ -28,6 +28,7 @@
 
 #include "CA.h"
 #include "CODE.h"
+#include "FREE.h"
 #include "HEAP.h"
 #include "MAKE.h"
 #include "MON.h"
@@ -239,6 +240,20 @@ static time_t StartTime;
 // Hack for local shutupitude.
 static int QuietMode;
 
+#ifndef BUILTON_HOST
+#define BUILTON_HOST       "UNKNOWN "
+#endif
+
+#ifndef BUILTON_COMPILER_
+#if defined(__GNUC__)
+#define BUILTON_COMPILER_ "GCC " __VERSION__
+#else
+#define BUILTON_COMPILER_ "unknown compiler/version"
+#endif
+#endif
+
+static char BuiltOn[] = "@(#) " BUILTON_HOST "/" BUILTON_COMPILER_;
+
 // Internal service routine.
 static void
 _print_elapsed_time(void)
@@ -305,7 +320,7 @@ _usage(int rc)
     fprintf(fp, "   %s make clean all\n", prog);
     fprintf(fp, "   %s lsbuilds -s\n", prog);
 
-    putil_exit(rc);
+    exit(rc);
 }
 
 /// Print the version of this application to stdout.
@@ -316,7 +331,7 @@ _print_version(int full)
     printf("%s=%s\n", "AO", prop_get_str(P_VERSION));
 
     if (full) {
-        fputs(putil_builton(), stdout);
+        fputs(strchr(BuiltOn, ' ') + 1, stdout);
 #if defined(_DEBUG)
         fputs(" (DEBUG)", stdout);
 #endif  // _DEBUG
@@ -349,7 +364,7 @@ _action(CCS action, int argc, CS const *argv)
 
             (void)util_substitute_params(argv[i], &subs);
             printf("%s\n", subs);
-            putil_free(subs);
+            FREE(subs);
         }
     } else if (!strcmp(action, "hash")) {
         CCS dcode = NULL;
@@ -391,7 +406,7 @@ _action(CCS action, int argc, CS const *argv)
         printf("%s\n", ps_get_dcode(ps));
 
         ps_destroy(ps);
-        putil_free(dcode);
+        FREE(dcode);
     } else if (!strcmp(action, "Stat") || !strcmp(action, "stat")) {
         // print vital statistics for specified files.
         int long_flag = 0, short_flag = 0, deref_flag = 0;
@@ -467,10 +482,10 @@ _action(CCS action, int argc, CS const *argv)
                 CS buf;
 
                 len = putil_path_max() + 256 + 1;
-                buf = putil_malloc(len);
+                TRY(buf = malloc(len), "malloc()");
                 (void)ps_format_user(ps, long_flag, short_flag, buf, len);
                 fputs(buf, stdout);
-                putil_free(buf);
+                FREE(buf);
             }
 
             ps_destroy(ps);
@@ -669,7 +684,7 @@ main(int argc, CS *argv)
                         fprintf(stderr, "+ cd %s\n", cd_to);
                     }
                     TRY(!chdir(cd_to), "chdir(cd_to)");
-                    putil_free(cd_to);
+                    FREE(cd_to);
                 }
                 break;
 
@@ -706,7 +721,7 @@ main(int argc, CS *argv)
                         prop_set_str(P_LOG_FILE, bsd_optarg);
                     } else if ((lbuf = putil_realpath(bsd_optarg, 1))) {
                         prop_set_str(P_LOG_FILE, lbuf);
-                        putil_free(lbuf);
+                        FREE(lbuf);
                     } else {
                         putil_syserr(0, bsd_optarg);
                         prop_set_str(P_LOG_FILE, bsd_optarg);
@@ -829,7 +844,7 @@ main(int argc, CS *argv)
                     if ((old = prop_get_str(P_WFLAG))) {
                         asprintf(&str, "%s\n%s", old, bsd_optarg);
                         prop_set_str(P_WFLAG, str);
-                        putil_free(str);
+                        FREE(str);
                     } else {
                         prop_set_str(P_WFLAG, bsd_optarg);
                     }
@@ -892,7 +907,7 @@ main(int argc, CS *argv)
                 *dash = '\0';
             }
             prop_set_str(P_PROJECT_NAME, ptr);
-            putil_free(ptr);
+            FREE(ptr);
         }
     }
 
@@ -976,7 +991,7 @@ main(int argc, CS *argv)
             if (!putil_is_absolute(rmap)) {
                 if ((rmap = putil_realpath(rmap, 1))) {
                     prop_set_str(P_ROADMAPFILE, rmap);
-                    putil_free(rmap);
+                    FREE(rmap);
                 } else {
                     putil_syserr(2, prop_get_str(P_ROADMAPFILE));
                 }
@@ -984,7 +999,7 @@ main(int argc, CS *argv)
         } else if (prop_has_value(P_SERVER)) {
             rmap = tempnam(NULL, "rmap.");
             prop_set_str(P_ROADMAPFILE, rmap);
-            putil_free(rmap);
+            FREE(rmap);
         }
 
         if (prop_has_value(P_SERVER)) {
@@ -1007,7 +1022,7 @@ main(int argc, CS *argv)
         if (dscript) {
             CS *dargv;
 
-            dargv = putil_malloc(sizeof(*dargv) * 6);
+            TRY(dargv = malloc(sizeof(*dargv) * 6), "malloc()");
             dargv[0] = "dtrace";
             dargv[1] = "-s";
             dargv[2] = dscript;
@@ -1023,11 +1038,11 @@ main(int argc, CS *argv)
         // RUN AND AUDIT THE COMMAND.
         rc = run_cmd(prop_get_str(P_MONITOR_PATH), (CS *)argv, logfile);
 
-        putil_free(logfile);
+        FREE(logfile);
 
         make_fini();
 
-        putil_free(cwd);
+        FREE(cwd);
     } else {
         rc = _action(action, argc, argv);
     }

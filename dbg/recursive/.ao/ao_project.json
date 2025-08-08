@@ -1,9 +1,9 @@
 {
   "properties": {
     "PROJECT_NAME": {
-      "description": "Assign a name to this project",
+      "description": "Name of current project",
       "exported": true,
-      "value": "AO"
+      "value": "recursive"
     }
   }
 }

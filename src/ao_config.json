@@ -184,9 +184,9 @@
       "value": 0
     },
     "PROJECT_NAME": {
-      "description": "Assign a name to this project",
+      "description": "Name of current project",
       "exported": true,
-      "value": null
+      "value": "Unknown"
     },
     "PTX_STRATEGY": {
       "description": "Selection criteria for downloadable PTXes",

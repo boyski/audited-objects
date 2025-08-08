@@ -15,6 +15,10 @@
 .SECONDEXPANSION:
 .SUFFIXES:
 
+ifeq ($(findstring s,$(firstword $(MAKEFLAGS))),)
+  setx := set -x;
+endif
+
 # Derive the $OS_CPU env var which drives all OS/arch divisions.
 uname_s := $(shell uname -s)
 ifneq (,$(findstring Linux,$(uname_s)))
@@ -119,16 +123,16 @@ $(BINDIR) $(LIBDIR) $(INST_PREFIX)/bin $(INST_PREFIX)/lib64:
 
 $(INST_PREFIX)/lib64/%: $(LIBDIR)/% | $$(@D)
 	@chmod u+w $?
-	@(set -x; cp -p $< $@)
+	@($(setx)cp -p $< $@)
 	@$(STRIP) $@
 
 $(INST_PREFIX)/bin/%: $(TGTDIR)/% | $$(@D)
 	@chmod u+wx $?
-	@test -L $@ || (set -x; cp -p $< $@)
+	@test -L $@ || ($(setx)cp -p $< $@)
 
 $(INST_PREFIX)/bin/%: py/% | $$(@D)
 	@chmod u+wx $?
-	@test -L $@ || (set -x; cp -p $< $@)
+	@test -L $@ || ($(setx)cp -p $< $@)
 
 # List of object files linked into the monitor.
 OBJS := $(addprefix $(TGTDIR)/, \
@@ -286,7 +290,7 @@ tags:
 .PHONY: clean
 clean: cleanups := $(wildcard $(TARGETS) $(TGTDIR)/*.o core *.1 *.html HTML tags)
 clean:
-	$(if $(cleanups),@set -x; $(RM) -r $(cleanups))
+	$(if $(cleanups),@$(setx)$(RM) -r $(cleanups))
 
 .PHONY: install
 install: all $(INST_LIBS) $(INST_BINS) $(INST_SCRIPTS)

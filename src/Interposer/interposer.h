@@ -110,88 +110,88 @@ extern void interposed_finalize(void);
  *  WRAP* macros.
  **********************************************************************/
 
-#define WRAP_PROLOG(n_type, n_call)                 \
-    static n_type (*stooge)();                      \
-    static n_type (*poseur)() = (n_type(*)())-1;            \
-    if (interposer_early_initialized && !interposer_late_initialized)   \
-    interposer_late_init(#n_call);                  \
-    if (!stooge) {                          \
-    stooge = (n_type(*)())dlsym(RTLD_NEXT, #n_call);        \
-    if (!stooge) {                          \
-        char *msg = (char *)dlerror();              \
-        fprintf(stderr, "Error: no symbol '%s': %s",        \
-        #n_call, msg ? msg : "");               \
-        exit(2);                            \
-    }                               \
-    }                                   \
-    if ((long)poseur == -1 && interposer_is_active) {           \
-    poseur = (n_type(*)())dlsym(_RTLD_LOCAL_, #n_call "_wrapper");  \
-    if (!poseur) {                          \
-        if (interposer_dbg_flag > 1) {              \
-        fprintf(stderr, "Error: no wrapper found for %s()\n",   \
-            #n_call);                       \
-        exit(2);                        \
-        } else if (interposer_dbg_flag == 1) {          \
-        fprintf(stderr, "Warning: no wrapper found for %s()\n", \
-            #n_call);                       \
-        }                               \
-    }                               \
+#define WRAP_PROLOG(n_type, n_call)                                            \
+    static n_type (*stooge)();                                                 \
+    static n_type (*poseur)() = (n_type(*)())-1;                               \
+    if (interposer_early_initialized && !interposer_late_initialized)          \
+        interposer_late_init(#n_call);                                         \
+    if (!stooge) {                                                             \
+        stooge = (n_type(*)())dlsym(RTLD_NEXT, #n_call);                       \
+        if (!stooge) {                                                         \
+            char *msg = (char *)dlerror();                                     \
+            fprintf(stderr, "Error: no symbol '%s': %s",                       \
+                #n_call, msg ? msg : "");                                      \
+            exit(2);                                                           \
+        }                                                                      \
+    }                                                                          \
+    if ((long)poseur == -1 && interposer_is_active) {                          \
+        poseur = (n_type(*)())dlsym(_RTLD_LOCAL_, #n_call "_wrapper");         \
+        if (!poseur) {                                                         \
+            if (interposer_dbg_flag > 1) {                                     \
+                fprintf(stderr, "Error: no wrapper found for %s()\n",          \
+                    #n_call);                                                  \
+                exit(2);                                                       \
+            } else if (interposer_dbg_flag == 1) {                             \
+                fprintf(stderr, "Warning: no wrapper found for %s()\n",        \
+                    #n_call);                                                  \
+            }                                                                  \
+        }                                                                      \
     }
 
-#define WRAP(n_type, n_call, n_parms, ...)              \
-n_type n_call n_parms {                         \
-    WRAP_PROLOG(n_type, n_call)                     \
-    if (poseur && interposer_is_active) {               \
-    return poseur(#n_call, stooge, ##__VA_ARGS__);          \
-    } else {                                \
-    return stooge(__VA_ARGS__);                 \
-    }                                   \
+#define WRAP(n_type, n_call, n_parms, ...)                                     \
+n_type n_call n_parms {                                                        \
+    WRAP_PROLOG(n_type, n_call)                                                \
+    if (poseur && interposer_is_active) {                                      \
+        return poseur(#n_call, stooge, ##__VA_ARGS__);                         \
+    } else {                                                                   \
+        return stooge(__VA_ARGS__);                                            \
+    }                                                                          \
 }
 
 // Special case due to variadic arg list.
-#define WRAP_OPEN(n_type, n_call)                   \
-n_type n_call (const char *path, int oflag, ...) {          \
-    mode_t mode = 0;                            \
-    WRAP_PROLOG(n_type, n_call)                     \
-    if (oflag & O_CREAT) {                      \
-    va_list ap;                         \
-    va_start(ap, oflag);                        \
-    mode = va_arg(ap, int);  /* NOT mode_t */           \
-    va_end(ap);                         \
-    }                                   \
-    if (poseur && interposer_is_active) {               \
-    return poseur(#n_call, stooge, path, oflag, mode);      \
-    } else {                                \
-    return stooge(path, oflag, mode);               \
-    }                                   \
+#define WRAP_OPEN(n_type, n_call)                                              \
+n_type n_call (const char *path, int oflag, ...) {                             \
+    mode_t mode = 0;                                                           \
+    WRAP_PROLOG(n_type, n_call)                                                \
+    if (oflag & O_CREAT) {                                                     \
+        va_list ap;                                                            \
+        va_start(ap, oflag);                                                   \
+        mode = va_arg(ap, int);  /* NOT mode_t */                              \
+        va_end(ap);                                                            \
+    }                                                                          \
+    if (poseur && interposer_is_active) {                                      \
+        return poseur(#n_call, stooge, path, oflag, mode);                     \
+    } else {                                                                   \
+        return stooge(path, oflag, mode);                                      \
+    }                                                                          \
 }
 
 // Like open() but relative to a file descriptor.
-#define WRAP_OPENAT(n_type, n_call)                 \
-n_type n_call (int fildes, const char *path, int oflag, ...) {      \
-    mode_t mode = 0;                            \
-    WRAP_PROLOG(n_type, n_call)                     \
-    if (oflag & O_CREAT) {                      \
-    va_list ap;                         \
-    va_start(ap, oflag);                        \
-    mode = va_arg(ap, int);  /* NOT mode_t */           \
-    va_end(ap);                         \
-    }                                   \
-    if (poseur && interposer_is_active) {               \
-    return poseur(#n_call, stooge, fildes, path, oflag, mode);  \
-    } else {                                \
-    return stooge(fildes, path, oflag, mode);           \
-    }                                   \
+#define WRAP_OPENAT(n_type, n_call)                                            \
+n_type n_call (int fildes, const char *path, int oflag, ...) {                 \
+    mode_t mode = 0;                                                           \
+    WRAP_PROLOG(n_type, n_call)                                                \
+    if (oflag & O_CREAT) {                                                     \
+        va_list ap;                                                            \
+        va_start(ap, oflag);                                                   \
+        mode = va_arg(ap, int);  /* NOT mode_t */                              \
+        va_end(ap);                                                            \
+    }                                                                          \
+    if (poseur && interposer_is_active) {                                      \
+        return poseur(#n_call, stooge, fildes, path, oflag, mode);             \
+    } else {                                                                   \
+        return stooge(fildes, path, oflag, mode);                              \
+    }                                                                          \
 }
 
-#define WRAP_VOID(n_type, n_call)                   \
-n_type n_call (void) {                          \
-    WRAP_PROLOG(n_type, n_call)                     \
-    if (poseur && interposer_is_active) {               \
-    return poseur(#n_call, stooge);                 \
-    } else {                                \
-    return stooge();                        \
-    }                                   \
+#define WRAP_VOID(n_type, n_call)                                              \
+n_type n_call (void) {                                                         \
+    WRAP_PROLOG(n_type, n_call)                                                \
+    if (poseur && interposer_is_active) {                                      \
+        return poseur(#n_call, stooge);                                        \
+    } else {                                                                   \
+        return stooge();                                                       \
+    }                                                                          \
 }
 
 // The execl*() functions are difficult to wrap, as are all variadic
@@ -200,55 +200,55 @@ n_type n_call (void) {                          \
 // as it requires a malloc, but OTOH if the exec succeeds the heap
 // is gone anyway and if it fails we might be exiting. For this
 // reason there's typically no need for client code to wrap execl*().
-#define WRAP_EXECL(n_type, n_style, n_need_envp)            \
-n_type execl##n_style (const char *path, const char *arg0, ...) {   \
-    va_list ap;                             \
-    const char *targv[8192];                        \
-    char **margv;                           \
-    char *const *envp = NULL;                       \
-    int maxarg = sizeof(targv)/sizeof(*targv) - 1;          \
-    int erc;                                \
-    int i = 0;                              \
-    WRAP_PROLOG(n_type, execv##n_style)                 \
-    va_start(ap, arg0);                         \
-    targv[i++] = arg0;                          \
-    while ((targv[i] = (char *)va_arg(ap, char *)) && i < maxarg)   \
-    i++;                                \
-    targv[i] = NULL;                            \
-    if (n_need_envp)                            \
-    envp = (char **)va_arg(ap, char **);                \
-    va_end(ap);                             \
-    if (!(margv = malloc((i + 1) * sizeof(*targv)))) {          \
-    perror("malloc()");                     \
-    exit(2);                            \
-    }                                   \
-    for (i = 0; (margv[i] = (char *)targv[i]); i++);            \
-    if (poseur && interposer_is_active) {               \
-    if (n_need_envp) {                      \
-        erc = poseur("execl"#n_style, stooge, path, margv, envp);   \
-    } else {                            \
-        erc = poseur("execl"#n_style, stooge, path, margv);     \
-    }                               \
-    } else {                                \
-    if (n_need_envp) {                      \
-        erc = stooge(path, margv, envp);                \
-    } else {                            \
-        erc = stooge(path, margv);                  \
-    }                               \
-    }                                   \
-    free((void *)margv);                          \
-    return erc;                             \
+#define WRAP_EXECL(n_type, n_style, n_need_envp)                               \
+n_type execl##n_style (const char *path, const char *arg0, ...) {              \
+    va_list ap;                                                                \
+    const char *targv[8192];                                                   \
+    char **margv;                                                              \
+    char *const *envp = NULL;                                                  \
+    int maxarg = sizeof(targv)/sizeof(*targv) - 1;                             \
+    int erc;                                                                   \
+    int i = 0;                                                                 \
+    WRAP_PROLOG(n_type, execv##n_style)                                        \
+    va_start(ap, arg0);                                                        \
+    targv[i++] = arg0;                                                         \
+    while ((targv[i] = (char *)va_arg(ap, char *)) && i < maxarg)              \
+        i++;                                                                   \
+    targv[i] = NULL;                                                           \
+    if (n_need_envp)                                                           \
+        envp = (char **)va_arg(ap, char **);                                   \
+    va_end(ap);                                                                \
+    if (!(margv = malloc((i + 1) * sizeof(*targv)))) {                         \
+        perror("malloc()");                                                    \
+        exit(2);                                                               \
+    }                                                                          \
+    for (i = 0; (margv[i] = (char *)targv[i]); i++);                           \
+    if (poseur && interposer_is_active) {                                      \
+        if (n_need_envp) {                                                     \
+            erc = poseur("execl"#n_style, stooge, path, margv, envp);          \
+        } else {                                                               \
+            erc = poseur("execl"#n_style, stooge, path, margv);                \
+        }                                                                      \
+    } else {                                                                   \
+        if (n_need_envp) {                                                     \
+            erc = stooge(path, margv, envp);                                   \
+        } else {                                                               \
+            erc = stooge(path, margv);                                         \
+        }                                                                      \
+    }                                                                          \
+    free((void *)margv);                                                       \
+    return erc;                                                                \
 }
 
-#define WRAP_NORETURN(n_type, n_call, n_parms, ...)         \
-n_type n_call n_parms {                         \
-    WRAP_PROLOG(n_type, n_call)                     \
-    if (poseur && interposer_is_active) {               \
-    poseur(#n_call, stooge, ##__VA_ARGS__);             \
-    } else {                                \
-    stooge(__VA_ARGS__);                        \
-    }                                   \
-    while (1);                              \
+#define WRAP_NORETURN(n_type, n_call, n_parms, ...)                            \
+n_type n_call n_parms {                                                        \
+    WRAP_PROLOG(n_type, n_call)                                                \
+    if (poseur && interposer_is_active) {                                      \
+        poseur(#n_call, stooge, ##__VA_ARGS__);                                \
+    } else {                                                                   \
+        stooge(__VA_ARGS__);                                                   \
+    }                                                                          \
+    while (1);                                                                 \
 }
 
 #ifdef  __cplusplus
@@ -289,7 +289,7 @@ struct timeval *
 interposer_get_start_time(void)
 {
     if (!interposer_start_time.tv_sec)
-    gettimeofday(&interposer_start_time, (struct timezone *)NULL);
+        gettimeofday(&interposer_start_time, (struct timezone *)NULL);
     return &interposer_start_time;
 }
 
@@ -329,55 +329,55 @@ interposer_requote(char **argv, char *cmdline)
     // The following represents a hybrid approach.
 
     for (ptr = cmdline; (word = *argv); argv++) {
-    //fprintf(stderr, "--%s--\n", word);
+        //fprintf(stderr, "--%s--\n", word);
 
-    // If the word needs quoting at all, use single quotes unless
-    // it _contains_ a single quote, in which case use double
-    // quotes and escape special chars.
-    if (*word) {
-        char *p;
+        // If the word needs quoting at all, use single quotes unless
+        // it _contains_ a single quote, in which case use double
+        // quotes and escape special chars.
+        if (*word) {
+            char *p;
 
-        for (quote = 0, p = word; *p; p++) {
-        if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
-            if (*p == '\'') {
-            quote = '"';
-            break;
-            } else {
-            quote = '\'';
+            for (quote = 0, p = word; *p; p++) {
+                if (!isalnum((int)*p) && !strchr("!%+,-./=:@_", *p)) {
+                    if (*p == '\'') {
+                        quote = '"';
+                        break;
+                    } else {
+                        quote = '\'';
+                    }
+                }
             }
+        } else {
+            quote = '"';
         }
+
+        // Add opening quote if required.
+        if (quote) {
+            *ptr++ = quote;
         }
-    } else {
-        quote = '"';
-    }
 
-    // Add opening quote if required.
-    if (quote) {
-        *ptr++ = quote;
-    }
-
-    // Copy the word into the output buffer with appropriate escapes
-    // if using double-quotes.
-    for (; *word; word++) {
-        if (quote == '"') {
-        if (strchr("$\"`\\", *word)) {
-            *ptr++ = '\\';
+        // Copy the word into the output buffer with appropriate escapes
+        // if using double-quotes.
+        for (; *word; word++) {
+            if (quote == '"') {
+                if (strchr("$\"`\\", *word)) {
+                    *ptr++ = '\\';
+                }
+            }
+            *ptr++ = *word;
         }
+
+        // Add closing quote if required.
+        if (quote) {
+            *ptr++ = quote;
         }
-        *ptr++ = *word;
-    }
 
-    // Add closing quote if required.
-    if (quote) {
-        *ptr++ = quote;
-    }
-
-    // Append space or terminating null.
-    if (argv[1]) {
-        *ptr++ = ' ';
-    } else {
-        *ptr = '\0';
-    }
+        // Append space or terminating null.
+        if (argv[1]) {
+            *ptr++ = ' ';
+        } else {
+            *ptr = '\0';
+        }
     }
 
     //fprintf(stderr, "===%s===\n", cmdline);
@@ -392,9 +392,9 @@ interposer_argv_from_environ(int *p_argc)
     char **av;
     av = *_NSGetArgv();
     if (p_argc) {
-    int i;
-    for (i = 0; av[i]; i++)
-    *p_argc = i;
+        int i;
+        for (i = 0; av[i]; i++)
+            *p_argc = i;
     }
     return av;
 #else   /*!__APPLE__*/
@@ -404,27 +404,27 @@ interposer_argv_from_environ(int *p_argc)
     // In case we end up getting called 'late', make sure to remember the
     // original location of the environment block.
     if (! orig_environ)
-    orig_environ = environ;
+        orig_environ = environ;
     
     p = orig_environ - 2;
 
     if (*p) {
-    // For this value we need a number smaller than a pointer but
-    // larger than any possible argc value. Since ARG_MAX must
-    // include the pointer to the argument as well as the argument
-    // itself, the number of pointers which would fit into ARG_MAX
-    // bytes is a conservative estimate.
-    unsigned long not_ptr = ARG_MAX/sizeof(char *);
-    unsigned long p2i;
-    do {
-        p2i = (unsigned long) *--p;
-    } while (p2i > not_ptr);
-    if (p_argc)
-        *p_argc = (int)p2i;
-    p++;
-    return p;
+        // For this value we need a number smaller than a pointer but
+        // larger than any possible argc value. Since ARG_MAX must
+        // include the pointer to the argument as well as the argument
+        // itself, the number of pointers which would fit into ARG_MAX
+        // bytes is a conservative estimate.
+        unsigned long not_ptr = ARG_MAX/sizeof(char *);
+        unsigned long p2i;
+        do {
+            p2i = (unsigned long) *--p;
+        } while (p2i > not_ptr);
+        if (p_argc)
+            *p_argc = (int)p2i;
+        p++;
+        return p;
     } else {
-    return NULL;
+        return NULL;
     }
 #endif  /*!__APPLE__*/
 }
@@ -445,11 +445,11 @@ interposer_early_init(void)
     // Must be done pre-main because many programs modify argv.
     // Even some option parsers (e.g. GNU getopt) do so.
     if (interposer_cmdline[0] == '?') {
-    char **mav;
+        char **mav;
 
-    if ((mav = interposer_argv_from_environ(NULL))) {
-        (void)interposer_requote(mav, interposer_cmdline);
-    }
+        if ((mav = interposer_argv_from_environ(NULL))) {
+            (void)interposer_requote(mav, interposer_cmdline);
+        }
     }
 
     // This is best gotten "early" because an untold amount of
@@ -469,9 +469,9 @@ static void
 interposer_late_init(const char *call)
 {
     if (!interposer_early_initialized)
-    return;
+        return;
     if (interposer_late_initialized++)
-    return;
+        return;
 
     // The "receiver" lib must have its own initializer. Call it now.
     // Interception is off by default and must be enabled here.
@@ -485,21 +485,21 @@ interposer_finalize(void)
     void (*final)(void);
 
     if (!interposer_is_finalized) {     // belt and suspenders
-    interposer_is_finalized = 1;
+        interposer_is_finalized = 1;
 
-    // A trivial program may reach this point without having
-    // made any calls which would trigger the late initializer,
-    // so make sure it's been run. [Turned off because we're now
-    // wiring late-init into early-init].
-    //if (!interposer_late_initialized)
-        //interposer_late_init("finalize");
+        // A trivial program may reach this point without having
+        // made any calls which would trigger the late initializer,
+        // so make sure it's been run. [Turned off because we're now
+        // wiring late-init into early-init].
+        //if (!interposer_late_initialized)
+            //interposer_late_init("finalize");
 
-    // The "receiver" lib may have its own finalizer.
-    if (interposer_is_active) {
-        final = (void (*)(void))dlsym(_RTLD_LOCAL_, INTERPOSED_FINALIZE);
-        if (final)
-        final();
-    }
+        // The "receiver" lib may have its own finalizer.
+        if (interposer_is_active) {
+            final = (void (*)(void))dlsym(_RTLD_LOCAL_, INTERPOSED_FINALIZE);
+            if (final)
+                final();
+        }
     }
 }
 
@@ -514,7 +514,7 @@ interposer_get_real(const char *call)
     return real;
 }
 
-// We must always intercept the chdir call, even when no explicit
+// We must always intercept the chdir call even when no explicit
 // wrapper is needed. The reason is that certain things done at
 // late-init time, most obviously calculation of absolute paths,
 // can be confused by a cd. But if we intercept chdir we can do that

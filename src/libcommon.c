@@ -765,6 +765,8 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
     // Stash the path to argv[0] asap because it could be modified.
     (void)putil_getexecpath();
 
+    heap_init();
+
     // For a reason I don't understand, and would have to read
     // the Perl sources to learn, re-setting env vars with
     // putenv() causes perl to dump core though modifying them

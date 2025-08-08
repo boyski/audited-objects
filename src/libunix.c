@@ -39,6 +39,7 @@
 #include "AO.h"
 #include "CA.h"
 #include "CODE.h"
+#include "HEAP.h"
 #include "PA.h"
 #include "RE.h"
 #include "TRY.h"
@@ -1168,6 +1169,7 @@ interposed_finalize(void)
      */
     code_fini();
     vb_fini();
+    heap_fini();
 }
 
 /// Interpose over the _exit() function.
@@ -1191,6 +1193,7 @@ _exit_wrapper(const char *call, void (*next) (int), int status)
         _audit_end(call, EXITING, status);
         code_fini();
         vb_fini();
+        heap_fini();
     }
 
     (*next)(status);

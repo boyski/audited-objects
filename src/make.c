@@ -21,6 +21,7 @@
 #include "AO.h"
 
 #include "CA.h"
+#include "HEAP.h"
 #include "MAKE.h"
 #include "PA.h"
 
@@ -60,15 +61,15 @@ make_init(CCS exe)
         } else if (access(fragment, R_OK)) {
             putil_syserr(0, fragment);
         } else {
-            CS mf, ev;
+            CS mf;
 
             if ((mf = putil_getenv("MAKEFILES"))) {
                 if (!strstr(mf, fragment)) {
-                    asprintf(&ev, "MAKEFILES=%s %s", fragment, mf);
+                    CS ev = heap_sprintf("MAKEFILES=%s %s", fragment, mf);
                     putil_putenv(ev);
                 }
             } else {
-                asprintf(&ev, "MAKEFILES=%s", fragment);
+                CS ev = heap_sprintf("MAKEFILES=%s", fragment);
                 putil_putenv(ev);
             }
             vb_printf(VB_OFF, "export MAKEFILES=%s", putil_getenv("MAKEFILES"));

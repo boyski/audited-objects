@@ -59,9 +59,11 @@ heap_init(void)
 void *
 heap_save(void *saveptr)
 {
-    cJSON *saved = cJSON_CreateString(""); // Use a static string as a placeholder
-    saved->valuestring = (char *)saveptr;  // Overwrite placeholder with the void *
-    TRY(cJSON_AddItemToArray(HeapJson, saved), "cJSON_AddItemToArray()");
+    if (getenv("AO_DEBUG")) {
+        cJSON *saved = cJSON_CreateString(""); // Use a static string as a placeholder
+        saved->valuestring = (char *)saveptr;  // Replace placeholder with saveptr
+        TRY(cJSON_AddItemToArray(HeapJson, saved), "cJSON_AddItemToArray()");
+    }
     return saveptr;
 }
 
@@ -89,15 +91,15 @@ heap_free(void *ptr)
 void
 heap_fini(void)
 {
-#ifdef TODO
-    if (vb_bitmatch(VB_TMP)) {
-        CS jsonstr = cJSON_Print(HeapJson);
-        vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr);  causes core dump
-        free(jsonstr);
+    if (HeapJson && getenv("AO_DEBUG")) {
+        if (vb_bitmatch(VB_TMP)) {
+            CS jsonstr = cJSON_Print(HeapJson);
+            vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr); // causes core dump
+            free(jsonstr);
+        }
+        cJSON_Delete(HeapJson);
+        HeapJson = NULL;
     }
-#endif
-    cJSON_Delete(HeapJson);
-    HeapJson = NULL;
 }
 
 

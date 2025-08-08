@@ -273,12 +273,14 @@ _relink:
 .PHONY: relink
 relink: _relink all
 
-TESTS := propa propm
+TESTS := json propa propm
 TARGETS += $(TESTS)
 
-$(TESTS): CFLAGS += -DUNIT_TEST
-$(TESTS): $$(@).c heap.c putil.c | $$(@D)
-	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
+json: extras := heap.c propm.c putil.c vb.c
+propm: extras := heap.c putil.c
+$(TESTS): $$(@).c $$(extras) | $$(@D)
+	$(strip $(CC) -o $@ $^ $(GFLAGS) $(CFLAGS) \
+	  -DUNIT_TEST_$(basename $(@F)) \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
 .PHONY: tests

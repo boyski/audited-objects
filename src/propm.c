@@ -44,7 +44,7 @@ _find_file_up(CCS ending, CS dir)
     if (dir) {
         dir = putil_realpath(dir, 1);
     } else {
-        TRY(dir = (CS)util_get_cwd(), "util_get_cwd()");
+        TRY(dir = getcwd(NULL, 0), "getcwd()");
     }
 
     while (strcmp(dir, "/")) {
@@ -414,7 +414,7 @@ prop_dump(void)
     }
 }
 
-#ifdef UNIT_TEST
+#ifdef UNIT_TEST_propm
 
 #include "Putil/putil.h"
 
@@ -443,6 +443,6 @@ main(void)
     heap_fini();
     return 0;
 }
-#endif
+#endif // UNIT_TEST_propm
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

@@ -42,7 +42,6 @@ extern int util_pathcmp(const void *, const void *);
 unsigned char * util_map_file(CCS, int, off_t, uint64_t);
 extern void util_unmap_file(unsigned char *, uint64_t);
 extern CS util_requote_argv(CS const *);
-extern CCS util_get_cwd(void);
 extern CCS util_get_rwd(void);
 extern CCS util_get_logname(void);
 extern CCS util_get_groupname(void);

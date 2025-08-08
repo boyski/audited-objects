@@ -167,4 +167,14 @@ json_parse(CCS json_data)
     return cJSON_Parse(json_data);
 }
 
+#ifdef UNIT_TEST_json
+int
+main(void)
+{
+    // Exercise some basic JSON manipulations.
+
+    return 0;
+}
+#endif // UNIT_TEST_json
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

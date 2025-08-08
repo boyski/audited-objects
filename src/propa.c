@@ -137,7 +137,7 @@ prop_dump(void)
     system("set -x; env | grep ^AO_ 1>&2");
 }
 
-#ifdef UNIT_TEST
+#ifdef UNIT_TEST_propa
 int
 main(void)
 {
@@ -158,6 +158,6 @@ main(void)
 
     return 0;
 }
-#endif
+#endif // UNIT_TEST_propa
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

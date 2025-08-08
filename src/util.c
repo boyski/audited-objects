@@ -204,27 +204,6 @@ util_requote_argv(CS const *argv)
     return cmdline;
 }
 
-/// Wrapper over getcwd(3) which returns a malloc-ed buffer.
-/// @return an allocated buffer
-CCS
-util_get_cwd(void)
-{
-    CS cwd;
-#if defined(linux)
-    cwd = getcwd(NULL, 0);
-#else
-    size_t len;
-
-    len = putil_path_max() + 1;
-    TRY(cwd = malloc(len), "malloc()");
-    if (!getcwd(cwd, len)) {
-        FREE(cwd);
-        cwd = NULL;
-    }
-#endif
-    return cwd;
-}
-
 /// Calculate the "relative working directory", defined
 /// to be the cwd as measured from the project base dir.
 /// @return an allocated buffer
@@ -240,7 +219,7 @@ util_get_rwd(void)
         plen = strlen(pbase);
     }
 
-    TRY(cwd = util_get_cwd(), "util_get_cwd()");
+    TRY(cwd = getcwd(NULL, 0), "getcwd()");
     if (pbase && !pathncmp(cwd, pbase, plen)) {
         CCS p;
 
@@ -338,7 +317,8 @@ util_strtrim(CS str)
 {
     CS start, end;
 
-    for (start = str; ISSPACE(*start); start++);
+    for (start = str; ISSPACE(*start); start++)
+        ;
     if (start > str) {
         (void)memmove(str, start, strlen(str));
     }

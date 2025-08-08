@@ -371,4 +371,14 @@ code_fini(void)
     // Nothing to do here.
 }
 
+#ifdef UNIT_TEST_code
+int
+main(void)
+{
+    // Exercise some basic hashing functions.
+
+    return 0;
+}
+#endif // UNIT_TEST_code
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

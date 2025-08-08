@@ -941,7 +941,7 @@ main(int argc, CS *argv)
             _usage(1);
         }
 
-        TRY(cwd = util_get_cwd(), "util_get_cwd()");
+        TRY(cwd = getcwd(NULL, 0), "getcwd()");
 
         // The auditor ignores anything it considers to be a temp
         // file, which can cause terribly confusing behavior if

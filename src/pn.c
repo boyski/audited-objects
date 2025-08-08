@@ -103,7 +103,7 @@ pn_new(CCS path, int use_cwd)
         } else {
             CCS cwd;
 
-            if ((cwd = util_get_cwd())) {
+            if ((cwd = getcwd(NULL, 0))) {
                 if (asprintf((CS *)&abspath, "%s/%s", cwd, path) < 0) {
                     FREE(cwd);
                     return NULL;

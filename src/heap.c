@@ -95,12 +95,7 @@ heap_free(void *ptr)
 void
 heap_fini(void)
 {
-    if (HeapJson && getenv("AO_DEBUG")) {
-        if (vb_bitmatch(VB_TMP)) {
-            CS jsonstr = cJSON_Print(HeapJson);
-            vb_printf(VB_TMP, "Freeing:\n%s\n", jsonstr); // causes core dump
-            FREE(jsonstr);
-        }
+    if (HeapJson) {
         cJSON_Delete(HeapJson);
         HeapJson = NULL;
     }

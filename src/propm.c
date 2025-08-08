@@ -324,6 +324,7 @@ prop_dump(void)
 int
 main(void)
 {
+    heap_init();
     prop_init(putil_getexecpath(), "ao_config.json");
     printf("Starting properties:\n");
     system("env | grep ^AO_");
@@ -340,8 +341,9 @@ main(void)
     bool answer = prop_is_true(prop);
     printf("PROP: %s='%s'\n", prop, answer ? "true" : "false");
     prop_fini();
-    printf("\nEnding properties:\n");
+    printf("\nFinal properties:\n");
     system("env | grep ^AO_");
+    heap_fini();
     return 0;
 }
 #endif

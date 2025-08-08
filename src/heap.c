@@ -73,8 +73,8 @@ CS
 heap_sprintf(const char *fmt, ...)
 {
     va_list args;
-    CS newstr;
     
+    CS newstr;
     va_start(args, fmt);
     TRY(vasprintf(&newstr, fmt, args) != -1, "vasprintf()");
     va_end(args);

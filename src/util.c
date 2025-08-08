@@ -130,7 +130,7 @@ util_requote_argv(CS const *argv)
     for (cmdlen =  0, i = 0; argv[i]; i++) {
         cmdlen += (strlen(argv[i]) * 2) + 3;
     }
-    cmdline = putil_malloc(cmdlen);
+    TRY(cmdline = malloc(cmdlen), "malloc()");
 
     // There are 4 viable POSIX quoting strategies: (1) use only
     // backslashes (no quotes), (2) use double quotes and escape
@@ -216,7 +216,7 @@ util_get_cwd(void)
     size_t len;
 
     len = putil_path_max() + 1;
-    cwd = (CS)putil_malloc(len);
+    TRY(cwd = malloc(len), "malloc()");
     if (!getcwd(cwd, len)) {
         FREE(cwd);
         cwd = NULL;
@@ -429,9 +429,9 @@ util_find_fsname(CCS path, CS buf, size_t len)
             fstypes fsnode;
             char *lnbuf, *mtbuf, *fsbuf;
 
-            lnbuf = putil_malloc(putil_path_max() + 1);
-            mtbuf = putil_malloc(putil_path_max() + 1);
-            fsbuf = putil_malloc(putil_path_max() + 1);
+            TRY(lnbuf = malloc(putil_path_max() + 1), "malloc()");
+            TRY(mtbuf = malloc(putil_path_max() + 1), "malloc()");
+            TRY(fsbuf = malloc(putil_path_max() + 1), "malloc()");
 
             while (fgets(lnbuf, putil_path_max() + 1, mtab) && !feof(mtab)) {
                 if (sscanf(lnbuf, "%*s %s %s", mtbuf, fsbuf) == 2) {
@@ -964,7 +964,7 @@ util_encode_minimal(CCS instring)
     assert(instring);
 
     inlen = outlen = strlen(instring) + CHARSIZE;
-    outstring = (CS)putil_malloc(inlen);
+    TRY(outstring = malloc(inlen), "malloc()");
 
     for (i = j = 0; i < inlen; i++) {
         if (instring[i] == '%' || instring[i] == ',' || instring[i] == '\n') {
@@ -999,16 +999,13 @@ util_encode_minimal(CCS instring)
 char *
 util_unescape(CCS string, int length, int *olen)
 {
-    int alloc = (length ? length : (int)strlen(string)) + 1;
-    char *ns = (char *)putil_malloc(alloc);
     unsigned char in;
     int strindex = 0;
     long hex;
+    int alloc = (length ? length : (int)strlen(string)) + 1;
+    char *ns;
 
-    if (!ns) {
-        return NULL;
-    }
-
+    TRY(ns = malloc(alloc), "malloc()");
     while (--alloc > 0) {
         in = *string;
         if (('%' == in) && ISXDIGIT(string[1]) && ISXDIGIT(string[2])) {

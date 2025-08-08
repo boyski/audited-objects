@@ -118,7 +118,7 @@ pn_new(CCS path, int use_cwd)
         // Then canonicalize the path (meaning that all "../"
         // sequences and redundant slashes are removed).
         // Also, backslashes are changed to forward slashes.
-        canonpath = (CS)putil_malloc(strlen(abspath) + 1);
+        TRY(canonpath = malloc(strlen(abspath) + 1), "malloc()");
         if (_pn_path_canon(abspath, strchr(abspath, '\0') + CHARSIZE,
                         canonpath, canonpath + strlen(abspath) + 1,
                         "\\/", '/') < 0) {
@@ -130,10 +130,10 @@ pn_new(CCS path, int use_cwd)
         FREE(abspath);
         // Finally, set up the object with its canonicalized absolute path
         // plus the PRP offset if any.
-        pn = (pn_o)putil_malloc(sizeof(*pn));
+        TRY(pn = (pn_o)malloc(sizeof(*pn)), "malloc()");
         pn->pn_abs = canonpath;
     } else {
-        pn = (pn_o)putil_malloc(sizeof(*pn));
+        TRY(pn = (pn_o)malloc(sizeof(*pn)), "malloc()");
         pn->pn_abs = _pn_make_project_relative(path);
     }
 

@@ -612,7 +612,7 @@ ca_merge(ca_o leader, ca_o donor)
                                               1) * CHARSIZE);
         strcat((CS)leader->ca_subs, sub);
     } else {
-        leader->ca_subs = (CCS)putil_malloc((strlen(sub) + 1) * CHARSIZE);
+        TRY(leader->ca_subs = malloc((strlen(sub) + 1) * CHARSIZE), "malloc()");
         strcpy((CS)leader->ca_subs, sub);
     }
     FREE(sub);
@@ -1078,7 +1078,7 @@ _ca_format_cooked_palist(ca_o ca)
     format_palist_s fpstruct;
 
     fpstruct.fp_bufsize = AUDIT_BUF_INIT_SIZE;
-    fpstruct.fp_buf = (CS)putil_malloc(fpstruct.fp_bufsize);
+    TRY(fpstruct.fp_buf = malloc(fpstruct.fp_bufsize), "malloc()");
     fpstruct.fp_buf[0] = '\0';
     fpstruct.fp_bufnext = 0;
 
@@ -1202,7 +1202,7 @@ ca_set_line(ca_o ca, CCS line)
         size_t nlen;
 
         // Turn newline tokens back into actual newlines.
-        ca->ca_line = (CCS)putil_malloc((strlen(line) + 1) * CHARSIZE);
+        TRY(ca->ca_line = malloc((strlen(line) + 1) * CHARSIZE), "malloc()");
         nlen = strlen(CSV_NEWLINE_TOKEN);
         for (l1 = (CS)line, l2 = (CS)ca->ca_line; *l1; ) {
             if (l1[0] == CSV_NEWLINE_TOKEN[0] && !strncmp(l1, CSV_NEWLINE_TOKEN, nlen)) {

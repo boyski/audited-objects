@@ -100,6 +100,7 @@
 #include "CODE.h"
 #include "FREE.h"
 #include "PROP.h"
+#include "TRY.h"
 #include "ZIPS.h"
 
 // Define inline xxhash routines with suggested tuning.
@@ -302,7 +303,7 @@ code_from_path(CCS path, CS buf, size_t len)
         if (size == 0) {
             data = fdata = NULL;
         } else if (size <= map_cutoff || no_map) {
-            data = mdata = putil_malloc(size);
+            TRY(data = mdata = malloc(size), "malloc()");
             if (util_read_all(fd, mdata, size) != (ssize_t)size) {
                 putil_syserr(0, path);
                 FREE(mdata);
@@ -315,7 +316,7 @@ code_from_path(CCS path, CS buf, size_t len)
 
             // The mapping may need to be writeable so we can null out timestamps.
             // Examine the first few bytes before mapping to see if write is needed.
-            fdata = putil_malloc(lookahead);
+            TRY(fdata = malloc(lookahead), "malloc()");
             if ((util_read_all(fd, fdata, lookahead) != (ssize_t)lookahead) ||
                         _code_needs_patching(fdata, lookahead)) {
                 prot |= PROT_WRITE;

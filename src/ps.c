@@ -36,6 +36,7 @@
 #include "PN.h"
 #include "PROP.h"
 #include "PS.h"
+#include "TRY.h"
 
 #include "hash.h"
 
@@ -413,7 +414,7 @@ ps_stat(ps_o ps, int want_dcode)
         // We can derive this datum even for files which don't exist
         // by falling back to the parent directory, recursively.
         len = putil_path_max() + 1;
-        fs = (CS)putil_malloc(len);
+        TRY(fs = malloc(len), "malloc()");
         (void)util_find_fsname(path, fs, len);
 
         // Special case for ClearCase MVFS - view-private files

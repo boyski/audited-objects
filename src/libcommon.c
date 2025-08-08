@@ -893,8 +893,7 @@ _init_auditlib(CCS call, CCS exe, CCS cmdstr)
                 elen += strlen(*envp) + 1;
             }
 
-            eblock = (CS)putil_malloc(elen);
-
+            TRY(eblock = malloc(elen), "malloc()");
             for (envp = environ, end = eblock; *envp && elen > 0; envp++) {
                 if (!strstr(*envp, "TRACK_ENV")) {
                     if (!var_re || re_match__(var_re, *envp)) {

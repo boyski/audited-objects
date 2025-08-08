@@ -127,14 +127,14 @@ _interposer_preload_off(const char *so, char *const envp[], int all)
 
             // Copy the EV into a buffer we can modify with impunity,
             // then snip it into a name/value pair.
-            ldpname = putil_malloc(evlen + 2);
+            TRY(ldpname = malloc(evlen + 2), "malloc()");
             strcpy(ldpname, ev);
             if (!(ldpath = strchr(ldpname, '='))) {
                 return; // can't happen but makes gcc -fanalyzer happier
             }
 
             // Start the new construction buffer with "<EV>=" ...
-            nbuf = putil_malloc(evlen + 2);
+            TRY(nbuf = malloc(evlen + 2), "malloc()");
             strcpy(nbuf, ldpname);
             strcat(nbuf, "=");
 
@@ -240,7 +240,7 @@ _unix_read_available(int fd)
     CS buf;
     ssize_t bufsize = 1024, len, num;
 
-    buf = putil_malloc(bufsize);
+    TRY(buf = malloc(bufsize), "malloc()");
 
     for (len = 0, buf[0] = '\0';;) {
         num = read(fd, buf + len, bufsize - len - 1);
@@ -310,7 +310,7 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
     path = argv[0];
 
     ports = prop_get_ulong(P_MONITOR_LISTENERS);
-    listeners = putil_malloc(ports * sizeof(int));
+    TRY(listeners = malloc(ports * sizeof(int)), "malloc()");
 
     // If a logfile is requested, fork a "tee" and connect
     // stdout and stderr to it. This requires that we trust

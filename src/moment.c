@@ -34,6 +34,10 @@
 
 #include "AO.h"
 
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
 #include <math.h>
 
 #include "MOMENT.h"
@@ -41,108 +45,69 @@
 #include "TRY.h"
 
 /// @cond static
-#define MILLIS_PER_SECOND                               1000
-#define NANOS_PER_MILLI                                 1000000
-#define NANOS_PER_SECOND                                1000000000
+#define NANOS_PER_SECOND                                1000000000u
 /// @endcond static
 
-/// Return true if the provided time value is set to a legal time
-/// value later than the epoch.
+/// True iff the provided time value is legal and later than the epoch.
 /// @param[in] moment   a moment_s struct to be checked
-/// @return 0 if the time value is at or before the epoch
-int
+/// @return false if the time value is at or before the epoch
+bool
 moment_is_set(moment_s moment)
 {
-    return (moment.ntv_sec + (moment.ntv_nsec / NANOS_PER_SECOND)) > 0;
+    return (moment.ntv_sec + (moment.ntv_nsec % NANOS_PER_SECOND)) > 0;
 }
 
-/// Return the current system time as a 'moment'.
-/// Similar to gettimeofday() but (a) works on Windows and Unix and
-/// (b) uses nanosecond units rather than microseconds. Note that there's
-/// no magic; actual time resolution is that of the underlying platform
-/// (which is microseconds on Unix and 10 milliseconds on Windows).
+/// Return the current system time as a 'moment' with nanosecond precision.
 /// @param[out] mptr    a pointer to a moment_s to be filled in
-/// @return 0 on success
-int
+void
 moment_get_systime(moment_s *mptr)
 {
-    struct timeval tv;
+    struct timespec ts;
 
-    TRY(gettimeofday(&tv, NULL) != -1, "gettimeofday()");
-    mptr->ntv_sec = tv.tv_sec;
-    mptr->ntv_nsec = tv.tv_usec * 1000;
-
-    return 0;
+    TRY(clock_gettime(CLOCK_REALTIME, &ts) != -1, "clock_gettime()");
+    mptr->ntv_sec = ts.tv_sec;
+    mptr->ntv_nsec = ts.tv_nsec;
 }
 
 /// Set the modification time of the specified file to the specified time.
 /// A time parameter of NULL means 'right now'.
 /// @param[in] mptr     pointer to the new moment, or NULL
 /// @param[in] path     string representing the pathname to be changed
-/// @return 0 on success
-int
+void
 moment_set_mtime(moment_s *mptr, CCS path)
 {
+    struct timespec times[2];
+    // Might as well set access time same as mod time.
     if (mptr) {
-        struct timeval tvp[2];
-
-        // Might as well set access time same as mod time
-        // NOTE: there is a loss of precision (64 bits => 32) here
-        // until the day when a time_t is 64 bits.
-        tvp[0].tv_sec = tvp[1].tv_sec = (time_t)mptr->ntv_sec;
-
-        // We store nanoseconds but can only set to the granularity
-        // of microseconds ...
-        tvp[0].tv_usec = tvp[1].tv_usec = mptr->ntv_nsec / 1000;
-
-        if (utimes(path, tvp)) {
-            putil_syserr(0, path);
-            return -1;
-        }
+        times[0].tv_sec = times[1].tv_sec = mptr->ntv_sec;
+        times[0].tv_nsec = times[1].tv_nsec = mptr->ntv_nsec;
     } else {
-        if (utimes(path, NULL)) {
-            putil_syserr(0, path);
-            return -1;
-        }
+        times[0].tv_sec = times[1].tv_sec = UTIME_NOW;
+        times[0].tv_nsec = times[1].tv_nsec = UTIME_NOW;
     }
-
-    return 0;
+    TRY(utimensat(AT_FDCWD, path, times, 0) != -1, "utimensat()");
 }
 
 /// Subtract the second time value from the first.
 /// The result is stored in the pointer if not null.
-/// @param[in] left     a moment_s representing the first time value
-/// @param[in] right    a moment_s representing the second time value
-/// @param[out] delta   a pointer to a moment_s for the delta, or NULL
+/// @param[in] left     moment_s representing the first time value
+/// @param[in] right    moment_s representing the second time value
+/// @param[out] delta   pointer to a moment_s for the delta, or NULL
 /// @return 1, 0, or -1 as left is greater than, equal to, or less than right
 int
 moment_cmp(moment_s left, moment_s right, moment_s *delta)
 {
-    static long roundoff = -1;
     unsigned long long l, r;
     long long d;
-
-    // Initialize this on the first pass through.
-    if (roundoff == -1) {
-        roundoff = prop_get_long(P_SHOP_TIME_PRECISION);
-        roundoff = (long)pow((double)10, (9 - roundoff));
-    }
 
     l = left.ntv_sec * NANOS_PER_SECOND + left.ntv_nsec;
     r = right.ntv_sec * NANOS_PER_SECOND + right.ntv_nsec;
     d = l - r;
 
-    // Calculate the optional delta *before* any roundoff occurs.
+    // Calculate the optional delta.
     if (delta) {
         delta->ntv_sec  = d / NANOS_PER_SECOND;
         delta->ntv_nsec = (long)(d % NANOS_PER_SECOND);
-    }
-
-    // Optionally round off before comparing.
-    if (roundoff != -1) {
-        l = (l / roundoff) * roundoff;
-        r = (r / roundoff) * roundoff;
-        d = l - r;
     }
 
     if (d == 0) {
@@ -168,44 +133,20 @@ moment_since(moment_s since, moment_s *delta)
 }
 
 /// Subtract a starting Moment from an ending Moment to derive the
-/// duration of an event.
+/// duration of an event. Note that while times are measured from
+/// the epoch and require a long long, it's assumed that durations
+/// will fit in a long since they're relative to a much more
+/// recent time.
 /// @param[in] ended    a moment_s representing the ending time
 /// @param[in] started  a moment_s representing the starting time
-/// @return the duration in milliseconds
+/// @return the duration in nanoseconds
 unsigned long
 moment_duration(moment_s ended, moment_s started)
 {
     moment_s delta;
-    unsigned long duration;
 
     (void)moment_cmp(ended, started, &delta);
-
-    duration = ((unsigned long)delta.ntv_sec * MILLIS_PER_SECOND) +
-        (delta.ntv_nsec / NANOS_PER_MILLI);
-
-    return duration;
-}
-
-/// Parse a textual moment_s field back into a binary form.
-/// @param[out] mptr    pointer to the moment_s to be filled in
-/// @param[in] str      stringified form of the moment_s format
-/// @return 0 on success
-int
-moment_parse(moment_s *mptr, CCS str)
-{
-    char mbuf[MOMENT_BUFMAX], *nsec;
-
-    strcpy(mbuf, str);
-    if ((nsec = strchr(mbuf, '.'))) {
-        *nsec++ = '\0';
-        mptr->ntv_sec = putil_strtoll(mbuf, NULL, CSV_RADIX);
-        mptr->ntv_nsec = strtol(nsec, NULL, CSV_RADIX);
-    } else {
-        memset(mptr, 0, sizeof(moment_s));
-        return 1;
-    }
-
-    return 0;
+    return (delta.ntv_sec * NANOS_PER_SECOND) + delta.ntv_nsec;
 }
 
 /// Format a Moment into the canonical string format. May use
@@ -215,89 +156,26 @@ moment_parse(moment_s *mptr, CCS str)
 /// @param[in] bufmax   the size of the passed-in buffer
 /// @return the formatted string
 CCS
-moment_format(moment_s moment, CS buf, size_t bufmax)
+moment_format(moment_s moment)
 {
-    char secbuf[MOMENT_BUFMAX], nsecbuf[MOMENT_BUFMAX];
-
-    buf[0] = '\0';
-    (void)util_format_to_radix(CSV_RADIX, secbuf, charlen(secbuf),
-        moment.ntv_sec);
-    (void)util_format_to_radix(CSV_RADIX, nsecbuf, charlen(nsecbuf),
-        moment.ntv_nsec);
-    snprintf(buf, bufmax, "%s.%s", secbuf, nsecbuf);
-    return buf;
+    char buf[64]; // easily big enough to hold any formatted moment
+    (void)util_format_to_radix(COMPACT_RADIX, buf, sizeof(buf),
+        (moment.ntv_sec * NANOS_PER_SECOND) + moment.ntv_nsec);
+    return strdup(buf);
 }
 
-/// Formats a Moment into a sec:millisec string format.
-/// @param[in] moment   the moment struct to be formatted
-/// @param[out] buf     a buffer to hold the formatted string
-/// @param[in] bufmax   the size of the passed-in buffer
-/// @return the formatted string
-CCS
-moment_format_milli(moment_s moment, CS buf, size_t bufmax)
+/// Parse a textual moment_s field back into a binary form.
+/// @param[out] mptr    pointer to the moment_s to be filled in
+/// @param[in] str      stringified form of the moment_s format
+/// @return 0 on success
+int
+moment_parse(moment_s *mptr, CCS str)
 {
-    buf[0] = '\0';
-    snprintf(buf, bufmax, "%lld.%03ld", moment.ntv_sec, moment.ntv_nsec / NANOS_PER_MILLI);
-    return buf;
-}
-
-/// Format a Moment into a human-readable ISO8601 string format.
-/// @param[in] moment   the moment struct to be formatted
-/// @param[out] buf     a buffer to hold the formatted string
-/// @param[in] bufmax   the size of the passed-in buffer
-/// @return the formatted string
-CCS
-moment_format_vb(moment_s moment, CS buf, size_t bufmax)
-{
-    time_t seconds;
-    struct tm *ptm;
-    char lbuf[256];
-
-    seconds = (time_t)moment.ntv_sec;
-
-    if (!(ptm = localtime(&seconds))) {
-        putil_syserr(2, "localtime()");
-    }
-
-    if (!strftime(lbuf, charlen(lbuf), "%H:%M:%S", ptm)) {
-        putil_syserr(2, "strftime()");
-    }
-
-    snprintf(buf, bufmax, "%s,%03ld",
-        lbuf, moment.ntv_nsec / NANOS_PER_MILLI);
-    return buf;
-}
-
-/// Format a Moment into a standard id-style string
-/// If the parameter is NULL, the moment is 'now'.
-/// @param[in] mp   pointer to a struct to be formatted
-/// @return the allocated, formatted string
-CCS
-moment_format_id(moment_s *mp)
-{
-    time_t seconds;
-    struct tm *ptm;
-    char buf[256];
-    CCS momstr;
-
-    if (mp) {
-        seconds = (time_t)mp->ntv_sec;
-    } else {
-        moment_s m2;
-        moment_get_systime(&m2);
-        seconds = (time_t)m2.ntv_sec;
-    }
-
-    if (!(ptm = gmtime(&seconds))) {
-        putil_syserr(2, "gmtime()");
-    }
-
-    if (!strftime(buf, charlen(buf), "%Y%m%d%H%M%S", ptm)) {
-        putil_syserr(2, "strftime()");
-    }
-
-    TRY(momstr = strdup(buf), "strdup()");
-    return momstr;
+    unsigned long long nanos = strtoull(str, NULL, COMPACT_RADIX);
+    mptr->ntv_sec = nanos / NANOS_PER_SECOND;
+    mptr->ntv_nsec = nanos % NANOS_PER_SECOND;
+    assert(((mptr->ntv_sec * NANOS_PER_SECOND) + mptr->ntv_nsec) == nanos);
+    return 0;
 }
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

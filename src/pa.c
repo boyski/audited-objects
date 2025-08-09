@@ -236,11 +236,11 @@ CCS
 pa_toCSVString(pa_o pa)
 {
     int len;
-    char timestamp[MOMENT_BUFMAX];
+    CCS fmt_time;
     CS pabuf;
     CCS buf = NULL;
 
-    (void)moment_format(pa->pa_timestamp, timestamp, charlen(timestamp));
+    TRY(fmt_time = moment_format(pa->pa_timestamp), "moment_format()");
 
     // *INDENT-OFF*
     len = asprintf(&pabuf,
@@ -255,7 +255,7 @@ pa_toCSVString(pa_o pa)
                 "%s%s",         // 9  - CCODE
         pa->pa_op, FS1,
         pa->pa_call, FS1,
-        timestamp, FS1,
+        fmt_time, FS1,
         pa->pa_pid, FS1,
         pa->pa_depth, FS1,
         pa->pa_ppid, FS1,
@@ -263,6 +263,8 @@ pa_toCSVString(pa_o pa)
         pa_get_pccode(pa), FS1,
         pa_get_ccode(pa), FS1);
     // *INDENT-ON*
+
+    FREE(fmt_time);
 
     if (len < 0) {
         putil_syserr(0, "pa_toCSVString");

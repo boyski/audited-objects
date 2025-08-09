@@ -831,8 +831,7 @@ util_format_to_radix(unsigned radix, CS buf, size_t len, uint64_t val)
     uint64_t d;
 
 /// @cond static
-// It's important that lower case be used for base-36 for compatibility
-// with the way Java works,
+// Lower case is preferred for base-36.
 #define CHRS "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 /// @endcond static
 

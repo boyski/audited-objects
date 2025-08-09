@@ -138,7 +138,7 @@ ps_newFromCSVString(CCS csv)
     ps_set_fsname(ps, fsname && *fsname != '?' ? fsname : NULL);
     ps_set_moment_str(ps, moment);
     ps_set_size(ps, strtoul(size, NULL, 10));
-    ps_set_mode(ps, strtoul(mode, NULL, CSV_RADIX));
+    ps_set_mode(ps, strtoul(mode, NULL, COMPACT_RADIX));
     ps_set_dcode(ps, dcode);
 
     // The link target is URL-encoded in CSV format.
@@ -297,13 +297,13 @@ _ps_set_cached_dcode(ps_o ps, CCS path)
     if (Dcode_Hash_Table && (Dcode_Offset == 0 ||
                              (ps->ps_moment.ntv_sec <
                               (Ref_Time.ntv_sec - Dcode_Offset)))) {
-        char mtime[MOMENT_BUFMAX];
+        CCS fmt_time;
 
-        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
-
-        if (asprintf(&key, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, mtime, FS1, path) < 0) {
+        TRY(fmt_time = moment_format(ps->ps_moment), "moment_format()");
+        if (asprintf(&key, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, fmt_time, FS1, path) < 0) {
             putil_syserr(2, NULL);
         }
+        FREE(fmt_time);
         TRY(dcode = strdup(ps->ps_dcode), "strdup()");
         hash_alloc_insert(Dcode_Hash_Table, key, dcode);
     }
@@ -317,64 +317,21 @@ _ps_get_cached_dcode(ps_o ps, CCS path)
     CCS dcode = NULL;
 
     if (Dcode_Hash_Table) {
-        char mtime[MOMENT_BUFMAX];
+        CCS fmt_time;
         char *keybuf;
 
-        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
-
-        if (asprintf(&keybuf, "%" PRIu64 "%s%s%s%s",
-                   ps->ps_size, FS1, mtime, FS1, path) < 0) {
-            putil_syserr(2, NULL);
-        } else {
-            if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
-                dcode = (CCS)hnode_get(hnp);
-                vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
-            }
-            FREE(keybuf);
+        TRY(fmt_time = moment_format(ps->ps_moment), "moment_format()");
+        TRY(asprintf(&keybuf, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, fmt_time, FS1, path) != -1,
+                "asprintf()");
+        FREE(fmt_time);
+        if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
+            dcode = (CCS)hnode_get(hnp);
+            vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
         }
+        FREE(keybuf);
     }
 
     return dcode;
-}
-
-/*
- * [Is this still true?]
- * Current linux ext3 implementations have a time stamp resolution bug:
- * in-core time resolution is 64 bits, but on-disk resolution is 32 bits
- *
- * the effect is that once file status info is flushed its stat() times
- * will be truncated to seconds
- *
- * this wreaks havoc on programs that record 64 bit timestamps for
- * future reference
- *
- * -- Glenn Fowler -- AT&T Research, Florham Park NJ --
- */
-/// Sets the modification time from the supplied stat structure.
-/// @param[in] path     the path to the file being sampled
-/// @param[out] mptr    a pointer to a moment_s to be filled in
-/// @param[in] stp      a pointer to a valid 'struct stat64'
-/// @return 0 on success
-static int
-_ps_set_modtime(CCS path, moment_s *mptr, struct __stat64 *stp)
-{
-    UNUSED(path);
-
-// Funny little hack-on-hack: many modern Unices hack
-// sub-second resolution into the stat structure and then
-// hide it (for backward compatibility) by defining st_mtime
-// to be a pointer to the seconds part. Therefore, we assume
-// that if st_mtime is defined as a macro then sub-second
-// resolution must be available.
-#if defined(st_mtime)
-    mptr->ntv_sec = stp->st_mtim.tv_sec;
-    mptr->ntv_nsec = stp->st_mtim.tv_nsec;
-#else   // st_mtime
-    mptr->ntv_sec = stp->st_mtime;
-    mptr->ntv_nsec = 0;
-#endif  // st_mtime
-
-    return 0;
 }
 
 /// Sample the contained pathname and store its vital statistics.
@@ -442,10 +399,6 @@ ps_stat(ps_o ps, int want_dcode)
         ps_set_dir(ps);
     }
 
-    if (_ps_set_modtime(path, &(ps->ps_moment), &stbuf)) {
-        putil_syserr(0, path);
-        return -1;
-    }
     if (S_ISLNK(stbuf.st_mode)) {
         ps_set_symlinked(ps);
         if (!ps_get_target(ps)) {
@@ -563,15 +516,15 @@ ps_toCSVString(ps_o ps)
 {
     CCS fsname, target;
     char modebuf[32];
-    char mtime[MOMENT_BUFMAX];
+    CCS fmt_mtime;
     CCS buf;
     int len;
 
     fsname = ps_get_fsname(ps);
 
-    (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
+    TRY(fmt_mtime = moment_format(ps->ps_moment), "moment_format()");
 
-    (void)util_format_to_radix(CSV_RADIX, modebuf, charlen(modebuf),
+    (void)util_format_to_radix(COMPACT_RADIX, modebuf, charlen(modebuf),
         ps_get_mode(ps));
 
     // The link target, present only for link ops. It must be URL
@@ -592,7 +545,7 @@ ps_toCSVString(ps_o ps)
                     "%s",                       // 8 - PNAME
             ps->ps_datatype, FS1,
             (fsname && *fsname) ? fsname : "?", FS1,
-            mtime, FS1,
+            fmt_mtime, FS1,
             ps_get_size(ps), FS1,
             modebuf, FS1,
             ps_get_dcode(ps), FS1,
@@ -605,6 +558,7 @@ ps_toCSVString(ps_o ps)
         putil_syserr(0, buf);
     }
 
+    FREE(fmt_mtime);
     FREE(target);
 
     return buf;
@@ -631,16 +585,17 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, size_t bufmax)
     if (sflag) {
         len = (size_t)snprintf(buf, bufmax, "%-7s %s\n", ps_get_dcode(ps), path);
     } else if (lflag) {
-        char mtime[MOMENT_BUFMAX];
+        CCS fmt_time;
 
-        (void)moment_format(ps->ps_moment, mtime, charlen(mtime));
+        TRY(fmt_time = moment_format(ps->ps_moment), "moment_format()");
 
         len = (size_t)snprintf(buf, bufmax, "dcode=%-7s size=%-10" PRIu64
                          " moment=%s %s\n",
                          ps_get_dcode(ps),
                          ps_get_size(ps),
-                         mtime,
+                         fmt_time,
                          path);
+        FREE(fmt_time);
     } else {
         len = (size_t)snprintf(buf, bufmax, "%-7s %-10" PRIu64 " %s\n",
                          ps_get_dcode(ps),

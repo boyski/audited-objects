@@ -346,12 +346,12 @@ _ca_verbosity_pa(pa_o pa, ca_o ca, CCS action)
 
         timestamp = pa_get_timestamp(pa);
         if (timestamp.ntv_sec) {
-            char tstamp[MOMENT_BUFMAX];
-
-            (void)moment_format(timestamp, tstamp, charlen(tstamp));
+            CCS fmt_time;
+            TRY(fmt_time = moment_format(timestamp), "moment_format()");
             vb_printf(VB_PA, "%s %c %s: (%s %s)", action,
                       pa_get_op(pa), ca_get_prog(ca),
-                      tstamp, pa_get_abs(pa));
+                      fmt_time, pa_get_abs(pa));
+            FREE(fmt_time);
         }
     }
 }
@@ -924,13 +924,10 @@ CCS
 ca_format_header(ca_o ca)
 {
     CS hdr, p;
-    CCS freetext;
-    char started[MOMENT_BUFMAX];
+    CCS started;
     int ret;
 
-    (void)moment_format(ca->ca_starttime, started, charlen(started));
-
-    freetext = ca->ca_freetext ? ca->ca_freetext : "";
+    TRY(started = moment_format(ca->ca_starttime), "moment_format()");
 
     // *INDENT-OFF*
     ret = asprintf(&hdr,
@@ -956,7 +953,7 @@ ca_format_header(ca_o ca)
         ca->ca_duration, FS1,
         ca->ca_host ? ca->ca_host : "?", FS1,
         ca->ca_recycled ? ca->ca_recycled : "", FS1,
-        freetext, FS1,
+        ca->ca_freetext ? ca->ca_freetext : "", FS1,
         // Divider - CommandAction above, Command below
         ca->ca_prog, FS1,
         ca->ca_rwd ? ca->ca_rwd : ".", FS1,
@@ -965,6 +962,8 @@ ca_format_header(ca_o ca)
         ca_get_pathcode(ca), FS1,
         ca->ca_line);
     // *INDENT-ON*
+
+    FREE(started);
 
     if (ret < 0) {
         putil_syserr(2, NULL);

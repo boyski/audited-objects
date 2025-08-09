@@ -228,7 +228,7 @@
 
 /// The conventional radix (base) for stringifying integral values.
 /// Prefer a high-numbered base for compactness.
-#define CSV_RADIX 36
+#define COMPACT_RADIX 36
 
 /// The letter codes by which we indicate file operations.
 /// These are also understood on the server side - changes must be in both!

@@ -307,23 +307,6 @@ vb_printf(long bit, const char *fmt, ...)
             write(2, ": ", 2);
         }
 
-#if 0
-        if (bit != VB_STD && bit != VB_ON) {
-            moment_s now;
-            char nowbuf[MOMENT_BUFMAX];
-
-            moment_get_systime(&now);
-            (void)moment_format_vb(now, nowbuf, charlen(nowbuf));
-            write(2, nowbuf, strlen(nowbuf));
-            write(2, ": ", 2);
-
-            // Makes it easier to see extra verbosity or grep it from a log.
-            if (fputc('=', vbstrm) == EOF) {
-                write(2, "=", 1);
-            }
-        }
-#endif
-
         va_start(ap, fmt);
         if (vfprintf(vbstrm, fmt, ap) < 0) {
             write(2, fmt, strlen(fmt));

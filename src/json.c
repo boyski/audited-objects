@@ -274,6 +274,20 @@ json_dict_count(const json_dict_t *vjd)
     return cJSON_GetArraySize(json_dict->array);
 }
 
+int
+json_dict_iterate(const json_dict_t *vjd, json_callback_t callback, const void *data)
+{
+    json_dict_t *json_dict = (json_dict_t *)vjd;
+    int rc = 0;
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, ((cJSON *)json_dict->array)) {
+        if (callback) {
+            rc += callback(item, data);
+        }
+    }
+    return rc;
+}
+
 void
 json_dict_delete(void *vjd)
 {

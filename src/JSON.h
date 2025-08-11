@@ -32,6 +32,8 @@ typedef int (*json_comp_t)(const void *, const void *);
 typedef json_comp_t json_dict_comp_t;
 typedef json_comp_t json_hash_comp_t;
 
+typedef int (*json_callback_t)(const json_t *, const void *);
+
 typedef struct {
     CCS name;
     json_t *array;
@@ -56,13 +58,13 @@ CCS json_dict_name(const json_dict_t *);
 void json_dict_add(const json_dict_t *, const json_t *);
 json_t *json_dict_lookup(const json_dict_t *, const char *);
 int json_dict_count(const json_dict_t *);
+int json_dict_iterate(const json_dict_t *, json_callback_t, const void *);
 void json_dict_delete(json_t *);
 
 // Intended as a replacement for the Kazlib hash_*() API.
 json_hash_t *json_hash_create(const json_hash_comp_t);
 void json_hash_delete(const void **);
 
-// hash_scan_begin, hash_scan_next, hash_scan_delete, hash_destroy,
 // hash_alloc_insert, hash_lookup
 
 #endif // JSON_H

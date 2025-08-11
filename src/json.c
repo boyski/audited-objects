@@ -164,18 +164,13 @@ json_same(const void *a, const void *b)
 /// Parse a null-terminated string containing JSON data.
 /// @param[in] json_data  null-terminated string in json format
 /// @return a JSON object
-json_t
+json_t *
 json_parse(CCS json_data)
 {
     return cJSON_Parse(json_data);
 }
 
 #ifdef UNIT_TEST_json
-
-typedef struct {
-    cJSON *array;
-    json_dict_comp_t compare;
-} oa_t;
 
 static int
 name_compare(const void *a, const void *b)
@@ -188,16 +183,16 @@ name_compare(const void *a, const void *b)
 }
 
 static int
-_json_dict_index(oa_t *oa, cJSON *item)
+_json_dict_index(json_dict_t *json_dict, cJSON *item)
 {
-    int size = cJSON_GetArraySize(oa->array);
+    int size = cJSON_GetArraySize(json_dict->array);
     int left = 0, right = size;
 
     while (left < right) {
         int middle = left + (right - left) / 2;
-        cJSON *middle_item = cJSON_GetArrayItem(oa->array, middle);
+        cJSON *middle_item = cJSON_GetArrayItem(json_dict->array, middle);
 
-        int cmp = oa->compare(item, middle_item);
+        int cmp = json_dict->compare(item, middle_item);
         if (cmp < 0) {
             right = middle;
         } else {
@@ -220,38 +215,38 @@ create_person(const char *name, int age)
 void *
 json_dict_create(json_dict_comp_t compare)
 {
-    oa_t *oa;
+    json_dict_t *json_dict;
 
-    TRY(oa = malloc(sizeof(oa_t)), "malloc()");
-    TRY(oa->array = cJSON_CreateArray(), "cJSON_CreateArray()");
-    oa->compare = (json_dict_comp_t)compare;
-    return (void *)oa;
+    TRY(json_dict = malloc(sizeof(json_dict_t)), "malloc()");
+    TRY(json_dict->array = cJSON_CreateArray(), "cJSON_CreateArray()");
+    json_dict->compare = (json_dict_comp_t)compare;
+    return (void *)json_dict;
 }
 
 void
-json_dict_add(void *voa, void *vitem)
+json_dict_add(const void *voa, const json_t *vitem)
 {
-    oa_t *oa = (oa_t *)voa;
+    json_dict_t *json_dict = (json_dict_t *)voa;
     cJSON *item = (cJSON *)vitem;
-    int index = _json_dict_index((oa_t *)oa, (cJSON *)item);
-    // TRY(cJSON_InsertItemInArray(oa->array, index, item), "cJSON_InsertItemInArray()");
-    cJSON_InsertItemInArray(oa->array, index, item);
+    int index = _json_dict_index((json_dict_t *)json_dict, (cJSON *)item);
+    // TRY(cJSON_InsertItemInArray(json_dict->array, index, item), "cJSON_InsertItemInArray()");
+    cJSON_InsertItemInArray(json_dict->array, index, item);
 }
 
 void *
 json_dict_get(const void *voa, const char *name)
 {
-    oa_t *oa = (oa_t *)voa;
+    json_dict_t *json_dict = (json_dict_t *)voa;
 
     cJSON *temp = cJSON_CreateObject();
     cJSON_AddStringToObject(temp, "name", name);
     
-    int left = 0, right = cJSON_GetArraySize(oa->array) - 1;
+    int left = 0, right = cJSON_GetArraySize(json_dict->array) - 1;
     while (left <= right) {
         int middle = left + (right - left) / 2;
-        cJSON *middle_item = cJSON_GetArrayItem(oa->array, middle);
+        cJSON *middle_item = cJSON_GetArrayItem(json_dict->array, middle);
         
-        int cmp = oa->compare(temp, middle_item);
+        int cmp = json_dict->compare(temp, middle_item);
         if (cmp == 0) {
             cJSON_Delete(temp);
             return middle_item;
@@ -269,18 +264,18 @@ json_dict_get(const void *voa, const char *name)
 void
 json_dict_delete(void *voa)
 {
-    oa_t *oa = (oa_t *)voa;
-    if (oa && oa->array) {
-        cJSON_Delete(oa->array);
+    json_dict_t *json_dict = (json_dict_t *)voa;
+    if (json_dict && json_dict->array) {
+        cJSON_Delete(json_dict->array);
     }
-    FREE(oa);
+    FREE(json_dict);
 }
 
 int
 main(void)
 {
     // Exercise some basic JSON manipulations.
-    oa_t *people = (oa_t *)json_dict_create(name_compare);
+    json_dict_t *people = (json_dict_t *)json_dict_create(name_compare);
 
     json_dict_add(people, create_person("Charlie", 30));
     json_dict_add(people, create_person("Alice", 25));

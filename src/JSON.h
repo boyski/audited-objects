@@ -21,19 +21,31 @@
 /// @file
 /// @brief Declarations for json.c
 
-// Try to avoid exposing the cJSON API outside of json.c.
-typedef void *json_t;
+///////////////////////////////////////////////////////////////////////////////
+// The goal is to avoid exposing the cJSON API outside of json.c so void
+// types are used instead.
 
+typedef void json_t;
+
+// Standard comparator type to enforce ordering.
 typedef int (*json_dict_comp_t)(const void *, const void *);
+
+typedef struct {
+    json_t *array;
+    json_dict_comp_t compare;
+} json_dict_t;
+
+///////////////////////////////////////////////////////////////////////////////
 
 CCS json_from_ca_csv(CCS);
 int json_same(const void *, const void *);
-json_t json_parse(CCS);
+json_t *json_parse(CCS);
 
-void *json_dict_create(json_dict_comp_t);
-void json_dict_add(void *, void *);
-void *json_dict_get(const void *, const char *);
-void json_dict_delete(void *);
+// Intended as a replacement for the Kazlib dict_*() API.
+json_t *json_dict_create(json_dict_comp_t);
+void json_dict_add(const void *, const json_t *);
+json_t *json_dict_get(const void *, const char *);
+void json_dict_delete(json_t *);
 
 #endif // JSON_H
 

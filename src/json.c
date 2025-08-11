@@ -177,8 +177,7 @@ typedef struct {
     json_dict_comp_t compare;
 } oa_t;
 
-extern int name_compare(const void *a, const void *b);
-int
+static int
 name_compare(const void *a, const void *b)
 {
     cJSON *name_a = cJSON_GetObjectItem((cJSON *)a, "name");
@@ -188,9 +187,8 @@ name_compare(const void *a, const void *b)
     return strcmp(cJSON_GetStringValue(name_a), cJSON_GetStringValue(name_b));
 }
 
-extern int find_insertion_index(oa_t *oa, cJSON *item);
-int
-find_insertion_index(oa_t *oa, cJSON *item)
+static int
+_json_dict_index(oa_t *oa, cJSON *item)
 {
     int size = cJSON_GetArraySize(oa->array);
     int left = 0, right = size;
@@ -210,8 +208,7 @@ find_insertion_index(oa_t *oa, cJSON *item)
     return left;
 }
 
-extern cJSON* create_person(const char *name, int age);
-cJSON*
+static cJSON*
 create_person(const char *name, int age)
 {
     cJSON *person = cJSON_CreateObject();
@@ -236,9 +233,37 @@ json_dict_add(void *voa, void *vitem)
 {
     oa_t *oa = (oa_t *)voa;
     cJSON *item = (cJSON *)vitem;
-    int index = find_insertion_index((oa_t *)oa, (cJSON *)item);
+    int index = _json_dict_index((oa_t *)oa, (cJSON *)item);
     // TRY(cJSON_InsertItemInArray(oa->array, index, item), "cJSON_InsertItemInArray()");
     cJSON_InsertItemInArray(oa->array, index, item);
+}
+
+void *
+json_dict_get(const void *voa, const char *name)
+{
+    oa_t *oa = (oa_t *)voa;
+
+    cJSON *temp = cJSON_CreateObject();
+    cJSON_AddStringToObject(temp, "name", name);
+    
+    int left = 0, right = cJSON_GetArraySize(oa->array) - 1;
+    while (left <= right) {
+        int middle = left + (right - left) / 2;
+        cJSON *middle_item = cJSON_GetArrayItem(oa->array, middle);
+        
+        int cmp = oa->compare(temp, middle_item);
+        if (cmp == 0) {
+            cJSON_Delete(temp);
+            return middle_item;
+        } else if (cmp < 0) {
+            right = middle - 1;
+        } else {
+            left = middle + 1;
+        }
+    }
+    
+    cJSON_Delete(temp);
+    return NULL;
 }
 
 void
@@ -265,8 +290,13 @@ main(void)
     printf("%s\n", json_string);
     FREE(json_string);
 
-    json_dict_delete(people);
+    cJSON *charlie = json_dict_get(people, "Charlie");
+    char *charlie_string = cJSON_Print(charlie);
+    printf("\nCharlie:\n");
+    printf("%s\n", charlie_string);
+    FREE(charlie_string);
 
+    json_dict_delete(people);
     return 0;
 }
 #endif // UNIT_TEST_json

@@ -32,6 +32,7 @@ json_t json_parse(CCS);
 
 void *json_dict_create(json_dict_comp_t);
 void json_dict_add(void *, void *);
+void *json_dict_get(const void *, const char *);
 void json_dict_delete(void *);
 
 #endif // JSON_H

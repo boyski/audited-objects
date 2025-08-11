@@ -142,16 +142,26 @@ int
 main(void)
 {
     // Show auditor properties from the environment.
+    char needbuf[256];
+    (void)snprintf(needbuf, sizeof(needbuf), "%lu", ULONG_MAX);
     for (char **envp = environ; *envp; envp++) {
         if (!strncmp(*envp, ENV_PFX, sizeof(ENV_PFX) - 1)) {
             char *prop = strdup(*envp + 3);
-            char *value = strchr(prop, '=');
-            *value++ = '\0';
-            printf("ENV: %s='%s'\n", prop, value);
+            char *oldval = strchr(prop, '=');
+            *oldval++ = '\0';
+            printf(" ENV: %s='%s'\n", prop, oldval);
             printf("PROP: %s='%s'\n", prop, prop_get_str(prop));
-            printf("PROP: %s='%ld'\n", prop, prop_set_long(prop, UINT_MAX));
-            printf("PROP: %s='%lu'\n", prop, prop_set_ulong(prop, INT_MAX));
-            printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
+            if (strlen(oldval) >= strlen(needbuf)) {
+                printf("PROP: %s=%ld\n", prop, prop_set_long(prop, UINT_MAX));
+                printf("PROP: %s=%lu\n", prop, prop_set_ulong(prop, INT_MAX));
+            } else {
+                printf("PROP: %s too small for %s\n", prop, needbuf);
+            }
+            if (strlen(oldval) >= strlen("Hello")) {
+                printf("PROP: %s='%s'\n", prop, prop_set_str(prop, "Hello"));
+            } else {
+                printf("PROP: %s no room for string\n", prop);
+            }
             FREE(prop);
         }
     }

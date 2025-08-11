@@ -284,6 +284,21 @@ json_dict_delete(void *vjd)
     FREE(json_dict);
 }
 
+json_hash_t *
+json_hash_create(const json_hash_comp_t comparator)
+{
+    UNUSED(comparator);
+    return (json_hash_t *)NULL;
+}
+
+void
+json_hash_delete(const void **vjh)
+{
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    cJSON_Delete(json_hash->table);
+    free(json_hash);
+}
+
 int
 main(void)
 {

@@ -33,7 +33,7 @@ typedef int (*json_dict_comp_t)(const void *, const void *);
 typedef struct {
     CCS name;
     json_t *array;
-    json_dict_comp_t compare;
+    json_dict_comp_t comparator;
 } json_dict_t;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -185,14 +185,13 @@ name_compare(const void *a, const void *b)
 static int
 _json_dict_index(json_dict_t *json_dict, cJSON *item)
 {
-    int size = cJSON_GetArraySize(json_dict->array);
-    int left = 0, right = size;
+    int left = 0, right = cJSON_GetArraySize(json_dict->array);
 
     while (left < right) {
         int middle = left + (right - left) / 2;
         cJSON *middle_item = cJSON_GetArrayItem(json_dict->array, middle);
 
-        int cmp = json_dict->compare(item, middle_item);
+        int cmp = json_dict->comparator(item, middle_item);
         if (cmp < 0) {
             right = middle;
         } else {
@@ -213,14 +212,14 @@ create_person(const char *name, int age)
 }
 
 void *
-json_dict_create(CCS name, json_dict_comp_t compare)
+json_dict_create(CCS name, json_dict_comp_t comparator)
 {
     json_dict_t *json_dict;
 
     TRY(json_dict = malloc(sizeof(json_dict_t)), "malloc()");
     TRY(json_dict->array = cJSON_CreateArray(), "cJSON_CreateArray()");
     json_dict->name = name;
-    json_dict->compare = (json_dict_comp_t)compare;
+    json_dict->comparator = (json_dict_comp_t)comparator;
     return (void *)json_dict;
 }
 
@@ -253,7 +252,7 @@ json_dict_lookup(const json_dict_t *vjd, const char *name)
         int middle = left + (right - left) / 2;
         cJSON *middle_item = cJSON_GetArrayItem(json_dict->array, middle);
         
-        int cmp = json_dict->compare(temp, middle_item);
+        int cmp = json_dict->comparator(temp, middle_item);
         if (cmp == 0) {
             cJSON_Delete(temp);
             return middle_item;
@@ -291,19 +290,21 @@ main(void)
     // Exercise some basic JSON manipulations.
     json_dict_t *people = (json_dict_t *)json_dict_create("People", name_compare);
 
-    json_dict_add(people, create_person("Charlie", 30));
-    json_dict_add(people, create_person("Alice", 25));
-    json_dict_add(people, create_person("Bob", 35));
+    json_dict_add(people, create_person("Loyal", 6));
+    json_dict_add(people, create_person("Leerah", 4));
+    json_dict_add(people, create_person("Lee", 8));
+    json_dict_add(people, create_person("Levi", 11));
+    json_dict_add(people, create_person("Leon", 15));
 
     char *json_string = cJSON_Print(people->array);
     printf("%s\n", json_string);
     FREE(json_string);
 
-    cJSON *charlie = json_dict_lookup(people, "Charlie");
-    char *charlie_string = cJSON_Print(charlie);
-    printf("\nCharlie:\n");
-    printf("%s\n", charlie_string);
-    FREE(charlie_string);
+    cJSON *loyal = json_dict_lookup(people, "Loyal");
+    char *loyal_string = cJSON_Print(loyal);
+    printf("\nLoyal:\n");
+    printf("%s\n", loyal_string);
+    FREE(loyal_string);
 
     printf("\nNumber of %s: %d\n", json_dict_name(people), json_dict_count(people));
 

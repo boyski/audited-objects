@@ -240,7 +240,7 @@ json_dict_add(const json_dict_t *vjd, const json_t *vitem)
 }
 
 void *
-json_dict_lookup(const json_dict_t *vjd, const char *name)
+json_dict_lookup(const json_dict_t *vjd, CCS name)
 {
     json_dict_t *json_dict = (json_dict_t *)vjd;
 
@@ -289,7 +289,7 @@ json_dict_iterate(const json_dict_t *vjd, json_callback_t callback, const void *
 }
 
 void
-json_dict_delete(void *vjd)
+json_dict_delete(const json_t *vjd)
 {
     json_dict_t *json_dict = (json_dict_t *)vjd;
     if (json_dict && json_dict->array) {
@@ -299,14 +299,35 @@ json_dict_delete(void *vjd)
 }
 
 json_hash_t *
-json_hash_create(const json_hash_comp_t comparator)
+json_hash_create(CCS name, const json_hash_comp_t comparator)
 {
-    UNUSED(comparator);
-    return (json_hash_t *)NULL;
+    json_hash_t *json_hash;
+
+    TRY(json_hash = malloc(sizeof(json_hash_t)), "malloc()");
+    TRY(json_hash->table = cJSON_CreateObject(), "cJSON_CreateObject()");
+    json_hash->name = name;
+    json_hash->comparator = (json_hash_comp_t)comparator;
+    return (void *)json_hash;
 }
 
 void
-json_hash_delete(const void **vjh)
+hash_insert(const json_t *vjh, void *thing)
+{
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    UNUSED(json_hash);
+    UNUSED(thing);
+}
+
+
+json_t *
+hash_lookup(CCS name)
+{
+    UNUSED(name);
+    return NULL;
+}
+
+void
+json_hash_delete(const json_t *vjh)
 {
     json_hash_t *json_hash = (json_hash_t *)vjh;
     cJSON_Delete(json_hash->table);
@@ -330,7 +351,7 @@ per_person(const json_t *vjd, const void *data)
 int
 main(void)
 {
-    // Exercise some basic JSON manipulations.
+    // Exercise some basic json_dict manipulations.
     json_dict_t *people = (json_dict_t *)json_dict_create("People", name_compare);
 
     json_dict_add(people, create_person("Loyal", 6));
@@ -355,6 +376,11 @@ main(void)
     json_dict_iterate(people, per_person, "Hello");
 
     json_dict_delete(people);
+
+    // Now exercise some basic json_hash manipulations.
+    json_hash_t *pets = (json_hash_t *)json_hash_create("Pets", name_compare);
+    json_hash_delete(pets);
+
     return 0;
 }
 #endif // UNIT_TEST_json

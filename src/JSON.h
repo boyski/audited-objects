@@ -24,12 +24,14 @@
 // Try to avoid exposing the cJSON API outside of json.c.
 typedef void *json_t;
 
+typedef int (*json_dict_comp_t)(const void *, const void *);
+
 CCS json_from_ca_csv(CCS);
 int json_same(const void *, const void *);
 json_t json_parse(CCS);
 
-void *json_dict_create(void);
-void json_dict_add(void *);
+void *json_dict_create(json_dict_comp_t);
+void json_dict_add(void *, void *);
 void json_dict_delete(void *);
 
 #endif // JSON_H

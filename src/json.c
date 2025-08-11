@@ -313,6 +313,20 @@ json_hash_delete(const void **vjh)
     free(json_hash);
 }
 
+static int
+per_person(const json_t *vjd, const void *data)
+{
+    cJSON *item = (cJSON *)vjd;
+    CCS str = cJSON_Print(item);
+    if (data) {
+        printf("ITEM: %s [%p]\n", str, data);
+    } else {
+        printf("ITEM: %s\n", str);
+    }
+    FREE(str);
+    return 0;
+}
+
 int
 main(void)
 {
@@ -336,6 +350,9 @@ main(void)
     FREE(loyal_string);
 
     printf("\nNumber of %s: %d\n", json_dict_name(people), json_dict_count(people));
+
+    printf("\nIterating:\n");
+    json_dict_iterate(people, per_person, "Hello");
 
     json_dict_delete(people);
     return 0;

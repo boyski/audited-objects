@@ -31,6 +31,7 @@ typedef void json_t;
 typedef int (*json_dict_comp_t)(const void *, const void *);
 
 typedef struct {
+    CCS name;
     json_t *array;
     json_dict_comp_t compare;
 } json_dict_t;
@@ -42,7 +43,8 @@ int json_same(const void *, const void *);
 json_t *json_parse(CCS);
 
 // Intended as a replacement for the Kazlib dict_*() API.
-json_t *json_dict_create(json_dict_comp_t);
+json_t *json_dict_create(CCS, json_dict_comp_t);
+CCS json_dict_name(const json_dict_t *);
 void json_dict_add(const json_dict_t *, const json_t *);
 json_t *json_dict_lookup(const json_dict_t *, const char *);
 int json_dict_count(const json_dict_t *);

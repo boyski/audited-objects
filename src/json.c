@@ -213,14 +213,21 @@ create_person(const char *name, int age)
 }
 
 void *
-json_dict_create(json_dict_comp_t compare)
+json_dict_create(CCS name, json_dict_comp_t compare)
 {
     json_dict_t *json_dict;
 
     TRY(json_dict = malloc(sizeof(json_dict_t)), "malloc()");
     TRY(json_dict->array = cJSON_CreateArray(), "cJSON_CreateArray()");
+    json_dict->name = name;
     json_dict->compare = (json_dict_comp_t)compare;
     return (void *)json_dict;
+}
+
+CCS
+json_dict_name(const json_dict_t *vjd)
+{
+    return vjd->name;
 }
 
 void
@@ -282,7 +289,7 @@ int
 main(void)
 {
     // Exercise some basic JSON manipulations.
-    json_dict_t *people = (json_dict_t *)json_dict_create(name_compare);
+    json_dict_t *people = (json_dict_t *)json_dict_create("People", name_compare);
 
     json_dict_add(people, create_person("Charlie", 30));
     json_dict_add(people, create_person("Alice", 25));
@@ -298,7 +305,7 @@ main(void)
     printf("%s\n", charlie_string);
     FREE(charlie_string);
 
-    printf("\nNumber of people: %d\n", json_dict_count(people));
+    printf("\nNumber of %s: %d\n", json_dict_name(people), json_dict_count(people));
 
     json_dict_delete(people);
     return 0;

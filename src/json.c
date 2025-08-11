@@ -224,9 +224,9 @@ json_dict_create(json_dict_comp_t compare)
 }
 
 void
-json_dict_add(const void *voa, const json_t *vitem)
+json_dict_add(const json_dict_t *vjd, const json_t *vitem)
 {
-    json_dict_t *json_dict = (json_dict_t *)voa;
+    json_dict_t *json_dict = (json_dict_t *)vjd;
     cJSON *item = (cJSON *)vitem;
     int index = _json_dict_index((json_dict_t *)json_dict, (cJSON *)item);
     // TRY(cJSON_InsertItemInArray(json_dict->array, index, item), "cJSON_InsertItemInArray()");
@@ -234,9 +234,9 @@ json_dict_add(const void *voa, const json_t *vitem)
 }
 
 void *
-json_dict_get(const void *voa, const char *name)
+json_dict_lookup(const json_dict_t *vjd, const char *name)
 {
-    json_dict_t *json_dict = (json_dict_t *)voa;
+    json_dict_t *json_dict = (json_dict_t *)vjd;
 
     cJSON *temp = cJSON_CreateObject();
     cJSON_AddStringToObject(temp, "name", name);
@@ -261,10 +261,17 @@ json_dict_get(const void *voa, const char *name)
     return NULL;
 }
 
-void
-json_dict_delete(void *voa)
+int
+json_dict_count(const json_dict_t *vjd)
 {
-    json_dict_t *json_dict = (json_dict_t *)voa;
+    json_dict_t *json_dict = (json_dict_t *)vjd;
+    return cJSON_GetArraySize(json_dict->array);
+}
+
+void
+json_dict_delete(void *vjd)
+{
+    json_dict_t *json_dict = (json_dict_t *)vjd;
     if (json_dict && json_dict->array) {
         cJSON_Delete(json_dict->array);
     }
@@ -285,11 +292,13 @@ main(void)
     printf("%s\n", json_string);
     FREE(json_string);
 
-    cJSON *charlie = json_dict_get(people, "Charlie");
+    cJSON *charlie = json_dict_lookup(people, "Charlie");
     char *charlie_string = cJSON_Print(charlie);
     printf("\nCharlie:\n");
     printf("%s\n", charlie_string);
     FREE(charlie_string);
+
+    printf("\nNumber of people: %d\n", json_dict_count(people));
 
     json_dict_delete(people);
     return 0;

@@ -43,8 +43,9 @@ json_t *json_parse(CCS);
 
 // Intended as a replacement for the Kazlib dict_*() API.
 json_t *json_dict_create(json_dict_comp_t);
-void json_dict_add(const void *, const json_t *);
-json_t *json_dict_get(const void *, const char *);
+void json_dict_add(const json_dict_t *, const json_t *);
+json_t *json_dict_lookup(const json_dict_t *, const char *);
+int json_dict_count(const json_dict_t *);
 void json_dict_delete(json_t *);
 
 #endif // JSON_H

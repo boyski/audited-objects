@@ -70,29 +70,29 @@ struct cmd_key_s {
 /// types are all over the map. The best way to avoid warnings
 /// in formatting is to use unsigned long and "%lu" across the board.
 struct cmd_audit_s {
-    unsigned long ca_cmdid;     ///< id of cmd (related to pid)
-    unsigned long ca_depth;     ///< # of execs from start to here
-    unsigned long ca_pcmdid;    ///< id of parent cmd
-    moment_s ca_starttime;      ///< start time
-    unsigned long ca_duration;  ///< invocation run time
-    CCS ca_prog;                ///< name of running program
-    CCS ca_host;                ///< system CA was generated on
-    CCS ca_recycled;            ///< PTX recycled from or NULL
-    CCS ca_rwd;                 ///< the project relative wd
-    CCS ca_pccode;              ///< identity hash of parent cmd
-    CCS ca_ccode;               ///< identity hash of this cmd
-    CCS ca_pathcode;            ///< hash of all opened pathnames
-    CCS ca_line;                ///< the command line
-    dict_t *ca_raw_pa_dict;     ///< ptr to path action set
-    dict_t *ca_cooked_pa_dict;  ///< ptr to path action set
-    hash_t *ca_group_hash;      ///< ptr to aggregation hash
-    ca_o ca_leader;             ///< ptr to group leader
-    int ca_strong;              ///< boolean - is aggregation strong?
-    int ca_started;             ///< boolean - has this CA seen SOA?
-    int ca_closed;              ///< boolean - has this CA seen EOA?
-    int ca_processed;           ///< boolean - has this CA been fully handled?
-    CCS ca_subs;                ///< aggregated subcmds
-    CCS ca_freetext;            ///< free-form text "comment"
+    unsigned long ca_cmdid;             ///< id of cmd (related to pid)
+    unsigned long ca_depth;             ///< # of execs from start to here
+    unsigned long ca_pcmdid;            ///< id of parent cmd
+    moment_s ca_starttime;              ///< start time
+    unsigned long ca_duration;          ///< invocation run time
+    CCS ca_prog;                        ///< name of running program
+    CCS ca_host;                        ///< system CA was generated on
+    CCS ca_recycled;                    ///< PTX recycled from or NULL
+    CCS ca_rwd;                         ///< the project relative wd
+    CCS ca_pccode;                      ///< identity hash of parent cmd
+    CCS ca_ccode;                       ///< identity hash of this cmd
+    CCS ca_pathcode;                    ///< hash of all opened pathnames
+    CCS ca_line;                        ///< the command line
+    dict_t *ca_raw_pa_dict;             ///< ptr to path action set
+    dict_t *ca_cooked_pa_dict;          ///< ptr to path action set
+    hash_t *ca_group_hash;              ///< ptr to aggregation hash
+    ca_o ca_leader;                     ///< ptr to group leader
+    int ca_strong;                      ///< boolean - is aggregation strong?
+    int ca_started;                     ///< boolean - has this CA seen SOA?
+    int ca_closed;                      ///< boolean - has this CA seen EOA?
+    int ca_processed;                   ///< boolean - has this CA been fully handled?
+    CCS ca_subs;                        ///< aggregated subcmds
+    CCS ca_freetext;                    ///< free-form text "comment"
 } cmd_audit_s;
 
 /// Constructor for CmdKey "class". A CmdKey is a small object which

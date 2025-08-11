@@ -21,6 +21,8 @@
 /// @file
 /// @brief Support for the TRY() macro.
 
+#include <errno.h>
+
 // Get first argument of __VA_ARGS__ if any.
 #define FIRST_ARG(...) FIRST_ARG__(__VA_ARGS__, throwaway)
 #define FIRST_ARG__(first, ...) "" #first

@@ -28,6 +28,10 @@ CCS json_from_ca_csv(CCS);
 int json_same(const void *, const void *);
 json_t json_parse(CCS);
 
+void *json_dict_create(void);
+void json_dict_add(void *);
+void json_dict_delete(void *);
+
 #endif // JSON_H
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

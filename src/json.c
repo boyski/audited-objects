@@ -24,9 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "Putil/putil.h"
+
 #include "TYPES.h"
 #include "FREE.h"
 #include "JSON.h"
+#include "TRY.h"
 #include "VB.h"
 
 #include "cJSON.h"
@@ -169,18 +172,97 @@ json_parse(CCS json_data)
 
 #ifdef UNIT_TEST_json
 
+typedef int (*compare_func_t)(cJSON *a, cJSON *b);
 
-json_t
-json_dict_create()
+typedef struct {
+    cJSON *array;
+    compare_func_t compare;
+} ordered_array_t;
+
+extern int name_compare(cJSON *a, cJSON *b);
+int
+name_compare(cJSON *a, cJSON *b)
 {
-    cJSON array = cJSON_CreateArray();
-    return array;
+    cJSON *name_a = cJSON_GetObjectItem(a, "name");
+    cJSON *name_b = cJSON_GetObjectItem(b, "name");
+
+    assert(cJSON_IsString(name_a) && cJSON_IsString(name_b));
+    return strcmp(cJSON_GetStringValue(name_a), cJSON_GetStringValue(name_b));
+}
+
+extern ordered_array_t* ordered_array_create(compare_func_t compare);
+ordered_array_t*
+ordered_array_create(compare_func_t compare)
+{
+    ordered_array_t *oa;
+
+    TRY(oa = malloc(sizeof(ordered_array_t)), "malloc()");
+    TRY(oa->array = cJSON_CreateArray(), "cJSON_CreateArray()");
+    oa->compare = compare;
+    return oa;
+}
+
+extern int find_insertion_index(ordered_array_t *oa, cJSON *item);
+int
+find_insertion_index(ordered_array_t *oa, cJSON *item)
+{
+    int size = cJSON_GetArraySize(oa->array);
+    int left = 0, right = size;
+
+    while (left < right) {
+        int middle = left + (right - left) / 2;
+        cJSON *middle_item = cJSON_GetArrayItem(oa->array, middle);
+
+        int cmp = oa->compare(item, middle_item);
+        if (cmp < 0) {
+            right = middle;
+        } else {
+            left = middle + 1;
+        }
+    }
+
+    return left;
+}
+
+extern int ordered_array_insert(ordered_array_t *oa, cJSON *item);
+int
+ordered_array_insert(ordered_array_t *oa, cJSON *item)
+{
+    int index = find_insertion_index(oa, item);
+    return cJSON_InsertItemInArray(oa->array, index, item);
+}
+
+extern void ordered_array_destroy(ordered_array_t *oa);
+void
+ordered_array_destroy(ordered_array_t *oa)
+{
+    if (oa && oa->array) {
+        cJSON_Delete(oa->array);
+    }
+    FREE(oa);
+}
+
+extern cJSON* create_person(const char *name, int age);
+cJSON*
+create_person(const char *name, int age)
+{
+    cJSON *person = cJSON_CreateObject();
+    cJSON_AddStringToObject(person, "name", name);
+    cJSON_AddNumberToObject(person, "age", age);
+    return person;
+}
+
+void *
+json_dict_create(void)
+{
+    cJSON *array = cJSON_CreateArray();
+    return (void *)array;
 }
 
 void
 json_dict_add(void *item)
 {
-    TRY();
+    UNUSED(item);
 }
 
 void
@@ -193,6 +275,17 @@ int
 main(void)
 {
     // Exercise some basic JSON manipulations.
+    ordered_array_t *people = ordered_array_create(name_compare);
+
+    ordered_array_insert(people, create_person("Charlie", 30));
+    ordered_array_insert(people, create_person("Alice", 25));
+    ordered_array_insert(people, create_person("Bob", 35));
+
+    char *json_string = cJSON_Print(people->array);
+    printf("%s\n", json_string);
+    FREE(json_string);
+
+    ordered_array_destroy(people);
 
     return 0;
 }

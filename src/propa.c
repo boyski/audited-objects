@@ -27,7 +27,7 @@
 
 #include <stdbool.h>  // TODO - needed until -std=c2x is reached
 
-#include "TYPES.h"
+#include "CCS.h"
 #include "FREE.h"
 #include "PROP.h"
 

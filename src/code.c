@@ -94,7 +94,7 @@
 #include <alloca.h>
 #endif // BSD
 
-#include "TYPES.h"
+#include "CCS.h"
 #include "AO.h"
 
 #include "CODE.h"

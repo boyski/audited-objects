@@ -27,7 +27,7 @@
 extern void code_init(void);
 extern CCS code_from_str(CCS, CS, size_t);
 extern CCS code_from_buffer(const unsigned char *, off_t, CCS, CS, size_t);
-extern CCS code_from_path(CCS, CS, size_t);
+extern CCS code_from_file(CCS, CS, size_t);
 extern void code_fini(void);
 
 #endif // CODE_H

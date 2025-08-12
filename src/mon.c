@@ -295,8 +295,7 @@ mon_record(CS buf, int *rcp, unsigned long *cmdpidp, CCS *winner)
             if (ca_get_depth(ca)) {
                 ck_o pck;
 
-                pck = ck_new(ca_get_pccode(ca),
-                             ca_get_depth(ca) - 1, ca_get_cmdid(ca));
+                pck = ck_new(ca_get_pccode(ca), ca_get_depth(ca) - 1, ca_get_cmdid(ca));
                 if ((hnp = hash_lookup(AuditHash, pck))) {
                     vb_printf(VB_MON, "exec parent match: %s", ca_get_prog(ca));
                     pred = (ca_o)hnode_get(hnp);

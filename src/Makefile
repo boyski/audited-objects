@@ -273,9 +273,10 @@ _relink:
 .PHONY: relink
 relink: _relink all
 
-TESTS := tjson tpropa tpropm
+TESTS := tcode tjson tpropa tpropm
 TARGETS += $(TESTS)
 
+tcode: extras := heap.c propm.c putil.c util.c vb.c zips.c
 tjson: extras := heap.c propm.c putil.c vb.c
 tpropm: extras := heap.c putil.c
 $(TESTS): $$(patsubst t%,%,$$(@).c) $$(extras) | $$(@D)

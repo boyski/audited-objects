@@ -130,18 +130,27 @@ code_init(void)
 /// @param[in] size     the size of the data area
 /// @param[out] buf     a string buffer to format the hash into
 /// @param[in] buflen   the length of the string buffer
-/// @return a pointer to the buffer if successful, else NULL
+/// @return a pointer to the buffer
 static CCS
 _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 {
     XXH128_hash_t hash;
 
     hash = XXH3_128bits(data, size);
-    (void)snprintf(buf, buflen, "%016llx%016llx",
-        (unsigned long long)hash.high64,
-        (unsigned long long)hash.low64);
 
-    return buf;
+    if (buf) {
+        (void)snprintf(buf, buflen, "%016llx%016llx",
+            (unsigned long long)hash.high64,
+            (unsigned long long)hash.low64);
+        return buf;
+    }
+
+    assert(buflen == 0);
+    CS ret;
+    TRY(asprintf(&ret, "%016llx%016llx",
+        (unsigned long long)hash.high64,
+        (unsigned long long)hash.low64));
+    return ret;
 }
 
 /* Return nonzero if the data looks like an archive. */
@@ -249,7 +258,7 @@ code_from_buffer(const unsigned char *data, off_t size, CCS path, CS buf, size_t
 /// @param[in] len      the length of the passed-in buffer
 /// @return a pointer to the buffer if successful, else NULL
 CCS
-code_from_path(CCS path, CS buf, size_t len)
+code_from_file(CCS path, CS buf, size_t len)
 {
     unsigned char *mdata = NULL;
     unsigned char *fdata = NULL;
@@ -257,8 +266,6 @@ code_from_path(CCS path, CS buf, size_t len)
     size_t size;
     unsigned long map_cutoff;
     int no_map;
-
-    buf[0] = '\0';
 
     // Find out where to draw the line between mapping and reading.
     map_cutoff = prop_get_ulong(P_MMAP_LARGER_THAN);
@@ -348,9 +355,12 @@ code_from_path(CCS path, CS buf, size_t len)
     }
 
     // Hash the entire region in one pass.
-    code_from_buffer(data, size, path, buf, len);
+    if (buf) {
+        buf[0] = '\0';
+    }
+    CCS retval = code_from_buffer(data, size, path, buf, len);
 
-    // Release the buffer whether things went well or not.
+    // Release the buffer before returning whether things went well or not.
     FREE(mdata);
     if (fdata) {
         vb_printf(VB_MAP, "Unmapping %p", fdata);
@@ -360,8 +370,14 @@ code_from_path(CCS path, CS buf, size_t len)
         }
     }
 
-    // An empty buffer signals a failure to derive the dcode.
-    return buf[0] ? buf : NULL;
+    // An empty buffer signals a failure to derive the dcode which
+    // typically means the file doesn't exist or is unreadable.
+    if (!retval[0]) {
+        FREE(retval);
+        return NULL;
+    }
+
+    return retval;
 }
 
 /// Finalize hash-code data structures.
@@ -372,10 +388,23 @@ code_fini(void)
 }
 
 #ifdef UNIT_TEST_code
+
 int
-main(void)
+main(int argc, char *argv[])
 {
     // Exercise some basic hashing functions.
+    UNUSED(argc);
+    for (int i = 1; argv[i]; i++) {
+        CCS path = argv[i];
+        CCS scode = code_from_str(path, NULL, 0);
+        printf("%s: str code is '%s'\n", path, scode);
+        FREE(scode);
+        if (!access(path, F_OK)) {
+            CCS fcode = code_from_file(path, NULL, 0);
+            printf("%s: file code is '%s'\n", path, fcode);
+            FREE(fcode);
+        }
+    }
 
     return 0;
 }

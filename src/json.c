@@ -175,8 +175,8 @@ json_parse(CCS json_data)
 static int
 name_compare(const void *a, const void *b)
 {
-    cJSON *name_a = cJSON_GetObjectItem((cJSON *)a, "name");
-    cJSON *name_b = cJSON_GetObjectItem((cJSON *)b, "name");
+    cJSON *name_a = cJSON_GetObjectItemCaseSensitive((cJSON *)a, "name");
+    cJSON *name_b = cJSON_GetObjectItemCaseSensitive((cJSON *)b, "name");
 
     assert(cJSON_IsString(name_a) && cJSON_IsString(name_b));
     return strcmp(cJSON_GetStringValue(name_a), cJSON_GetStringValue(name_b));
@@ -203,12 +203,12 @@ _json_dict_index(json_dict_t *json_dict, cJSON *item)
 }
 
 static cJSON*
-create_person(const char *name, int age)
+create_creature(const char *name, int age)
 {
-    cJSON *person = cJSON_CreateObject();
-    cJSON_AddStringToObject(person, "name", name);
-    cJSON_AddNumberToObject(person, "age", age);
-    return person;
+    cJSON *creature = cJSON_CreateObject();
+    cJSON_AddStringToObject(creature, "name", name);
+    cJSON_AddNumberToObject(creature, "age", age);
+    return creature;
 }
 
 void *
@@ -311,19 +311,18 @@ json_hash_create(CCS name, const json_hash_comp_t comparator)
 }
 
 void
-hash_insert(const json_t *vjh, void *thing)
+json_hash_insert(const json_t *vjh, CCS name, void *item)
 {
-    json_hash_t *json_hash = (json_hash_t *)vjh;
-    UNUSED(json_hash);
-    UNUSED(thing);
+    cJSON *json_hash = (cJSON *)vjh;
+    assert(!cJSON_GetObjectItemCaseSensitive(json_hash, item));
+    cJSON_AddItemToObject(json_hash, name, item);
 }
 
-
 json_t *
-hash_lookup(CCS name)
+json_hash_lookup(const json_t *vjh, CCS name)
 {
-    UNUSED(name);
-    return NULL;
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    return cJSON_GetObjectItemCaseSensitive(json_hash->table, name);
 }
 
 void
@@ -354,11 +353,11 @@ main(void)
     // Exercise some basic json_dict manipulations.
     json_dict_t *people = (json_dict_t *)json_dict_create("People", name_compare);
 
-    json_dict_add(people, create_person("Loyal", 6));
-    json_dict_add(people, create_person("Leerah", 4));
-    json_dict_add(people, create_person("Lee", 8));
-    json_dict_add(people, create_person("Levi", 11));
-    json_dict_add(people, create_person("Leon", 15));
+    json_dict_add(people, create_creature("Loyal", 6));
+    json_dict_add(people, create_creature("Leerah", 4));
+    json_dict_add(people, create_creature("Lee", 8));
+    json_dict_add(people, create_creature("Levi", 11));
+    json_dict_add(people, create_creature("Leon", 15));
 
     char *json_string = cJSON_Print(people->array);
     printf("%s\n", json_string);
@@ -379,6 +378,8 @@ main(void)
 
     // Now exercise some basic json_hash manipulations.
     json_hash_t *pets = (json_hash_t *)json_hash_create("Pets", name_compare);
+    json_hash_insert(pets, create_creature("Tiny Mo", 11));
+    json_hash_insert(pets, create_creature("Scratchy", 24));
     json_hash_delete(pets);
 
     return 0;

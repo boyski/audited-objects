@@ -258,8 +258,7 @@ ps_dcode_cache_init(void)
 
     if (Dcode_Offset >= 0) {
         moment_get_systime(&Ref_Time);
-        if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX,
-                                             util_pathcmp, NULL))) {
+        if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX, util_pathcmp, NULL))) {
             putil_syserr(2, "hash_create(Dcode_Hash_Table)");
         }
     }
@@ -416,13 +415,12 @@ ps_stat(ps_o ps, int want_dcode)
 
     if (want_dcode) {
         CCS dcode;
-
         char dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
         if (ps_is_file(ps)) {
             if ((dcode = _ps_get_cached_dcode(ps, path))) {
                 ps_set_dcode(ps, dcode);
-            } else if ((dcode = code_from_path(path, dcbuf, sizeof(dcbuf)))) {
+            } else if ((dcode = code_from_file(path, dcbuf, sizeof(dcbuf)))) {
                 ps_set_dcode(ps, dcode);
                 _ps_set_cached_dcode(ps, path);
             } else {

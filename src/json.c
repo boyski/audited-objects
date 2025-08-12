@@ -170,18 +170,6 @@ json_parse(CCS json_data)
     return cJSON_Parse(json_data);
 }
 
-#ifdef UNIT_TEST_json
-
-static int
-name_compare(const void *a, const void *b)
-{
-    cJSON *name_a = cJSON_GetObjectItemCaseSensitive((cJSON *)a, "name");
-    cJSON *name_b = cJSON_GetObjectItemCaseSensitive((cJSON *)b, "name");
-
-    assert(cJSON_IsString(name_a) && cJSON_IsString(name_b));
-    return strcmp(cJSON_GetStringValue(name_a), cJSON_GetStringValue(name_b));
-}
-
 static int
 _json_dict_index(json_dict_t *json_dict, cJSON *item)
 {
@@ -202,15 +190,6 @@ _json_dict_index(json_dict_t *json_dict, cJSON *item)
     return left;
 }
 
-static cJSON*
-create_creature(const char *name, int age)
-{
-    cJSON *creature = cJSON_CreateObject();
-    cJSON_AddStringToObject(creature, "name", name);
-    cJSON_AddNumberToObject(creature, "age", age);
-    return creature;
-}
-
 void *
 json_dict_create(CCS name, json_dict_comp_t comparator)
 {
@@ -218,7 +197,7 @@ json_dict_create(CCS name, json_dict_comp_t comparator)
 
     TRY(json_dict = malloc(sizeof(json_dict_t)), "malloc()");
     TRY(json_dict->array = cJSON_CreateArray(), "cJSON_CreateArray()");
-    json_dict->name = name;
+    json_dict->name = strdup(name);
     json_dict->comparator = (json_dict_comp_t)comparator;
     return (void *)json_dict;
 }
@@ -294,19 +273,19 @@ json_dict_delete(const json_t *vjd)
     json_dict_t *json_dict = (json_dict_t *)vjd;
     if (json_dict && json_dict->array) {
         cJSON_Delete(json_dict->array);
+        FREE(json_dict->name);
     }
     FREE(json_dict);
 }
 
 json_hash_t *
-json_hash_create(CCS name, const json_hash_comp_t comparator)
+json_hash_create(CCS name)
 {
     json_hash_t *json_hash;
 
     TRY(json_hash = malloc(sizeof(json_hash_t)), "malloc()");
     TRY(json_hash->table = cJSON_CreateObject(), "cJSON_CreateObject()");
-    json_hash->name = name;
-    json_hash->comparator = (json_hash_comp_t)comparator;
+    json_hash->name = strdup(name);
     return (void *)json_hash;
 }
 
@@ -317,18 +296,21 @@ json_hash_name(const json_hash_t *vjh)
 }
 
 void
-json_hash_insert(const json_t *vjh, CCS name, void *item)
+json_hash_insert(const json_t *vjh, CCS name, const void *item)
 {
     json_hash_t *json_hash = (json_hash_t *)vjh;
-    // assert(!cJSON_GetObjectItemCaseSensitive(json_hash->table, name));
-    cJSON_AddItemToObject(json_hash->table, name, item);
+    assert(!cJSON_GetObjectItemCaseSensitive(json_hash->table, name));
+    cJSON_AddItemToObject(json_hash->table, name, (cJSON *)item);
 }
 
 json_t *
 json_hash_lookup(const json_t *vjh, CCS name)
 {
     json_hash_t *json_hash = (json_hash_t *)vjh;
-    return cJSON_GetObjectItemCaseSensitive(json_hash->table, name);
+    if (json_hash) {
+        return cJSON_GetObjectItemCaseSensitive(json_hash->table, name);
+    }
+    return NULL;
 }
 
 int
@@ -356,8 +338,22 @@ void
 json_hash_delete(const json_t *vjh)
 {
     json_hash_t *json_hash = (json_hash_t *)vjh;
-    cJSON_Delete(json_hash->table);
-    free(json_hash);
+    if (json_hash && json_hash->table) {
+        cJSON_Delete(json_hash->table);
+        FREE(json_hash->name);
+    }
+    FREE(json_hash);
+}
+
+#ifdef UNIT_TEST_json
+
+static cJSON*
+create_creature(const char *name, int age)
+{
+    cJSON *creature = cJSON_CreateObject();
+    cJSON_AddStringToObject(creature, "name", name);
+    cJSON_AddNumberToObject(creature, "age", age);
+    return creature;
 }
 
 static int
@@ -372,6 +368,16 @@ per_creature(const json_t *vitem, const void *data)
     }
     FREE(str);
     return 0;
+}
+
+static int
+name_compare(const void *a, const void *b)
+{
+    cJSON *name_a = cJSON_GetObjectItemCaseSensitive((cJSON *)a, "name");
+    cJSON *name_b = cJSON_GetObjectItemCaseSensitive((cJSON *)b, "name");
+
+    assert(cJSON_IsString(name_a) && cJSON_IsString(name_b));
+    return strcmp(cJSON_GetStringValue(name_a), cJSON_GetStringValue(name_b));
 }
 
 int
@@ -404,7 +410,7 @@ main(void)
     json_dict_delete(people);
 
     // Now exercise some basic json_hash manipulations.
-    json_hash_t *pets = (json_hash_t *)json_hash_create("Pets", name_compare);
+    json_hash_t *pets = (json_hash_t *)json_hash_create("Pets");
     json_hash_insert(pets, "Tiny", create_creature("Tiny", 11));
     json_hash_insert(pets, "Scratchy", create_creature("Scratchy", 24));
 

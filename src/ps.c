@@ -33,12 +33,11 @@
 
 #include "CODE.h"
 #include "FREE.h"
+#include "JSON.h"
 #include "PN.h"
 #include "PROP.h"
 #include "PS.h"
 #include "TRY.h"
-
-#include "hash.h"
 
 /// @cond static
 #define PS_NO_DCODE                     ""
@@ -74,7 +73,7 @@ static moment_s Ref_Time;
 
 static long Dcode_Offset = -1;
 
-static hash_t *Dcode_Hash_Table;
+static json_hash_t *Dcode_Hash_Table;
 
 /// Constructor.
 /// @return a new PathState object
@@ -258,9 +257,7 @@ ps_dcode_cache_init(void)
 
     if (Dcode_Offset >= 0) {
         moment_get_systime(&Ref_Time);
-        if (!(Dcode_Hash_Table = hash_create(HASHCOUNT_T_MAX, util_pathcmp, NULL))) {
-            putil_syserr(2, "hash_create(Dcode_Hash_Table)");
-        }
+        TRY(Dcode_Hash_Table = json_hash_create("Dcode_Hash"), "json_hash_create()");
     }
 }
 
@@ -268,69 +265,26 @@ ps_dcode_cache_init(void)
 void
 ps_dcode_cache_fini(void)
 {
-    if (Dcode_Hash_Table) {
-        hscan_t hscan;
-        hnode_t *hnp;
-        CCS key, val;
-
-        hash_scan_begin(&hscan, Dcode_Hash_Table);
-        for (hnp = hash_scan_next(&hscan); hnp; hnp = hash_scan_next(&hscan)) {
-            hash_scan_delete(Dcode_Hash_Table, hnp);
-            key = (CCS)hnode_getkey(hnp);
-            val = (CCS)hnode_get(hnp);
-            hnode_destroy(hnp);
-            FREE(key);
-            FREE(val);
-        }
-        hash_destroy(Dcode_Hash_Table);
-        Dcode_Hash_Table = NULL;
-    }
+    json_hash_delete(Dcode_Hash_Table);
 }
 
 // Internal service routine.
 static void
-_ps_set_cached_dcode(ps_o ps, CCS path)
+_ps_add_cached_dcode(ps_o ps)
 {
-    CS key, dcode;
-
-    if (Dcode_Hash_Table && (Dcode_Offset == 0 ||
-                             (ps->ps_moment.ntv_sec <
-                              (Ref_Time.ntv_sec - Dcode_Offset)))) {
-        CCS fmt_time;
-
-        TRY(fmt_time = moment_format(ps->ps_moment), "moment_format()");
-        if (asprintf(&key, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, fmt_time, FS1, path) < 0) {
-            putil_syserr(2, NULL);
-        }
-        FREE(fmt_time);
-        TRY(dcode = strdup(ps->ps_dcode), "strdup()");
-        hash_alloc_insert(Dcode_Hash_Table, key, dcode);
+    if (!Dcode_Hash_Table) {
+        return;
+    }
+    if ((Dcode_Offset == 0 || (ps->ps_moment.ntv_sec < (Ref_Time.ntv_sec - Dcode_Offset)))) {
+        json_hash_insert(Dcode_Hash_Table, pn_get_abs(ps->ps_pn), ps->ps_dcode);
     }
 }
 
 // Internal service routine.
 static CCS
-_ps_get_cached_dcode(ps_o ps, CCS path)
+_ps_get_cached_dcode(CCS path)
 {
-    hnode_t *hnp;
-    CCS dcode = NULL;
-
-    if (Dcode_Hash_Table) {
-        CCS fmt_time;
-        char *keybuf;
-
-        TRY(fmt_time = moment_format(ps->ps_moment), "moment_format()");
-        TRY(asprintf(&keybuf, "%" PRIu64 "%s%s%s%s", ps->ps_size, FS1, fmt_time, FS1, path) != -1,
-                "asprintf()");
-        FREE(fmt_time);
-        if ((hnp = hash_lookup(Dcode_Hash_Table, keybuf))) {
-            dcode = (CCS)hnode_get(hnp);
-            vb_printf(VB_OFF, "USING CACHED DCODE FOR %s", path);
-        }
-        FREE(keybuf);
-    }
-
-    return dcode;
+    return json_hash_lookup(Dcode_Hash_Table, path);
 }
 
 /// Sample the contained pathname and store its vital statistics.
@@ -341,9 +295,7 @@ int
 ps_stat(ps_o ps, int want_dcode)
 {
     CCS path;
-
     int statrc;
-
     struct __stat64 stbuf;
 
     path = ps_get_abs(ps);      // convenience
@@ -418,11 +370,11 @@ ps_stat(ps_o ps, int want_dcode)
         char dcbuf[CODE_IDENTITY_HASH_MAX_LEN];
 
         if (ps_is_file(ps)) {
-            if ((dcode = _ps_get_cached_dcode(ps, path))) {
+            if ((dcode = _ps_get_cached_dcode(path))) {
                 ps_set_dcode(ps, dcode);
             } else if ((dcode = code_from_file(path, dcbuf, sizeof(dcbuf)))) {
                 ps_set_dcode(ps, dcode);
-                _ps_set_cached_dcode(ps, path);
+                _ps_add_cached_dcode(ps);
             } else {
                 ps_set_dcode(ps, NULL);
                 return -1;
@@ -436,7 +388,7 @@ ps_stat(ps_o ps, int want_dcode)
                                           strlen(tgt), path, dcbuf,
                                           sizeof(dcbuf)))) {
                 ps_set_dcode(ps, dcode);
-                _ps_set_cached_dcode(ps, path);
+                _ps_add_cached_dcode(ps);
             } else {
                 ps_set_dcode(ps, NULL);
                 return -1;

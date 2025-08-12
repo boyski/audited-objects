@@ -160,6 +160,7 @@ _code_is_archive_file(const void *data)
     return data && !memcmp(data, ARMAG, SARMAG);
 }
 
+// TODO change all these code_from_* APIs to avoid static buffers.
 /// Return a signature hash for the supplied string.
 /// @param[in] str      the string to hash
 /// @param[out] buf     a buffer to format the code into

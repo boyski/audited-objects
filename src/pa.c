@@ -542,4 +542,13 @@ pa_destroy(pa_o pa)
     FREE(pa);
 }
 
+#ifdef UNIT_TEST_pa
+
+int
+main(void)
+{
+    return 0;
+}
+#endif // UNIT_TEST_pa
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

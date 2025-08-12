@@ -75,7 +75,7 @@ endef
 SHLIBFLAGS := -shared
 INST_PREFIX := ${HOME}/$(TGTARCH)
 
-GFLAGS := -g3
+DBGFLAGS := -g3
 
 ifneq (,$(findstring Linux,$(TGTARCH)))
   LINUX := 1
@@ -184,7 +184,7 @@ ifneq ($(LINUX),)
 else ifneq ($(DARWIN),)
   CFLAGS += -fno-common # Q: add -dynamic too?
   CFLAGS += -arch x86_64
-  GFLAGS :=
+  DBGFLAGS :=
   SYSLIBS := -L/usr/lib
   SHLIBFLAGS := -dynamiclib -flat_namespace -multiply_defined suppress
   #SHLIBFLAGS += -compatibility_version 1.0 -current_version $(APPLICATION_VERSION)
@@ -246,7 +246,7 @@ docs dox:
 $(TGTDIR)/putil.o: Putil/putil.h
 
 $(TGTDIR)/%.o: %.c AO.h
-	$(CC) -c -o $@ $(GFLAGS) $(CFLAGS) $<
+	$(CC) -c -o $@ $(DBGFLAGS) $(CFLAGS) $<
 
 $(TGTDIR)/properties.h: ./prop2hdr ao_config.json
 	./$^ > $@
@@ -256,13 +256,13 @@ $(OBJS) $(LIBAO): | $(TGTDIR)/properties.h
 #############################################################################
 
 $(AOTOOL): $(OBJS) | $$(@D)
-	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) $^ \
+	$(strip $(CC) -o $@ $(DBGFLAGS) $(CFLAGS) $^ \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 
 $(LIBAO): CFLAGS := $(patsubst --std=%,--std=c17,$(filter-out \
   %-pedantic -Wmissing-prototypes,$(CFLAGS)))
 $(LIBAO): libunix.c libcommon.c $(LIBOBJS) AO.h $(INTERPOSERS) | $$(@D)
-	$(strip $(CC) -o $@ $(GFLAGS) $(CFLAGS) \
+	$(strip $(CC) -o $@ $(DBGFLAGS) $(CFLAGS) \
 	  $(SHLIBFLAGS) $(LINKMAP) $(LIBOBJS) $< \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(DLL_LIBS) $(PLDLIBS))
 
@@ -273,14 +273,16 @@ _relink:
 .PHONY: relink
 relink: _relink all
 
-TESTS := tcode tjson tpropa tpropm
+TESTS := $(addprefix t,code json pa propa propm)
 TARGETS += $(TESTS)
 
 tcode: extras := heap.c propm.c putil.c util.c vb.c zips.c
 tjson: extras := heap.c propm.c putil.c vb.c
+tpa: extras := code.c heap.c json.c moment.c ps.c pn.c propm.c \
+  putil.c util.c vb.c zips.c
 tpropm: extras := heap.c putil.c
 $(TESTS): $$(patsubst t%,%,$$(@).c) $$(extras) | $$(@D)
-	$(strip $(CC) -o $@ $^ $(GFLAGS) $(CFLAGS) \
+	$(strip $(CC) -o $@ $^ $(DBGFLAGS) $(CFLAGS) \
 	  -DUNIT_TEST_$(basename $(patsubst t%,%,$(@F))) \
 	  -L$(OPSLIBDIR) $(SYSLIBS) $(EXE_LIBS) $(PLDLIBS))
 

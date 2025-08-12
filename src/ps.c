@@ -159,75 +159,75 @@ ps_newFromCSVString(CCS csv)
     return ps;
 }
 
-/// Boolean - return true iff the path is a member of the project.
+/// Boolean - true iff the path is a member of the project.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_member(ps_o ps)
 {
     return pn_is_member(ps->ps_pn);
 }
 
-/// Boolean - return true iff this object is a regular file.
+/// Boolean - true iff this object is a regular file.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_file(ps_o ps)
 {
     return S_ISREG(ps->ps_mode);
 }
 
-/// Boolean - return true iff this object is a directory.
+/// Boolean - true iff this object is a directory.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_dir(ps_o ps)
 {
     return S_ISDIR(ps->ps_mode);
 }
 
-/// Boolean - return true iff this object is some kind of "special" file.
+/// Boolean - true iff this object is some kind of "special" file.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_special(ps_o ps)
 {
     return S_ISBLK(ps->ps_mode) || S_ISCHR(ps->ps_mode) ||
         S_ISFIFO(ps->ps_mode) || S_ISSOCK(ps->ps_mode);
 }
 
-/// Boolean - return true iff this object is the result of a hard link op.
+/// Boolean - true iff this object is the result of a hard link op.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_link(ps_o ps)
 {
     return ps->ps_datatype == PS_LINK;
 }
 
-/// Boolean - return true iff this object represents a symbolic link.
+/// Boolean - true iff this object represents a symbolic link.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_symlink(ps_o ps)
 {
     return ps->ps_datatype == PS_SYMLINK;
 }
 
-/// Boolean - return true iff this object is the result of an unlink op
+/// Boolean - true iff this object is the result of an unlink op
 /// (and thus should not exist).
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_is_unlink(ps_o ps)
 {
     return ps->ps_datatype == PS_UNLINK;
 }
 
-/// Boolean - return true iff the path is currently present on this system.
+/// Boolean - true iff the path is currently present on this system.
 /// @param[in] ps       the object pointer
 /// @return true or false
-int
+bool
 ps_exists(ps_o ps)
 {
     return pn_exists(ps->ps_pn);
@@ -406,10 +406,10 @@ ps_stat(ps_o ps, int want_dcode)
     return 0;
 }
 
-/// Boolean - return true iff the object has a valid dcode.
+/// Boolean - true iff the object has a valid dcode.
 /// @param[in] ps               the object pointer
 /// @return 1 iff a valid dcode is present
-int
+bool
 ps_has_dcode(ps_o ps)
 {
     return ps->ps_dcode != NULL;

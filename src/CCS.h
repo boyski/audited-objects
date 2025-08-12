@@ -17,13 +17,20 @@
 
 /// @file
 /// @brief Custom typedefs.
+///
+/// These derive from an earlier iteration which
+/// attempted to support wide characters and the tchar.h API on Windows
+/// which made abstracted char types useful. But Windows is no longer
+/// supported and anyway wide chars are sort of a dead end. UTF-8 looks
+/// like the way of the future, but CS and CCS are retained as useful
+/// shorthand.
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef CCS_H
+#define CCS_H
 
 typedef char *CS;
 typedef const char *CCS;
 
-#endif // TYPES_H
+#endif // CCS_H
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

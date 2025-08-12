@@ -63,8 +63,11 @@ void json_dict_delete(const json_t *);
 
 // Intended as a replacement for the Kazlib hash_*() API.
 json_hash_t *json_hash_create(CCS name, const json_hash_comp_t);
+CCS json_hash_name(const json_hash_t *);
 void json_hash_insert(const json_t *, CCS, void *thing);
 json_t *json_hash_lookup(const json_t *, CCS);
+int json_hash_count(const json_hash_t *);
+int json_hash_iterate(const json_hash_t *, json_callback_t, const void *);
 void json_hash_delete(const json_t *);
 
 #endif // JSON_H

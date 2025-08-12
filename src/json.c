@@ -310,12 +310,18 @@ json_hash_create(CCS name, const json_hash_comp_t comparator)
     return (void *)json_hash;
 }
 
+CCS
+json_hash_name(const json_hash_t *vjh)
+{
+    return vjh->name;
+}
+
 void
 json_hash_insert(const json_t *vjh, CCS name, void *item)
 {
-    cJSON *json_hash = (cJSON *)vjh;
-    assert(!cJSON_GetObjectItemCaseSensitive(json_hash, item));
-    cJSON_AddItemToObject(json_hash, name, item);
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    // assert(!cJSON_GetObjectItemCaseSensitive(json_hash->table, name));
+    cJSON_AddItemToObject(json_hash->table, name, item);
 }
 
 json_t *
@@ -323,6 +329,27 @@ json_hash_lookup(const json_t *vjh, CCS name)
 {
     json_hash_t *json_hash = (json_hash_t *)vjh;
     return cJSON_GetObjectItemCaseSensitive(json_hash->table, name);
+}
+
+int
+json_hash_count(const json_hash_t *vjh)
+{
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    return cJSON_GetArraySize(json_hash->table);
+}
+
+int
+json_hash_iterate(const json_hash_t *vjh, json_callback_t callback, const void *data)
+{
+    json_hash_t *json_hash = (json_hash_t *)vjh;
+    int rc = 0;
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, ((cJSON *)json_hash->table)) {
+        if (callback) {
+            rc += callback(item, data);
+        }
+    }
+    return rc;
 }
 
 void
@@ -334,9 +361,9 @@ json_hash_delete(const json_t *vjh)
 }
 
 static int
-per_person(const json_t *vjd, const void *data)
+per_creature(const json_t *vitem, const void *data)
 {
-    cJSON *item = (cJSON *)vjd;
+    cJSON *item = (cJSON *)vitem;
     CCS str = cJSON_Print(item);
     if (data) {
         printf("ITEM: %s [%p]\n", str, data);
@@ -371,15 +398,21 @@ main(void)
 
     printf("\nNumber of %s: %d\n", json_dict_name(people), json_dict_count(people));
 
-    printf("\nIterating:\n");
-    json_dict_iterate(people, per_person, "Hello");
+    printf("\nIterating over People dict:\n");
+    json_dict_iterate(people, per_creature, "Hello");
 
     json_dict_delete(people);
 
     // Now exercise some basic json_hash manipulations.
     json_hash_t *pets = (json_hash_t *)json_hash_create("Pets", name_compare);
-    json_hash_insert(pets, create_creature("Tiny Mo", 11));
-    json_hash_insert(pets, create_creature("Scratchy", 24));
+    json_hash_insert(pets, "Tiny", create_creature("Tiny", 11));
+    json_hash_insert(pets, "Scratchy", create_creature("Scratchy", 24));
+
+    printf("\n\nIterating over Pets hash:\n");
+    json_hash_iterate(pets, per_creature, "Hello");
+
+    printf("\nNumber of %s: %d\n", json_hash_name(pets), json_hash_count(pets));
+
     json_hash_delete(pets);
 
     return 0;

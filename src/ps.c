@@ -100,7 +100,7 @@ ps_newFromPath(CCS path)
     return ps;
 }
 
-/// Converts a stringified path state back to a PS object.
+/// Convert a stringified path state back to a PS object.
 /// See pa_newFromCSVString().
 /// @param[in] csv      a stringified path state
 /// @return a new PathState object
@@ -159,7 +159,7 @@ ps_newFromCSVString(CCS csv)
     return ps;
 }
 
-/// Boolean - returns true iff the path is a member of the project.
+/// Boolean - return true iff the path is a member of the project.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -168,7 +168,7 @@ ps_is_member(ps_o ps)
     return pn_is_member(ps->ps_pn);
 }
 
-/// Boolean - returns true iff this object is a regular file.
+/// Boolean - return true iff this object is a regular file.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -177,7 +177,7 @@ ps_is_file(ps_o ps)
     return S_ISREG(ps->ps_mode);
 }
 
-/// Boolean - returns true iff this object is a directory.
+/// Boolean - return true iff this object is a directory.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -186,7 +186,7 @@ ps_is_dir(ps_o ps)
     return S_ISDIR(ps->ps_mode);
 }
 
-/// Boolean - returns true iff this object is some kind of "special" file.
+/// Boolean - return true iff this object is some kind of "special" file.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -196,7 +196,7 @@ ps_is_special(ps_o ps)
         S_ISFIFO(ps->ps_mode) || S_ISSOCK(ps->ps_mode);
 }
 
-/// Boolean - returns true iff this object is the result of a hard link op.
+/// Boolean - return true iff this object is the result of a hard link op.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -205,7 +205,7 @@ ps_is_link(ps_o ps)
     return ps->ps_datatype == PS_LINK;
 }
 
-/// Boolean - returns true iff this object represents a symbolic link.
+/// Boolean - return true iff this object represents a symbolic link.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -214,7 +214,7 @@ ps_is_symlink(ps_o ps)
     return ps->ps_datatype == PS_SYMLINK;
 }
 
-/// Boolean - returns true iff this object is the result of an unlink op
+/// Boolean - return true iff this object is the result of an unlink op
 /// (and thus should not exist).
 /// @param[in] ps       the object pointer
 /// @return true or false
@@ -224,7 +224,7 @@ ps_is_unlink(ps_o ps)
     return ps->ps_datatype == PS_UNLINK;
 }
 
-/// Boolean - returns true iff the path is currently present on this system.
+/// Boolean - return true iff the path is currently present on this system.
 /// @param[in] ps       the object pointer
 /// @return true or false
 int
@@ -250,6 +250,7 @@ ps_exists(ps_o ps)
 // take it out.
 
 /// Enable dcode cache management based on the P_DCODE_* property settings.
+/// @return void
 void
 ps_dcode_cache_init(void)
 {
@@ -262,13 +263,16 @@ ps_dcode_cache_init(void)
 }
 
 /// Finalize dcode cache management if in use.
+/// @return void
 void
 ps_dcode_cache_fini(void)
 {
     json_hash_delete(Dcode_Hash_Table);
 }
 
-// Internal service routine.
+/// Cache the dcode from a given PathState for later reuse.
+/// @param[in] ps               the object pointer
+/// @return void
 static void
 _ps_add_cached_dcode(ps_o ps)
 {
@@ -281,6 +285,9 @@ _ps_add_cached_dcode(ps_o ps)
 }
 
 // Internal service routine.
+/// Return the cached dcode for the provided file path if any.
+/// @param[in] path             path to the file
+/// @return the dcode in string form, or NULL
 static CCS
 _ps_get_cached_dcode(CCS path)
 {
@@ -399,7 +406,7 @@ ps_stat(ps_o ps, int want_dcode)
     return 0;
 }
 
-/// Boolean - returns true iff the object has a valid dcode.
+/// Boolean - return true iff the object has a valid dcode.
 /// @param[in] ps               the object pointer
 /// @return 1 iff a valid dcode is present
 int
@@ -408,9 +415,9 @@ ps_has_dcode(ps_o ps)
     return ps->ps_dcode != NULL;
 }
 
-/// Compares two PathState objects. PathState objects are considered
+/// Compare two PathState objects. PathState objects are considered
 /// identical if they have the same path, size, type, and dcode. If
-/// no dcode is present, the timestamp is used instead.
+/// no dcode is present the timestamp is used instead.
 /// @param[in] ps1      the left object pointer
 /// @param[in] ps2      the right object pointer
 /// @return a static string describing the difference, or NULL if the same
@@ -436,7 +443,7 @@ ps_diff(ps_o ps1, ps_o ps2)
     return reason;
 }
 
-/// Makes a deep copy of an existing PS with a potentially different name.
+/// Make a deep copy of an existing PS with a potentially different name.
 /// Warning: use carefully to avoid memory leaks.
 /// @param[in] cps      the PS object pointer to be copied
 /// @return the new PS object
@@ -562,7 +569,7 @@ ps_format_user(ps_o ps, int lflag, int sflag, CS buf, size_t bufmax)
     return len;
 }
 
-/// Sets the moment field by parsing a stringified form.
+/// Set the moment field by parsing a stringified form.
 /// @param[in] ps       the object pointer
 /// @param[in] str      a stringified form of the moment_s format
 /// @return 0 on success
@@ -572,7 +579,7 @@ ps_set_moment_str(ps_o ps, CCS str)
     return moment_parse(&(ps->ps_moment), str);
 }
 
-/// Sets the size field by parsing a stringified form.
+/// Set the size field by parsing a stringified form.
 /// @param[in] ps       the object pointer
 /// @param[in] str      a stringified form of the size
 /// @return 0 on success
@@ -618,7 +625,7 @@ ps_set_dir(ps_o ps)
     ps_set_datatype(ps, PS_DIR);
 }
 
-/// Gets the absolute version of 'path2' (used only for links).
+/// Get the absolute version of 'path2' (used only for links).
 /// @param[in] ps       the object pointer
 /// @return a string representing the absolute path
 CCS
@@ -631,7 +638,7 @@ ps_get_abs2(ps_o ps)
     }
 }
 
-/// Gets the project-relative version of 'path2' (used only for links).
+/// Get the project-relative version of 'path2' (used only for links).
 /// @param[in] ps       the object pointer
 /// @return a string representing the relative path
 CCS
@@ -644,7 +651,7 @@ ps_get_rel2(ps_o ps)
     }
 }
 
-/// Sets the type of data associated with the given PS. This is closely
+/// Set the type of data associated with the given PS. This is closely
 /// related to the Unix file-type divisions (regular, dir, symlink, etc)
 /// but is intended to be platform neutral.
 /// @param[in] ps       the object pointer
@@ -655,7 +662,7 @@ ps_set_datatype(ps_o ps, int datatype)
     ps->ps_datatype = (ps_e) datatype;
 }
 
-/// Gets the type of data associated with the given PS.
+/// Get the type of data associated with the given PS.
 /// @param[in] ps       the object pointer
 /// @return the data type
 int
@@ -679,7 +686,7 @@ GEN_DELEGATE_GETTER_DEFN(ps, pn, abs, CCS)
 GEN_DELEGATE_GETTER_DEFN(ps, pn, rel, CCS)
 // *INDENT-ON*
 
-/// Finalizer - releases all allocated memory for object.
+/// Release all allocated memory for object.
 /// If object is a null pointer, no action occurs.
 /// @param[in] ps       the object pointer
 void

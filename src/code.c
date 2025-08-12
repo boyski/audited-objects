@@ -134,22 +134,20 @@ code_init(void)
 static CCS
 _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
 {
-    XXH128_hash_t hash;
-
-    hash = XXH3_128bits(data, size);
+    XXH128_hash_t code = XXH3_128bits(data, size);
 
     if (buf) {
         (void)snprintf(buf, buflen, "%016llx%016llx",
-            (unsigned long long)hash.high64,
-            (unsigned long long)hash.low64);
+            (unsigned long long)code.high64,
+            (unsigned long long)code.low64);
         return buf;
     }
 
     assert(buflen == 0);
     CS ret;
     TRY(asprintf(&ret, "%016llx%016llx",
-        (unsigned long long)hash.high64,
-        (unsigned long long)hash.low64));
+        (unsigned long long)code.high64,
+        (unsigned long long)code.low64));
     return ret;
 }
 

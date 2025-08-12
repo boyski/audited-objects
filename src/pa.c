@@ -305,93 +305,93 @@ pa_tostring(pa_o pa)
     return str;
 }
 
-/// Boolean - returns true iff the path is a member of the project.
+/// Boolean - true iff the path is a member of the project.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_member(pa_o pa)
 {
     return ps_is_member(pa->pa_ps);
 }
 
-/// Delegates to ps_is_dir().
+/// Delegate to ps_is_dir().
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_dir(pa_o pa)
 {
     return ps_is_dir(pa->pa_ps);
 }
 
-/// Delegates to ps_is_special().
+/// Delegate to ps_is_special().
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_special(pa_o pa)
 {
     return ps_is_special(pa->pa_ps);
 }
 
-/// Boolean - returns true iff the operation was a read.
+/// Boolean - true iff the operation was a read.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_read(pa_o pa)
 {
     return (pa->pa_op == OP_EXEC) || (pa->pa_op == OP_READ);
 }
 
-/// Boolean - returns true iff the operation was a write.
+/// Boolean - true iff the operation was a write.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_write(pa_o pa)
 {
     return (pa->pa_op == OP_CREAT) || (pa->pa_op == OP_APPEND);
 }
 
-/// Boolean - returns true iff the operation was a hard link.
+/// Boolean - true iff the operation was a hard link.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_link(pa_o pa)
 {
     return pa->pa_op == OP_LINK;
 }
 
-/// Boolean - returns true iff the operation was a symbolic link.
+/// Boolean - true iff the operation was a symbolic link.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_symlink(pa_o pa)
 {
     return pa->pa_op == OP_SYMLINK;
 }
 
-/// Boolean - returns true iff the operation was a removal.
+/// Boolean - true iff the operation was a removal.
 /// @param[in] pa       the object pointer
 /// @return true or false
-int
+bool
 pa_is_unlink(pa_o pa)
 {
     return pa->pa_op == OP_UNLINK;
 }
 
-/// Delegates to ps_exists().
-int
+/// Delegate to ps_exists().
+bool
 pa_exists(pa_o pa)
 {
     return ps_exists(pa->pa_ps);
 }
 
-/// Delegates to ps_set_moment().
+/// Delegate to ps_set_moment().
 void
 pa_set_moment(pa_o pa, moment_s moment)
 {
     ps_set_moment(pa->pa_ps, moment);
 }
 
-/// Delegates to ps_set_moment_str().
+/// Delegate to ps_set_moment_str().
 int
 pa_set_moment_str(pa_o pa, CCS str)
 {
@@ -408,37 +408,37 @@ pa_set_timestamp_str(pa_o pa, CCS str)
     return moment_parse(&(pa->pa_timestamp), str);
 }
 
-/// Queries whether the current PA has a timestamp already.
+/// Query whether the current PA has a timestamp already.
 /// @param[in] pa       the object pointer
-/// @return nonzero iff a timestamp exists
-int
+/// @return true iff a timestamp is present
+bool
 pa_has_timestamp(pa_o pa)
 {
     return moment_is_set(pa->pa_timestamp);
 }
 
-/// Delegates to ps_set_size_str().
+/// Delegate to ps_set_size_str().
 void
 pa_set_size_str(pa_o pa, CCS str)
 {
     ps_set_size_str(pa->pa_ps, str);
 }
 
-/// Delegates to ps_set_dcode().
+/// Delegate to ps_set_dcode().
 void
 pa_set_dcode(pa_o pa, CCS dcode)
 {
     ps_set_dcode(pa->pa_ps, dcode);
 }
 
-/// Delegates to ps_has_dcode().
-int
+/// Delegate to ps_has_dcode().
+bool
 pa_has_dcode(pa_o pa)
 {
     return ps_has_dcode(pa_get_ps(pa));
 }
 
-/// Delegates to ps_stat().
+/// Delegate to ps_stat().
 /// @param[in] pa               the object pointer
 /// @param[in] want_dcode       boolean - derive dcode iff true
 /// @return 0 on success
@@ -448,7 +448,7 @@ pa_stat(pa_o pa, int want_dcode)
     return ps_stat(pa->pa_ps, want_dcode);
 }
 
-/// Delegates to ps_diff().
+/// Delegate to ps_diff().
 /// @param[in] pa1      the left object pointer
 /// @param[in] pa2      the right object pointer
 /// @return a static string describing the difference, or NULL if the same

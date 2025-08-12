@@ -27,8 +27,8 @@ typedef struct path_name_s *pn_o;
 /// @endcond PN
 
 extern pn_o pn_new(CCS, int);
-extern int pn_is_member(pn_o);
-extern int pn_exists(pn_o);
+extern bool pn_is_member(pn_o);
+extern bool pn_exists(pn_o);
 extern CCS pn_get_abs(pn_o);
 extern CCS pn_get_rel(pn_o);
 extern void pn_verbosity(pn_o, CCS, CCS);

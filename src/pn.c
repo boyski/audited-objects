@@ -142,19 +142,19 @@ pn_new(CCS path, int use_cwd)
     return pn;
 }
 
-/// Boolean - returns true iff the path is a member of the project.
+/// Boolean - true iff the path is a member of the project.
 /// @param[in] pn       the object pointer
 /// @return true or false
-int
+bool
 pn_is_member(pn_o pn)
 {
     return pn->pn_rel != 0;
 }
 
-/// Boolean - returns true iff the path is currently present on this system.
+/// Boolean - true iff the path is currently present on this system.
 /// @param[in] pn       the object pointer
 /// @return true or false
-int
+bool
 pn_exists(pn_o pn)
 {
     return !access(pn->pn_abs, F_OK);

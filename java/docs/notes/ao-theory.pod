@@ -341,26 +341,27 @@ this:
 
     yacc foo.y && mv y.tab.h foo.h && mv y.tab.c foo.c
 
-Cancellation can't help to rationalize these situations because the
-create and the unlink happen in different commands. This is where
+Logically this is one unified operation but from a process POV it's 3
+different ones.  Cancellation can't help to rationalize this because
+the create and the unlink happen in different commands. This is where
 B<aggregation> comes in.
 
-A user or project can choose a regular expression (RE) selecting commands
-to be I<aggregated>. When a command matches an aggregation RE, it is
-marked as the I<leader> of an I<audit group> (AG). Its children are
-automatically entered as members of the AG too, and all those audits are
-held (i.e. not delivered to the server) until the leader has exited. At
-this point the entire I<audit group> is merged and treated as a single
-audit. Intra-command simplification similar to cancellation can be done
-within this group and, as above, only file events which survive this
-winnowing are recorded.
+A user or project can choose a regular expression (RE) selecting
+commands to be I<aggregated>. When a command matches an aggregation RE,
+it's marked as the I<leader> of an I<audit group> (AG). Its children
+are automatically entered as members of the AG too, and all those
+audits are held (i.e. not delivered to the server) until the leader has
+exited. At this point the entire I<audit group> is merged and treated
+as a single operation and audit. Intra-command simplification similar
+to cancellation can be done within this group and, as above, only file
+events which survive this winnowing are recorded.
 
-Cancellation and aggregation are best thought of as optimizations;
-in other words it's not a fatal error if a temp file is recorded
-unnecessarily. It simply means there will be some overhead cost for
+Cancellation and aggregation are best thought of as optimizations.
+In other words it's not a fatal error if a temp file is recorded
+unnecessarily, it just means there will be some overhead cost for
 tracking and storing it and the C<bookkeeping> may be a little muddier.
 It's best to identify and solve such things by tuning the regexes but
-it's not a necessity.
+life will go on with imperfect aggregations.
 
 =head1 COPYRIGHT
 

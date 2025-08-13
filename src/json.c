@@ -76,11 +76,17 @@ static CCS ca_fields[] = {
 // There's another copy in python.
 #define SEP "\n=-=-=-=-=-=-="
 
-/// Convert a cJSON object to a printable string
+json_t *
+json_init(void)
+{
+    return cJSON_CreateObject();
+}
+
+/// Serialize a cJSON object to a printable string
 /// @param[in] obj       the cJSON object
-/// @return a JSON object containing the same data as the CSV
-static CCS
-_json_to_str(void *obj)
+/// @return a string in JSON format
+CCS
+json_to_str(json_t *obj)
 {
     if (vb_bitmatch(VB_TMP)) {
         return cJSON_Print(obj); // for potentially easier debugging
@@ -88,10 +94,8 @@ _json_to_str(void *obj)
     return cJSON_PrintUnformatted(obj);
 }
 
-/// Free an entire cJSON object recursively
-/// @param[in] obj       the cJSON object
-static void
-_json_delete(void *obj)
+void
+json_fini(json_t *obj)
 {
     cJSON_Delete(obj);
 }
@@ -136,8 +140,8 @@ json_from_ca_csv(CCS ca_csv)
         }
     }
     FREE(copy);
-    jsonstr = (CS)_json_to_str(root);
-    _json_delete(root);
+    jsonstr = (CS)json_to_str(root);
+    cJSON_Delete(root);
     jsonstr = realloc((void *)jsonstr, strlen(jsonstr) + sizeof(SEP));
     (void)strcat(jsonstr, SEP);
     return (CCS)jsonstr;

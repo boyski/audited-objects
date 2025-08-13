@@ -17,13 +17,15 @@
 
 /// @file
 /// @brief Definitions for the PathAction "class".
+///
 /// A PathAction describes a moment in the life of a file when it was
 /// acted upon in some way. It might simply record a case when the file
 /// was read, or it could record a "creation event" such as a write,
-/// rename, or unlink. A PathAction contains a PathState (see ps.c). For a
-/// given PathState there may be many PathActions, though all but one (or
-/// zero) of them must be read operations since a creation event would
-/// result in a new PathState.
+/// rename, or unlink. A PathAction contains a PathState (see ps.c) which
+/// in turn contains a PathName (see pn.c). For a given PathState there
+/// may be many PathActions though all but one (or zero) of them must
+/// be read operations since any modification event would result in a
+/// new PathState.
 ///
 /// The term PathAction is often abbreviated as PA.
 
@@ -32,6 +34,7 @@
 #include "CA.h"
 #include "FREE.h"
 #include "HEAP.h"
+#include "JSON.h"
 #include "PA.h"
 #include "PS.h"
 #include "TRY.h"
@@ -284,6 +287,20 @@ pa_toCSVString(pa_o pa)
     return buf;
 }
 
+/// Serialize a PA for transmission.
+/// @param[in] pa       the PA object pointer
+/// @return an allocated, formatted string
+CCS
+pa_serialize(pa_o pa)
+{
+    json_t *obj = json_init();
+    CCS fmt_time;
+    TRY(fmt_time = moment_format(pa->pa_timestamp), "moment_format()");
+    CCS str = json_to_str(obj);
+    json_fini(obj);
+    return str;
+}
+
 /// Format a PathAction for user consumption (typically debugging)
 /// @param[in] pa       the object pointer
 /// @return an allocated string which must be freed by the caller
@@ -332,18 +349,26 @@ pa_is_special(pa_o pa)
     return ps_is_special(pa->pa_ps);
 }
 
-/// Boolean - true iff the operation was a read.
-/// @param[in] pa       the object pointer
-/// @return true or false
+/// @brief Determine whether a PA was a read operation.
+///
+/// Determines whether the given PathAction object represents
+/// a read, which includes both EXEC and READ operations.
+///
+/// @param pa The PA object to check
+/// @return true iff the file was opened only for read access
 bool
 pa_is_read(pa_o pa)
 {
     return (pa->pa_op == OP_EXEC) || (pa->pa_op == OP_READ);
 }
 
-/// Boolean - true iff the operation was a write.
-/// @param[in] pa       the object pointer
-/// @return true or false
+/// @brief Determine whether a PA was a write operation.
+///
+/// Determines whether the given PathAction object represents
+/// any sort of file-content modification.
+///
+/// @param pa The PA object to check
+/// @return true iff the file was opened for modification
 bool
 pa_is_write(pa_o pa)
 {
@@ -458,7 +483,7 @@ pa_diff(pa_o pa1, pa_o pa2)
     return ps_diff(pa1->pa_ps, pa2->pa_ps);
 }
 
-/// Makes a deep copy of an existing PA with a potentially different name.
+/// Make a deep copy of an existing PA with a potentially different name.
 /// Warning: use with care to avoid memory leaks.
 /// @param[in] cpa      the PA object pointer to be copied
 /// @return the new PA object
@@ -518,7 +543,8 @@ GEN_DELEGATE_GETTER_DEFN(pa, ps, size, int64_t)
 GEN_DELEGATE_GETTER_DEFN(pa, ps, moment, moment_s)
 // *INDENT-ON*
 
-/// Finalizer - releases all allocated memory for object.
+/// @brief Release all allocated memory for object.
+///
 /// If object is a null pointer, no action occurs.
 /// @param[in] pa       the object pointer
 void

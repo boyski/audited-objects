@@ -27,6 +27,10 @@
 
 typedef void json_t;
 
+json_t *json_init(void);
+CCS json_to_str(json_t *);
+void json_fini(json_t *);
+
 // Standard comparator type to enforce ordering.
 typedef int (*json_comp_t)(const void *, const void *);
 typedef json_comp_t json_dict_comp_t;

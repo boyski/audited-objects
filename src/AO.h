@@ -263,6 +263,10 @@ typedef enum {
 /// Macro for brute-force debugging.
 #define AT__ fprintf(stderr, "AT %s:%d\n", __FILE__, __LINE__);
 
+/////////////////////////////////////////////////////////////////////
+// Macros to generate getter/setter declarations and definitions.
+/////////////////////////////////////////////////////////////////////
+
 /// Generate the declaration of a setter.
 #define GEN_SETTER_DECL(class, attr, type)                          \
 extern void class ## _set_ ## attr(class ## _o, type);

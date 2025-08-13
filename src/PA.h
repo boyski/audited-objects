@@ -47,6 +47,7 @@ extern int pa_set_timestamp_str(pa_o, CCS);
 extern bool pa_has_timestamp(pa_o);
 extern void pa_set_size_str(pa_o, CCS);
 extern CCS pa_toCSVString(pa_o);
+extern CCS pa_serialize(pa_o);
 extern CCS pa_tostring(pa_o);
 extern int pa_stat(pa_o, int);
 extern CCS pa_diff(pa_o, pa_o);

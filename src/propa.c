@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdbool.h>  // TODO - needed until -std=c2x is reached
+
 #include "CCS.h"
 #include "FREE.h"
 #include "PROP.h"

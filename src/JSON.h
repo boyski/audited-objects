@@ -56,6 +56,11 @@ CCS json_from_ca_csv(CCS);
 int json_same(const void *, const void *);
 json_t *json_parse(CCS);
 
+void json_set_long(json_t *, CCS, long);
+long json_get_long(json_t *, CCS);
+void json_set_ulong(json_t *, CCS, unsigned long);
+unsigned long json_get_ulong(json_t *, CCS);
+
 // Intended as a replacement for the Kazlib dict_*() API.
 json_t *json_dict_create(CCS, json_dict_comp_t);
 CCS json_dict_name(const json_dict_t *);

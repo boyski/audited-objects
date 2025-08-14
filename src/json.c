@@ -76,6 +76,44 @@ static CCS ca_fields[] = {
 // There's another copy in python.
 #define SEP "\n=-=-=-=-=-=-="
 
+void
+json_set_long(json_t *doc, CCS name, long value)
+{
+    CS str;
+    TRY(asprintf(&str, "%ld", value), "asprintf()");
+    TRY(cJSON_AddStringToObject(doc, name, str), "cJSON_AddStringToObject()");
+    FREE(str);
+}
+
+long
+json_get_long(json_t *doc, CCS name)
+{
+     cJSON *item = cJSON_GetObjectItem(doc, name);
+     CS endptr;
+     long value = strtol(cJSON_GetStringValue(item), &endptr, 10);
+     assert(!*endptr);
+     return value;
+}
+
+void
+json_set_ulong(json_t *doc, CCS name, unsigned long value)
+{
+    CS str;
+    TRY(asprintf(&str, "%lu", value), "asprintf()");
+    TRY(cJSON_AddStringToObject(doc, name, str), "cJSON_AddStringToObject()");
+    FREE(str);
+}
+
+unsigned long
+json_get_ulong(json_t *doc, CCS name)
+{
+     cJSON *item = cJSON_GetObjectItem(doc, name);
+     CS endptr;
+     unsigned long value = strtoul(cJSON_GetStringValue(item), &endptr, 10);
+     assert(!*endptr);
+     return value;
+}
+
 json_t *
 json_init(void)
 {

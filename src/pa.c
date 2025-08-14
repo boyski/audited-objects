@@ -570,9 +570,33 @@ pa_destroy(pa_o pa)
 
 #ifdef UNIT_TEST_pa
 
+#include "JSON.h"
+
+/// @brief Record the "pid" value in the specified json document.
+void
+pa_set_pid_(json_t *doc, unsigned long pid)
+{
+    json_set_long(doc, "pid", pid);
+}
+
+/// @brief Return the value of "pid" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored pid value
+unsigned long
+pa_get_pid_(json_t *doc)
+{
+    return json_get_long(doc, "pid");
+}
+
 int
 main(void)
 {
+    json_t *doc = json_init();
+    json_set_ulong(doc, "pid", getpid());
+    unsigned long pid = json_get_ulong(doc, "pid");
+    printf("pid=%lu\n", pid);
+    json_fini(doc);
     return 0;
 }
 #endif // UNIT_TEST_pa

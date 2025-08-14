@@ -147,7 +147,7 @@ _code_hash2str(const unsigned char *data, size_t size, CS buf, size_t buflen)
     CS ret;
     TRY(asprintf(&ret, "%016llx%016llx",
         (unsigned long long)code.high64,
-        (unsigned long long)code.low64));
+        (unsigned long long)code.low64), "asprintf()");
     return ret;
 }
 

@@ -31,9 +31,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Needed until -std=c2x is reached.
-#include <stdbool.h>
-
 #include "Putil/putil.h"
 
 #include "AO.h"

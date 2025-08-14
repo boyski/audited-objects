@@ -346,6 +346,7 @@ class ## _get_ ## attr(class ## _o obj)                             \
 
 // Drag these in here because (a) just about everybody needs them and
 // (b) they may need to be "above" other internal headers.
+#include <stdbool.h>  // TODO - needed until -std=c2x is reached
 #include "properties.h"
 #include "CCS.h"
 #include "UTIL.h"

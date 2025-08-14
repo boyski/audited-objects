@@ -91,6 +91,18 @@ json_get_str(json_t *doc, CCS name)
 }
 
 void
+json_set_bool(json_t *doc, CCS name, bool value)
+{
+    json_set_long(doc, name, value ? 1 : 0);
+}
+
+bool
+json_get_bool(json_t *doc, CCS name)
+{
+    return json_get_long(doc, name) ? true : false;
+}
+
+void
 json_set_long(json_t *doc, CCS name, long value)
 {
     CS str;

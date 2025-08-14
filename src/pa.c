@@ -589,6 +589,40 @@ pa_get_call_(json_t *doc)
     return json_get_str(doc, "call");
 }
 
+/// @brief Record the "ccode" value in the specified json document.
+void
+pa_set_ccode_(json_t *doc, CCS ccode)
+{
+    json_set_str(doc, "ccode", ccode);
+}
+
+/// @brief Return the value of "ccode" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored ccode value
+CCS
+pa_get_ccode_(json_t *doc)
+{
+    return json_get_str(doc, "ccode");
+}
+
+/// @brief Record the "pccode" value in the specified json document.
+void
+pa_set_pccode_(json_t *doc, CCS pccode)
+{
+    json_set_str(doc, "pccode", pccode);
+}
+
+/// @brief Return the value of "pccode" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored pccode value
+CCS
+pa_get_pccode_(json_t *doc)
+{
+    return json_get_str(doc, "pccode");
+}
+
 /// @brief Record the "pid" value in the specified json document.
 void
 pa_set_pid_(json_t *doc, unsigned long pid)

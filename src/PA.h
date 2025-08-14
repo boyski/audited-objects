@@ -84,6 +84,12 @@ GEN_GETTER_DECL(pa, size, int64_t)
 void pa_set_call_(json_t *, CCS);
 CCS pa_get_call_(json_t *);
 
+void pa_set_ccode_(json_t *, CCS);
+CCS pa_get_ccode_(json_t *);
+
+void pa_set_pccode_(json_t *, CCS);
+CCS pa_get_pccode_(json_t *);
+
 void pa_set_pid_(json_t *, unsigned long);
 unsigned long pa_get_pid_(json_t *);
 

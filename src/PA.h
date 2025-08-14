@@ -81,8 +81,20 @@ GEN_GETTER_DECL(pa, datatype, int)
 GEN_GETTER_DECL(pa, moment, moment_s)
 GEN_GETTER_DECL(pa, size, int64_t)
 
+void pa_set_call_(json_t *, CCS);
+CCS pa_get_call_(json_t *);
+
 void pa_set_pid_(json_t *, unsigned long);
 unsigned long pa_get_pid_(json_t *);
+
+void pa_set_ppid_(json_t *, unsigned long);
+unsigned long pa_get_ppid_(json_t *);
+
+void pa_set_tid_(json_t *, unsigned long);
+unsigned long pa_get_tid_(json_t *);
+
+void pa_set_depth_(json_t *, unsigned long);
+unsigned long pa_get_depth_(json_t *);
 
 #endif // PA_H
 

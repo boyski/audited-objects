@@ -572,6 +572,23 @@ pa_destroy(pa_o pa)
 
 #include "JSON.h"
 
+/// @brief Record the "call" value in the specified json document.
+void
+pa_set_call_(json_t *doc, CCS call)
+{
+    json_set_str(doc, "call", call);
+}
+
+/// @brief Return the value of "call" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored call value
+CCS
+pa_get_call_(json_t *doc)
+{
+    return json_get_str(doc, "call");
+}
+
 /// @brief Record the "pid" value in the specified json document.
 void
 pa_set_pid_(json_t *doc, unsigned long pid)
@@ -589,13 +606,74 @@ pa_get_pid_(json_t *doc)
     return json_get_long(doc, "pid");
 }
 
+/// @brief Record the "ppid" value in the specified json document.
+void
+pa_set_ppid_(json_t *doc, unsigned long ppid)
+{
+    json_set_long(doc, "ppid", ppid);
+}
+
+/// @brief Return the value of "ppid" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored ppid value
+unsigned long
+pa_get_ppid_(json_t *doc)
+{
+    return json_get_long(doc, "ppid");
+}
+
+/// @brief Record the "tid" value in the specified json document.
+void
+pa_set_tid_(json_t *doc, unsigned long tid)
+{
+    json_set_long(doc, "tid", tid);
+}
+
+/// @brief Return the value of "tid" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored tid value
+unsigned long
+pa_get_tid_(json_t *doc)
+{
+    return json_get_long(doc, "tid");
+}
+
+/// @brief Record the "depth" value in the specified json document.
+void
+pa_set_depth_(json_t *doc, unsigned long depth)
+{
+    json_set_long(doc, "depth", depth);
+}
+
+/// @brief Return the value of "depth" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored depth value
+unsigned long
+pa_get_depth_(json_t *doc)
+{
+    return json_get_long(doc, "depth");
+}
+
 int
 main(void)
 {
     json_t *doc = json_init();
-    json_set_ulong(doc, "pid", getpid());
-    unsigned long pid = json_get_ulong(doc, "pid");
+    pa_set_call_(doc, __func__);
+    printf("call=%s\n", pa_get_call_(doc));
+
+    pa_set_pid_(doc, getpid());
+    unsigned long pid = pa_get_pid_(doc);
     printf("pid=%lu\n", pid);
+
+    int depth = 0;
+    pa_set_depth_(doc, ++depth);
+    printf("depth=%lu\n", pa_get_depth_(doc));
+    pa_set_depth_(doc, 122);
+    printf("depth=%lu\n", pa_get_depth_(doc));
+
     json_fini(doc);
     return 0;
 }

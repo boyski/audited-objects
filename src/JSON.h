@@ -56,6 +56,8 @@ CCS json_from_ca_csv(CCS);
 int json_same(const void *, const void *);
 json_t *json_parse(CCS);
 
+void json_set_str(json_t *, CCS, CCS);
+CCS json_get_str(json_t *, CCS);
 void json_set_long(json_t *, CCS, long);
 long json_get_long(json_t *, CCS);
 void json_set_ulong(json_t *, CCS, unsigned long);

@@ -61,7 +61,7 @@ _pn_abs_to_project_relative_path(CCS path)
     return offset;
 }
 
-/// Converts a relative path into an absolute path using project-relative
+/// Convert a relative path into an absolute path using project-relative
 /// addressing.
 /// @param[in] path     a potentially relative pathname
 /// @return an absolute pathname
@@ -78,7 +78,7 @@ _pn_make_project_relative(CCS path)
 }
 
 /// Constructor.
-/// Accepts either absolute or relative paths as input.
+/// Accept either absolute or relative paths as input.
 /// Relative paths may be interpreted vs the current working directory
 /// or the project base directory depending on the boolean parameter.
 /// Note that this does not require the named file to exist; all
@@ -160,7 +160,7 @@ pn_exists(pn_o pn)
     return !access(pn->pn_abs, F_OK);
 }
 
-/// Returns the absolute version of the pathname.
+/// Return the absolute version of the pathname.
 /// @param[in] pn       the object pointer
 /// @return a pointer to the absolute path string
 CCS
@@ -169,7 +169,7 @@ pn_get_abs(pn_o pn)
     return pn->pn_abs;
 }
 
-/// Returns a project-relative version of the pathname.
+/// Return a project-relative version of the pathname.
 /// @param[in] pn       the object pointer
 /// @return a pointer to the relative path string
 CCS
@@ -185,7 +185,7 @@ pn_get_rel(pn_o pn)
     }
 }
 
-/// Prints the specified name to standard output, suitably formatted
+/// Print the specified name to standard output, suitably formatted
 /// for the platform along with a verb and an optional extended name.
 /// @param[in] pn       the object pointer
 /// @param[in] verb     a description of what's being done to the path
@@ -212,7 +212,7 @@ pn_verbosity(pn_o pn, CCS verb, CCS ext)
     }
 }
 
-/// Finalizer - releases all allocated memory for object.
+/// Finalizer - release all allocated memory for object.
 /// @param[in] pn       the object pointer
 void
 pn_destroy(pn_o pn)
@@ -348,5 +348,14 @@ _pn_path_canon(CCS src, CCS slim, CS dst, CCS dlim, CCS srcsep, int dstsep)
 }
 
 /// @endcond static
+
+#ifdef UNIT_TEST_pn
+
+int
+main(void)
+{
+    return 0;
+}
+#endif // UNIT_TEST_pn
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

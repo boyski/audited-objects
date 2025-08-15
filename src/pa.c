@@ -572,6 +572,27 @@ pa_destroy(pa_o pa)
 
 #include "JSON.h"
 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "op" value in the specified json document.
+void
+pa_set_op_(json_t *doc, op_e op)
+{
+    json_set_long(doc, "op", op);
+}
+
+/// @brief Return the value of "op" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored op value
+op_e
+pa_get_op_(json_t *doc)
+{
+    return (op_e)json_get_long(doc, "op");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 /// @brief Record the "call" value in the specified json document.
 void
 pa_set_call_(json_t *doc, CCS call)
@@ -588,6 +609,27 @@ pa_get_call_(json_t *doc)
 {
     return json_get_str(doc, "call");
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "timestamp" value in the specified json document.
+void
+pa_set_timestamp_(json_t *doc, CCS timestamp)
+{
+    json_set_str(doc, "timestamp", timestamp);
+}
+
+/// @brief Return the value of "timestamp" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored timestamp value
+CCS
+pa_get_timestamp_(json_t *doc)
+{
+    return json_get_str(doc, "timestamp");
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Record the "ccode" value in the specified json document.
 void
@@ -606,6 +648,8 @@ pa_get_ccode_(json_t *doc)
     return json_get_str(doc, "ccode");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 /// @brief Record the "pccode" value in the specified json document.
 void
 pa_set_pccode_(json_t *doc, CCS pccode)
@@ -622,6 +666,8 @@ pa_get_pccode_(json_t *doc)
 {
     return json_get_str(doc, "pccode");
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Record the "pid" value in the specified json document.
 void
@@ -640,6 +686,8 @@ pa_get_pid_(json_t *doc)
     return json_get_long(doc, "pid");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 /// @brief Record the "ppid" value in the specified json document.
 void
 pa_set_ppid_(json_t *doc, unsigned long ppid)
@@ -656,6 +704,8 @@ pa_get_ppid_(json_t *doc)
 {
     return json_get_long(doc, "ppid");
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Record the "tid" value in the specified json document.
 void
@@ -674,6 +724,8 @@ pa_get_tid_(json_t *doc)
     return json_get_long(doc, "tid");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 /// @brief Record the "depth" value in the specified json document.
 void
 pa_set_depth_(json_t *doc, unsigned long depth)
@@ -691,10 +743,54 @@ pa_get_depth_(json_t *doc)
     return json_get_long(doc, "depth");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "fd" value in the specified json document.
+void
+pa_set_fd_(json_t *doc, int fd)
+{
+    json_set_long(doc, "fd", fd);
+}
+
+/// @brief Return the value of "fd" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the stored fd value as an int
+int
+pa_get_fd_(json_t *doc)
+{
+    return (int)json_get_long(doc, "fd");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "uploadable" value in the specified json document.
+void
+pa_set_uploadable_(json_t *doc, bool uploadable)
+{
+    json_set_bool(doc, "uploadable", uploadable);
+}
+
+/// @brief Return the value of "uploadable" from the specified json document.
+///
+/// @param[in] doc      a json document
+/// @return the boolean uploadable value
+bool
+pa_get_uploadable_(json_t *doc)
+{
+    return json_get_bool(doc, "uploadable");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 int
 main(void)
 {
     json_t *doc = json_init();
+
+    pa_set_op_(doc, OP_APPEND);
+    printf("op=%d\n", pa_get_op_(doc));
+
     pa_set_call_(doc, __func__);
     printf("call=%s\n", pa_get_call_(doc));
 

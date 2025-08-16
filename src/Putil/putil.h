@@ -197,24 +197,8 @@ typedef unsigned long ULONG64;
 #define INVALID_SOCKET              -1
 #define SOCKET_ERROR                -1
 
-/* Convenience: strcmp macro with reversed sense */
-#define streq(a,b)  !strcmp(a,b)
-#define strneq(a,b,c)   !strncmp(a,b,c)
-
-/* Returns true when argument is a power of two. */
-#define power_of_2(i)   (!(i & (i - 1)))
-
-// For names of filesystems and similar small stuff
-#define SMALLBUF 1024
-
 /* Obvious but generally useful */
 #define DEVNULL     "/dev/null"
-#define SYS_SHELL   "/bin/sh"
-
-// For general purpose automatic buffers. Typically this is to be used
-// when we need a temporary construction buffer placed on the stack
-// and will malloc what actually was constructed if need be.
-#define BIGBUF      32768       // Windows max path is 32767
 
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////

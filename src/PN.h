@@ -26,7 +26,7 @@ typedef struct path_name_s *pn_o;
 
 /// @endcond PN
 
-extern pn_o pn_new(CCS, int);
+extern pn_o pn_new(CCS, bool);
 extern bool pn_is_member(pn_o);
 extern bool pn_exists(pn_o);
 extern CCS pn_get_abs(pn_o);

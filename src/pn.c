@@ -84,10 +84,10 @@ _pn_make_project_relative(CCS path)
 /// Note that this does not require the named file to exist; all
 /// path work here is entirely abstract.
 /// @param[in] path     a string representing the path
-/// @param[in] use_cwd  boolean - relative to CWD (true) or RWD (false)
+/// @param[in] use_cwd  relative to CWD (true) or RWD (false)
 /// @return a new PathName object
 pn_o
-pn_new(CCS path, int use_cwd)
+pn_new(CCS path, bool use_cwd)
 {
     pn_o pn;
 

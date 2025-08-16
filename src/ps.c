@@ -96,7 +96,7 @@ ps_newFromPath(CCS path)
     ps_o ps;
 
     ps = ps_new();
-    ps_set_pn(ps, pn_new(path, 1));
+    ps_set_pn(ps, pn_new(path, true));
     return ps;
 }
 
@@ -148,12 +148,12 @@ ps_newFromCSVString(CCS csv)
         if (*datatype == PS_SYMLINK) {
             ps_set_target(ps, decoded);
         } else {
-            ps_set_pn2(ps, pn_new(decoded, 0));
+            ps_set_pn2(ps, pn_new(decoded, false));
         }
         FREE(decoded);
     }
 
-    ps_set_pn(ps, pn_new(linebuf, 0));
+    ps_set_pn(ps, pn_new(linebuf, false));
 
     FREE(original);
     return ps;

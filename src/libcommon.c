@@ -195,7 +195,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
         return;
     }
 
-    pn = pn_new(path, 1);
+    pn = pn_new(path, true);
     path = pn_get_abs(pn);
 
     if (_ignore_path(path)) {
@@ -239,7 +239,7 @@ _pa_record(CCS call, CCS path, CCS extra, int fd, op_e op)
             if (op == OP_SYMLINK) {
                 ps_set_target(ps, extra);
             } else {
-                ps_set_pn2(ps, pn_new(extra, 1));
+                ps_set_pn2(ps, pn_new(extra, true));
             }
         }
 

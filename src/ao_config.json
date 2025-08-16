@@ -175,10 +175,6 @@
       "padding": 22,
       "value": null
     },
-    "PERL_CMD": {
-      "description": "Name of or path to the preferred Perl binary",
-      "value": "perl"
-    },
     "PRINT_ELAPSED": {
       "description": "Print elapsed wall-clock time at exit if > 0",
       "value": 0

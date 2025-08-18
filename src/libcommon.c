@@ -30,19 +30,22 @@
 
 #define DONE                            "{DONE}\n"
 
-// These may require some fancy stepping in order to maintain
+// It may require some fancy stepping in order to maintain
 // thread safety within a potentially multithreaded host program.
 // The general strategy is to initialize static data once during
 // the single-threaded constructor and treat them as read-only
 // afterwards but that may not always be an option.
 static unsigned long Depth;
 static ca_o CurrentCA;
-static int AuditFD = -1;
 static void *IgnorePathRE;
 static void *IgnoreProgRE;
 
 /// The socket through which all communication to the monitor takes place.
-SOCKET ReportSocket = INVALID_SOCKET;
+static SOCKET ReportSocket = INVALID_SOCKET;
+
+// File descriptor of a temp file used to store audit data locally
+// until it's delivered to the monitor via ReportSocket;
+static int AuditFD = -1;
 
 // This static flag indicates whether the auditor is active or quiescent.
 // The default kind of activation is when the auditor is turned on from

@@ -919,10 +919,9 @@ close_wrapper(const char *call, int (*next) (int), int fildes)
     // descriptors before an exec. This causes a problem for our
     // "private" audit descriptor so we protect it.
     if (fildes == AuditFD) {
-        ret = 0;
-    } else {
-        ret = (*next)(fildes);
+        return 0;
     }
+    return (*next)(fildes);
 
     return ret;
 }

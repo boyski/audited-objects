@@ -404,9 +404,9 @@ run_cmd(CCS exe, CS *argv, CCS logfile)
         size_t len;
         u_short port;
 
-        // Max chars needed to represent a 32-bit value plus ':' is 11.
+        // Max chars needed to represent INT_MAX plus ':' is 11.
         len = ports * 11;
-        portstr = putil_calloc(len, 1);
+        portstr = putil_calloc(len + 1, 1);
 
         for (i = 0; i < ports; i++) {
             if ((listeners[i] = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {

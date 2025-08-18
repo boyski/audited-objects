@@ -444,12 +444,10 @@ _audit_open(void)
                 if (fd == -1) {
                     char *obuf;
 
-                    asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid());
-                    fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666);
-                    if (fd == -1) {
-                        putil_syserr(2, obuf);
-                        exit(2);
-                    }
+                    TRY(asprintf(&obuf, "%s.%lu", ofile, (unsigned long)getpid()) != -1,
+                        "asprintf()");
+                    TRY((fd = open_real(obuf, O_CREAT | O_WRONLY | O_APPEND, 0666)) != -1,
+                        "open_real()");
                     FREE(obuf);
                 }
                 fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
@@ -484,10 +482,7 @@ _audit_open(void)
         // If all the above efforts failed, just ask the system
         // for the next available descriptor.
         if (fd == -1) {
-            if ((fd = dup(fileno(tfp))) == -1) {
-                putil_syserr(2, "dup");
-                exit(2);
-            }
+            TRY((fd = dup(fileno(tfp))) != -1, "dup()");
         }
 
         // Now the stream can go away to preserve limited stdio count.
@@ -513,11 +508,8 @@ _audit_start(CCS call)
     }
 
     // Allocate and format the cmdline SOA header.
-    hdr = ca_format_header(CurrentCA);
-    if (!hdr || asprintf(&soa_hdr, "%s%s", SOA, hdr) < 0) {
-        putil_syserr(2, NULL);
-        exit(2);
-    }
+    TRY(hdr = ca_format_header(CurrentCA), "ca_format_header()");
+    TRY(asprintf(&soa_hdr, "%s%s", SOA, hdr) != -1, "asprintf()");
     FREE(hdr);
 
     // This is an optimization hack - lower-case is used to indicate
@@ -709,19 +701,17 @@ _audit_end(CCS call, int exiting, long status)
         // Allocate and format the cmdline header.
         hdr = ca_format_header(CurrentCA);
         assert(hdr);
-        if (asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) < 0) {
-            putil_syserr(2, NULL);
-            exit(2);
-        }
+        TRY(asprintf(&eoa_hdr, "%s[%ld]%s", EOA, status, hdr) >= 0, "asprintf()");
         FREE(hdr);
 
+        // Send it to the monitor.
         if (ReportSocket == INVALID_SOCKET) {
             TRY(write(AuditFD, eoa_hdr, strlen(eoa_hdr)) != -1, "write()");
         } else {
             _monitor_send(&ReportSocket, eoa_hdr, strlen(eoa_hdr));
         }
-
         FREE(eoa_hdr);
+
         ca_destroy(CurrentCA);
         CurrentCA = NULL;
         close(AuditFD);
@@ -729,10 +719,7 @@ _audit_end(CCS call, int exiting, long status)
     } else if (!prop_is_true(P_NO_MONITOR)) {
         // In case more data is written to the temp file, reposition
         // its pointer at the beginning.
-        if (lseek(AuditFD, 0, SEEK_SET) == (off_t)-1) {
-            putil_syserr(2, "lseek");
-            exit(2);
-        }
+        TRY(lseek(AuditFD, 0, SEEK_SET) != (off_t)-1, "lseek()");
         TRY(!ftruncate(AuditFD, 0), "ftruncate()");
     }
 

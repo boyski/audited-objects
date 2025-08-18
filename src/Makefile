@@ -273,9 +273,11 @@ _relink:
 .PHONY: relink
 relink: _relink all
 
-TESTS := $(addprefix t,code json pa pn propa propm)
+TESTS := $(addprefix t,ca code json pa pn propa propm)
 TARGETS += $(TESTS)
 
+tca: extras := code.c heap.c json.c moment.c pa.c ps.c pn.c propm.c \
+  putil.c util.c vb.c zips.c
 tcode: extras := heap.c propm.c putil.c util.c vb.c zips.c
 tjson: extras := heap.c propm.c putil.c vb.c
 tpa: extras := code.c heap.c json.c moment.c ps.c pn.c propm.c \

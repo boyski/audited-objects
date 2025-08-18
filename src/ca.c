@@ -1378,4 +1378,16 @@ ca_destroy(ca_o ca)
     FREE(ca);
 }
 
+#ifdef UNIT_TEST_ca
+
+#include "JSON.h"
+
+int
+main(void)
+{
+    return 0;
+}
+
+#endif // UNIT_TEST_ca
+
 // vim: sw=4 ts=4 et tw=100 cc=+1

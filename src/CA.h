@@ -87,6 +87,45 @@ GEN_SETTER_GETTER_DECL(ca, closed, int)
 GEN_SETTER_GETTER_DECL(ca, processed, int)
 GEN_GETTER_DECL(ca, pending, int)
 
+json_t *ca_new_(CCS);
+void ca_delete_(json_t *);
+
+void ca_set_cmdid_(json_t *, unsigned long);
+unsigned long ca_get_cmdid_(json_t *);
+
+void ca_set_op_(json_t *, op_e);
+op_e ca_get_op_(json_t *);
+
+void ca_set_call_(json_t *, CCS);
+CCS ca_get_call_(json_t *);
+
+void ca_set_timestamp_(json_t *, CCS);
+CCS ca_get_timestamp_(json_t *);
+
+void ca_set_ccode_(json_t *, CCS);
+CCS ca_get_ccode_(json_t *);
+
+void ca_set_pccode_(json_t *, CCS);
+CCS ca_get_pccode_(json_t *);
+
+void ca_set_pid_(json_t *, unsigned long);
+unsigned long ca_get_pid_(json_t *);
+
+void ca_set_ppid_(json_t *, unsigned long);
+unsigned long ca_get_ppid_(json_t *);
+
+void ca_set_tid_(json_t *, unsigned long);
+unsigned long ca_get_tid_(json_t *);
+
+void ca_set_depth_(json_t *, unsigned long);
+unsigned long ca_get_depth_(json_t *);
+
+void ca_set_fd_(json_t *, int);
+int ca_get_fd_(json_t *);
+
+void ca_set_uploadable_(json_t *, bool);
+bool ca_get_uploadable_(json_t *);
+
 #endif // CA_H
 
 // vim: sw=4 ts=4 et tw=100 cc=+1

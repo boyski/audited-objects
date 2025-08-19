@@ -1382,9 +1382,300 @@ ca_destroy(ca_o ca)
 
 #include "JSON.h"
 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Create a fresh CommandAction object.
+///
+/// @param[in] cmdline      the command line for this CA
+/// @return the newly created CA object
+json_t *
+ca_new_(CCS cmdline)
+{
+    json_t *ca = json_init();
+    json_set_str(ca, "cmdline", cmdline);
+    return ca;
+}
+
+// GEN_SETTER_GETTER_DEFN(ca, depth, unsigned long)
+// GEN_SETTER_GETTER_DEFN(ca, pcmdid, unsigned long)
+// GEN_SETTER_GETTER_DEFN(ca, starttime, moment_s)
+// GEN_SETTER_GETTER_DEFN(ca, duration, unsigned long)
+// GEN_SETTER_GETTER_DEFN_STR(ca, prog, CCS, NULL)
+// GEN_SETTER_GETTER_DEFN_STR(ca, host, CCS, NULL)
+// GEN_SETTER_GETTER_DEFN_STR(ca, recycled, CCS, NULL)
+// GEN_SETTER_GETTER_DEFN_STR(ca, freetext, CCS, NULL)
+// GEN_SETTER_GETTER_DEFN_STR(ca, rwd, CCS, NULL)
+// GEN_SETTER_GETTER_DEFN_STR(ca, pccode, CCS, CSV_NULL_FIELD)
+// GEN_SETTER_GETTER_DEFN_STR(ca, ccode, CCS, CSV_NULL_FIELD)
+// GEN_SETTER_GETTER_DEFN_STR(ca, pathcode, CCS, CSV_NULL_FIELD)
+// GEN_SETTER_GETTER_DEFN(ca, leader, ca_o)
+// GEN_SETTER_GETTER_DEFN(ca, strong, int)
+// GEN_SETTER_GETTER_DEFN(ca, started, int)
+// GEN_SETTER_GETTER_DEFN(ca, closed, int)
+// GEN_SETTER_GETTER_DEFN(ca, processed, int)
+
+/// @brief Record a "cmdid" value in the CA object.
+///
+/// @param[in] ca      a CA object
+/// @param[in] cmdid   an id mapping to the command
+void
+ca_set_cmdid_(json_t *ca, unsigned long cmdid)
+{
+    json_set_long(ca, "cmdid", cmdid);
+}
+
+/// @brief Return the value of "cmdid" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored cmdid value
+unsigned long
+ca_get_cmdid_(json_t *ca)
+{
+    return json_get_ulong(ca, "cmdid");
+}
+
+/// @brief Record an "op" value in the CA object.
+///
+/// @param[in] ca      a CA object
+void
+ca_set_op_(json_t *ca, op_e op)
+{
+    json_set_long(ca, "op", op);
+}
+
+/// @brief Return the value of "op" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored op value
+op_e
+ca_get_op_(json_t *ca)
+{
+    return (op_e)json_get_long(ca, "op");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "call" value in the CA object.
+void
+ca_set_call_(json_t *ca, CCS call)
+{
+    json_set_str(ca, "call", call);
+}
+
+/// @brief Return the value of "call" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored call value
+CCS
+ca_get_call_(json_t *ca)
+{
+    return json_get_str(ca, "call");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "timestamp" value in the CA object.
+void
+ca_set_timestamp_(json_t *ca, CCS timestamp)
+{
+    json_set_str(ca, "timestamp", timestamp);
+}
+
+/// @brief Return the value of "timestamp" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored timestamp value
+CCS
+ca_get_timestamp_(json_t *ca)
+{
+    return json_get_str(ca, "timestamp");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "ccode" value in the CA object.
+void
+ca_set_ccode_(json_t *ca, CCS ccode)
+{
+    json_set_str(ca, "ccode", ccode);
+}
+
+/// @brief Return the value of "ccode" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored ccode value
+CCS
+ca_get_ccode_(json_t *ca)
+{
+    return json_get_str(ca, "ccode");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "pccode" value in the CA object.
+void
+ca_set_pccode_(json_t *ca, CCS pccode)
+{
+    json_set_str(ca, "pccode", pccode);
+}
+
+/// @brief Return the value of "pccode" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored pccode value
+CCS
+ca_get_pccode_(json_t *ca)
+{
+    return json_get_str(ca, "pccode");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "pid" value in the CA object.
+void
+ca_set_pid_(json_t *ca, unsigned long pid)
+{
+    json_set_long(ca, "pid", pid);
+}
+
+/// @brief Return the value of "pid" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored pid value
+unsigned long
+ca_get_pid_(json_t *ca)
+{
+    return json_get_long(ca, "pid");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "ppid" value in the CA object.
+void
+ca_set_ppid_(json_t *ca, unsigned long ppid)
+{
+    json_set_long(ca, "ppid", ppid);
+}
+
+/// @brief Return the value of "ppid" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored ppid value
+unsigned long
+ca_get_ppid_(json_t *ca)
+{
+    return json_get_long(ca, "ppid");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "tid" value in the CA object.
+void
+ca_set_tid_(json_t *ca, unsigned long tid)
+{
+    json_set_long(ca, "tid", tid);
+}
+
+/// @brief Return the value of "tid" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored tid value
+unsigned long
+ca_get_tid_(json_t *ca)
+{
+    return json_get_long(ca, "tid");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "depth" value in the CA object.
+void
+ca_set_depth_(json_t *ca, unsigned long depth)
+{
+    json_set_long(ca, "depth", depth);
+}
+
+/// @brief Return the value of "depth" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored depth value
+unsigned long
+ca_get_depth_(json_t *ca)
+{
+    return json_get_long(ca, "depth");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "fd" value in the CA object.
+void
+ca_set_fd_(json_t *ca, int fd)
+{
+    json_set_long(ca, "fd", fd);
+}
+
+/// @brief Return the value of "fd" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the stored fd value as an int
+int
+ca_get_fd_(json_t *ca)
+{
+    return (int)json_get_long(ca, "fd");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// @brief Record the "uploadable" value in the CA object.
+void
+ca_set_uploadable_(json_t *ca, bool uploadable)
+{
+    json_set_bool(ca, "uploadable", uploadable);
+}
+
+/// @brief Return the value of "uploadable" from the CA object.
+///
+/// @param[in] ca      a CA object
+/// @return the boolean uploadable value
+bool
+ca_get_uploadable_(json_t *ca)
+{
+    return json_get_bool(ca, "uploadable");
+}
+
+/// @brief Free the storage of the provided CommandAction object.
+///
+/// @param[in] ca       a CA object
+void
+ca_delete_(json_t *ca )
+{
+    json_fini(ca );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 int
 main(void)
 {
+    json_t *ca = ca_new_("echo command line");
+
+    ca_set_op_(ca, OP_APPEND);
+    printf("op=%d\n", ca_get_op_(ca));
+
+    ca_set_call_(ca, __func__);
+    printf("call=%s\n", ca_get_call_(ca));
+
+    ca_set_pid_(ca, getpid());
+    unsigned long pid = ca_get_pid_(ca);
+    printf("pid=%lu\n", pid);
+
+    int depth = 0;
+    ca_set_depth_(ca, ++depth);
+    printf("depth=%lu\n", ca_get_depth_(ca));
+    ca_set_depth_(ca, 122);
+    printf("depth=%lu\n", ca_get_depth_(ca));
+
+    ca_delete_(ca);
     return 0;
 }
 
